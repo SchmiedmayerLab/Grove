@@ -25,19 +25,6 @@ struct GroveSensorKitRecordingSummaryTests {
         }
     }
 
-    private static var context: SensorKitConversionContext {
-        get throws {
-            SensorKitConversionContext(
-                subject: SensorFHIRIdentityTestSupport.subject,
-                converter: ApplicationDevice.test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
-                eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
-                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
-                sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                conversionInstant: start.addingTimeInterval(60)
-            )
-        }
-    }
-
     private static func accelerometerRecord(format: RegisteredRecordingFormat = .triaxialAccelerationSamples) throws -> SensorKitAccelerometerRecord {
         let payload = switch format {
         case .nativeRecording:
@@ -77,8 +64,8 @@ struct GroveSensorKitRecordingSummaryTests {
             sourceRecordID: try Self.sourceID,
             session: DateInterval(start: Self.start.addingTimeInterval(-28_800), end: Self.start)
         )
-        let conversion = try SensorKitConverter().convert(.sleepSession(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
+        let graph = try SensorKitExporterFixtures.graph(.sleepSession(record), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-sleep-session-observation")])
         guard case .quantity(let value) = observation.value else {
@@ -90,14 +77,14 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(value.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
         #expect(observation.component == nil)
         #expect(observation.derivedFrom == nil)
-        #expect(conversion.recordingDocument == nil)
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.recordingDocument == nil)
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.sleepSessions",
             structuredDiscriminator: "sleep-session",
             includesNativeRecording: false
         )))
-        #expect(conversion.bundle.entry?.count == 4)
+        #expect(graph.bundle.entry?.count == 4)
         guard case .period(let effective) = observation.effective else {
             Issue.record("A sleep session must span its exact session Period")
             return
@@ -108,13 +95,10 @@ struct GroveSensorKitRecordingSummaryTests {
 
     @Test
     func accelerometerSummaryLinksTheMandatoryRecording() throws {
-        let conversion = try SensorKitConverter().convert(
-            .accelerometer(Self.accelerometerRecord()),
-            context: Self.context
-        )
-        let observation = try #require(conversion.observations.first)
-        let document = try #require(conversion.recordingDocument)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.accelerometer(Self.accelerometerRecord()), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
+        let document = try #require(graph.recordingDocument)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-accelerometer-observation")])
         #expect(observation.value == nil)
@@ -123,13 +107,13 @@ struct GroveSensorKitRecordingSummaryTests {
         let format = try #require(document.content.first?.format)
         #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "triaxial-acceleration-samples")
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.accelerometer",
             structuredDiscriminator: "accelerometer-recording-summary",
             includesNativeRecording: true
         )))
-        #expect(conversion.provenance.target.count == 2)
+        #expect(try graph.provenance.target.count == 2)
     }
 
     @Test
@@ -144,10 +128,10 @@ struct GroveSensorKitRecordingSummaryTests {
                 admission: .callerAuthorizedOpaquePayload
             )
         )
-        let conversion = try SensorKitConverter().convert(.ppg(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
-        let document = try #require(conversion.recordingDocument)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.ppg(record), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
+        let document = try #require(graph.recordingDocument)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-ppg-observation")])
         #expect(observation.value == nil)
@@ -162,13 +146,13 @@ struct GroveSensorKitRecordingSummaryTests {
         let identifiers = try #require(document.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
         #expect(document.content.count == 1)
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.photoplethysmogram",
             structuredDiscriminator: "ppg-recording-summary",
             includesNativeRecording: true
         )))
-        #expect(conversion.provenance.target.count == 2)
+        #expect(try graph.provenance.target.count == 2)
     }
 
     @Test

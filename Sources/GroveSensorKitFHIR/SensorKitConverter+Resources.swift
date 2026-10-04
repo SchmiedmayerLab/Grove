@@ -8,7 +8,7 @@
 
 // FHIR R4 initializers expose profile cardinalities directly; keeping those fields adjacent makes
 // the clinical projection auditable against the IG even when a builder exceeds generic style limits.
-// swiftlint:disable function_body_length function_parameter_count multiline_function_chains multiline_literal_brackets
+// swiftlint:disable function_body_length multiline_function_chains multiline_literal_brackets
 
 import FHIRModelsExtensions
 import Foundation
@@ -17,127 +17,48 @@ import ModelsR4
 
 
 extension SensorKitConverter {
-    static func buildObservations(
-        _ record: SensorKitRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputNode: OutputNode?,
-        rawURL: String?,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
-    ) throws -> [Observation] {
-        guard let outputNode else {
-            return []
-        }
-        let observation: Observation
+    /// The structured Observation of a record whose catalog row names one; `rawURL` is the fullUrl of the
+    /// record's raw output, when it has one.
+    static func buildObservation(_ record: SensorKitRecord, rawURL: String?, context: ContentContext) throws -> Observation {
         switch record {
         case .rotationRate(let record):
-            observation = try rotationRateObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputNode.identifier,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            return try rotationRateObservation(record, context: context)
         case .electrocardiogram(let record):
-            guard let rawURL else {
-                throw SensorKitRecordError.sourceTypeHasNoRawContract("SRSensor.electrocardiogram")
-            }
-            observation = try ecgObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputNode.identifier,
-                rawURL: rawURL,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            return try ecgObservation(record, rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.electrocardiogram"), context: context)
         case .onWrist(let record):
-            observation = try onWristObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputNode.identifier,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            return try onWristObservation(record, context: context)
         case .deviceUsage(let record):
-            guard let rawURL else {
-                throw SensorKitRecordError.sourceTypeHasNoRawContract("SRSensor.deviceUsageReport")
-            }
-            observation = try deviceUsageObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputNode.identifier,
-                rawURL: rawURL,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            return try deviceUsageObservation(record, rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.deviceUsageReport"), context: context)
         case .visit(let record):
-            observation = try visitObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputNode.identifier,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            return try visitObservation(record, context: context)
         case .messagesUsage, .phoneUsage, .keyboardMetrics, .sleepSession, .accelerometer, .ppg, .wristTemperature:
-            observation = try summaryObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputNode.identifier,
-                rawURL: rawURL,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            return try summaryObservation(record, rawURL: rawURL, context: context)
         case .raw:
-            return []
+            throw SensorKitRecordError.sourceTypeNotAdmitted(record.sourceToken)
         }
-        return [observation]
     }
 
+    /// The raw DocumentReference carrying the record's exact native recording; `relatedURL` is the fullUrl of the
+    /// record's structured output, when it has one.
     static func buildDocument(
         _ record: SensorKitRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputNode: OutputNode?,
-        relatedURLs: [String],
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
-    ) throws -> DocumentReference? {
-        guard let outputNode, let native = record.nativeRecording else {
-            return nil
-        }
+        native: SensorKitNativeRecording,
+        relatedURL: String?,
+        context: ContentContext
+    ) throws -> DocumentReference {
         let entry = try catalogEntry(sourceToken: record.sourceToken)
-        var authors = recordingDeviceURL.map { [reference($0)] } ?? []
-        authors.append(reference(converterURL))
-        let related = relatedURLs.map(reference) + (try context.researchStudies)
         let sourcePeriod = try record.rawEffectivePeriod.map {
             try period(start: $0.start, end: $0.end, timeZone: context.sourceTimeZone)
         }
-        let documentContext = sourcePeriod == nil && related.isEmpty ? nil : DocumentReferenceContext(
-            period: sourcePeriod,
-            related: related.isEmpty ? nil : related
-        )
+        let related = relatedURL.map { [reference($0)] }
         var document = DocumentReference(
-            author: authors,
             content: [DocumentReferenceContent(
                 attachment: try attachment(native),
                 format: try recordingFormat(native.format, entry: entry)
             )],
-            context: documentContext,
-            date: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: .utc)),
-            identifier: [
-                sourceIdentifier.fhirIdentifier,
-                outputNode.identifier.fhirIdentifier
-            ] + (outputNode.artifactIdentifier.map { [$0.fhirIdentifier] } ?? []),
+            context: sourcePeriod == nil && related == nil ? nil : DocumentReferenceContext(period: sourcePeriod, related: related),
             meta: Meta(profile: entry.rawProfiles.map(profile)),
             status: FHIRPrimitive(.current),
-            subject: try context.subject,
             type: CodeableConcept(coding: [Coding(
                 code: entry.sourceTypeCode.asFHIRStringPrimitive(),
                 system: SensorKitContract.sourceTypeCodeSystem.asFHIRURIPrimitive()
@@ -149,11 +70,7 @@ extension SensorKitConverter {
 
     private static func rotationRateObservation(
         _ record: SensorKitRotationRateRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         guard record.samples.count >= 2 else {
             throw SensorKitRecordError.emptySamples
@@ -173,19 +90,14 @@ extension SensorKitConverter {
             throw SensorKitRecordError.nonUniformTiming(index: index)
         }
         let entry = try catalogEntry(sourceToken: "SRSensor.rotationRate")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: Coding(
                 code: entry.sourceTypeCode.asFHIRStringPrimitive(),
                 display: "Rotation rate".asFHIRStringPrimitive(),
                 system: SensorKitContract.sourceTypeCodeSystem.asFHIRURIPrimitive()
             ),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try period(
             start: record.samples[0].timestamp,
@@ -205,28 +117,19 @@ extension SensorKitConverter {
 
     private static func ecgObservation(
         _ record: SensorKitECGRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let validated = try validateECG(record)
         let entry = try catalogEntry(sourceToken: "SRSensor.electrocardiogram")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: Coding(
                 code: "11524-6".asFHIRStringPrimitive(),
                 display: "EKG study".asFHIRStringPrimitive(),
                 system: "http://loinc.org".asFHIRURIPrimitive()
             ),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.method = CodeableConcept(coding: [Coding(
             code: record.guidance.rawValue.asFHIRStringPrimitive(),
@@ -274,25 +177,16 @@ extension SensorKitConverter {
 
     private static func onWristObservation(
         _ record: SensorKitOnWristRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         guard record.currentStateStart <= record.timestamp else {
             throw SensorKitRecordError.invalidCurrentStatePeriod
         }
         let entry = try catalogEntry(sourceToken: "SRSensor.onWristState")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("on-wrist-state", "On-wrist state"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         if record.currentStateStart == record.timestamp {
             observation.effective = .dateTime(FHIRPrimitive(try exactDateTime(
@@ -329,12 +223,8 @@ extension SensorKitConverter {
 
     private static func deviceUsageObservation(
         _ record: SensorKitDeviceUsageRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         guard record.durationSeconds.isFinite, record.durationSeconds > 0,
               record.totalUnlockDurationSeconds.isFinite,
@@ -350,15 +240,10 @@ extension SensorKitConverter {
         }
         let duration = try decimal(record.durationSeconds, field: "duration", index: nil)
         let entry = try catalogEntry(sourceToken: "SRSensor.deviceUsageReport")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("device-usage-summary", "Device usage summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(Period(
             end: FHIRPrimitive(try exactDateTime(
@@ -393,11 +278,7 @@ extension SensorKitConverter {
 
     private static func visitObservation(
         _ record: SensorKitVisitRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         guard record.arrivalWindow.start <= record.arrivalWindow.end,
               record.departureWindow.start <= record.departureWindow.end,
@@ -407,15 +288,10 @@ extension SensorKitConverter {
             throw SensorKitRecordError.invalidVisitPeriod
         }
         let entry = try catalogEntry(sourceToken: "SRSensor.visits")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("visit-summary", "Visit summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try period(
             start: record.arrivalWindow.start,

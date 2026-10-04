@@ -110,7 +110,7 @@ enum SensorFHIRIdentityTestSupport {
             outputs.append(try sourceRecord.output(role: "structured", discriminator: structuredDiscriminator))
         }
         if includesNativeRecording {
-            outputs.append(try sourceRecord.output(role: "native-recording", discriminator: "single"))
+            outputs.append(try sourceRecord.output(role: "native-recording", discriminator: "native-recording"))
         }
         return outputs
     }
@@ -195,39 +195,6 @@ extension SensorConversionContext {
 
     var graphIdentifierSystem: IdentifierSystem {
         eventIdentifier.identifier.system
-    }
-}
-
-
-extension SensorKitConversionContext {
-    init(
-        subject: Subject = SensorFHIRIdentityTestSupport.subject,
-        converter: ApplicationDevice,
-        eventIdentifier: ExchangeEventIdentifier,
-        visitLocationIdentifierSystem: IdentifierSystem = SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
-        sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        recordingDevice: RecordingDevice? = nil,
-        converterWasGateway: Bool = false,
-        sourceTimeZone: TimeZone,
-        conversionInstant: Date,
-        studies: [StudyEnrollment] = [],
-        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
-    ) {
-        self.init(
-            event: SensorFHIRIdentityTestSupport.eventContext(
-                subject: subject,
-                converter: converter,
-                event: eventIdentifier,
-                converterWasGateway: converterWasGateway,
-                conversionInstant: conversionInstant,
-                studies: studies,
-                repositoryIDs: repositoryIDs
-            ),
-            visitLocationIdentifierSystem: visitLocationIdentifierSystem,
-            sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
-            recordingDevice: recordingDevice,
-            sourceTimeZone: sourceTimeZone
-        )
     }
 }
 
