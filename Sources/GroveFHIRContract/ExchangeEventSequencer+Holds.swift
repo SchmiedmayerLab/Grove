@@ -9,26 +9,25 @@
 import Foundation
 
 
-/// Which reservations the live calls of this process still hold, whether any holder released one, and which keys
-/// of which ledger a reserve is in flight for.
+/// Which reservations the live calls of this process hold or are about to hold, and whether any holder released one.
 ///
 /// The ledger's entries hold no per-call state: a reservation is removed when the last live holder in this
 /// process finishes and any holder released it, so overlapping exports of one record never remove each
-/// other's reservation, and a call that throws leaves its reservations for the redelivery. A reserve registers
-/// its keys before its transaction and turns them into holds in one step after it, so a reservation it may reuse
-/// is never seen unused in between. Handles include the producer instance, which every ledger mints for itself,
-/// so holds need no ledger; keys in flight are scoped to their ledger. One registry serves every storage. Holds
-/// do not span processes; the lock is never held across I/O.
+/// other's reservation, and a call that throws leaves its reservations for the redelivery. A reserve notes the
+/// reservations its transaction returns from inside that transaction and turns them into holds in one step after
+/// it, so a reservation it is about to hold is never seen unused in between. Handles include the producer
+/// instance, which every ledger mints for itself, so they are unique across ledgers and the same through every
+/// storage object or sequencer in front of one ledger; one registry serves every storage. Holds do not span
+/// processes; the lock is never held across I/O.
 final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are guarded by `lock`.
+    /// The reservations one reserve call noted, so an attempt the storage runs again notes nothing twice.
+    final class Notes: @unchecked Sendable { // `handles` is guarded by the registry's `lock`.
+        fileprivate var handles: Set<ExchangeEventReservation.Handle> = []
+    }
+
     private struct Hold {
         var live: Int
         var released: Bool
-    }
-
-    /// One event key of one ledger.
-    private struct LedgerEventKey: Hashable {
-        let ledger: ObjectIdentifier
-        let key: ExchangeEventKey
     }
 
     /// The registry every sequencer of this process shares.
@@ -36,38 +35,36 @@ final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are g
 
     private let lock = NSLock()
     private var holds: [ExchangeEventReservation.Handle: Hold] = [:]
-    private var reserving: [LedgerEventKey: Int] = [:]
+    /// The reservations reserving transactions returned whose calls have not yet taken their holds.
+    private var reserving: [ExchangeEventReservation.Handle: Int] = [:]
 
-    /// Marks a reserve of `keys` in `ledger` as in flight; called before its transaction.
-    func beginReserving(_ keys: some Sequence<ExchangeEventKey>, in ledger: ObjectIdentifier) {
+    /// Notes that the reserve call `notes` belongs to is about to hold `handles`; called inside its transaction,
+    /// before the commit, by every attempt.
+    func beginReserving(_ handles: some Sequence<ExchangeEventReservation.Handle>, in notes: Notes) {
         lock.lock()
         defer {
             lock.unlock()
         }
-        for key in keys {
-            reserving[LedgerEventKey(ledger: ledger, key: key), default: 0] += 1
+        for handle in handles where notes.handles.insert(handle).inserted {
+            reserving[handle, default: 0] += 1
         }
     }
 
-    /// Ends a reserve begun for `keys` in `ledger` and takes one hold per handle it returned, in one step; `handles`
-    /// is empty when the reserving transaction did not commit.
-    func endReserving(
-        _ keys: some Sequence<ExchangeEventKey>,
-        in ledger: ObjectIdentifier,
-        acquiring handles: some Sequence<ExchangeEventReservation.Handle>
-    ) {
+    /// Ends the notes of one reserve call and takes one hold per handle in `acquired`, in one step; `acquired` is
+    /// empty when the reserving transaction did not commit.
+    func endReserving(_ notes: Notes, acquiring acquired: some Sequence<ExchangeEventReservation.Handle>) {
         lock.lock()
         defer {
             lock.unlock()
         }
-        for handle in handles {
+        for handle in acquired {
             holds[handle, default: Hold(live: 0, released: false)].live += 1
         }
-        for key in keys {
-            let scoped = LedgerEventKey(ledger: ledger, key: key)
-            let remaining = (reserving[scoped] ?? 1) - 1
-            reserving[scoped] = remaining > 0 ? remaining : nil
+        for handle in notes.handles {
+            let remaining = (reserving[handle] ?? 1) - 1
+            reserving[handle] = remaining > 0 ? remaining : nil
         }
+        notes.handles = []
     }
 
     /// Ends one hold per handle and returns the handles whose last live holder just finished and that some
@@ -94,12 +91,12 @@ final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are g
         return removable
     }
 
-    /// Whether a live call holds `handle`, or a reserve of its key in `ledger` is in flight and may reuse it.
-    func mayBeReused(_ handle: ExchangeEventReservation.Handle, in ledger: ObjectIdentifier) -> Bool {
+    /// Whether a live call holds `handle`, or a reserving transaction returned it and its call is about to hold it.
+    func isHeld(_ handle: ExchangeEventReservation.Handle) -> Bool {
         lock.lock()
         defer {
             lock.unlock()
         }
-        return holds[handle] != nil || reserving[LedgerEventKey(ledger: ledger, key: handle.key)] != nil
+        return holds[handle] != nil || reserving[handle] != nil
     }
 }

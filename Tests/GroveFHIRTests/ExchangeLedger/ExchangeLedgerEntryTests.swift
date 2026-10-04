@@ -247,9 +247,13 @@ struct ExchangeLedgerEntryTests {
         }
         storage.failAtCommit(false)
         #expect(try Fixtures.keys("", in: storage.base) == before)
-        #expect(Fixtures.mayBeReused(first.values.first?.handle, by: sequencer), "the first call still holds its reservation")
-        let unheld = requests.map { ExchangeEventReservation.Handle(key: $0.key, instance: UUID(), sequence: 1) }
-        #expect(!unheld.contains { Fixtures.mayBeReused($0, by: sequencer) }, "a failed reserve leaves no key in flight")
+        #expect(Fixtures.isHeld(first.values.first?.handle, by: sequencer), "the first call still holds its reservation")
+        // The reservations the failed attempts would have returned: the same instance, sequences 2 to 4.
+        let instance = try #require(first.values.first?.producerInstance)
+        let unheld = requests.flatMap { request in
+            (2...4).map { ExchangeEventReservation.Handle(key: request.key, instance: instance, sequence: $0) }
+        }
+        #expect(!unheld.contains { Fixtures.isHeld($0, by: sequencer) }, "a failed reserve leaves nothing noted")
         let retried = try sequencer.reserve(requests, at: Fixtures.instant, facts: Fixtures.facts(build: "200"))
         #expect(Set(retried.values.map(\.sequence.rawValue)) == ["2", "3", "4"])
     }

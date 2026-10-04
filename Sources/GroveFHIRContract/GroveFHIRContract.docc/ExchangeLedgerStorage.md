@@ -45,7 +45,7 @@ What Grove promises a storage in return:
 
 - Keys are ASCII from `[A-Za-z0-9_/-]` and at most 64 bytes: `producer`, `event/<key>` and `facts/<digest>`.
 - Values are UTF-8 JSON, typically under 1 KiB; accept values up to 1 MiB, as facts grow with the number of studies.
-- Grove never nests transactions, never lets a transaction escape its body, and its bodies have no effect outside the transaction, so a storage may discard an attempt and run the body again.
+- Grove never nests transactions, never lets a transaction escape its body, and its bodies have no effect outside the transaction that outlasts the call, so a storage may discard an attempt and run the body again.
 - `keys(prefixedBy:)` is called only by ``ExchangeEventSequencer/reset()`` and ``ExchangeEventSequencer/forgetReservations(madeBefore:)``.
 - One storage holds one ledger and nothing else.
 
@@ -76,7 +76,7 @@ Both the cutoff and the stored instants are on the caller's clock, so choose one
 
 The entries hold no per-call state.
 Live calls are tracked in process memory: when the last call in the process that holds an event finishes and any of them released it, the event's reservation is removed, and otherwise it stays for the redelivery.
-A reserve registers its keys before its transaction, and the removing transaction checks them, so a release never removes a reservation that a call on the same storage object in the same process is about to reuse; this relies on the storage running one process's transactions one at a time, as every backend above does.
+A reserve notes the reservations its transaction returns from inside that transaction until it holds them, and the removing transaction checks those notes and the holds, so a release never removes a reservation another call in the process holds or is about to hold, whichever storage object, value or sequencer either call goes through; this relies on the storage running one process's transactions one at a time, as every backend above does.
 A release only ever removes the exact reservation its call made, never a successor's or one from before a reset.
 The one exception is a retraction's receipt: on release it forgets each deleted record's active reservation, whatever that reservation is, because no export will release it once the record is gone.
 Holds do not span processes; when two live processes share one storage, a release in one can remove a reservation the other still holds, and the other's redelivery then becomes a new event, a duplicate and never a reuse.
