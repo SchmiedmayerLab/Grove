@@ -91,6 +91,19 @@ extension HealthKitAssembly {
 // MARK: - Recording documents
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitContentPlan {
+    /// The recording document this plan carries a record of its type in, which states the payload's format; the
+    /// exporter's companion fingerprint writes the payload through it too.
+    func recordingDocument() throws(HealthKitConversionError) -> DocumentPlan {
+        guard case .recording(let document) = route else {
+            throw refusal
+        }
+        return document
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
     /// Converts a heartbeat series into the recording document that carries its beats.
     func convertHeartbeatSeries(
@@ -98,10 +111,7 @@ extension HealthKitAssembly {
         plan: HealthKitContentPlan = HealthKitContentPlan[.heartbeatSeries],
         request: Request
     ) throws -> HealthKitConversionSet {
-        guard case .recording(let document) = plan.route else {
-            throw plan.refusal
-        }
-        return try documentGraph(for: record.series, plan: plan, document: try document.document(record), request: request)
+        try documentGraph(for: record.series, plan: plan, document: try plan.recordingDocument().document(record), request: request)
     }
 
     /// Converts a workout route into the recording document that carries its track, or `nil` under
@@ -114,10 +124,7 @@ extension HealthKitAssembly {
         guard request.options.routeDisclosure == .authorized else {
             return nil
         }
-        guard case .recording(let document) = plan.route else {
-            throw plan.refusal
-        }
-        return try documentGraph(for: record.route, plan: plan, document: try document.document(record), request: request)
+        return try documentGraph(for: record.route, plan: plan, document: try plan.recordingDocument().document(record), request: request)
     }
 
     /// The document carrying a clinical record's provider-issued FHIR resource or a CDA document's bytes, exactly as

@@ -159,7 +159,7 @@ extension HealthKitFHIRExporter {
             let evidence = content.flatMap { content in record.electrocardiogram.flatMap { try? content.ecgEvidence($0) } }
             let primary = content.map { content in
                 Self.event(for: sample, key: .active(type: content.sourceType, uuid: sample.uuid), exporter: exporter) {
-                    record.companionParts(evidence: evidence)
+                    record.companionParts(content: content, evidence: evidence)
                 }
             }
             self.record = record

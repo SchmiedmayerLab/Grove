@@ -101,6 +101,11 @@ struct HealthKitRecordingDocumentTests {
         return HealthKitWorkoutRouteRecord(route: route, locations: locations)
     }
 
+    /// The payload the heartbeat-series plan writes for `heartbeats` from the guide's series start.
+    private static func beatIntervals(_ heartbeats: [HealthKitHeartbeat]) throws -> Data {
+        try HealthKitContentPlan[.heartbeatSeries].recordingDocument().beatIntervals(seriesStart: seriesStart, heartbeats: heartbeats)
+    }
+
     private func context(
         routeDisclosurePolicy: RouteDisclosurePolicy = .omit,
         studies: [StudyEnrollment] = []
@@ -121,7 +126,7 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("A beat series is written in the registry's published bytes")
     func beatIntervalPayloadMatchesThePublishedExample() throws {
-        let payload = try DocumentPlan.beatIntervals(seriesStart: Self.seriesStart, heartbeats: Self.heartbeats)
+        let payload = try Self.beatIntervals(Self.heartbeats)
 
         #expect(String(decoding: payload, as: UTF8.self) == """
             timestamp,precededByGap
@@ -139,13 +144,13 @@ struct HealthKitRecordingDocumentTests {
     @Test("A series with no beats fails closed rather than carrying a header alone")
     func emptyBeatSeriesFailsClosed() {
         #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
-            try DocumentPlan.beatIntervals(seriesStart: Self.seriesStart, heartbeats: [])
+            try Self.beatIntervals([])
         }
     }
 
     @Test("A beat series is carried as a recording document, not reduced to a value")
     func beatSeriesGraphCarriesThePublishedContract() throws {
-        let payload = try DocumentPlan.beatIntervals(seriesStart: Self.seriesStart, heartbeats: Self.heartbeats)
+        let payload = try Self.beatIntervals(Self.heartbeats)
         let conversion = try HealthKitAssembly.convert(try Self.heartbeatSeries(), context: context())
         let document = conversion.document
 

@@ -41,10 +41,10 @@ extension HealthKitFHIRExporter {
     ///
     /// A request's fingerprint is the SHA-256, base64url without padding, of the length-framed call parts
     /// followed by the record's own parts: what the writer and recording-device policies answered for its
-    /// sample (`ResolvedPolicies`) and its companion data (`Record.companionParts(evidence:)`). A stored reservation is
-    /// reused only under an equal fingerprint, so a Grove update that changes output, any option change, a
-    /// policy closure that answers otherwise, other companion data, or another participant over the same
-    /// ledger never reuses an event identifier for other bytes.
+    /// sample (`ResolvedPolicies`) and its companion data (`Record.companionParts(content:evidence:)`). A stored
+    /// reservation is reused only under an equal fingerprint, so a Grove update that changes output, any option
+    /// change, a policy closure that answers otherwise, other companion data, or another participant over the
+    /// same ledger never reuses an event identifier for other bytes.
     struct ExportContext: Sendable {
         /// The length-framed parts every request of this exporter starts with, in order.
         private let framedCallParts: Data
@@ -149,10 +149,10 @@ extension HealthKitFHIRExporter.Record {
 
     /// The record content its event key does not version but its graph serializes: an ECG's symptom set (its
     /// Observation references their outputs) and voltages, a heartbeat series' beats and a route's locations. Each
-    /// kind enters as a tag and the digest of exactly what the assembly serializes from it. An ECG's voltages are
-    /// read from its `evidence`, validated when the record was planned; without it they do not validate, and the
-    /// record is refused.
-    func companionParts(evidence: HealthKitECGContent.Evidence?) -> [String] {
+    /// kind enters as a tag and the digest of exactly what the assembly serializes from it under `content`, the plan
+    /// of the record's type. An ECG's voltages are read from its `evidence`, validated when the record was planned;
+    /// without it they do not validate, and the record is refused.
+    func companionParts(content: HealthKitContentPlan, evidence: HealthKitECGContent.Evidence?) -> [String] {
         switch self {
         case .sample:
             return []
@@ -160,9 +160,9 @@ extension HealthKitFHIRExporter.Record {
             let voltages = evidence.map { evidence in Self.digest { try evidence.waveform.serialized() } } ?? Self.unserializable
             return Self.symptomParts(symptoms) + ["voltages", voltages]
         case let .heartbeatSeries(series, beats):
-            return ["beats", Self.digest { try DocumentPlan.beatIntervals(seriesStart: series.startDate, heartbeats: beats) }]
+            return ["beats", Self.digest { try content.recordingDocument().beatIntervals(seriesStart: series.startDate, heartbeats: beats) }]
         case let .workoutRoute(_, locations):
-            return ["locations", Self.digest { try DocumentPlan.locationTrack(locations) }]
+            return ["locations", Self.digest { try content.recordingDocument().locationTrack(locations) }]
         }
     }
 }
