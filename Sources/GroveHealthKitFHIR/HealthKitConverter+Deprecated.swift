@@ -210,7 +210,7 @@ extension HealthKitConverter {
 extension HealthKitConverter {
     /// The one check the typed context cannot make at construction: a disclosed native identifier
     /// system must not be one of the deployment's own graph identity systems.
-    static func validate(context: HealthKitConversionContext) throws(HealthKitConversionError) {
+    private static func validate(context: HealthKitConversionContext) throws(HealthKitConversionError) {
         guard case let .authorized(nativeSystem, _) = context.options.nativeIdentifierDisclosure else {
             return
         }
@@ -221,7 +221,7 @@ extension HealthKitConverter {
 
     /// The context API's one context per symptom, in the record's order, as the assembly's requests keyed by each
     /// symptom's UUID; a repeated symptom keeps its first context, and the symptom validation refuses it.
-    static func symptomRequests(
+    private static func symptomRequests(
         _ contexts: [HealthKitConversionContext],
         for symptoms: [HKCategorySample]
     ) throws -> [UUID: HealthKitAssembly.Request] {
@@ -232,7 +232,7 @@ extension HealthKitConverter {
     }
 
     /// A companion belongs to the same subject, repository scope and identity scope as the ECG.
-    static func validateSymptomConversionContext(
+    private static func validateSymptomConversionContext(
         _ symptomContext: HealthKitConversionContext,
         expectedContext: HealthKitConversionContext
     ) throws {

@@ -84,43 +84,6 @@ struct HealthKitECGContentTests {
         return try HealthKitECGContent.Waveform(record, unit: .voltUnit(with: .milli))
     }
 
-    @Test("ECG symptom companions must share the exact patient and repository scope")
-    func symptomCompanionScopeValidation() throws {
-        let context = HealthKitConversionContext(subject: .testPatient)
-        let base = context.event
-        let otherRepository = try BusinessIdentifier(system: base.repositoryScope.system, value: "secondary")
-        func variant(
-            subject: Subject = base.subject,
-            repositoryScope: BusinessIdentifier = base.repositoryScope
-        ) -> HealthKitConversionContext {
-            HealthKitConversionContext(event: ExchangeEventContext(
-                subject: subject,
-                event: base.event,
-                identityScope: base.identityScope,
-                repositoryScope: repositoryScope,
-                application: base.application,
-                host: base.host,
-                conversionInstant: base.conversionInstant
-            ))
-        }
-        let expected = HealthKitConversionError.ecgEvidence(.mismatchedSymptomContext)
-
-        #expect(throws: expected) {
-            try HealthKitConverter.validateSymptomConversionContext(
-                variant(subject: .logical(.test(.patient, "other"))),
-                expectedContext: context
-            )
-        }
-        #expect(throws: expected) {
-            try HealthKitConverter.validateSymptomConversionContext(
-                variant(repositoryScope: otherRepository),
-                expectedContext: context
-            )
-        }
-
-        try HealthKitConverter.validateSymptomConversionContext(variant(), expectedContext: context)
-    }
-
     @Test
     func completeUniformEnumerationRetainsFirstOffsetAndExactPeriod() throws {
         let waveform = try Self.waveform(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints)

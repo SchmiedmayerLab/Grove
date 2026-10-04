@@ -283,6 +283,15 @@ struct HealthKitFHIRExporterLedgerTests {
         #expect(throws: expected) {
             try HealthKitConverter().convert(sample, context: HealthKitConversionContext())
         }
+        // The batch entry point has no source record to name, so it reports the sample's UUID and identifier.
+        let batch = HealthKitConverter().convert([sample]) { _ in HealthKitConversionContext() }
+        #expect(batch.conversions.isEmpty)
+        guard batch.failures.count == 1, case let .unregisteredSourceType(uuid, identifier) = batch.failures[0] else {
+            Issue.record("expected one unregistered-type failure, got \(batch.failures)")
+            return
+        }
+        #expect(uuid == sample.uuid)
+        #expect(identifier == type.rawValue)
     }
 
     /// The ledger holds every reservation under its key's digest, so a key part that changed would orphan them all.
