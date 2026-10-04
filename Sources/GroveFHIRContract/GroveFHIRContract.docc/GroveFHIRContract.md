@@ -52,7 +52,7 @@ Every export is an exchange event, and every event is immutable.
 An ``ExchangeEventIdentifier`` is your producer instance UUID plus a monotonic ``EventSequence``.
 A retry resends the same bytes under the same identifier; a new revision of the record gets a new sequence.
 An ``ExchangeProducer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
-The HealthKit and SensorKit exporters number every event through it.
+The HealthKit, SensorKit and Questionnaire exporters number every event through it.
 A caller-managed converter that takes an ``ExchangeEventContext`` you build yourself, such as the deprecated HealthKit converter or the source-neutral sensor converter, does not use the ledger: persist the producer instance once and durably advance the next sequence before you emit.
 
 ### The repository scope
