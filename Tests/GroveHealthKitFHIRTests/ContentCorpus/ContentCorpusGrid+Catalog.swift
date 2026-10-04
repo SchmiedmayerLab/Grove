@@ -56,7 +56,8 @@ extension ContentCorpusGrid {
 
     /// A minimal Observation of every generated measurement and of body-mass index, the edges of the reverse
     /// projection (Period and missing effective times, missing and mismatched values, manual entry, zones, a pre-1582
-    /// date, sync identity and amendment, and blood-pressure components), and its multi-fault precedence.
+    /// date, sync identity and amendment, blood-pressure components, and another source type's lineage), and its
+    /// multi-fault precedence.
     ///
     /// Body-mass index, which no catalog lists, keeps the literal Observation it was recorded with, and every other
     /// measurement appears once, the first catalog winning.
@@ -77,7 +78,8 @@ extension ContentCorpusGrid {
         }
     }
 
-    /// Heart-rate Observations that each change one thing the reverse projection reads.
+    /// Heart-rate Observations that each change one thing the reverse projection reads; the last states an ECG's
+    /// lineage, as the ECG's average heart rate does.
     static var reverseEdges: [(String, [String: Any])] {
         let heartRate = minimalObservation(MeasurementCatalog.heartRate, value: 72)
         func changed(_ change: (inout [String: Any]) -> Void) -> [String: Any] {
@@ -92,6 +94,10 @@ extension ContentCorpusGrid {
             "valueCoding": ["system": Canonicals.recordingMethodCodeSystem.value?.url.absoluteString ?? "", "code": "manual-entry"]
         ]
         let writerVersion: [String: Any] = ["url": Canonicals.writerRecordVersion.value?.url.absoluteString ?? "", "valueString": "5"]
+        let electrocardiogramLineage: [String: Any] = [
+            "url": Canonicals.healthKitSourceTypeExtension.value?.url.absoluteString ?? "",
+            "valueCode": HKObjectType.electrocardiogramType().identifier
+        ]
         return [
             ("period", changed { resource in
                 resource["effectiveDateTime"] = nil
@@ -117,14 +123,16 @@ extension ContentCorpusGrid {
                 resource["status"] = "amended"
             }),
             ("blood-pressure-missing-diastolic", bloodPressure(diastolic: false)),
-            ("blood-pressure-unit-mismatch", bloodPressure(diastolic: true, unit: "kPa"))
+            ("blood-pressure-unit-mismatch", bloodPressure(diastolic: true, unit: "kPa")),
+            ("electrocardiogram-lineage", changed { $0["extension"] = [electrocardiogramLineage] })
         ]
     }
 
     /// Observations with two faults at once, one for every pair of adjacent checks of the reverse projection (the
-    /// effective time, the value, the measurement's one quantity type, the value's number and unit, then each
+    /// measurement's one quantity type, the effective time, the value, the value's number and unit, then each
     /// blood-pressure member in order): which one is reported pins their order. Speed, which several quantity types
-    /// read, has no quantity type to land on.
+    /// read, has no quantity type to land on. `value-before-quantity-type` keeps the id it was recorded under before
+    /// spec F5 moved the quantity type first, as ids are stable; it now pins the quantity type before the value.
     static var reversePrecedence: [(String, [String: Any])] {
         let heartRate = minimalObservation(MeasurementCatalog.heartRate, value: 72)
         let speed = minimalObservation(MeasurementCatalog.speed)
@@ -141,7 +149,8 @@ extension ContentCorpusGrid {
             ("value-before-quantity-type", changed(speed) { $0["valueQuantity"] = nil }),
             ("quantity-type-before-unit", changed(speed) { $0["valueQuantity"] = quantity("/min", unit: "beats/minute", value: 72) }),
             ("number-before-unit", changed(heartRate) { $0["valueQuantity"] = ["system": "http://unitsofmeasure.org", "code": "/s", "unit": "beats/second"] }),
-            ("systolic-before-diastolic", changed(bloodPressure(diastolic: true)) { $0["component"] = nil })
+            ("systolic-before-diastolic", changed(bloodPressure(diastolic: true)) { $0["component"] = nil }),
+            ("quantity-type-before-effective", changed(speed) { $0["effectiveDateTime"] = nil })
         ]
     }
 

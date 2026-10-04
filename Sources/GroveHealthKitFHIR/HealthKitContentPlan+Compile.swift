@@ -136,15 +136,6 @@ struct HealthKitContentCompiler {
         return ProfileClaims.observation(sharedMeasurement: contract.profile, adapter: Profile.healthkitObservation)
     }
 
-    /// How a measurement's effective time is drawn from the sample. A dateTime-or-Period measurement (heart rate)
-    /// states its instant: a scalar HealthKit sample stays point-in-time.
-    private static func effective(of contract: MeasurementContract) -> EffectiveRule {
-        switch contract.effective {
-        case .dateTime, .dateTimeOrPeriod: .instant
-        case .period: .interval(nonZero: HealthKitContentRules.nonZeroPeriods.contains(contract.id))
-        }
-    }
-
     /// The documents of a recording format claim the shared recording-document profile and the row's own.
     private static func recordingProfiles(of row: HealthKitContractRow) -> [FHIRPrimitive<Canonical>] {
         [Profile.groveSensorRecordingDocument] + row.profiles
@@ -240,7 +231,7 @@ struct HealthKitContentCompiler {
         )
         return ObservationPlan(
             skeleton: skeleton,
-            effective: Self.effective(of: contract),
+            effective: EffectiveRule(contract),
             value: try value(rule, contract: contract, type: type),
             metadataComponent: try HealthKitContentRules.metadataComponent(of: type, contract: contract)
         )
