@@ -122,7 +122,9 @@ struct HealthKitFHIRExporterFingerprintTests {
         let key = try #require(ExchangeEventKey.active(sample))
         let (original, _) = try Fixtures.collect(contexts[0].1, samples: [sample])
         let stored = try #require(try storage.transaction { try $0.read(LedgerKey.event(key)) })
-        #expect(try EventEntry(decoding: stored, key: LedgerKey.event(key)).fingerprint == contexts[0].1.context.request(for: key).fingerprint)
+        let planned = HealthKitFHIRExporter.Plan(.record(.sample(sample)), exporter: contexts[0].1).primary?.request
+        #expect(planned?.key == key)
+        #expect(try EventEntry(decoding: stored, key: LedgerKey.event(key)).fingerprint == planned?.fingerprint)
         let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(sequencer: ExchangeEventSequencer(storage: storage))), samples: [sample])
         #expect(unchanged[0].event == original[0].event, "an equal context reuses the reservation")
         let (changed, _) = try Fixtures.collect(contexts[1].1, samples: [sample])
@@ -180,6 +182,25 @@ struct HealthKitFHIRExporterFingerprintTests {
         }
         let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
         #expect(exporter.context.request(for: key).fingerprint == "Y9AmAuXc9kZTd8ZjijBhBS7QD_7A8w4YKQLk7RXFRig")
+    }
+
+    /// A record's own parts follow the call parts: what the writer and recording-device policies answered for its
+    /// sample, then its companion data (none for a plain sample). Pinned like the call parts, so the derivation changes
+    /// only on purpose.
+    @Test("A record's parts state the policies' answers for its sample and fingerprint to a known answer")
+    func recordPartsAreAKnownAnswer() throws {
+        let exporter = try Fixtures.exporter(try Fixtures.producer(sequencer: .inMemory()), revisions: .init(assembler: 1, healthKit: 2)) {
+            $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier])
+        }
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
+        let policies = HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options)
+        #expect(policies.fingerprintParts == [
+            "writer", "application",
+            "recordingDevice", "unit", "6C4B1D1E-0000-4000-8000-000000000001", "some", "Apple Watch", "some", "Apple Inc.", "some", "Watch7,12"
+        ])
+        let planned = try #require(HealthKitFHIRExporter.Plan(.record(.sample(sample)), exporter: exporter).primary?.request)
+        #expect(planned.fingerprint == exporter.context.request(for: planned.key, recordParts: policies.fingerprintParts).fingerprint)
+        #expect(planned.fingerprint == "4ViljxvhC5STfq5O5V-a8ML-YL42xAqmwAycm0BO414")
     }
 
     @Test("G3b: the fingerprint covers every stored option, each under its own name and with its own value")

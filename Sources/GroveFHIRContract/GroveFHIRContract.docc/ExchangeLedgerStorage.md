@@ -18,7 +18,7 @@ Every exchange event is immutable: a retry resends the same bytes under the same
 ``ExchangeEventSequencer`` keeps that promise on the device.
 It numbers the events of one installation, and until an exporter's receipt is released it keeps, per event key, the producer instance, the sequence, the instant and the facts (application, host, studies) the event states.
 An exact redelivery after a crash, an app update or an operating-system update rebuilds byte-identical output from those frozen facts.
-When anything that shapes the output but is not frozen has changed (the converter's output revision, the identity scope, the subject, the repository scope or an option), the event takes a new sequence instead.
+When anything that shapes the output but is not frozen has changed (the converter's output revision, the identity scope, the subject, the repository scope, an option, what a policy answered for the record, or record content its key does not version, such as an ECG's voltages), the event takes a new sequence instead.
 
 Grove owns the ledger's logic and its entries.
 Your application supplies only the durable storage, through ``ExchangeEventSequencer/Storage``: a transactional map from string keys to byte values.

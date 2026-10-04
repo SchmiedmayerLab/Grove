@@ -40,10 +40,11 @@ extension HealthKitFHIRExporter {
     /// the identity scope, the subject, the repository scope and every option.
     ///
     /// A request's fingerprint is the SHA-256, base64url without padding, of the length-framed call parts
-    /// followed by the record's own parts. A stored reservation is reused only under an equal fingerprint, so
-    /// a Grove update that changes output, any option change, or another participant over the same ledger
-    /// never reuses an event identifier for other bytes. A ``WriterPolicy/classify(_:)`` closure and a custom
-    /// ``RecordingDevicePolicy`` resolver enter by their presence only; their behaviour is not fingerprinted.
+    /// followed by the record's own parts: what the writer and recording-device policies answered for its
+    /// sample (`ResolvedPolicies`) and its companion data (`Input.companionParts`). A stored reservation is
+    /// reused only under an equal fingerprint, so a Grove update that changes output, any option change, a
+    /// policy closure that answers otherwise, other companion data, or another participant over the same
+    /// ledger never reuses an event identifier for other bytes.
     struct ExportContext: Sendable {
         /// The length-framed parts every request of this exporter starts with, in order.
         private let framedCallParts: Data
@@ -99,6 +100,81 @@ extension HealthKitFHIRExporter.Options {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter {
+    /// What the writer and recording-device policies answer for one sample, resolved once, before its event is
+    /// reserved: the event's fingerprint covers these answers and its graph states them, so a
+    /// ``WriterPolicy/classify(_:)`` closure or a custom ``RecordingDevicePolicy`` resolver that answers otherwise
+    /// for a reserved record takes a new sequence instead of restating the reserved event.
+    struct ResolvedPolicies: ExchangeContextFingerprinted {
+        let writer: HealthKitWriter
+        /// `nil` when the sample names no `HKDevice` or the policy declines it.
+        let recordingDevice: RecordingDevice?
+
+        /// The writer tag, then the recording device's: `none`, or `unit` and every value of the device the graph
+        /// states, its token (which keys the Device's identities) and its optional name, manufacturer and model.
+        var fingerprintParts: [String] {
+            let device = recordingDevice.map { device in
+                ["unit", device.stableUnitToken] + optionalParts(device.name) + optionalParts(device.manufacturer) + optionalParts(device.modelNumber)
+            }
+            return ["writer"] + writer.fingerprintParts + ["recordingDevice"] + (device ?? ["none"])
+        }
+
+        init(_ sample: HKSample, options: Options) {
+            self.writer = options.writer.classification(of: sample.sourceRevision.source)
+            self.recordingDevice = sample.device.flatMap(options.recordingDevice.recordingDevice(for:))
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.Input {
+    /// The record content its event key does not version but its graph serializes: an ECG's symptom set (its
+    /// Observation references their outputs) and voltages, a heartbeat series' beats and a route's locations. Each
+    /// kind enters as a tag and the digest of exactly what the assembly serializes from it.
+    var companionParts: [String] {
+        switch self {
+        case .record(.sample):
+            return []
+        case let .electrocardiogramEvidence(_, evidence, symptoms):
+            return Self.symptomParts(symptoms) + ["voltages", Self.digest { try evidence.waveform.serialized() }]
+        case let .record(.electrocardiogram(ecg, voltages, symptoms)):
+            // A planned input still carries raw voltages only when they do not validate, and the record is refused.
+            let record = HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)
+            return Self.symptomParts(symptoms) + ["voltages", Self.digest { try HealthKitECGEvidence(record).waveform.serialized() }]
+        case let .record(.heartbeatSeries(series, beats)):
+            return ["beats", Self.digest { try HealthKitConverter.beatIntervalPayload(seriesStart: series.startDate, heartbeats: beats) }]
+        case let .record(.workoutRoute(_, locations)):
+            return ["locations", Self.digest { try HealthKitConverter.locationTrackPayload(locations) }]
+        }
+    }
+
+    /// The symptom count, then their lowercase UUIDs, sorted.
+    private static func symptomParts(_ symptoms: [HKCategorySample]) -> [String] {
+        ["symptoms", String(symptoms.count)] + symptoms.map { $0.uuid.uuidString.lowercased() }.sorted()
+    }
+
+    /// The SHA-256, base64url without padding, of `serialized`, or `unserializable` when it throws: the assembly
+    /// throws the same, so the record is refused and no graph ever carries the part.
+    private static func digest(_ serialized: () throws -> Data) -> String {
+        guard let bytes = try? serialized() else {
+            return "unserializable"
+        }
+        return Data(SHA256.hash(data: bytes)).base64URLEncodedStringWithoutPadding
+    }
+}
+
+
+extension HealthKitECGValidatedWaveform {
+    /// What the ECG Observation's SampledData and effective period state from the voltages, length-framed: the
+    /// first and last offsets, the period and the data.
+    func serialized() throws -> Data {
+        try LengthFramedUTF8.encode([firstOffsetSeconds.description, lastOffsetSeconds.description, periodMilliseconds.description, data])
+    }
+}
+
+
 /// An optional value's parts: a presence tag, then the value.
 private func optionalParts(_ value: String?) -> [String] {
     value.map { ["some", $0] } ?? ["none"]
@@ -128,7 +204,7 @@ extension HealthKitFHIRExporter.WriterPolicy: ExchangeContextFingerprinted {
     /// byte order, so sets of the same strings, byte for byte, fingerprint equally whatever their insertion order.
     /// `Set` equality is canonical equivalence, so two sets that spell a member in different Unicode normalization
     /// forms compare equal yet fingerprint apart: a new sequence, never a reused one. A closure enters by its
-    /// presence only; how it classifies is the caller's to keep stable.
+    /// presence here; what it answers for each record enters that record's parts (`ResolvedPolicies`).
     var fingerprintParts: [String] {
         switch self {
         case .omit:
@@ -138,6 +214,16 @@ extension HealthKitFHIRExporter.WriterPolicy: ExchangeContextFingerprinted {
             return ["applications", String(sorted.count)] + sorted
         case .classify:
             return ["classify"]
+        }
+    }
+}
+
+
+extension HealthKitWriter: ExchangeContextFingerprinted {
+    var fingerprintParts: [String] {
+        switch self {
+        case .application: ["application"]
+        case .omit: ["omit"]
         }
     }
 }

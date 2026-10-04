@@ -12,11 +12,14 @@ public import GroveFHIRContract
 public import HealthKit
 
 
-/// The resolver behind ``HealthKitFHIRExporter/RecordingDevicePolicy/omit``.
+/// The unit a ``HealthKitFHIRExporter/RecordingDevicePolicy`` resolved for one sample before its event was reserved, so
+/// the graph states the device the event's fingerprint covers without consulting the policy again.
 @available(iOS 18, macOS 15, watchOS 11, *)
-private struct OmittingRecordingDeviceResolver: RecordingDeviceResolver {
-    func recordingDevice(for device: HKDevice) -> RecordingDevice? {
-        nil
+struct ResolvedRecordingDevice: RecordingDeviceResolver {
+    let device: RecordingDevice?
+
+    func recordingDevice(for _: HKDevice) -> RecordingDevice? {
+        device
     }
 }
 
@@ -74,9 +77,9 @@ extension HealthKitFHIRExporter {
         /// identifier states none either, and one whose bundle identifier is not a valid Apple bundle identifier
         /// is refused with ``HealthKitConversionError/sourceApplicationInvalid``.
         case applications(Set<String>)
-        /// The caller classifies each source. The closure must be a pure function of the source and stable
-        /// across application versions: the context fingerprint records only that a closure classifies, so
-        /// a closure whose answers change can restate a reserved event's writer differently on redelivery.
+        /// The caller classifies each source. The closure is consulted once per record and call, before the
+        /// record's event is reserved, and the event's fingerprint covers its answer: an answer that changes for a
+        /// reserved record takes a new sequence rather than restating that event's writer.
         case classify(@Sendable (HKSource) -> HealthKitWriter)
 
         /// The classification of one source under this policy.
@@ -99,17 +102,20 @@ extension HealthKitFHIRExporter {
         case localIdentifier
         /// Never emit a recording Device from `HKDevice`.
         case omit
-        /// The deployment's own resolver.
+        /// The deployment's own resolver. It is consulted once per record and call, before the record's event is
+        /// reserved, and the event's fingerprint covers the device it names: a resolver whose answer changes for a
+        /// reserved record takes a new sequence rather than restating that event's recording Device.
         case custom(any RecordingDeviceResolver)
 
-        var resolver: any RecordingDeviceResolver {
+        /// The unit this policy resolves `device` to.
+        func recordingDevice(for device: HKDevice) -> RecordingDevice? {
             switch self {
             case .localIdentifier:
-                HealthKitLocalIdentifierResolver()
+                HealthKitLocalIdentifierResolver().recordingDevice(for: device)
             case .omit:
-                OmittingRecordingDeviceResolver()
+                nil
             case .custom(let resolver):
-                resolver
+                resolver.recordingDevice(for: device)
             }
         }
     }
