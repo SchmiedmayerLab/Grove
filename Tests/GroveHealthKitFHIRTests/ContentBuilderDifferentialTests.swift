@@ -162,7 +162,7 @@ struct ContentBuilderDifferentialTests {
         for index in 0..<1_500 {
             try autoreleasepool {
                 let variant = try ContentBuilderRandomRecords.variant(of: observations[index % observations.count], using: &generator)
-                let today = ContentCorpusRecorder.reverse(variant)
+                let today = ContentCorpusRecorder.reverse(variant, projection: ContentBuilderPair.todaysProjection)
                 let planned = ContentCorpusRecorder.reverse(variant, projection: Self.plannedProjection)
                 if let difference = TokenDiff.firstDifference(expected: today, actual: planned) {
                     differences.append("variant \(index): \(difference)")
@@ -215,7 +215,8 @@ extension ContentBuilderDifferentialTests {
         case .roundTrip(let source):
             let builders = try ContentBuilderPair.outcomes(of: source)
             let today = ContentBuilderOutcome {
-                .object(["record": builders?.today.tokens ?? .null, "roundTrip": try ContentCorpusRecorder.roundTrip(source)])
+                let roundTrip = try ContentCorpusRecorder.roundTrip(source, projection: ContentBuilderPair.todaysProjection)
+                return .object(["record": builders?.today.tokens ?? .null, "roundTrip": roundTrip])
             }
             let planned = ContentBuilderOutcome {
                 let roundTrip = try ContentCorpusRecorder.roundTrip(source, projection: plannedProjection)
@@ -224,7 +225,7 @@ extension ContentBuilderDifferentialTests {
             return (today, planned)
         case .reverse(let observation):
             let decoded = try observation.decoded(as: Observation.self)
-            let today = ContentCorpusRecorder.reverse(decoded)
+            let today = ContentCorpusRecorder.reverse(decoded, projection: ContentBuilderPair.todaysProjection)
             return (.built(today), .built(ContentCorpusRecorder.reverse(decoded, projection: plannedProjection)))
         case .retract, .catalog:
             return nil

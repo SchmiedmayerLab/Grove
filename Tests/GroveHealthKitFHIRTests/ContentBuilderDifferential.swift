@@ -224,6 +224,30 @@ extension ContentBuilderPair {
 }
 
 
+extension ContentBuilderPair {
+    /// Today's reverse projection, as `Observation.healthKitSample()` composed it before the plans replaced it: the
+    /// measurement contract by coding, the envelope, then a blood-pressure correlation, or the value and the one
+    /// quantity type bound to the measurement, then the value in the contract's unit.
+    static let todaysProjection: ContentCorpusRecorder.Projection = { observation throws(HealthKitSampleProjectionError) in
+        let contract = try HealthKitSampleProjection.contract(for: observation)
+        let envelope = try HealthKitSampleProjection.envelope(of: observation, measurementID: contract.id, syncIdentifier: nil)
+        if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
+            return try HealthKitSampleProjection.bloodPressureCorrelation(for: observation, contract: contract, envelope: envelope)
+        }
+        guard case .quantity(let quantity)? = observation.value else {
+            throw HealthKitSampleProjectionError.valueMissing(id: contract.id)
+        }
+        return HKQuantitySample(
+            type: HKQuantityType(try HealthKitSampleProjection.quantityTypeIdentifier(for: contract.id)),
+            quantity: try HealthKitSampleProjection.healthKitQuantity(quantity, contract: contract.quantity, measurementID: contract.id),
+            start: envelope.date,
+            end: envelope.date,
+            metadata: envelope.metadata
+        )
+    }
+}
+
+
 #if !os(watchOS)
 extension ContentBuilderPair {
     /// Today's clinical document of a clinical record or CDA sample, as today's assembly composes it.
