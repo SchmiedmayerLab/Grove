@@ -155,7 +155,7 @@ extension ContentPlanEquivalenceTests {
         let activity = content.activity(workout.workoutActivityType.rawValue)
         for statistic in content.statistics {
             let statistics = workout.statistics(for: HKQuantityType(statistic.quantityType(of: activity)))
-            guard let quantity = statistic.reading.quantity(of: statistics) else {
+            guard let quantity = statistics.flatMap(statistic.read) else {
                 continue
             }
             components.append(try statistic.template.component(quantity.doubleValue(for: statistic.unit)))

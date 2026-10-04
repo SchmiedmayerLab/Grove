@@ -39,32 +39,10 @@ struct HealthKitWorkoutContent: Sendable {
             case activityDistance
         }
 
-        /// Which of those statistics a statistic reads.
-        enum Reading: Sendable {
-            /// The total.
-            case sum
-            /// The average.
-            case average
-            /// The maximum.
-            case maximum
-            /// The minimum.
-            case minimum
-
-            /// The quantity read from `statistics`, or `nil` when HealthKit kept none.
-            func quantity(of statistics: HKStatistics?) -> HKQuantity? {
-                switch self {
-                case .sum: statistics?.sumQuantity()
-                case .average: statistics?.averageQuantity()
-                case .maximum: statistics?.maximumQuantity()
-                case .minimum: statistics?.minimumQuantity()
-                }
-            }
-        }
-
         /// The quantity type whose statistics it reads.
         let source: Source
-        /// The statistic it reads of them.
-        let reading: Reading
+        /// The statistic it reads of them (the total, average, maximum or minimum), or `nil` when HealthKit kept none.
+        let read: @Sendable (HKStatistics) -> HKQuantity?
         /// The component.
         let template: ComponentTemplate
         /// The unit the statistic is read in.
@@ -81,15 +59,15 @@ struct HealthKitWorkoutContent: Sendable {
 
     /// The statistics a session reports, in order, by contract component: the totals, then the heart-rate average,
     /// maximum and minimum.
-    private static let statisticReadings: KeyValuePairs<String, (source: Statistic.Source, reading: Statistic.Reading)> = [
-        "distance-sum": (.activityDistance, .sum),
-        "active-energy-sum": (.quantityType(.activeEnergyBurned), .sum),
-        "step-count-sum": (.quantityType(.stepCount), .sum),
-        "flights-climbed-sum": (.quantityType(.flightsClimbed), .sum),
-        "swimming-stroke-count-sum": (.quantityType(.swimmingStrokeCount), .sum),
-        "heart-rate-avg": (.quantityType(.heartRate), .average),
-        "heart-rate-max": (.quantityType(.heartRate), .maximum),
-        "heart-rate-min": (.quantityType(.heartRate), .minimum)
+    private static let statisticReadings: KeyValuePairs<String, (source: Statistic.Source, read: @Sendable (HKStatistics) -> HKQuantity?)> = [
+        "distance-sum": (.activityDistance, { $0.sumQuantity() }),
+        "active-energy-sum": (.quantityType(.activeEnergyBurned), { $0.sumQuantity() }),
+        "step-count-sum": (.quantityType(.stepCount), { $0.sumQuantity() }),
+        "flights-climbed-sum": (.quantityType(.flightsClimbed), { $0.sumQuantity() }),
+        "swimming-stroke-count-sum": (.quantityType(.swimmingStrokeCount), { $0.sumQuantity() }),
+        "heart-rate-avg": (.quantityType(.heartRate), { $0.averageQuantity() }),
+        "heart-rate-max": (.quantityType(.heartRate), { $0.maximumQuantity() }),
+        "heart-rate-min": (.quantityType(.heartRate), { $0.minimumQuantity() })
     ]
 
     /// What each activity the table names reports, by raw value.
@@ -118,7 +96,7 @@ struct HealthKitWorkoutContent: Sendable {
         activeDuration = try contract.quantityComponent("active-duration").template
         statistics = try Self.statisticReadings.map { id, read throws(HealthKitContentDefect) in
             let (template, quantity) = try contract.quantityComponent(id)
-            return Statistic(source: read.source, reading: read.reading, template: template, unit: try quantity.binding().unit)
+            return Statistic(source: read.source, read: read.read, template: template, unit: try quantity.binding().unit)
         }
     }
 
@@ -127,29 +105,23 @@ struct HealthKitWorkoutContent: Sendable {
         activities[raw] ?? otherActivity
     }
 
-    /// Sets a session's components, then its activity, on `observation`.
+    /// Sets a session's components, then its activity, on `observation`: the active duration, then each statistic
+    /// HealthKit recorded. Statistics of one quantity type (the heart-rate average, maximum and minimum) share its lookup.
     func apply(to observation: inout Observation, workout: HKWorkout) throws(HealthKitValueFailure) {
         let activity = self.activity(workout.workoutActivityType.rawValue)
-        observation.component = try components(duration: workout.duration, activity: activity, recorded: workout.statistics(for:))
-        observation.value = .codeableConcept(activity.value)
-    }
-
-    /// The components of an interval of `activity` lasting `duration` seconds, whose statistics HealthKit `recorded`
-    /// by quantity type: the active duration, then each statistic it recorded. A workout's activities keep their
-    /// statistics the same way, so a segment of one reads its components through here too.
-    func components(
-        duration: TimeInterval,
-        activity: Activity,
-        recorded: (HKQuantityType) -> HKStatistics?
-    ) throws(HealthKitValueFailure) -> [ObservationComponent] {
-        var components = [try activeDuration.component(duration)]
+        var components = [try activeDuration.component(workout.duration)]
+        var recorded: (type: HKQuantityTypeIdentifier, statistics: HKStatistics?)?
         for statistic in statistics {
-            let quantityType = HKQuantityType(statistic.quantityType(of: activity))
-            if let quantity = statistic.reading.quantity(of: recorded(quantityType)) {
+            let type = statistic.quantityType(of: activity)
+            if recorded?.type != type {
+                recorded = (type, workout.statistics(for: HKQuantityType(type)))
+            }
+            if let quantity = recorded?.statistics.flatMap(statistic.read) {
                 components.append(try statistic.template.component(quantity.doubleValue(for: statistic.unit)))
             }
         }
-        return components
+        observation.component = components
+        observation.value = .codeableConcept(activity.value)
     }
 }
 
@@ -167,33 +139,11 @@ extension HealthKitWorkoutContent {
         let shared: String
         /// The distance type the activity records: `HKWorkout.statistics(for:)` has none for any other.
         let distance: HKQuantityTypeIdentifier
-
-        /// A current activity.
-        init(
-            _ activity: HKWorkoutActivityType,
-            name: String,
-            shared: String = "other",
-            distance: HKQuantityTypeIdentifier = .distanceWalkingRunning
-        ) {
-            self.init(raw: activity.rawValue, name: name, shared: shared, distance: distance)
-        }
-
-        /// An activity HealthKit deprecated but keeps readable in older workouts, by its raw value.
-        init(deprecated raw: UInt, name: String, shared: String = "other") {
-            self.init(raw: raw, name: name, shared: shared, distance: .distanceWalkingRunning)
-        }
-
-        /// Any activity.
-        private init(raw: UInt, name: String, shared: String, distance: HKQuantityTypeIdentifier) {
-            self.raw = raw
-            self.name = name
-            self.shared = shared
-            self.distance = distance
-        }
     }
 
     /// Every HealthKit workout activity, by case name. The shared vocabulary names 28 activities and HealthKit 84, so
-    /// related cases collapse onto one shared code and the rest report as `other`.
+    /// related cases collapse onto one shared code and the rest report as `other`. The three cases HealthKit deprecated
+    /// but keeps readable in older workouts (14, 15 and 30) are stated by raw value.
     static let activityTable = [
         ActivityRow(.americanFootball, name: "americanFootball", shared: "american-football"),
         ActivityRow(.archery, name: "archery"),
@@ -213,8 +163,8 @@ extension HealthKitWorkoutContent {
         ActivityRow(.crossTraining, name: "crossTraining"),
         ActivityRow(.curling, name: "curling"),
         ActivityRow(.cycling, name: "cycling", shared: "cycling", distance: .distanceCycling),
-        ActivityRow(deprecated: 14, name: "dance", shared: "dancing"),
-        ActivityRow(deprecated: 15, name: "danceInspiredTraining", shared: "dancing"),
+        ActivityRow(raw: 14, name: "dance", shared: "dancing", distance: .distanceWalkingRunning),
+        ActivityRow(raw: 15, name: "danceInspiredTraining", shared: "dancing", distance: .distanceWalkingRunning),
         ActivityRow(.discSports, name: "discSports"),
         ActivityRow(.downhillSkiing, name: "downhillSkiing", shared: "skiing", distance: .distanceDownhillSnowSports),
         ActivityRow(.elliptical, name: "elliptical", shared: "elliptical"),
@@ -238,7 +188,7 @@ extension HealthKitWorkoutContent {
         ActivityRow(.martialArts, name: "martialArts", shared: "martial-arts"),
         ActivityRow(.mindAndBody, name: "mindAndBody"),
         ActivityRow(.mixedCardio, name: "mixedCardio"),
-        ActivityRow(deprecated: 30, name: "mixedMetabolicCardioTraining"),
+        ActivityRow(raw: 30, name: "mixedMetabolicCardioTraining", shared: "other", distance: .distanceWalkingRunning),
         ActivityRow(.other, name: "other"),
         ActivityRow(.paddleSports, name: "paddleSports", distance: .distancePaddleSports),
         ActivityRow(.pickleball, name: "pickleball"),
@@ -280,6 +230,20 @@ extension HealthKitWorkoutContent {
         ActivityRow(.wrestling, name: "wrestling", shared: "martial-arts"),
         ActivityRow(.yoga, name: "yoga", shared: "yoga")
     ]
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitWorkoutContent.ActivityRow {
+    /// A current activity: reported as `other` and recording walking and running distance unless it states otherwise.
+    init(
+        _ activity: HKWorkoutActivityType,
+        name: String,
+        shared: String = "other",
+        distance: HKQuantityTypeIdentifier = .distanceWalkingRunning
+    ) {
+        self.init(raw: activity.rawValue, name: name, shared: shared, distance: distance)
+    }
 }
 
 #endif
