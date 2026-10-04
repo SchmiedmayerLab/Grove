@@ -55,7 +55,7 @@ extension HealthKitConverter {
             evidence: evidence,
             symptoms: symptoms,
             request: .init(context: context),
-            symptomRequests: .positional(symptomContexts.map { .init(context: $0) })
+            symptomRequests: try symptomRequests(symptomContexts, for: symptoms)
         )
     }
 

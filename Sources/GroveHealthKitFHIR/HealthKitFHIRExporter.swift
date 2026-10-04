@@ -238,8 +238,13 @@ extension HealthKitFHIRExporter {
         case .record(.sample(let sample)):
             return try assembly.convert(sample, request: request)
         case let .record(.electrocardiogram(ecg, voltages, symptoms)):
-            let ecgRecord = HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages, correlatedSymptoms: symptoms)
-            return try assembly.convertECG(ecgRecord, request: request, symptomRequests: symptomRequests(plan, reserved: reserved))
+            return try assembly.convertECG(
+                ecg,
+                evidence: HealthKitECGEvidence(HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)),
+                symptoms: symptoms,
+                request: request,
+                symptomRequests: symptomRequests(plan, reserved: reserved)
+            )
         case let .record(.heartbeatSeries(series, beats)):
             return try assembly.convertHeartbeatSeries(HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats), request: request)
         case let .record(.workoutRoute(route, locations)):
@@ -259,7 +264,7 @@ extension HealthKitFHIRExporter {
     private func symptomRequests(
         _ plan: Plan,
         reserved: [ExchangeEventRequest: ExchangeEventReservation]
-    ) throws -> HealthKitAssembly.SymptomRequests {
+    ) throws -> [UUID: HealthKitAssembly.Request] {
         var requests: [UUID: HealthKitAssembly.Request] = [:]
         for (symptom, planned) in zip(plan.input.symptoms, plan.symptoms) {
             guard let planned, requests[symptom.uuid] == nil else {
@@ -267,7 +272,7 @@ extension HealthKitFHIRExporter {
             }
             requests[symptom.uuid] = try request(for: symptom, reservation: reservation(for: planned, in: reserved))
         }
-        return .keyed(requests)
+        return requests
     }
 
     /// An omission a policy chose is never reported.

@@ -35,10 +35,13 @@ extension HealthKitConverter {
             for symptomContext in symptomContexts {
                 try Self.validateSymptomConversionContext(symptomContext, expectedContext: context)
             }
+            let evidence = try HealthKitECGEvidence(record)
             return try HealthKitAssembly(context: context.event).convertECG(
-                record,
+                record.electrocardiogram,
+                evidence: evidence,
+                symptoms: record.correlatedSymptoms,
                 request: .init(context: context),
-                symptomRequests: .positional(symptomContexts.map { .init(context: $0) })
+                symptomRequests: try Self.symptomRequests(symptomContexts, for: record.correlatedSymptoms)
             )
         } catch {
             throw HealthKitConversionError(conversionFailure: error, source: .electrocardiogram)
@@ -49,6 +52,18 @@ extension HealthKitConverter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConverter {
+    /// The context API's one context per symptom, in the record's order, as the assembly's requests keyed by each
+    /// symptom's UUID; a repeated symptom keeps its first context, and the symptom validation refuses it.
+    static func symptomRequests(
+        _ contexts: [HealthKitConversionContext],
+        for symptoms: [HKCategorySample]
+    ) throws -> [UUID: HealthKitAssembly.Request] {
+        guard contexts.count == symptoms.count else {
+            throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(symptoms: symptoms.count, contexts: contexts.count))
+        }
+        return Dictionary(zip(symptoms.map(\.uuid), contexts.map(HealthKitAssembly.Request.init(context:)))) { first, _ in first }
+    }
+
     /// A companion belongs to the same subject, repository scope and identity scope as the ECG.
     static func validateSymptomConversionContext(
         _ symptomContext: HealthKitConversionContext,

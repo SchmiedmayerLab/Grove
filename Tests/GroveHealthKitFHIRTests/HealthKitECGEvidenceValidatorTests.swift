@@ -378,6 +378,21 @@ struct HealthKitECGEvidenceValidatorTests {
         #expect(set.warnings == symptomWarnings)
     }
 
+    @Test("The context API refuses a symptom-context count other than the symptoms' before it validates the symptoms")
+    func symptomContextCountIsCheckedBeforeTheSymptoms() throws {
+        // Symptoms the evidence says are absent: the count mismatch is still the fault reported.
+        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0x60, symptomsPresent: false)
+        #expect(throws: HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(symptoms: 1, contexts: 0))) {
+            try HealthKitConverter.convertECG(
+                ecg,
+                evidence: evidence,
+                symptoms: [symptom(.dizziness)],
+                context: HealthKitConversionContext(),
+                symptomContexts: []
+            )
+        }
+    }
+
     private func symptom(_ type: HKCategoryTypeIdentifier) -> HKCategorySample {
         HKCategorySample(
             type: HKCategoryType(type),

@@ -17,35 +17,26 @@ import ModelsR4
 // MARK: - Electrocardiogram
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitAssembly {
-    /// The requests of an ECG's correlated symptoms.
-    enum SymptomRequests {
-        /// One request per symptom, in the record's order: the context API's shape.
-        case positional([Request])
-        /// Each symptom's request under its sample's UUID: the exporter's shape, paired by event key.
-        case keyed([UUID: Request])
-    }
-
-    /// Converts an already-fetched ECG and every correlated symptom as independently exchangeable
-    /// source events, each symptom under its own request.
-    func convertECG(_ record: HealthKitECGRecord, request: Request, symptomRequests: SymptomRequests) throws -> HealthKitConversionSet {
+extension HealthKitECGEvidence {
+    /// The validated evidence of an already-fetched ECG and its voltages.
+    init(_ record: HealthKitECGRecord) throws {
         let source = try HealthKitConverter.ecgSourceEvidence(record.electrocardiogram)
-        return try convertECG(
-            record.electrocardiogram,
-            evidence: HealthKitECGEvidence(source: source, waveform: try HealthKitConverter.validatedWaveform(for: record, source: source)),
-            symptoms: record.correlatedSymptoms,
-            request: request,
-            symptomRequests: symptomRequests
-        )
+        self.init(source: source, waveform: try HealthKitConverter.validatedWaveform(for: record, source: source))
     }
+}
 
-    /// `ecg` supplies only the envelope's identity, device and source facts; the evidence is given.
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitAssembly {
+    /// Converts an ECG and every correlated symptom as independently exchangeable source events, each symptom under
+    /// the request keyed by its sample's UUID. `ecg` supplies only the envelope's identity, device and source facts;
+    /// the evidence is given.
     func convertECG(
         _ ecg: HKSample,
         evidence: HealthKitECGEvidence,
         symptoms: [HKCategorySample],
         request: Request,
-        symptomRequests: SymptomRequests
+        symptomRequests: [UUID: Request]
     ) throws -> HealthKitConversionSet {
         let companions = try symptomConversions(symptoms, source: evidence.source, symptomRequests: symptomRequests)
         let input = HealthKitECGObservationInput(
@@ -77,28 +68,14 @@ extension HealthKitAssembly {
     private func symptomConversions(
         _ correlatedSymptoms: [HKCategorySample],
         source: HealthKitECGSourceEvidence,
-        symptomRequests: SymptomRequests
+        symptomRequests: [UUID: Request]
     ) throws -> [HealthKitConversion] {
-        let requestsBySample: [UUID: Request]
-        switch symptomRequests {
-        case .positional(let requests):
-            guard requests.count == correlatedSymptoms.count else {
-                throw HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(
-                    symptoms: correlatedSymptoms.count,
-                    contexts: requests.count
-                ))
-            }
-            requestsBySample = Dictionary(zip(correlatedSymptoms.map(\.uuid), requests), uniquingKeysWith: { first, _ in first })
-        case .keyed(let requests):
-            requestsBySample = requests
-        }
         // Validation comes first, so an unsupported or duplicated symptom is refused as such.
         let symptoms = try HealthKitConverter.validatedSymptomSamples(correlatedSymptoms, status: source.symptomsStatus)
         return try symptoms.map { symptom in
-            guard let request = requestsBySample[symptom.uuid] else {
-                // The positional shape keys every symptom; the keyed shape keys every symptom of a registered type,
-                // and validation admits only symptom types that are registered.
-                preconditionFailure("Every validated symptom has a request in both shapes.")
+            guard let request = symptomRequests[symptom.uuid] else {
+                // Both callers key every symptom of a registered type, and validation admits only registered types.
+                preconditionFailure("Every validated symptom has a request.")
             }
             return try convert(symptom, request: request).primary
         }
