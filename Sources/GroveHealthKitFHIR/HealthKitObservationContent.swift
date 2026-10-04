@@ -102,8 +102,10 @@ struct ObservationPlan: Sendable {
 
     /// The Observation of one sample: the skeleton, stating the sample's effective time and value, then the metadata
     /// component. Each step is its own statement, so a sample with several faults is refused for the first one
-    /// checked: the time zone, the effective time, the value, the metadata.
-    func observation(_ sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitConversionError.ValueFailure) -> Observation {
+    /// checked: the time zone, the effective time, the value, the metadata. Every fault is a
+    /// `HealthKitConversionError.ValueFailure`, except a quantity value the decimal model cannot hold
+    /// (``QuantityTemplate/quantity(_:)``).
+    func observation(_ sample: HKSample, metadata: HealthKitSampleMetadata) throws -> Observation {
         let zone = try metadata.timeZone()
         var observation = skeleton
         observation.effective = try effective.value(start: sample.startDate, end: sample.endDate, zone: zone)
@@ -144,14 +146,14 @@ extension ValueRule {
 
     /// Sets what `sample` states on `observation`: its value; a panel's components and no value; or a workout's or
     /// reflection's components, then its value.
-    func apply(to observation: inout Observation, sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitConversionError.ValueFailure) {
+    func apply(to observation: inout Observation, sample: HKSample, metadata: HealthKitSampleMetadata) throws {
         switch self {
         case let .quantity(template, read):
             observation.value = .quantity(try template.quantity(try read.value(of: sample)))
         case let .coded(values, unresolved):
             let raw = try sample.cast(to: HKCategorySample.self).value
             guard let value = values[raw] else {
-                throw unresolved.contains(raw) ? .missingNormativeCode : .unsupportedValue(raw)
+                throw unresolved.contains(raw) ? HealthKitConversionError.ValueFailure.missingNormativeCode : .unsupportedValue(raw)
             }
             observation.value = .codeableConcept(value)
         case let .duration(template, secondsPerUnit):
@@ -163,9 +165,7 @@ extension ValueRule {
             observation.value = .codeableConcept(value)
         case .bloodPressure(let members):
             let correlation = try sample.cast(to: HKCorrelation.self)
-            observation.component = try members.map { member throws(HealthKitConversionError.ValueFailure) in
-                try member.component(in: correlation)
-            }
+            observation.component = try members.map { try $0.component(in: correlation) }
         case .workout(let content):
             try content.apply(to: &observation, workout: try sample.cast(to: HKWorkout.self))
         case .stateOfMind(let content):
@@ -207,12 +207,12 @@ extension QuantityRead {
 extension BloodPressureMember {
     /// The component the member's reading in `correlation` becomes: the first sample of the member's type, read in
     /// the member's unit. A correlation without one misses the component.
-    func component(in correlation: HKCorrelation) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent {
+    func component(in correlation: HKCorrelation) throws -> ObservationComponent {
         let reading = correlation.objects.lazy
             .compactMap { $0 as? HKQuantitySample }
             .first { $0.quantityType.identifier == quantityType.rawValue }
         guard let reading else {
-            throw .requiredComponentMissing(component: component)
+            throw HealthKitConversionError.ValueFailure.requiredComponentMissing(component: component)
         }
         return try template.component(reading.quantity.doubleValue(for: binding.unit))
     }

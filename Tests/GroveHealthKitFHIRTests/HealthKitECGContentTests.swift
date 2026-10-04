@@ -43,13 +43,14 @@ struct HealthKitECGContentTests {
         VoltagePoint(offset: 0.256, millivolts: 3)
     ]
 
-    /// A stored ECG reporting `reportedCount` voltages sampled at `samplingFrequencyHertz`, supplying `points` and
-    /// stating `metadata`.
+    /// A stored ECG reporting `reportedCount` voltages sampled at `samplingFrequencyHertz` and an average heart rate of
+    /// `averageHeartRate` beats per minute, supplying `points` and stating `metadata`.
     private static func record(
         reportedCount: Int,
         samplingFrequencyHertz: Double?,
         points: [VoltagePoint],
-        metadata: [String: any Sendable] = [:]
+        metadata: [String: any Sendable] = [:],
+        averageHeartRate: Double? = nil
     ) throws -> ECGRecording {
         let start = GoldenFixtures.sampleStart
         let facts = StoredSampleFixtures.SampleFacts(
@@ -64,7 +65,7 @@ struct HealthKitECGContentTests {
             classification: .sinusRhythm,
             symptomsStatus: .none,
             numberOfVoltageMeasurements: reportedCount,
-            averageHeartRate: nil,
+            averageHeartRate: averageHeartRate.map { HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: $0) },
             samplingFrequency: samplingFrequencyHertz.map { HKQuantity(unit: .hertz(), doubleValue: $0) }
         )
         return (
@@ -137,6 +138,23 @@ struct HealthKitECGContentTests {
         let bareEvidence = try plan.ecgEvidence(bare.electrocardiogram, voltages: bare.voltageMeasurements)
         #expect(bareEvidence.zone.secondsFromGMT(for: GoldenFixtures.sampleStart) == 0)
         #expect(bareEvidence.algorithmVersion == nil)
+    }
+
+    /// Heart rate has no value domain, so an average the adapter cannot state exactly is evidence it cannot represent:
+    /// a non-finite one, and one Foundation's `Decimal` cannot hold.
+    @Test("An average heart rate without an exact decimal is invalid ECG evidence", arguments: [Double.nan, .infinity, 5e-324, 1e200])
+    func averageHeartRateWithoutADecimal(_ beatsPerMinute: Double) throws {
+        let plan = HealthKitContentPlan[.electrocardiogram]
+        guard case .electrocardiogram(let content) = plan.route else {
+            Issue.record("The ECG converts through no ECG content")
+            return
+        }
+        let record = try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints, averageHeartRate: beatsPerMinute)
+        let evidence = try plan.ecgEvidence(record.electrocardiogram, voltages: record.voltageMeasurements)
+        #expect(throws: HealthKitConversionError.ecgEvidence(.invalidAverageHeartRate)) {
+            try content.outputs(evidence, symptoms: [])
+        }
+        #expect(HealthKitConversionError.ecgEvidence(.invalidAverageHeartRate).diagnostic.code == "healthkit-input.ecg-evidence")
     }
 
     /// Every HealthKit classification states its code of the guide's closed code system

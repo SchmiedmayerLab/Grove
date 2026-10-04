@@ -60,7 +60,7 @@ enum EffectiveRule: Hashable, Sendable {
 
     /// Whether the profile admits a Period from `start` to `end`, judged on the half-even milliseconds the wire
     /// states: never where it fixes an instant, never reversed, and zero-width only where the measurement does not
-    /// require a non-zero Period. An endpoint with no wire millisecond has an invalid shape.
+    /// require a non-zero Period. An endpoint with no wire millisecond is no valid FHIR date-time.
     func admitsPeriod(from start: Date, to end: Date) throws(HealthKitConversionError.ValueFailure) -> Bool {
         let nonZero: Bool
         switch self {
@@ -108,10 +108,10 @@ enum HealthKitEffectiveTime {
     private static let referenceDateMilliseconds = Int64(Date.timeIntervalBetween1970AndReferenceDate) * 1_000
 
     /// An effective instant in the source's own zone, which also travels as the `timezone` extension,
-    /// or in UTC when the source names none.
+    /// or in UTC when the source names none. An instant with no Mobile lexeme is not a valid FHIR date-time.
     static func dateTime(_ date: Date, zone: TimeZone?) throws(HealthKitConversionError.ValueFailure) -> FHIRPrimitive<DateTime> {
         guard let lexeme = mobileLexeme(date, zone: zone), let dateTime = try? DateTime(lexeme) else {
-            throw .shapeInvalid
+            throw .effectivePeriodInvalid
         }
         guard let zone else {
             return FHIRPrimitive(dateTime)
@@ -232,7 +232,7 @@ enum HealthKitEffectiveTime {
 
     /// The milliseconds since 1970 an effective instant states on the wire: the exact instant `date` holds, rounded
     /// to the nearest, ties to even. An instant that is non-finite, or 2^52 milliseconds or more from 2001, far beyond
-    /// the statable years, has an invalid shape.
+    /// the statable years, is no valid FHIR date-time.
     ///
     /// `Date` holds binary64 seconds since 2001, which begins an even number of milliseconds after 1970, so the
     /// exact count is those seconds times 1000 shifted by that even number, ties intact. The binary64 product
@@ -244,7 +244,7 @@ enum HealthKitEffectiveTime {
         let seconds = date.timeIntervalSinceReferenceDate
         let product = seconds * 1_000
         guard product.magnitude < 0x1p52 else {
-            throw .shapeInvalid
+            throw .effectivePeriodInvalid
         }
         let error = (-product).addingProduct(seconds, 1_000)
         let isTie = (product - product.rounded(.towardZero)).magnitude == 0.5

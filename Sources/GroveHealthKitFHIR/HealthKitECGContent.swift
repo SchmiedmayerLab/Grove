@@ -168,12 +168,14 @@ struct HealthKitECGContent: Sendable {
         guard let beatsPerMinute = ecg.averageHeartRate?.doubleValue(for: averageHeartRateUnit) else {
             return drafts
         }
-        guard beatsPerMinute.isFinite else {
+        // Heart rate has no value domain: an average the adapter cannot state exactly, nonfinite or beyond the decimal
+        // model, is ECG evidence it cannot represent.
+        guard let quantity = try? averageHeartRateQuantity.quantity(beatsPerMinute) else {
             throw HealthKitConversionError.ecgEvidence(.invalidAverageHeartRate)
         }
         var heartRate = averageHeartRateSkeleton
         heartRate.effective = .period(effective)
-        heartRate.value = .quantity(try averageHeartRateQuantity.quantity(beatsPerMinute))
+        heartRate.value = .quantity(quantity)
         return drafts + [averageHeartRateSlot.draft(.observation(heartRate))]
     }
 

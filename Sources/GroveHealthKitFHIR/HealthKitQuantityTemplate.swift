@@ -30,8 +30,8 @@ struct ComponentTemplate: Sendable {
         self.quantity = QuantityTemplate(quantity)
     }
 
-    /// The component carrying `value`.
-    func component(_ value: Double) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent {
+    /// The component carrying `value`; it fails as ``QuantityTemplate/quantity(_:)`` does.
+    func component(_ value: Double) throws -> ObservationComponent {
         ObservationComponent(code: code, value: .quantity(try quantity.quantity(value)))
     }
 }
@@ -56,19 +56,49 @@ struct QuantityTemplate: Sendable {
     }
 
     /// The quantity carrying `value` as its shortest round-trip decimal, which must lie in the domain.
-    func quantity(_ value: Double) throws(HealthKitConversionError.ValueFailure) -> Quantity {
+    ///
+    /// A nonfinite value, or one the domain excludes, throws `HealthKitConversionError.ValueFailure.outsideDomain`. A
+    /// finite value the R4 decimal model cannot hold (Foundation's `Decimal` spans fewer exponents than binary64)
+    /// rethrows its `GroveFHIRDecimalError` unless the domain excludes it anyway: no registered rule names that
+    /// reason, so the conversion reports it unclassified.
+    func quantity(_ value: Double) throws -> Quantity {
         let decimal: Decimal
-        do {
+        do throws(GroveFHIRDecimalError) {
             decimal = try GroveFHIRDecimal(value).decimal
+        } catch .nonFinite {
+            throw HealthKitConversionError.ValueFailure.outsideDomain
         } catch {
-            throw .shapeInvalid
+            guard let domain, domain.excludes(binary64: value) else {
+                throw error
+            }
+            throw HealthKitConversionError.ValueFailure.outsideDomain
         }
         guard domain?.contains(decimal) != false else {
-            throw .shapeInvalid
+            throw HealthKitConversionError.ValueFailure.outsideDomain
         }
         var quantity = empty
         quantity.value = FHIRPrimitive(FHIRDecimal(decimal))
         return quantity
+    }
+}
+
+
+extension QuantityValueDomain {
+    /// Whether the domain excludes a finite binary64 that has no `Decimal`: fractional where only integers are
+    /// admitted, or beyond a bound. Compared in binary64, which is exact as every generated bound is exact there
+    /// (`HealthKitQuantityTemplateTests` pins it); a bound that did not parse would exclude nothing.
+    fileprivate func excludes(binary64 value: Double) -> Bool {
+        let bound = { (boundary: QuantityBoundary) in Double(boundary.value.description) ?? .nan }
+        if integerOnly, value.rounded(.towardZero) != value {
+            return true
+        }
+        if minimum.inclusive ? value < bound(minimum) : value <= bound(minimum) {
+            return true
+        }
+        guard let maximum else {
+            return false
+        }
+        return maximum.inclusive ? value > bound(maximum) : value >= bound(maximum)
     }
 }
 

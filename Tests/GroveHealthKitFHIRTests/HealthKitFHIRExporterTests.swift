@@ -121,6 +121,36 @@ struct HealthKitFHIRExporterTests {
         #expect(try !storage.holdsReservation(for: ecgKey))
     }
 
+    @Test("A refusal reports the registry's most specific reason, and the export continues")
+    func refusalsReportTheirRegisteredReason() throws {
+        let start = GoldenFixtures.sampleStart
+        // A Period measurement over a minute, so the value is checked, not the effective time.
+        let fractionalSteps = try StoredSampleFixtures.stored(
+            HKQuantitySample(
+                type: HKQuantityType(.stepCount),
+                quantity: HKQuantity(unit: .count(), doubleValue: 1.5),
+                start: start,
+                end: start.addingTimeInterval(60),
+                metadata: GoldenFixtures.timeZoneMetadata
+            ),
+            uuid: GoldenFixtures.uuid(7)
+        )
+        let expected = [
+            (HealthKitConversionError.invalidValue(.stepCount, .outsideDomain), ExchangeGraphRule.mobileInputValueOutsideDomain.diagnostic(at: "HKSample.value"))
+        ]
+        let (exports, _) = try Self.collect(try Self.exporter(), [fractionalSteps, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))])
+        try #require(exports.count == expected.count + 1)
+        for (export, (error, diagnostic)) in zip(exports, expected) {
+            guard case .refused(let reason) = export.outcome else {
+                Issue.record("expected a refusal, got \(export.outcome)")
+                continue
+            }
+            #expect(reason == error)
+            #expect(reason.diagnostic == diagnostic)
+        }
+        #expect(exports.last?.graph != nil)
+    }
+
     @Test("The omit policies state nothing and never warn; the legacy Bundle.id keeps the HealthKit UUID")
     func policiesApply() throws {
         let exporter = try Self.exporter { options in

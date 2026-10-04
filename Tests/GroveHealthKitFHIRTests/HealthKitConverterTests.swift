@@ -985,32 +985,32 @@ struct HealthKitFHIRConverterTests {
 
         let zero = try QuantityTemplate(steps).quantity(0)
         #expect(zero.value?.value?.decimal == 0)
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(steps).quantity(1.5)
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(steps).quantity(-1)
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(percentage).quantity(100.01)
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(percentage).quantity(-0.01)
         }
         #expect(throws: Never.self) {
             try QuantityTemplate(percentage).quantity(100)
         }
         // A fraction just above 1 or below 0 states a percent outside the domain; exactly 1 states 100.
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: 1.0000000000000002))
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: -0.01))
         }
         #expect(throws: Never.self) {
             try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: 1))
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try QuantityTemplate(valence).quantity(1.01)
         }
         #expect(throws: Never.self) {
