@@ -35,8 +35,9 @@ public final class ExchangeEventSequencer: Sendable {
         /// Runs `body` as one transaction and returns its result.
         ///
         /// The transaction is valid only inside `body`. Grove never calls `transaction` from inside `body`,
-        /// and its bodies have no effect outside the transaction that outlasts the call, so a storage may
-        /// discard an attempt and run `body` again. A `body` that throws commits nothing.
+        /// and its bodies have no effect outside the transaction other than process-memory notes that end
+        /// when the call returns, so a storage may discard an attempt and run `body` again. A `body` that
+        /// throws commits nothing.
         func transaction<R>(_ body: (any Transaction) throws -> R) throws -> R
     }
 

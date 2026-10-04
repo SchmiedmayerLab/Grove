@@ -11,6 +11,40 @@ import Foundation
 import Testing
 
 
+/// Runs the next transaction's body once and discards that attempt, then runs the body again and commits it: what a
+/// storage that retries a conflicting attempt does.
+private final class RetryingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // `retryNext` is guarded by `lock`.
+    private struct Discarded: Error {}
+
+    let base = ExchangeEventSequencer.InMemoryStorage()
+    private let lock = NSLock()
+    private var retryNext = false
+
+    /// Discards the next transaction's first attempt.
+    func retry() {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        retryNext = true
+    }
+
+    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+        lock.lock()
+        let retrying = retryNext
+        retryNext = false
+        lock.unlock()
+        if retrying {
+            _ = try? base.transaction { transaction -> R in
+                _ = try body(transaction)
+                throw Discarded()
+            }
+        }
+        return try base.transaction(body)
+    }
+}
+
+
 /// Holds, releases, lapses and the receipts' transaction budget.
 @Suite
 struct ExchangeEventHoldTests {
@@ -75,6 +109,20 @@ struct ExchangeEventHoldTests {
         try sequencer.finish(loser.values.map(\.handle), released: false, forgetting: [])
         #expect(try !Self.isReserved(request, in: storage))
         #expect(!Fixtures.isHeld(winner[request]?.handle, by: sequencer))
+    }
+
+    @Test("G9: a reserve whose body the storage runs twice notes each reservation once; the release removes it")
+    func retriedReserveNotesOnce() throws {
+        let storage = RetryingStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let request = Fixtures.request("a")
+        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: Fixtures.facts())
+        storage.retry()
+        let again = try sequencer.reserve([request], at: Fixtures.instant, facts: Fixtures.facts())
+        #expect(again == first, "both attempts reuse the reservation")
+        try sequencer.finish(first.values.map(\.handle) + again.values.map(\.handle), released: true, forgetting: [])
+        #expect(!Fixtures.isHeld(first[request]?.handle, by: sequencer), "nothing stays noted after the retried call")
+        #expect(try !Self.isReserved(request, in: storage.base), "the release removes the reservation")
     }
 
     @Test("G10: a handle from before a reset releases nothing, and a replaced reservation is not removed")
