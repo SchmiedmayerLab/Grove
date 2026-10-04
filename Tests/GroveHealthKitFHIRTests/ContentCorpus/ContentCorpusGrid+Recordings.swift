@@ -139,7 +139,9 @@ extension ContentCorpusGrid {
 
     /// The base ECG at instants its exact timing has to carry: a start a quarter second before a minute, so the
     /// first voltage falls into the next one; a local year past 9999; 1500 in Los Angeles (local mean time) and in
-    /// UTC; and both occurrences of Los Angeles's repeated 2026 hour.
+    /// UTC; both occurrences of Los Angeles's repeated 2026 hour; a start a quarter second before its 2026 DST
+    /// start, so the first voltage falls onto it; and the local mean times of Sitka (+14:58:47) and Guam (−14:21)
+    /// in 1800, which no FHIR date-time states.
     static var electrocardiogramTimes: [ContentCorpusVector] {
         func at(_ instant: Double, metadata: [String: ContentCorpusMetadataValue] = electrocardiogramMetadata) -> ContentCorpusSource {
             var source = electrocardiogramSource(electrocardiogramReading)
@@ -148,14 +150,20 @@ extension ContentCorpusGrid {
             source.metadata = metadata
             return source
         }
-        let utc: [String: ContentCorpusMetadataValue] = [HKMetadataKeyTimeZone: .string("UTC"), HKMetadataKeyAppleECGAlgorithmVersion: .integer(2)]
+        func zoneNamed(_ name: String) -> [String: ContentCorpusMetadataValue] {
+            [HKMetadataKeyTimeZone: .string(name), HKMetadataKeyAppleECGAlgorithmVersion: .integer(2)]
+        }
+        let utc = zoneNamed("UTC")
         let instants: [(String, ContentCorpusSource)] = [
             ("start-carries-into-minute", at(1_787_005_859.75)),
             ("year-10000", at(253_402_329_600)),
             ("pre-reform-1500", at(-14_831_769_600)),
             ("pre-reform-1500/utc", at(-14_831_769_600, metadata: utc)),
             ("repeated-hour-first", at(1_793_521_800)),
-            ("repeated-hour-second", at(1_793_525_400))
+            ("repeated-hour-second", at(1_793_525_400)),
+            ("first-voltage-at-dst-start", at(1_772_963_999.75)),
+            ("lmt-sitka-1800", at(-5_364_662_400, metadata: zoneNamed("America/Sitka"))),
+            ("lmt-guam-1800", at(-5_364_662_400, metadata: zoneNamed("Pacific/Guam")))
         ]
         return instants.map { label, source in
             convert("electrocardiogram/time/\(label)", source)
