@@ -59,6 +59,67 @@
 
     ]
   },
+  "blood-pressure-member-metadata" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-recording-method"
+        ],
+        "fullUrl" : "urn:uuid:75953c7c-7c4a-5bfe-8885-64cf98ef24b2",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:unDUJXD9U1SNstMz0c6HL3Ht5tf3Q6ktnkQNdbc3Y7U",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:Ykf7yv2FQNOy8U87VpJ5mRYoqp6k3Fdz8lG6suwmL4M"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:81011667-dbfe-51c0-a0fc-7b683056040f",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:kUOK-e9D3A_BB0QPTHnw8W88q-JxybE_92aQ2MoyRR8",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:450f3c47-e7cb-52ba-a9d0-9c4c5b89a183",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:W924IFp_OuLPTmwPzSpZYl_Tmk5oqvMT5FeInV0B-S0"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:a038cfd7-2ab1-5d1f-8081-f79996101a77",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:wFbBTFzny_Kwfw_kQCiahy2hTMQg8IG9Lu0VPUWMwLk",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:221b5278-f203-5d35-bfde-bcfe3df51c2f",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+      "mobile-omission.unmodeled-metadata@Observation.extension"
+    ]
+  },
   "body-fat-percentage-fraction" : {
     "entries" : [
       {

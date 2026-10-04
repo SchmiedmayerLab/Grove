@@ -119,6 +119,7 @@ FHIR separates when a measurement happened from when a record was published; the
 This exporter keeps the distinct clocks explicit:
 
 - `Observation.effective` is an `effectivePeriod` from `HKSample.startDate` to `endDate` where the measurement's profile fixes a Period, and for heart rate whenever the two differ at millisecond precision; otherwise it is an `effectiveDateTime` at `startDate`, and an instant-only measurement's interval `endDate` is withheld with no warning, because the pinned guide registers none. It is read in the sample's own time zone when `HKMetadataKeyTimeZone` names one and in UTC with a `mobile-omission.source-offset` warning located at each effective element otherwise, and no effective value ever takes the phone's current zone.
+  A blood-pressure correlation's own `HKMetadataKeyTimeZone` and `HKMetadataKeyWasUserEntered` decide when it states them; otherwise its members supply the zone every member naming one agrees on, and manual entry only when every member states it.
 - `Observation.issued` is absent because HealthKit exposes no object availability/modification instant.
 - `Provenance.occurred`, `Provenance.recorded`, `Bundle.timestamp` and `DocumentReference.date` take the instant the event was first reserved at, frozen in the ledger, always in UTC at millisecond precision with ASCII digits, so a retry after the phone changed time zone or locale rebuilds the same bytes.
 - A redelivery reuses that instant; a later source version receives a new event and instant.
