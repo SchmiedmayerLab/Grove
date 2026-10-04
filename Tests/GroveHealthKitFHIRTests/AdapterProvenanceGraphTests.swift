@@ -62,6 +62,9 @@ struct AdapterProvenanceGraphTests {
         Vector("a target outside the adapter's outputs", golden: "heart-rate-minimal", expected: (graphRule, "Provenance.target")) { bundle in
             try appendOutput(to: &bundle, adapterClaimed: false)
         },
+        Vector("a target outside the adapter's outputs, targeted first", golden: "heart-rate-minimal", expected: (graphRule, "Provenance.target")) { bundle in
+            try appendOutput(to: &bundle, adapterClaimed: false, targetIndex: 0)
+        },
         Vector("a second adapter output of the record, targeted", golden: "heart-rate-minimal", expected: nil) { bundle in
             try appendOutput(to: &bundle, adapterClaimed: true)
         },
@@ -89,23 +92,27 @@ struct AdapterProvenanceGraphTests {
         dataOrigin("an author agent", golden: "writer-foreign-application", agents: nil, at: ".agent[0].who"),
         dataOrigin("an enterer under another system", agents: { _ in [enterer(system: "https://grovealliance.org/fhir/testing/identifiers/package")] }, at: ".agent[0].who.identifier"),
         dataOrigin("an enterer with a blank package name", agents: { _ in [enterer(value: "  ")] }, at: ".agent[0].who.identifier"),
-        dataOrigin("an enterer and an author", agents: { converter in [enterer(), ["type": participant("author"), "who": ["reference": converter]]] }, at: ".agent"),
-        dataOrigin("an enterer referencing a Device", agents: { converter in [["type": participant("enterer"), "who": ["reference": converter, "type": "Device"]]] }, at: ".agent[0].who"),
+        dataOrigin("an enterer and an author", agents: { converter in [enterer(), ["type": participant(["author"]), "who": ["reference": converter]]] }, at: ".agent"),
+        dataOrigin("an agent typed enterer and author", agents: { _ in [enterer(typedAs: ["enterer", "author"])] }, at: ".agent[0].who"),
+        dataOrigin("an agent typed enterer twice", agents: { _ in [enterer(typedAs: ["enterer", "enterer"])] }, at: ".agent[0].who"),
+        dataOrigin("an enterer referencing a Device", agents: { converter in [["type": participant(["enterer"]), "who": ["reference": converter, "type": "Device"]]] }, at: ".agent[0].who"),
         // A complete data origin passes the rule; the HealthKit outputs then fail the graph rule.
         Vector("a complete data origin over HealthKit outputs", golden: "heart-rate-minimal", expected: (graphRule, "Bundle.entry")) { bundle in
             try governedByHealthConnect(&bundle) { _ in [enterer()] }
         }
     ]
 
-    private static func participant(_ code: String) -> [String: Any] {
-        ["coding": [["system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type", "code": code]]]
+    /// A participant type coded once per code, in order.
+    private static func participant(_ codes: [String]) -> [String: Any] {
+        ["coding": codes.map { ["system": "http://terminology.hl7.org/CodeSystem/provenance-participant-type", "code": $0] }]
     }
 
     private static func enterer(
         system: String = "https://grovealliance.org/fhir/health-connect/NamingSystem/android-package-name",
-        value: String = "com.example.scale"
+        value: String = "com.example.scale",
+        typedAs codes: [String] = ["enterer"]
     ) -> [String: Any] {
-        ["type": participant("enterer"), "who": ["type": "Device", "identifier": ["system": system, "value": value]]]
+        ["type": participant(codes), "who": ["type": "Device", "identifier": ["system": system, "value": value]]]
     }
 
     private static func dataOrigin(
@@ -153,8 +160,9 @@ struct AdapterProvenanceGraphTests {
     }
 
     /// Adds a copy of entry 0 as a second output of the same record, under a new source-output identity and the
-    /// fullUrl it keys, claiming the HealthKit adapter or only its source-neutral profile, and targets it.
-    private static func appendOutput(to bundle: inout [String: Any], adapterClaimed: Bool) throws {
+    /// fullUrl it keys, claiming the HealthKit adapter or only its source-neutral profile, and targets it at
+    /// `targetIndex`, by default after the existing targets.
+    private static func appendOutput(to bundle: inout [String: Any], adapterClaimed: Bool, targetIndex: Int? = nil) throws {
         var entries = try #require(bundle["entry"] as? [[String: Any]])
         var output = entries[0]
         let identity = try #require(entries[0]["extension"] as? [[String: Any]]).first?["valueIdentifier"] as? [String: Any]
@@ -174,8 +182,9 @@ struct AdapterProvenanceGraphTests {
         }
         entries.append(output)
         try edit(&entries[3], member: "resource") { provenance in
-            let targets = try #require(provenance["target"] as? [[String: Any]])
-            provenance["target"] = targets + [["reference": fullURL]]
+            var targets = try #require(provenance["target"] as? [[String: Any]])
+            targets.insert(["reference": fullURL], at: targetIndex ?? targets.count)
+            provenance["target"] = targets
         }
         bundle["entry"] = entries
     }
