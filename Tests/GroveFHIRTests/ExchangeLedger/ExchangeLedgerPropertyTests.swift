@@ -71,6 +71,14 @@ private final class ReuseOracle: @unchecked Sendable { // `events` and `reuses` 
 struct ExchangeLedgerPropertyTests {
     private typealias Fixtures = LedgerFixtures
 
+    /// A storage G6 runs over: one that runs transactions one at a time, in memory or in a file, or one whose
+    /// serializable transactions overlap.
+    enum Backend: CaseIterable, Sendable {
+        case memory
+        case file
+        case optimistic
+    }
+
     /// One random step of the interleaving.
     private static func step(
         _ random: inout SeededGenerator,
@@ -122,13 +130,17 @@ struct ExchangeLedgerPropertyTests {
         #expect(oracle.reuses.isEmpty, "reused: \(oracle.reuses.prefix(5))")
     }
 
-    @Test("G6: concurrent reservations and releases with a resetting thread never collide", arguments: [false, true])
-    func concurrentCallsNeverCollide(overFile: Bool) async throws {
+    @Test("G6: concurrent reservations and releases with a resetting thread never collide", arguments: Backend.allCases)
+    func concurrentCallsNeverCollide(backend: Backend) async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ledger-\(UUID().uuidString)", isDirectory: true)
         defer {
             try? FileManager.default.removeItem(at: directory)
         }
-        let storage: any ExchangeEventSequencer.Storage = overFile ? try FileStorage(directory: directory) : ExchangeEventSequencer.InMemoryStorage()
+        let storage: any ExchangeEventSequencer.Storage = switch backend {
+        case .memory: ExchangeEventSequencer.InMemoryStorage()
+        case .file: try FileStorage(directory: directory)
+        case .optimistic: OptimisticStorage()
+        }
         let sequencer = Fixtures.sequencer(storage)
         let oracle = ReuseOracle()
         let threads = 8

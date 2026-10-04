@@ -242,4 +242,30 @@ struct ExchangeEventHoldRaceTests {
         other.proceed.signal()
         reserved.wait()
     }
+
+    @Test("G9f: over a storage whose transactions overlap, a release can remove a reservation a call just reused; a duplicate, never a reuse")
+    func overlappingTransactionsDuplicateNeverReuse() throws {
+        let storage = OptimisticStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let request = Fixtures.request("overlap")
+        let facts = try Fixtures.facts()
+        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let finished = DispatchSemaphore(value: 0)
+        storage.gate()
+        Thread {
+            try? sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+            finished.signal()
+        }.start()
+        // The release found no holder and staged its removal; a reuse commits before the release validates.
+        storage.entered.wait()
+        let second = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        storage.proceed.signal()
+        finished.wait()
+        let held = try #require(second[request])
+        #expect(second == first, "the reuse committed first")
+        // As the storage article states: the holder's redelivery takes a new sequence, never one handed out before.
+        let redelivery = try #require(try sequencer.reserve([request], at: Fixtures.instant, facts: facts)[request])
+        #expect(redelivery.handle.instance == held.handle.instance)
+        #expect(redelivery.handle.sequence > held.handle.sequence)
+    }
 }

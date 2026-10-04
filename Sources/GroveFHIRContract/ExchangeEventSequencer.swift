@@ -27,7 +27,10 @@ public final class ExchangeEventSequencer: Sendable {
     ///
     /// The entries belong to Grove: a storage keeps keys and values byte-exact and never interprets them.
     /// A conformance meets the five clauses of <doc:ExchangeLedgerStorage>: atomicity, durability,
-    /// serializable isolation, no regression or duplication, and byte-exactness.
+    /// serializable isolation, no regression or duplication, and byte-exactness. Running one process's
+    /// transactions one at a time, as a lock or a transaction that takes the write lock when it begins does,
+    /// also keeps a release from removing a reservation another call has just reused; a storage whose
+    /// transactions overlap loses only that, and the call's redelivery becomes a duplicate, never a reuse.
     public protocol Storage: Sendable {
         /// Runs `body` as one transaction and returns its result.
         ///
