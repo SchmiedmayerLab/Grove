@@ -381,13 +381,16 @@ struct HealthKitFHIRConverterTests {
         }
         #expect(quantity.system?.value?.url.absoluteString == testCase.contract.quantity?.system)
         #expect(quantity.code?.value?.string == testCase.contract.quantity?.code)
-        #expect(conversion.observation.effective?.isPeriod == (testCase.contract.effective == .period))
+        // Every sample here lasts a minute: only a profile that fixes an instant states the start alone.
+        #expect(conversion.observation.effective?.isPeriod == (testCase.contract.effective != .dateTime))
         if testCase == .heartRate {
             #expect(testCase.contract.effective == .dateTimeOrPeriod)
-            guard case .dateTime = conversion.observation.effective else {
-                Issue.record("A normal HealthKit heart-rate sample must use effectiveDateTime")
+            guard case .period(let period) = conversion.observation.effective else {
+                Issue.record("A minute-long HealthKit heart-rate sample must use effectivePeriod")
                 return
             }
+            #expect(period.start?.value?.description == "2026-08-19T14:10:00Z")
+            #expect(period.end?.value?.description == "2026-08-19T14:11:00Z")
         }
         if testCase == .oxygenSaturation {
             #expect(quantity.value?.value?.decimal.description == "97.5")

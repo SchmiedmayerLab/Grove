@@ -92,6 +92,35 @@ struct HealthKitSampleProjectionEffectiveTests {
         date.formatted(.iso8601)
     }
 
+    @Test("A heart rate projects an instant as a point and a Period as its endpoints")
+    func heartRateProjectsEitherEffective() throws {
+        let point = try Self.observation(MeasurementCatalog.heartRate, .instant(Self.start), value: 72).healthKitSample()
+        #expect(point.startDate == point.endDate)
+        #expect(point.startDate == (try DateTime(Self.start).asNSDate()))
+        let interval = try Self.observation(MeasurementCatalog.heartRate, .period(start: Self.start, end: Self.minuteLater), value: 72)
+            .healthKitSample()
+        #expect(interval.sampleType == HKQuantityType(.heartRate))
+        #expect(interval.startDate == (try DateTime(Self.start).asNSDate()))
+        #expect(interval.endDate == (try DateTime(Self.minuteLater).asNSDate()))
+        #expect(interval.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
+    }
+
+    @Test("A converted heart-rate interval reads back as the sample it came from, syncing under its minted identity")
+    func heartRateIntervalRoundTrips() throws {
+        let output = try #require(GoldenCase.all.first { $0.name == "heart-rate-interval" }).output()
+        let projection = output.graph.healthKitSamples()
+        #expect(projection.failures.isEmpty)
+        let sample = try #require(projection.conversions.first)
+        #expect(projection.conversions.count == 1)
+        #expect(sample.sampleType == HKQuantityType(.heartRate))
+        #expect(sample.startDate == GoldenFixtures.sampleStart)
+        #expect(sample.endDate == GoldenFixtures.sampleStart.addingTimeInterval(45))
+        let observation = try #require(output.graph.bundle.entry?.lazy.compactMap { $0.resource?.get(if: Observation.self) }.first)
+        let identity = try #require(observation.identifier?.compactMap { try? RoledIdentifier($0) }.first { $0.role == .sourceOutput })
+            .identifier.value
+        #expect(sample.metadata?[HKMetadataKeySyncIdentifier] as? String == identity)
+    }
+
     @Test("A Period measurement projects its Period, up to the longest HealthKit allows")
     func periodMeasurementProjectsItsPeriod() throws {
         let steps = try #require(try Self.observation(MeasurementCatalog.stepCount, .period(start: Self.start, end: Self.minuteLater), value: 120)
@@ -138,6 +167,8 @@ struct HealthKitSampleProjectionEffectiveTests {
             (MeasurementCatalog.stepCount.id, .period(start: start, end: start)),
             (MeasurementCatalog.stepCount.id, .period(start: minuteLater, end: start)),
             (MeasurementCatalog.dietaryEnergy.id, .period(start: minuteLater, end: start)),
+            // HealthKit needs an end, which a heart rate's open Period does not state.
+            (MeasurementCatalog.heartRate.id, .period(start: start, end: nil)),
             // HealthKit raises on an audio exposure shorter than a millisecond.
             (HealthKitMeasurementCatalog.environmentalAudioExposure.id, .period(start: start, end: start))
         ]

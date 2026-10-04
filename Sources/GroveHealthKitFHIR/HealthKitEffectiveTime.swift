@@ -13,29 +13,43 @@ import GroveFHIRContract
 import ModelsR4
 
 
-/// How a measurement's effective time is drawn from a HealthKit sample's start and end, inside the datatype its
-/// profile fixes; a Period is judged on the milliseconds the wire states.
+/// How a measurement's effective time is drawn from a HealthKit sample's start and end: inside the datatype its
+/// profile fixes, a point is an `effectiveDateTime` and an interval an `effectivePeriod`, judged on the milliseconds
+/// the wire states.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum EffectiveRule: Hashable, Sendable {
-    /// `effectiveDateTime` at the sample's start.
+    /// `effectiveDateTime` at the sample's start. The profile admits no Period, so an interval's end is withheld;
+    /// the pinned guide registers no warning for that loss.
     case instant
+    /// `effectiveDateTime` at the start when start and end state the same millisecond, else `effectivePeriod`: the
+    /// profile admits both (heart rate).
+    case instantOrInterval
     /// `effectivePeriod` from start to end; a reversed interval never qualifies, and a zero-width one
     /// qualifies only when the measurement does not require a non-zero Period. FHIR `per-1` admits
     /// `start == end`, so a point-in-time source keeps its instant as an equal-endpoint Period.
     case interval(nonZero: Bool)
 
     /// The rule of a measurement: the effective datatype its profile fixes, and whether its Period must be non-zero.
-    /// A dateTime-or-Period measurement (heart rate) states its instant: a scalar HealthKit sample stays point-in-time.
     init(_ contract: MeasurementContract) {
         switch contract.effective {
-        case .dateTime, .dateTimeOrPeriod: self = .instant
+        case .dateTime: self = .instant
+        case .dateTimeOrPeriod: self = .instantOrInterval
         case .period: self = .interval(nonZero: HealthKitContentRules.nonZeroPeriods.contains(contract.id))
         }
     }
 
     /// The effective value for a sample spanning `start` to `end` in the source's `zone`.
     func value(start: Date, end: Date, zone: TimeZone?) throws(HealthKitConversionError.ValueFailure) -> Observation.EffectiveX {
-        guard self != .instant else {
+        let statesPoint: Bool
+        switch self {
+        case .instant:
+            statesPoint = true
+        case .instantOrInterval:
+            statesPoint = try HealthKitEffectiveTime.milliseconds(start) == HealthKitEffectiveTime.milliseconds(end)
+        case .interval:
+            statesPoint = false
+        }
+        if statesPoint {
             return .dateTime(try HealthKitEffectiveTime.dateTime(start, zone: zone))
         }
         guard try admitsPeriod(from: start, to: end) else {
@@ -48,8 +62,11 @@ enum EffectiveRule: Hashable, Sendable {
     /// states: never where it fixes an instant, never reversed, and zero-width only where the measurement does not
     /// require a non-zero Period. An endpoint with no wire millisecond has an invalid shape.
     func admitsPeriod(from start: Date, to end: Date) throws(HealthKitConversionError.ValueFailure) -> Bool {
-        guard case .interval(let nonZero) = self else {
-            return false
+        let nonZero: Bool
+        switch self {
+        case .instant: return false
+        case .instantOrInterval: nonZero = false
+        case .interval(let required): nonZero = required
         }
         let start = try HealthKitEffectiveTime.milliseconds(start)
         let end = try HealthKitEffectiveTime.milliseconds(end)

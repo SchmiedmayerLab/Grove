@@ -99,7 +99,7 @@ struct HealthKitFHIRAggregateConversionTests {
 
     @Test("A point measurement asserts no aggregation method")
     func pointMeasurementsHaveNoMethod() throws {
-        let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
+        let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72, interval: 0)
         let observation = try ExporterFixtures.export(sample, inputs).observation
         let resting = try ExporterFixtures.export(
             quantitySample(.restingHeartRate, unit: .count().unitDivided(by: .minute()), value: 58),
@@ -107,6 +107,7 @@ struct HealthKitFHIRAggregateConversionTests {
         ).observation
 
         #expect(observation.method == nil)
+        #expect(observation.effective?.isPeriod == false)
         #expect(MeasurementCatalog.heartRate.method == nil)
         #expect(resting.method == nil)
         #expect(resting.effective?.isPeriod == false)

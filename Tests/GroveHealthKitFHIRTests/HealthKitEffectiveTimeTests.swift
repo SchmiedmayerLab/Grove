@@ -506,10 +506,27 @@ struct HealthKitEffectiveTimeTests {
         }
     }
 
+    @Test("An instant-or-interval rule states a point when start and end state one wire millisecond, else a Period")
+    func instantOrIntervalRule() throws {
+        let start = Date(timeIntervalSince1970: 1_787_148_600)
+        let end = start.addingTimeInterval(45)
+        #expect(try EffectiveRule.instantOrInterval.value(start: start, end: end, zone: nil)
+            == .period(HealthKitEffectiveTime.period(start: start, end: end, zone: nil)))
+        #expect(try EffectiveRule.instantOrInterval.value(start: start, end: start.addingTimeInterval(0.0003), zone: nil)
+            == .dateTime(HealthKitEffectiveTime.dateTime(start, zone: nil)))
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
+            try EffectiveRule.instantOrInterval.value(start: end, end: start, zone: nil)
+        }
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+            try EffectiveRule.instantOrInterval.value(start: start, end: Date(timeIntervalSince1970: .infinity), zone: nil)
+        }
+        #expect(try EffectiveRule.instantOrInterval.admitsPeriod(from: start, to: start))
+    }
+
     @Test("A measurement's rule is the effective datatype its profile fixes")
     func rulesFollowTheProfile() {
         #expect(EffectiveRule(MeasurementCatalog.respiratoryRate) == .instant)
-        #expect(EffectiveRule(MeasurementCatalog.heartRate) == .instant)
+        #expect(EffectiveRule(MeasurementCatalog.heartRate) == .instantOrInterval)
         #expect(EffectiveRule(MeasurementCatalog.stepCount) == .interval(nonZero: true))
         #expect(EffectiveRule(MeasurementCatalog.dietaryEnergy) == .interval(nonZero: false))
     }
