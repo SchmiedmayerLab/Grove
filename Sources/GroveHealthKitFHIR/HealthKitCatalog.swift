@@ -127,21 +127,7 @@ public enum HealthKitCatalog {
     /// and other non-sample identifiers that are outside this converter's input type. The
     /// sleep-duration aggregate lives in the catalog's derivedAggregates, not in these rows.
     /// A consumer can render this directly as the implementation coverage matrix.
-    public static let entries: [HealthKitCatalogEntry] = HealthKitContract.rows.map { row in
-        HealthKitCatalogEntry(
-            sourceTypeIdentifier: row.sourceTypeIdentifier,
-            title: row.title,
-            measurements: measurements(for: row),
-            implementationStatus: row.implementationStatus,
-            requirement: row.requirement
-        )
-    }
-
-    /// Bulk export converts tens of thousands of samples, so the row lookup is a hashed
-    /// index rather than a scan over every platform identifier.
-    private static let entriesBySourceTypeIdentifier = Dictionary(
-        uniqueKeysWithValues: entries.map { ($0.sourceTypeIdentifier, $0) }
-    )
+    public static let entries: [HealthKitCatalogEntry] = HealthKitContentPlan.all.map(\.entry)
 
     /// Every output the converter mints for one source type, in the order the graph emits them.
     ///
@@ -151,45 +137,7 @@ public enum HealthKitCatalog {
     /// tell the two apart, and the pinned guide has no source-record retraction scope yet (an IG gap; a draft
     /// exists); a receiver resolves the extra target to nothing.
     public static func outputs(for type: HealthKitSourceType) -> [HealthKitOutput] {
-        switch type {
-        case .electrocardiogram:
-            return [
-                HealthKitOutput(
-                    role: "electrocardiogram", discriminator: "single", resourceType: .observation, retractionRole: .primaryOutput
-                ),
-                HealthKitOutput(
-                    role: "average-heart-rate", discriminator: "single", resourceType: .observation, retractionRole: .childOutput
-                )
-            ]
-        case .heartbeatSeries, .workoutRoute:
-            return [
-                HealthKitOutput(
-                    role: "native-recording", discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact
-                )
-            ]
-        case .cda, .allergyRecord, .clinicalNoteRecord, .conditionRecord, .coverageRecord, .immunizationRecord,
-             .labResultRecord, .medicationRecord, .procedureRecord, .vitalSignRecord:
-            return [
-                HealthKitOutput(
-                    role: "clinical-record", discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact
-                )
-            ]
-        default:
-            guard let binding = binding(forSourceTypeIdentifier: type.rawValue) else {
-                return []
-            }
-            let output = HealthKitOutput(
-                role: binding.contract.id,
-                discriminator: "single",
-                resourceType: .observation,
-                retractionRole: .primaryOutput
-            )
-            return [output]
-        }
-    }
-
-    static func primaryOutput(for type: HealthKitSourceType) -> HealthKitOutput? {
-        outputs(for: type).first { $0.retractionRole == .primaryOutput }
+        HealthKitContentPlan[type].outputs.map(\.output)
     }
 
     static func binding(for sample: HKSample) -> HealthKitFHIRBinding? {
@@ -217,19 +165,6 @@ public enum HealthKitCatalog {
             ?? assessmentBinding(for: identifier)
     }
 
-    /// A multi-measurement row pairs each measurement with its own semantic profile; the
-    /// remaining rows carry exactly the complete profile list of their one measurement.
-    private static func measurements(for row: HealthKitContractRow) -> [HealthKitMeasurementContract] {
-        if row.measurementIDs.count > 1, row.measurementIDs.count == row.profiles.count {
-            return zip(row.measurementIDs, row.profiles).map { id, profile in
-                HealthKitMeasurementContract(id: id, profiles: [profile])
-            }
-        }
-        return row.measurementIDs.map { id in
-            HealthKitMeasurementContract(id: id, profiles: row.profiles)
-        }
-    }
-
     private static func assessmentBinding(for identifier: String) -> HealthKitFHIRBinding? {
         switch HKScoredAssessmentTypeIdentifier(rawValue: identifier) {
         case .GAD7:
@@ -243,10 +178,7 @@ public enum HealthKitCatalog {
 
     /// The inventory row of a source type; every generated type has one.
     public static subscript(type: HealthKitSourceType) -> HealthKitCatalogEntry {
-        guard let entry = entriesBySourceTypeIdentifier[type.rawValue] else {
-            preconditionFailure("The HealthKit inventory row for \(type.rawValue) is generated from the same catalog.")
-        }
-        return entry
+        HealthKitContentPlan[type].entry
     }
 }
 

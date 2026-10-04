@@ -162,11 +162,9 @@ extension ContentBuilderPair {
         let symptoms = try HealthKitConverter.validatedSymptomSamples(record.correlatedSymptoms, status: source.symptomsStatus)
         let symptomObservations = try symptoms.map(todaysObservation)
         let input = HealthKitECGObservationInput(source: source, waveform: waveform, symptomOutputIdentifiers: try identifiers(of: symptoms))
-        guard let output = HealthKitCatalog.primaryOutput(for: .electrocardiogram) else {
-            throw NoBuilder(type: .electrocardiogram)
-        }
         let observation = try HealthKitConverter.ecgObservation(input: input)
-        var drafts = [ExchangeOutputDraft(role: output.role, discriminator: output.discriminator, resource: .observation(observation))]
+        // Today's catalog names the waveform's output electrocardiogram/single.
+        var drafts = [ExchangeOutputDraft(role: "electrocardiogram", discriminator: "single", resource: .observation(observation))]
         if let averageHeartRate = try HealthKitConverter.ecgAverageHeartRateChild(input: input) {
             drafts.append(averageHeartRate)
         }

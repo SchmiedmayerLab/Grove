@@ -33,36 +33,21 @@ extension HealthKitCatalog {
     /// One binding per distinct pair of spellings: several measurements share a UCUM code while
     /// naming it differently for display — `/min` is `beats/minute`, `breaths/minute`, and
     /// `revolutions/minute` — and a consumer holding any of those spellings needs the same unit.
+    ///
+    /// The bindings are the content plans' own, in inventory row order: every quantity read in its contract's unit,
+    /// then the blood-pressure panel's members, whose unit no scalar quantity binds although the adapter consumes and
+    /// emits it.
     public static let unitBindings: [HealthKitUnitBinding] = {
-        var seen: Set<String> = []
-        var bindings: [HealthKitUnitBinding] = []
-        for entry in entries {
-            guard case let .quantity(contract, unit) = quantityBinding(
-                for: entry.sourceTypeIdentifier
-            ),
-                  let quantity = contract.quantity,
-                  seen.insert("\(quantity.code)\u{0}\(quantity.unit)").inserted else {
-                continue
+        let members = HealthKitContentPlan.all.flatMap { plan -> [HealthKitUnitBinding] in
+            guard case .observation(let observation) = plan.route, case .bloodPressure(let members) = observation.value else {
+                return []
             }
-            bindings.append(
-                HealthKitUnitBinding(
-                    ucumCode: quantity.code,
-                    displayUnit: quantity.unit,
-                    unit: unit
-                )
-            )
+            return members.map(\.binding)
         }
-        // Blood pressure is a panel, so its component unit does not appear in the scalar
-        // quantity bindings above even though the adapter consumes and emits it.
-        let bloodPressure = HealthKitUnitBinding(
-            ucumCode: "mm[Hg]",
-            displayUnit: "mmHg",
-            unit: .millimeterOfMercury()
-        )
-        if seen.insert("\(bloodPressure.ucumCode)\u{0}\(bloodPressure.displayUnit)").inserted {
-            bindings.append(bloodPressure)
+        var seen: Set<String> = []
+        return (HealthKitContentPlan.all.compactMap(\.unitBinding) + members).filter { binding in
+            seen.insert("\(binding.ucumCode)\u{0}\(binding.displayUnit)").inserted
         }
-        return bindings
     }()
 
     private static let unitsBySpelling: [String: HKUnit] = unitBindings.reduce(into: [:]) { units, binding in

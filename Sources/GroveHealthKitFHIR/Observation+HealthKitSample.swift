@@ -313,10 +313,10 @@ extension HealthKitSampleProjection {
 extension Observation {
     /// The one sample this observation describes.
     ///
-    /// This is the reverse of the converter's observation assembly, derived from the same catalog
-    /// bindings: the code selects the measurement contract, the contract selects the one HealthKit
-    /// quantity type bound to it, and the published unit bindings read the value's UCUM unit.
-    /// A measurement bound to several HealthKit types, or to none, refuses rather than guessing.
+    /// This is the reverse of the converter's observation assembly, derived from the same content
+    /// plans: the code selects the measurement contract, the contract selects the one HealthKit
+    /// quantity type whose plan reads it, and the published unit bindings read the value's UCUM unit.
+    /// A measurement read by several HealthKit types, or by none, refuses rather than guessing.
     ///
     /// A manual-entry recording method becomes `HKMetadataKeyWasUserEntered`, the effective
     /// instant's zone `HKMetadataKeyTimeZone`, and the minted source-output identity
@@ -325,21 +325,7 @@ extension Observation {
     ///
     /// - Parameter syncIdentifier: A stable per-reading discriminator in place of the source-output identity.
     public func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {
-        let contract = try HealthKitSampleProjection.contract(for: self)
-        let envelope = try HealthKitSampleProjection.envelope(of: self, measurementID: contract.id, syncIdentifier: syncIdentifier)
-        if contract.code.code == MeasurementCatalog.bloodPressure.code.code {
-            return try HealthKitSampleProjection.bloodPressureCorrelation(for: self, contract: contract, envelope: envelope)
-        }
-        guard case .quantity(let quantity)? = value else {
-            throw HealthKitSampleProjectionError.valueMissing(id: contract.id)
-        }
-        return HKQuantitySample(
-            type: HKQuantityType(try HealthKitSampleProjection.quantityTypeIdentifier(for: contract.id)),
-            quantity: try HealthKitSampleProjection.healthKitQuantity(quantity, contract: contract.quantity, measurementID: contract.id),
-            start: envelope.date,
-            end: envelope.date,
-            metadata: envelope.metadata
-        )
+        try HealthKitSampleProjection.sample(of: self, syncIdentifier: syncIdentifier)
     }
 }
 
