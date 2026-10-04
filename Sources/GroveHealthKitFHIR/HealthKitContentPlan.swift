@@ -81,8 +81,9 @@ struct HealthKitOutputSlot: Sendable {
 /// mismatch in ``compileDefects``, which CI keeps to the known set.
 @available(iOS 18, macOS 15, watchOS 11, *)
 final class HealthKitContentPlan: Sendable {
-    /// What a source type converts through.
-    enum Route: Sendable {
+    /// What a source type converts through. Each payload lives in its own box, so a plan costs only what its route
+    /// holds, not the largest route's size.
+    indirect enum Route: Sendable {
         /// One Observation, built from the sample.
         case observation(ObservationPlan)
         /// The ECG waveform and its average heart rate, built from the caller's ECG record; a bare sample is refused.
@@ -139,26 +140,18 @@ final class HealthKitContentPlan: Sendable {
         self.unitBinding = unitBinding
     }
 
-    /// The refused plan of a generated type no inventory row lists.
-    convenience init(unlisted sourceType: HealthKitSourceType) {
-        let entry = HealthKitCatalogEntry(
-            sourceTypeIdentifier: sourceType.rawValue,
-            title: sourceType.rawValue,
-            measurements: [],
-            implementationStatus: .supported,
-            requirement: nil
-        )
-        self.init(sourceType, entry: entry, route: .refused(.unregisteredSourceType(sourceType.rawValue)))
-    }
-
     /// The plan of a sample's type, or `nil` for a type the inventory does not list: one hashed lookup.
     static func plan(for sample: HKSample) -> HealthKitContentPlan? {
         compilation.byIdentifier[sample.sampleType.identifier]
     }
 
-    /// The plan of a source type; the compiler gives every generated type one.
+    /// The plan of a source type. The generator emits one source type per inventory row and the compiler plans every
+    /// row, so every type has one.
     static subscript(type: HealthKitSourceType) -> HealthKitContentPlan {
-        compilation.byIdentifier[type.rawValue] ?? HealthKitContentPlan(unlisted: type)
+        guard let plan = compilation.byIdentifier[type.rawValue] else {
+            preconditionFailure("The HealthKit inventory row for \(type.rawValue) is generated from the same catalog.")
+        }
+        return plan
     }
 }
 

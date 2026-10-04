@@ -16,8 +16,9 @@ import ModelsR4
 /// The facts of the HealthKit content mapping that the pinned guide does not carry, written by hand.
 ///
 /// A source type's rule says only how its value is read; everything else comes from the generated contract of its
-/// inventory row's first measurement, so no rule names a contract or a profile. ``HealthKitContentPlan`` compiles the
-/// rules against the contracts once per process.
+/// inventory row's first measurement, so no rule names a contract or a profile. A supported quantity or scored
+/// assessment needs no listed rule: its row implies one. ``HealthKitContentPlan`` compiles the rules against the
+/// contracts once per process.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum HealthKitContentRules {
     /// How one source type converts.
@@ -56,10 +57,9 @@ enum HealthKitContentRules {
 
     /// Where a quantity value comes from.
     enum QuantitySource: Sendable {
-        /// The sample's quantity in the HealthKit unit of the contract's UCUM code.
-        case contractUnit
-        /// The sample's fraction, stated in percent.
-        case percent
+        /// The sample's quantity as its contract states it: in the HealthKit unit of the contract's UCUM code, or, for
+        /// a contract in percent, the fraction HealthKit keeps, stated in percent.
+        case contract
         /// A per-session rate HealthKit already computed, read as a plain count and never divided again.
         case platformRate
         /// A scored assessment's score.
@@ -168,6 +168,21 @@ enum HealthKitContentRules {
         contract.category ?? categories[contract.id]
     }
 
+    /// The rule a supported row implies when no group lists its type, from the SDK type its identifier names: a
+    /// quantity type reads its contract's quantity and a scored assessment its score. Any other row implies none.
+    static func impliedRule(of type: HealthKitSourceType, status: HealthKitImplementationStatus) -> Rule? {
+        guard status == .supported else {
+            return nil
+        }
+        if type.rawValue.hasPrefix("HKQuantityTypeIdentifier") {
+            return .observation(.quantity(.contract))
+        }
+        if type.rawValue.hasPrefix("HKScoredAssessmentTypeIdentifier") {
+            return .observation(.quantity(.score))
+        }
+        return nil
+    }
+
     /// The metadata a source type states as a component of its Observation, if any.
     static func metadataComponent(
         of type: HealthKitSourceType,
@@ -190,41 +205,9 @@ enum HealthKitContentRules {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitContentRules {
-    /// Every source type's rule, grouped; types the groups do not list are refused.
-    static let groups: [RuleGroup] = quantityGroups + categoryGroups + recordGroups
-
-    /// The quantity rules, scored assessments included.
-    private static let quantityGroups = [
-        RuleGroup(.observation(.quantity(.contractUnit)), [
-            .activeEnergyBurned, .appleExerciseTime, .appleMoveTime, .appleSleepingWristTemperature, .appleStandTime,
-            .basalBodyTemperature, .basalEnergyBurned, .bloodGlucose, .bodyMass, .bodyMassIndex, .bodyTemperature,
-            .crossCountrySkiingSpeed, .cyclingCadence, .cyclingFunctionalThresholdPower, .cyclingPower, .cyclingSpeed,
-            .dietaryBiotin, .dietaryCaffeine, .dietaryCalcium, .dietaryCarbohydrates, .dietaryChloride, .dietaryCholesterol,
-            .dietaryChromium, .dietaryCopper, .dietaryEnergyConsumed, .dietaryFatMonounsaturated, .dietaryFatPolyunsaturated,
-            .dietaryFatSaturated, .dietaryFatTotal, .dietaryFiber, .dietaryFolate, .dietaryIodine, .dietaryIron,
-            .dietaryMagnesium, .dietaryManganese, .dietaryMolybdenum, .dietaryNiacin, .dietaryPantothenicAcid,
-            .dietaryPhosphorus, .dietaryPotassium, .dietaryProtein, .dietaryRiboflavin, .dietarySelenium, .dietarySodium,
-            .dietarySugar, .dietaryThiamin, .dietaryVitaminA, .dietaryVitaminB12, .dietaryVitaminB6, .dietaryVitaminC,
-            .dietaryVitaminD, .dietaryVitaminE, .dietaryVitaminK, .dietaryWater, .dietaryZinc, .distanceCrossCountrySkiing,
-            .distanceCycling, .distanceDownhillSnowSports, .distancePaddleSports, .distanceRowing, .distanceSkatingSports,
-            .distanceSwimming, .distanceWalkingRunning, .distanceWheelchair, .electrodermalActivity,
-            .environmentalAudioExposure, .environmentalSoundReduction, .estimatedWorkoutEffortScore, .flightsClimbed,
-            .forcedExpiratoryVolume1, .forcedVitalCapacity, .headphoneAudioExposure, .heartRate, .heartRateRecoveryOneMinute,
-            .heartRateVariabilitySDNN, .height, .inhalerUsage, .insulinDelivery, .leanBodyMass, .numberOfAlcoholicBeverages,
-            .numberOfTimesFallen, .paddleSportsSpeed, .peakExpiratoryFlowRate, .physicalEffort, .pushCount,
-            .respiratoryRate, .restingHeartRate, .rowingSpeed, .runningGroundContactTime, .runningPower, .runningSpeed,
-            .runningStrideLength, .runningVerticalOscillation, .sixMinuteWalkTestDistance, .stairAscentSpeed,
-            .stairDescentSpeed, .stepCount, .swimmingStrokeCount, .timeInDaylight, .uvExposure, .underwaterDepth, .vo2Max,
-            .waistCircumference, .walkingHeartRateAverage, .walkingSpeed, .walkingStepLength, .waterTemperature,
-            .workoutEffortScore
-        ]),
-        RuleGroup(.observation(.quantity(.percent)), [
-            .appleWalkingSteadiness, .atrialFibrillationBurden, .bloodAlcoholContent, .bodyFatPercentage, .oxygenSaturation,
-            .peripheralPerfusionIndex, .walkingAsymmetryPercentage, .walkingDoubleSupportPercentage
-        ]),
-        RuleGroup(.observation(.quantity(.platformRate)), [.appleSleepingBreathingDisturbances]),
-        RuleGroup(.observation(.quantity(.score)), [.gad7, .phq9])
-    ]
+    /// Every listed source type's rule, grouped; a type the groups do not list converts under the rule its row implies,
+    /// else is refused.
+    static let groups: [RuleGroup] = categoryGroups + recordGroups
 
     /// The category rules.
     private static let categoryGroups = [
@@ -257,8 +240,10 @@ extension HealthKitContentRules {
         RuleGroup(.observation(.protection), [.sexualActivity])
     ]
 
-    /// The rules of the remaining sample and record types.
+    /// The rules of the remaining sample and record types. Sleeping breathing disturbances are the one quantity whose
+    /// row does not imply its rule.
     private static let recordGroups = [
+        RuleGroup(.observation(.quantity(.platformRate)), [.appleSleepingBreathingDisturbances]),
         RuleGroup(.observation(.bloodPressure), [.bloodPressure]),
         RuleGroup(.observation(.workout), [.workout]),
         RuleGroup(.observation(.stateOfMind), [.stateOfMind]),

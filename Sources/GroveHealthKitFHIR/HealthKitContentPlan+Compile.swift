@@ -44,7 +44,7 @@ struct HealthKitContentCompiler {
         (MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex]).map { ($0.id, $0) }
     ) { first, _ in first }
 
-    /// Every source type's rule.
+    /// Every listed source type's rule.
     private let rules: [HealthKitSourceType: HealthKitContentRules.Rule]
     /// The source types listed under more than one rule.
     private let listedTwice: Set<HealthKitSourceType>
@@ -61,21 +61,12 @@ struct HealthKitContentCompiler {
         listedTwice = Set(counts.filter { $0.value > 1 }.keys)
     }
 
-    /// Every source type's plan: one per inventory row, in row order, and a refused one for a generated type no row lists.
+    /// Every inventory row's plan, in row order.
     static func compile() -> Compilation {
         var compiler = HealthKitContentCompiler()
-        var plans: [HealthKitContentPlan] = []
-        for row in HealthKitContract.rows {
-            guard let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier) else {
-                compiler.defects.append("\(row.sourceTypeIdentifier): no generated source type names the row")
-                continue
-            }
-            plans.append(compiler.plan(row, type: type))
-        }
-        let planned = Set(plans.map(\.sourceType))
-        for type in HealthKitSourceType.allCases where !planned.contains(type) {
-            compiler.defects.append("\(type.rawValue): no inventory row lists the type")
-            plans.append(HealthKitContentPlan(unlisted: type))
+        // The generator emits the source types from the inventory rows, one per row.
+        let plans = HealthKitContract.rows.compactMap { row in
+            HealthKitSourceType(rawValue: row.sourceTypeIdentifier).map { compiler.plan(row, type: $0) }
         }
         let byIdentifier = Dictionary(plans.map { ($0.sourceType.rawValue, $0) }) { first, _ in first }
         return Compilation(plans: plans, byIdentifier: byIdentifier, defects: compiler.defects)
@@ -154,10 +145,10 @@ struct HealthKitContentCompiler {
         return HealthKitContentPlan(type, entry: entry, route: route, outputs: outputs)
     }
 
-    /// The plan of one inventory row.
+    /// The plan of one inventory row: under its listed rule, else under the rule its row implies, else refused.
     private mutating func plan(_ row: HealthKitContractRow, type: HealthKitSourceType) -> HealthKitContentPlan {
         let entry = Self.entry(row)
-        guard let rule = rules[type] else {
+        guard let rule = rules[type] ?? HealthKitContentRules.impliedRule(of: type, status: row.implementationStatus) else {
             if row.implementationStatus == .supported, !HealthKitContentRules.notYetConvertible.contains(type) {
                 defects.append("\(type.rawValue): supported, but has no rule and is not declared not yet convertible")
             }
@@ -255,7 +246,8 @@ extension HealthKitContentCompiler {
         return system
     }
 
-    /// A quantity read from `source`, and the unit binding of one read in the contract's unit.
+    /// A quantity read from `source`, and the unit binding of one read in the contract's unit. HealthKit keeps a
+    /// percentage as a fraction, so a contract stated in percent reads the fraction and states it in percent.
     private static func quantity(
         _ source: HealthKitContentRules.QuantitySource,
         contract: MeasurementContract
@@ -263,11 +255,11 @@ extension HealthKitContentCompiler {
         let quantity = try quantity(of: contract)
         let template = QuantityTemplate(quantity)
         switch source {
-        case .contractUnit:
+        case .contract where quantity.code == "%":
+            return (.quantity(template, .percent), nil)
+        case .contract:
             let binding = try quantity.binding()
             return (.quantity(template, .unit(binding.unit)), binding)
-        case .percent:
-            return (.quantity(template, .percent), nil)
         case .platformRate:
             return (.quantity(template, .unit(.count())), nil)
         case .score:
