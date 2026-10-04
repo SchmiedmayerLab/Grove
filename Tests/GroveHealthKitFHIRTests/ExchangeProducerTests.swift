@@ -96,7 +96,8 @@ struct ExchangeProducerTests {
     private static func producer(
         subject: Subject? = nil,
         studies: [StudyEnrollment] = [],
-        host: HostDevice? = nil
+        host: HostDevice? = nil,
+        storage: ExchangeProducer.InMemoryStorage = ExchangeProducer.InMemoryStorage()
     ) throws -> ExchangeProducer {
         let scope = try scope()
         let subject = try subject ?? .logical(identifier("https://study.example.org/fhir/participant", "p-1"))
@@ -107,7 +108,7 @@ struct ExchangeProducerTests {
             application: application,
             host: host ?? HostDevice(operatingSystemVersion: "20.1", name: "Host", manufacturer: "Example", modelNumber: "Phone1"),
             studies: studies,
-            storage: ExchangeProducer.InMemoryStorage()
+            storage: storage
         )
     }
 
@@ -134,6 +135,27 @@ struct ExchangeProducerTests {
         #expect(producer.studies == studies)
         #expect(producer.ledger.storage as? ExchangeProducer.InMemoryStorage === storage)
         #expect(producer.facts == ExchangeEventFacts(application: application, host: host, studies: studies))
+    }
+
+    /// An integrator rebuilds the producer whenever its facts change, so a call through an old producer can overlap a
+    /// redelivery through a new one. Holds are the process's, not the producer's: the first call's release leaves the
+    /// event the other call still holds, so that call's redelivery restates it, and the last holder's release removes it.
+    @Test("Producers over one storage share the process's holds: a release keeps the event another producer's call holds")
+    func producersShareTheProcessHolds() throws {
+        let storage = ExchangeProducer.InMemoryStorage()
+        let request = ExchangeEventRequest(key: ExchangeEventKey(kind: .active, adapterID: "healthkit", sourceRecord: "a"), fingerprint: "context")
+        let instant = Date(timeIntervalSince1970: 1_791_023_400)
+        let (first, firstReceipt) = try Self.producer(storage: storage).reserve([request], at: instant)
+        let (again, againReceipt) = try Self.producer(storage: storage).reserve([request], at: instant.addingTimeInterval(60))
+        #expect(again == first)
+        firstReceipt.release()
+        let (retried, retriedReceipt) = try Self.producer(storage: storage).reserve([request], at: instant.addingTimeInterval(120))
+        #expect(retried == first, "the rebuilt producer's call still holds the event")
+        againReceipt.release()
+        retriedReceipt.release()
+        let (next, _) = try Self.producer(storage: storage).reserve([request], at: instant)
+        #expect(first[request]?.sequence == EventSequence(1))
+        #expect(next[request]?.sequence == EventSequence(2))
     }
 
     @Test("The host and the studies default to the current host and no enrollment")
