@@ -151,6 +151,15 @@ struct HealthKitStateOfMindContent: Sendable {
         }
         return Dictionary(coded) { first, _ in first }
     }
+
+    /// Sets a reflection's components, then its valence, on `observation`.
+    func apply(to observation: inout Observation, reflection: HKStateOfMind) throws(HealthKitValueFailure) {
+        let axes = [kinds[reflection.kind], classifications[reflection.valenceClassification]].compactMap(\.self)
+        let labels = reflection.labels.compactMap { self.labels[$0] }.sorted { $0.code < $1.code }
+        let associations = reflection.associations.compactMap { self.associations[$0] }.sorted { $0.code < $1.code }
+        observation.component = axes + (labels + associations).map(\.component)
+        observation.value = .quantity(try valence.quantity(reflection.valence))
+    }
 }
 
 #endif

@@ -96,6 +96,119 @@ struct ObservationPlan: Sendable {
         }
         return observation
     }
+
+    /// The Observation of one sample: the skeleton, stating the sample's effective time and value, then the metadata
+    /// component. Each step is its own statement, so a sample with several faults is refused for the first one
+    /// checked: the time zone, the effective time, the value, the metadata.
+    func observation(_ sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitValueFailure) -> Observation {
+        let zone = try metadata.timeZone()
+        var observation = skeleton
+        observation.effective = try effective.value(start: sample.startDate, end: sample.endDate, zone: zone)
+        try value.apply(to: &observation, sample: sample, metadata: metadata)
+        if let component = try metadataComponent?.component(metadata) {
+            observation.component = (observation.component ?? []) + [component]
+        }
+        return observation
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension ValueRule {
+    /// A category sample that states only that it occurred states `HKCategoryValue.notApplicable`; any other value is
+    /// unsupported.
+    private static func requireNotApplicable(_ sample: HKSample) throws(HealthKitValueFailure) {
+        let raw = try sample.cast(to: HKCategorySample.self).value
+        guard raw == HKCategoryValue.notApplicable.rawValue else {
+            throw .unsupportedValue(raw)
+        }
+    }
+
+    /// Whether protection was used: `unknown` when the metadata states nothing, else as its Boolean says; any other
+    /// value is unsupported.
+    private static func protection(
+        _ metadata: HealthKitSampleMetadata,
+        unknown: CodeableConcept,
+        protected: CodeableConcept,
+        unprotected: CodeableConcept
+    ) throws(HealthKitValueFailure) -> CodeableConcept {
+        switch metadata.values[HealthKitMetadataField.sexualActivityProtectionUsed.key] {
+        case nil: unknown
+        case let used as Bool: used ? protected : unprotected
+        case .some: throw .unsupportedMetadataValue(.sexualActivityProtectionUsed)
+        }
+    }
+
+    /// Sets what `sample` states on `observation`: its value; a panel's components and no value; or a workout's or
+    /// reflection's components, then its value.
+    func apply(to observation: inout Observation, sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitValueFailure) {
+        switch self {
+        case let .quantity(template, read):
+            observation.value = .quantity(try template.quantity(try read.value(of: sample)))
+        case let .coded(values, unresolved):
+            let raw = try sample.cast(to: HKCategorySample.self).value
+            guard let value = values[raw] else {
+                throw unresolved.contains(raw) ? .missingNormativeCode : .unsupportedValue(raw)
+            }
+            observation.value = .codeableConcept(value)
+        case let .duration(template, secondsPerUnit):
+            try Self.requireNotApplicable(sample)
+            observation.value = .quantity(try template.quantity(sample.endDate.timeIntervalSince(sample.startDate) / secondsPerUnit))
+        case let .protection(unknown, protected, unprotected):
+            try Self.requireNotApplicable(sample)
+            let value = try Self.protection(metadata, unknown: unknown, protected: protected, unprotected: unprotected)
+            observation.value = .codeableConcept(value)
+        case .bloodPressure(let members):
+            let correlation = try sample.cast(to: HKCorrelation.self)
+            observation.component = try members.map { member throws(HealthKitValueFailure) in
+                try member.component(in: correlation)
+            }
+        case .workout(let content):
+            try content.apply(to: &observation, workout: try sample.cast(to: HKWorkout.self))
+        case .stateOfMind(let content):
+            try content.apply(to: &observation, reflection: try sample.cast(to: HKStateOfMind.self))
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension QuantityRead {
+    /// The value read from `sample`: a quantity in its unit, a fraction in percent, or a score.
+    func value(of sample: HKSample) throws(HealthKitValueFailure) -> Double {
+        switch self {
+        case .unit(let unit): try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: unit)
+        case .percent: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .percent()) * 100
+        case .score: Double(try sample.cast(to: HKScoredAssessment.self).score)
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension BloodPressureMember {
+    /// The component the member's reading in `correlation` becomes: the first sample of the member's type, read in
+    /// the member's unit. A correlation without one misses the component.
+    func component(in correlation: HKCorrelation) throws(HealthKitValueFailure) -> ObservationComponent {
+        let reading = correlation.objects.lazy
+            .compactMap { $0 as? HKQuantitySample }
+            .first { $0.quantityType.identifier == quantityType.rawValue }
+        guard let reading else {
+            throw .requiredComponentMissing(component: component)
+        }
+        return try template.component(reading.quantity.doubleValue(for: binding.unit))
+    }
+}
+
+
+extension HKSample {
+    /// The sample as the class its plan reads; a sample of another class has an invalid shape.
+    fileprivate func cast<Sample: HKSample>(to _: Sample.Type) throws(HealthKitValueFailure) -> Sample {
+        guard let sample = self as? Sample else {
+            throw .shapeInvalid
+        }
+        return sample
+    }
 }
 
 #endif

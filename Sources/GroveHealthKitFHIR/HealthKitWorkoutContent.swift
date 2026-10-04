@@ -126,6 +126,31 @@ struct HealthKitWorkoutContent: Sendable {
     func activity(_ raw: UInt) -> Activity {
         activities[raw] ?? otherActivity
     }
+
+    /// Sets a session's components, then its activity, on `observation`.
+    func apply(to observation: inout Observation, workout: HKWorkout) throws(HealthKitValueFailure) {
+        let activity = self.activity(workout.workoutActivityType.rawValue)
+        observation.component = try components(duration: workout.duration, activity: activity, recorded: workout.statistics(for:))
+        observation.value = .codeableConcept(activity.value)
+    }
+
+    /// The components of an interval of `activity` lasting `duration` seconds, whose statistics HealthKit `recorded`
+    /// by quantity type: the active duration, then each statistic it recorded. A workout's activities keep their
+    /// statistics the same way, so a segment of one reads its components through here too.
+    func components(
+        duration: TimeInterval,
+        activity: Activity,
+        recorded: (HKQuantityType) -> HKStatistics?
+    ) throws(HealthKitValueFailure) -> [ObservationComponent] {
+        var components = [try activeDuration.component(duration)]
+        for statistic in statistics {
+            let quantityType = HKQuantityType(statistic.quantityType(of: activity))
+            if let quantity = statistic.reading.quantity(of: recorded(quantityType)) {
+                components.append(try statistic.template.component(quantity.doubleValue(for: statistic.unit)))
+            }
+        }
+        return components
+    }
 }
 
 
