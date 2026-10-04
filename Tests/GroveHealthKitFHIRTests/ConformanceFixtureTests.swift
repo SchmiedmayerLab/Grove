@@ -91,6 +91,7 @@ struct ConformanceFixtureTests {
         "writer-non-ascii-name",
         "gad7-assessment",
         "exporter-default-apple-watch-heart-rate",
+        "exporter-default-apple-watch-heart-rate-without-unit-token",
         "exporter-deployment-own-heart-rate",
         "exporter-deployment-electrocardiogram",
         "exporter-deployment-electrocardiogram-symptom",

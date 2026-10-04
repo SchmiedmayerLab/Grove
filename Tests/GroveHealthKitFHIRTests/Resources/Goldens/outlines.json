@@ -617,6 +617,55 @@
 
     ]
   },
+  "exporter-default-apple-watch-heart-rate-without-unit-token" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:cabb4303-bb19-5517-b216-fdd949d44b25",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:wNIJkcTb6o3RIct860I8RF0JgxtxxgBysgGUS_jXt0U",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:CJHBmXNaVbLnG4JvAxSfmTlcHtPNCHJMmdaBodV9X6I"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:77d435c7-851f-5479-810e-0307f1dc0360",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:rpOrjknDk_KBCvYM_cLFSodTfcpBVdINvEGQTkOuPmo"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:39d68db7-694a-5dee-9788-cf2b4b10035b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:dU14bqZUMgNm557Z24ivh0lJJ2Ekg8FoKIB6K1-C8xI",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:9e36cd76-ea25-50f9-8900-e3aedd9208f7",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+      "mobile-omission.recording-device@Observation.device"
+    ]
+  },
   "exporter-deployment-blood-pressure" : {
     "entries" : [
       {

@@ -124,6 +124,15 @@ extension GoldenCase {
             let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xB0), device: GoldenFixtures.watch, writer: ExporterGolden.watchSource)
             return try ExporterGolden.output(of: [.record(.sample(sample))], sequence: sequence, deployment: false)
         },
+        // The same source whose HKDevice names no unit: no recording Device at all, and that omission reported.
+        GoldenCase("exporter-default-apple-watch-heart-rate-without-unit-token", sequence: 109) { sequence in
+            let sample = try GoldenFixtures.heartRate(
+                uuid: GoldenFixtures.uuid(0xBB),
+                device: GoldenFixtures.watchWithoutUnitToken,
+                writer: ExporterGolden.watchSource
+            )
+            return try ExporterGolden.output(of: [.record(.sample(sample))], sequence: sequence, deployment: false)
+        },
         // The deployment's own write in the build that runs, starting at a sub-second instant: its gateway role,
         // its classified writer, the disclosed UUID, the legacy Bundle.id and the study context.
         GoldenCase("exporter-deployment-own-heart-rate", sequence: 101) { sequence in
