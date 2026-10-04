@@ -161,8 +161,8 @@ let receipt = try exporter.export(records: [.electrocardiogram(ecg, voltages: vo
 A sample that cannot be exported is refused in place with a ``HealthKitConversionError``, and the call continues.
 ``HealthKitFHIRExporter/Export/warnings`` lists what a graph does not carry although its record did, each a registered `ProducerDiagnostic`; log them with that graph's event.
 `mobile-omission.recording-device` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``HealthKitFHIRExporter/RecordingDeviceResolver`` through ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)`` when you have one.
-`mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone.
-`mobile-omission.unmodeled-metadata` means the sample carried metadata outside the typed allowlist, which was left out.
+`mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone; a blood-pressure correlation that names none takes the zone its systolic and diastolic members agree on.
+`mobile-omission.unmodeled-metadata` means the sample carried metadata outside the typed allowlist, which was left out; for blood pressure, the correlation's and its members' keys count.
 An omission an option chose, such as `recordingDevice` `.omit`, is never a warning.
 
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.

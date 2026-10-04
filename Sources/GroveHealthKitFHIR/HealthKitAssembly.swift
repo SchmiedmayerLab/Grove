@@ -69,7 +69,7 @@ struct HealthKitAssembly: Sendable {
     /// The revision of the graphs this adapter's assembly builds. Bump it whenever the bytes it emits can
     /// change for equal inputs: it enters every exporter's context fingerprint, so an event reserved under an
     /// older revision is never redelivered under the same identifier with different bytes.
-    static let outputRevision: UInt = 6
+    static let outputRevision: UInt = 7
 
     /// The HealthKit adapter: its closed token, which every HealthKit identity preimage and event key carries, and the
     /// profiles and application identifier its envelopes state.
@@ -144,7 +144,7 @@ struct HealthKitAssembly: Sendable {
         let facts = try SourceFacts(sample, metadata: metadata, policies: request.policies, options: options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
-        // One record states one entry method: the sample's own metadata decides it for every output it yields.
+        // One record states one entry method: its metadata decides it for every output it yields.
         for index in outputs.indices {
             outputs[index].wasUserEntered = facts.wasUserEntered
         }
@@ -172,7 +172,7 @@ struct HealthKitAssembly: Sendable {
         )
     }
 
-    /// The effective elements the outputs serialized in UTC because the sample named no time zone, each once, as the
+    /// The effective elements the outputs serialized in UTC because the record named no time zone, each once, as the
     /// registered `mobile-omission.source-offset` warning located at the element.
     private func sourceOffsetWarnings(for metadata: HealthKitSampleMetadata, outputs: [ExchangeOutputDraft]) -> [ProducerDiagnostic] {
         guard !metadata.statesTimeZone else {

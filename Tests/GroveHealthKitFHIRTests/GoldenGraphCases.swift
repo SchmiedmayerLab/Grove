@@ -143,6 +143,16 @@ extension GoldenCase {
                 GoldenFixtures.quantity(.bodyFatPercentage, HKQuantity(unit: .percent(), doubleValue: 0.282), uuid: GoldenFixtures.uuid(17)),
                 sequence: sequence
             )
+        },
+        // Spec F9: the correlation states nothing, so its members state the record's zone and manual entry, and their
+        // key outside the allowlist is reported.
+        GoldenCase("blood-pressure-member-metadata", sequence: 18) { sequence in
+            let members: [String: any Sendable] = [
+                HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
+                HKMetadataKeyWasUserEntered: true,
+                "com.example.member": "x"
+            ]
+            return try GoldenFixtures.export(bloodPressure(uuid: 18, components: (0x93, 0x94), metadata: nil, memberMetadata: members), sequence: sequence)
         }
     ]
 
@@ -267,10 +277,22 @@ extension GoldenCase {
         try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(ordinal), device: GoldenFixtures.watch, metadata: metadata, writer: writer)
     }
 
-    /// A 120/80 reading from the watch; the correlation and its two components each take one of the ordinals.
-    static func bloodPressure(uuid ordinal: UInt8 = 9, components: (systolic: UInt8, diastolic: UInt8) = (0x91, 0x92)) throws -> HKCorrelation {
+    /// A 120/80 reading from the watch; the correlation and its two components each take one of the ordinals, and state
+    /// `metadata` and `memberMetadata`.
+    static func bloodPressure(
+        uuid ordinal: UInt8 = 9,
+        components: (systolic: UInt8, diastolic: UInt8) = (0x91, 0x92),
+        metadata: [String: any Sendable]? = GoldenFixtures.timeZoneMetadata, // swiftlint:disable:this discouraged_optional_collection
+        memberMetadata: [String: any Sendable] = GoldenFixtures.timeZoneMetadata
+    ) throws -> HKCorrelation {
         func component(_ type: HKQuantityTypeIdentifier, _ value: Double, uuid: UInt8) throws -> HKQuantitySample {
-            try GoldenFixtures.quantity(type, HKQuantity(unit: .millimeterOfMercury(), doubleValue: value), uuid: GoldenFixtures.uuid(uuid), device: GoldenFixtures.watch)
+            try GoldenFixtures.quantity(
+                type,
+                HKQuantity(unit: .millimeterOfMercury(), doubleValue: value),
+                uuid: GoldenFixtures.uuid(uuid),
+                device: GoldenFixtures.watch,
+                metadata: memberMetadata
+            )
         }
         let correlation = HKCorrelation(
             type: HKCorrelationType(.bloodPressure),
@@ -281,7 +303,7 @@ extension GoldenCase {
                 try component(.bloodPressureDiastolic, 80, uuid: components.diastolic)
             ],
             device: GoldenFixtures.watch,
-            metadata: GoldenFixtures.timeZoneMetadata
+            metadata: metadata
         )
         return try StoredSampleFixtures.stored(correlation, uuid: GoldenFixtures.uuid(ordinal))
     }

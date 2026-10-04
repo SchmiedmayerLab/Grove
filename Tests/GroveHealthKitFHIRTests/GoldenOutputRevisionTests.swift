@@ -46,6 +46,7 @@ struct GoldenRevision: Sendable, CustomTestStringConvertible {
 struct GoldenOutputRevisionTests {
     static let table: [GoldenRevision] = [
         GoldenRevision("blood-pressure-correlation", digest: "Cw-NT44sFRCYAsIii_BZXdS6r0gD2D8dMbV1_DYSuLE", assembler: 1, healthKit: 1),
+        GoldenRevision("blood-pressure-member-metadata", digest: "L4t14bGh83idUw05A0tC5MlTmBcNp34l3Y56dno0AfQ", assembler: 1, healthKit: 7),
         GoldenRevision("body-fat-percentage-fraction", digest: "X42xKJPxdLi5XR0uWF-yD1RGzxxeluGONM4mWy5drQI", assembler: 1, healthKit: 5),
         GoldenRevision("body-mass-user-entered", digest: "SFo9ZdasPxzkAQI2AcW0vlziFfAJyl2L5c-t5eHJdNY", assembler: 1, healthKit: 1),
         GoldenRevision("bundled-patient-subject", digest: "5iDgaytn2G-8k0wh1P9Q3Ry4jMksyVJ-ayUGBchVbuM", assembler: 1, healthKit: 2),
@@ -76,7 +77,7 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("heartbeat-series", digest: "fB3bdqSnBH2vJxBfzQQDFFeItPoT6Bs8Yom7uFbYS98", assembler: 1, healthKit: 2),
         GoldenRevision("insulin-delivery-bolus", digest: "fCw3-HgNHCW_r1bQ8bY5WiGz52iekzNbJ0-AKZp59yc", assembler: 1, healthKit: 1),
         GoldenRevision("native-identifier-disclosure", digest: "d0cEPkdGfs7W8CYbUpS-GDKoc64jN21WjgkWSibIAAM", assembler: 1, healthKit: 2),
-        GoldenRevision("outlines", digest: "iptmxhUT3cRPytw6baYUKfc1Th9KHWjtBBfQKCj8J4A", assembler: 1, healthKit: 5),
+        GoldenRevision("outlines", digest: "or-B8OvQNkNJiAxCq0QlnncggMjKm4bvv_Wc7DDgMwE", assembler: 1, healthKit: 7),
         GoldenRevision("retraction-blood-pressure", digest: "x4muVgyjqh8AfgVGhaS55MeMVmxJ58UR0hsghhedkEA", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-electrocardiogram", digest: "XFJkq-0BWgfo5MhNXqP9JwSGXIOG95KoG3MctJesT3w", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-heart-rate-native-identifier", digest: "2nx6odq_wixvjnzRfksJPRgR_UcNs4LkE2l3El_38r4", assembler: 1, healthKit: 1),
