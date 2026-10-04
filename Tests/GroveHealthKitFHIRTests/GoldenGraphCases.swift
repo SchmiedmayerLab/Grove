@@ -114,7 +114,7 @@ extension GoldenCase {
         },
         GoldenCase("workout-session", sequence: 14) { sequence in
             try GoldenFixtures.convert(
-                StoredSampleFixtures.stored(try GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(14)),
+                StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(14)),
                 sequence: sequence
             )
         }

@@ -64,7 +64,7 @@ struct StoredSampleFixturesTests {
         let correlation = try GoldenCase.bloodPressure()
         #expect(correlation.uuid == GoldenFixtures.uuid(9))
         #expect(correlation.objects.map(\.uuid).sorted { $0.uuidString < $1.uuidString } == [GoldenFixtures.uuid(0x91), GoldenFixtures.uuid(0x92)])
-        let workout = try StoredSampleFixtures.stored(try GoldenFixtures.workout(withEvents: true), uuid: Self.uuid, writer: Self.writer)
+        let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: Self.uuid, writer: Self.writer)
         try Self.expectStored(workout)
         #expect(workout.workoutEvents?.count == 12)
     }

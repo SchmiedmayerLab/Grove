@@ -21,7 +21,8 @@ import Testing
 /// Goldens are regenerated OUTSIDE the checkout: `GROVE_GOLDEN_OUTPUT_DIR` (under `xcodebuild`, pass it as
 /// `TEST_RUNNER_GROVE_GOLDEN_OUTPUT_DIR`) names a directory the suite writes every case into, and the files are
 /// copied into `Resources/Goldens/` afterwards. Writing into the checkout while Xcode runs the tests makes it
-/// re-resolve the package graph mid-run.
+/// re-resolve the package graph mid-run. A regeneration run compares nothing, so it fails on purpose: it can
+/// never be mistaken for a green golden run.
 enum GoldenStore {
     struct MissingGolden: Error, CustomStringConvertible {
         let name: String
@@ -170,6 +171,9 @@ struct GoldenGraphTests {
             GoldenOutline(expected, warnings: outline.warnings) == outline,
             "\(goldenCase.name): outlines.json does not describe the checked-in golden"
         )
+        let scope = ExchangeEventContext.test()
+        let mismatches = try output.reportMismatches(identityScope: scope.identityScope, repositoryScope: scope.repositoryScope)
+        #expect(mismatches.isEmpty, "\(goldenCase.name) reports what its graph does not carry: \(mismatches)")
         if let difference = TokenDiff.firstDifference(expected: expected, actual: actual) {
             Issue.record("\(goldenCase.name) drifted from its golden at \(difference)")
         }
@@ -190,7 +194,8 @@ struct GoldenGraphTests {
 
     /// Every case is named once, mints its own event, converts to the same tokens and warnings twice in one process,
     /// and re-encodes with sorted members to the same tokens as its wire bytes. With `GROVE_GOLDEN_OUTPUT_DIR` set,
-    /// this is also the regeneration: each case's sorted-member JSON and the outlines are written there.
+    /// this is also the regeneration: each case's sorted-member JSON and the outlines are written there, and the run
+    /// fails, as it compared nothing.
     @Test
     func everyCaseIsDeterministicAndPinnable() throws {
         var outlines: [String: GoldenOutline] = [:]
@@ -201,7 +206,7 @@ struct GoldenGraphTests {
             let wire = try LosslessJSONValue(parsing: graph.json)
             let again = try goldenCase.output()
             #expect(try LosslessJSONValue(parsing: again.graph.json) == wire, "\(goldenCase.name) is not deterministic")
-            #expect(again.warnings == output.warnings, "\(goldenCase.name) does not warn deterministically")
+            #expect(again.renderedWarnings == output.renderedWarnings, "\(goldenCase.name) does not warn deterministically")
             let sorted = try GoldenStore.encoder.encode(graph.bundle)
             #expect(try LosslessJSONValue(parsing: sorted) == wire, "\(goldenCase.name): a sorted re-encode changes the tokens")
 
@@ -217,6 +222,7 @@ struct GoldenGraphTests {
         }
         if let directory = GoldenStore.outputDirectory {
             try GoldenStore.encoder.encode(outlines).write(to: directory.appendingPathComponent("\(GoldenStore.outlinesName).json"))
+            Issue.record("Regenerated \(outlines.count) goldens into \(directory.path) and compared none: copy them into Resources/Goldens and rerun")
         }
     }
 
@@ -225,7 +231,7 @@ struct GoldenGraphTests {
     /// does not admit.)
     @Test(arguments: [false, true])
     func workoutsExportTheSessionAlone(withEvents: Bool) throws {
-        let workout = try StoredSampleFixtures.stored(try GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
+        let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
         let context = try GoldenFixtures.context(sequence: 200)
         let conversion = try HealthKitConverter().convert(workout, context: context)
         let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
@@ -328,16 +334,5 @@ extension GoldenCase {
     }
 }
 
-
-extension GoldenFixtures {
-    /// The benchmark's one-hour run: with events, a pause and resume, eight laps and two segments, which the old
-    /// converter turns into twelve segment children before refusing the graph.
-    static func workout(withEvents: Bool) throws -> HKWorkout {
-        guard let workout = SampleFactory.workouts(count: 1, withEvents: withEvents).first as? HKWorkout else {
-            throw GoldenCaseError.workoutNotBuilt
-        }
-        return workout
-    }
-}
 
 #endif

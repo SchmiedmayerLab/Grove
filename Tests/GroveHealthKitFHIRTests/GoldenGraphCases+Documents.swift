@@ -20,7 +20,6 @@ enum GoldenCaseError: Error {
     case unexpectedCompanions(Int)
     case routeOmitted
     case unknownTimeZone(String)
-    case workoutNotBuilt
 }
 
 
@@ -33,10 +32,10 @@ extension GoldenCase {
     /// private storage the fixtures do not write; the envelope sample is a real `HKElectrocardiogram` nonetheless.
     static let documents: [GoldenCase] = [
         GoldenCase("electrocardiogram", sequence: 60) { sequence in
-            GoldenOutput(try electrocardiogram(uuid: 60, sequence: sequence, symptom: nil).primary)
+            try GoldenOutput(primaryOf: electrocardiogram(uuid: 60, sequence: sequence, symptom: nil))
         },
         GoldenCase("electrocardiogram-with-symptom", sequence: 61) { sequence in
-            GoldenOutput(try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61)).primary)
+            try GoldenOutput(primaryOf: electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61)), companions: 1)
         },
         GoldenCase("electrocardiogram-symptom-companion", sequence: 61) { sequence in
             let companions = try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61)).companions
@@ -56,7 +55,7 @@ extension GoldenCase {
                 HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
                 HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
             ])
-            return GoldenOutput(try HealthKitConverter().convert(record, context: GoldenFixtures.context(sequence: sequence)).primary)
+            return try GoldenOutput(primaryOf: HealthKitConverter().convert(record, context: GoldenFixtures.context(sequence: sequence)))
         },
         GoldenCase("workout-route", sequence: 63) { sequence in
             let route = try StoredSampleFixtures.seriesSample(
@@ -70,7 +69,7 @@ extension GoldenCase {
             guard let conversion = try HealthKitConverter().convert(record, context: GoldenFixtures.context(sequence: sequence, inputs)) else {
                 throw GoldenCaseError.routeOmitted
             }
-            return GoldenOutput(conversion.primary)
+            return try GoldenOutput(primaryOf: conversion)
         }
     ] + clinicalDocuments
 
