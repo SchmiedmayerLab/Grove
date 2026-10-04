@@ -144,7 +144,9 @@ extension ExchangeEventSequencer {
     /// unchanged: the same producer instance, sequence, instant and facts, and writes nothing. Any other
     /// request takes the next sequence at `instant` (millisecond precision) under `facts`, replacing what
     /// the key held. New sequences follow the requests' sorted order; a counter that would overflow mints
-    /// a new producer instance. A sequence is never handed out twice. Each returned reservation is held
+    /// a new producer instance. A sequence is never handed out twice. A key requested under two fingerprints
+    /// in one call takes two sequences and keeps the later, so a retry of that call mints both again: request
+    /// one fingerprint per key and call for exact retries. Each returned reservation is held
     /// for the caller until ``finish(_:released:forgetting:)``. Exporters reach it through
     /// `ExchangeProducer.reserve(_:at:)`, which passes the facts the producer prepared once.
     ///

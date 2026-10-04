@@ -71,7 +71,9 @@ public final class HealthKitFHIRExporter: Sendable {
     /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
     /// it is ready.
     ///
-    /// A record that cannot be converted is refused in place; only these end the call:
+    /// A record that cannot be converted is refused in place, and so is a record the call names again with
+    /// other content (``HealthKitConversionError/conflictingDuplicate``): the first input of a record keeps
+    /// its event, so an exact retry of the call reproduces every event. Only these end the call:
     /// - an `instant` no FHIR instant can state (before year 1 or after year 9999) throws
     ///   `ExchangeIdentityError.invalidInstant` before the ledger is touched;
     /// - the producer's ledger throws `ExchangeEventSequencer.LedgerError` when a stored entry is corrupt or
@@ -98,7 +100,10 @@ public final class HealthKitFHIRExporter: Sendable {
     /// One reserve transaction for every event the inputs need, then each input's delivery in order.
     func export(inputs: [Input], at instant: Date, receive: (Export) throws -> Void) throws -> Receipt {
         let plans = inputs.map { Plan($0, context: context) }
-        let requests = Set(plans.flatMap(\.requests))
+        // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
+        // later, and a retry of the call would mint both again.
+        let firstPerKey = Dictionary(plans.flatMap(\.requests).map { ($0.key, $0) }) { first, _ in first }
+        let requests = Set(firstPerKey.values)
         // Nothing reserved means the ledger is never touched; refusals alone need no event.
         let reserved = requests.isEmpty ? [:] : try producer.reserve(requests, at: instant)
         // Created before any delivery: when a delivery throws, the receipt is dropped and its holds lapse.
@@ -183,6 +188,11 @@ extension HealthKitFHIRExporter {
         guard let primary = plan.primary else {
             let refusal = HealthKitConversionError.unregisteredSourceType(plan.input.sample.sampleType.identifier)
             try receive(Export(source: plan.source, outcome: .refused(refusal), warnings: []))
+            return
+        }
+        guard plan.requests.allSatisfy({ reserved[$0] != nil }) else {
+            // An earlier input of this call named one of its records with other content and holds that key's event.
+            try receive(Export(source: plan.source, outcome: .refused(.conflictingDuplicate), warnings: []))
             return
         }
         // A refusal keeps its reservations held: they are released with the receipt, never mid-call, so a

@@ -128,8 +128,9 @@ public struct HealthKitDependencyFailure: Error, Equatable, Sendable {
 /// A fail-closed refusal from the HealthKit conversion facade; every case reports one registry code.
 ///
 /// A record with several faults is refused for the first in this order, whatever the options: its source type, then
-/// its content (values, units, effective times), then what it states about its origin (its recording device, its
-/// writer, its sync identifier and version). A content fault thus reads the same under every writer policy.
+/// whether the export call named it before with other content, then its content (values, units, effective times),
+/// then what it states about its origin (its recording device, its writer, its sync identifier and version). A content
+/// fault thus reads the same under every writer policy.
 public enum HealthKitConversionError: Error, Equatable, Sendable {
     /// The identifier is not in the adapter inventory at all.
     case unregisteredSourceType(String)
@@ -149,6 +150,10 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     case repositoryIDWithoutNode(ExchangeGraphNode)
     /// A disclosed native identifier system reuses one of the deployment's Grove identity systems.
     case reservedIdentifierSystem
+    /// The export call named the record, or an ECG's symptom, earlier with other content: other companion data, or
+    /// other answers from a policy closure. The first input keeps the record's event; each later one that differs is
+    /// refused, so an exact retry of the call reproduces every event.
+    case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
     case opaqueIdentity(OpaqueIdentityError)
     case exchangeGraph(ExchangeGraphError)
@@ -179,7 +184,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .ecgEvidence: .healthkitInputEcgEvidence
         case .clinicalRecord(let failure): failure.rule
         case .sourceApplicationInvalid: .healthkitInputSourceApplicationInvalid
-        case .repositoryIDWithoutNode, .reservedIdentifierSystem, .exchangeIdentity, .opaqueIdentity, .dependency:
+        case .repositoryIDWithoutNode, .reservedIdentifierSystem, .conflictingDuplicate, .exchangeIdentity, .opaqueIdentity, .dependency:
             .mobileInputUnclassified
         case .exchangeGraph(let error): ExchangeGraphRule(rawValue: error.diagnostic.code) ?? .mobileExchangeUnclassified
         }
@@ -195,6 +200,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .clinicalRecord: "HKClinicalRecord.fhirResource"
         case .sourceApplicationInvalid: "HKSourceRevision.source.bundleIdentifier"
         case .repositoryIDWithoutNode, .reservedIdentifierSystem: "HealthKitConversionContext"
+        case .conflictingDuplicate: "HKSample"
         case .exchangeIdentity, .opaqueIdentity, .exchangeGraph, .dependency: "Bundle"
         }
     }

@@ -20,19 +20,21 @@ extension HealthKitFHIRExporter {
     /// Targets are recomputed from the catalog, so nothing from the original export needs to be kept.
     ///
     /// Every retraction event is reserved in one ledger transaction. Two deletions of one record with
-    /// different bounds are two events. Releasing the receipt also forgets each deleted record's active
-    /// reservation, which no export will release once the record is gone: one the same ledger generation
-    /// made, never one from after a `reset()`, and one a live export still holds only once that export
-    /// finishes. A call with nothing to retract forgets nothing. The call ends early for the same reasons as
-    /// ``export(_:at:receive:)``: an unstatable `instant`, a `LedgerError` (recovered by
-    /// `ExchangeEventSequencer.reset()`), and errors of the ledger's storage or of `receive`.
+    /// different bounds are two events, each under its own key, so an exact retry of the call reproduces
+    /// both; a deletion reported again with other bounds is another event, and the reservation of the
+    /// earlier bounds stays until its own receipt is released. Releasing the receipt also forgets each
+    /// deleted record's active reservation, which no export will release once the record is gone: one the
+    /// same ledger generation made, never one from after a `reset()`, and one a live export still holds
+    /// only once that export finishes. A call with nothing to retract forgets nothing. The call ends early
+    /// for the same reasons as ``export(_:at:receive:)``: an unstatable `instant`, a `LedgerError`
+    /// (recovered by `ExchangeEventSequencer.reset()`), and errors of the ledger's storage or of `receive`.
     public func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
     ) throws -> Receipt {
         let requests = deletions.map { deletion in
-            isRetractable(deletion) ? context.request(for: .retraction(deletion), recordParts: deletion.occurrenceParts) : nil
+            isRetractable(deletion) ? context.request(for: .retraction(deletion)) : nil
         }
         let unique = Set(requests.compactMap(\.self))
         let reserved = unique.isEmpty ? [:] : try producer.reserve(unique, at: instant)
@@ -100,7 +102,7 @@ extension HealthKitFHIRExporter.Deletion {
         deletedAfter.flatMap { $0 <= detectedAt ? $0 : nil }
     }
 
-    /// What the retraction key does not version but the graph states: the bounds, in milliseconds.
+    /// The bounds the retraction states, in milliseconds; the lower one is empty when unknown.
     var occurrenceParts: [String] {
         [
             clampedDeletedAfter.map { String(ExchangeInstant.millisecondsSinceEpoch($0)) } ?? "",
@@ -112,12 +114,15 @@ extension HealthKitFHIRExporter.Deletion {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ExchangeEventKey {
-    /// The retraction-event key of a deletion: the source type and UUID under the retraction kind.
+    /// The retraction-event key of a deletion: the source type and UUID under the retraction kind, with the bounds
+    /// the retraction states as its revision, so each reported occurrence keeps a reservation of its own.
     static func retraction(_ deletion: HealthKitFHIRExporter.Deletion) -> ExchangeEventKey {
         ExchangeEventKey(
             kind: .retraction,
             adapterID: HealthKitConverter.adapterID,
-            sourceRecord: "\(deletion.sourceType.rawValue)|\(deletion.uuid.uuidString.lowercased())"
+            sourceRecord: "\(deletion.sourceType.rawValue)|\(deletion.uuid.uuidString.lowercased())",
+            // Decimal milliseconds or empty, so the separator is unambiguous.
+            revision: deletion.occurrenceParts.joined(separator: "|")
         )
     }
 }
