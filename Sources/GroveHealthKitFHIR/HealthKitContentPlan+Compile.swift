@@ -204,12 +204,9 @@ struct HealthKitContentCompiler {
             let outputs = [HealthKitOutputSlot.primary(role: contract.id)]
             return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, unitBinding: unitBinding)
         case .electrocardiogram:
-            let claim = HealthKitElectrocardiogramClaim.self
-            let outputs = [
-                HealthKitOutputSlot.primary(role: claim.waveform.role, discriminator: claim.waveform.discriminator),
-                HealthKitOutputSlot.derived(role: claim.averageHeartRate.role, discriminator: claim.averageHeartRate.discriminator)
-            ]
-            return HealthKitContentPlan(type, entry: entry, route: .electrocardiogram(try HealthKitECGContent(sourceType: type)), outputs: outputs)
+            let content = try HealthKitECGContent(sourceType: type)
+            let outputs = [content.waveformSlot, content.averageHeartRateSlot]
+            return HealthKitContentPlan(type, entry: entry, route: .electrocardiogram(content), outputs: outputs)
         case let .recording(format, title):
             let document = DocumentPlan(sourceType: type, format: format, profiles: Self.recordingProfiles(of: row), title: title)
             let outputs = [HealthKitOutputSlot.document(role: HealthKitContentRules.nativeRecordingRole, format: format)]

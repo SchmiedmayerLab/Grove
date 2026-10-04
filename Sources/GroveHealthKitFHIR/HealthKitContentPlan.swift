@@ -60,15 +60,14 @@ struct HealthKitOutputSlot: Sendable {
     }
 
     /// The draft of `resource` in this slot.
-    func draft(_ resource: ExchangeOutputDraft.Resource, wasUserEntered: Bool = false) -> ExchangeOutputDraft {
+    func draft(_ resource: ExchangeOutputDraft.Resource) -> ExchangeOutputDraft {
         ExchangeOutputDraft(
             role: output.role,
             discriminator: output.discriminator,
             resource: resource,
             links: links,
             derivedFromPrimary: derivedFromPrimary,
-            artifactFormatCode: artifactFormatCode,
-            wasUserEntered: wasUserEntered
+            artifactFormatCode: artifactFormatCode
         )
     }
 }

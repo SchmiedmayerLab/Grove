@@ -83,9 +83,9 @@ struct ContentPlanEquivalenceTests {
     func slotsAreTodays() {
         for plan in HealthKitContentPlan.all {
             for slot in plan.outputs {
-                let draft = slot.draft(.observation(Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))), wasUserEntered: true)
+                let draft = slot.draft(.observation(Observation(code: CodeableConcept(), status: FHIRPrimitive(.final))))
                 #expect(draft.role == slot.output.role && draft.discriminator == slot.output.discriminator)
-                #expect(draft.wasUserEntered && draft.writerRecord == nil && draft.clearIdentifiers.isEmpty)
+                #expect(!draft.wasUserEntered && draft.writerRecord == nil && draft.clearIdentifiers.isEmpty)
                 switch slot.output.resourceType {
                 case .documentReference:
                     #expect(slot.links == [.subject, .recordingDevice, .studies] && !slot.derivedFromPrimary)
