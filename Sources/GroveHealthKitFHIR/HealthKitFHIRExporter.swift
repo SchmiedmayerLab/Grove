@@ -35,7 +35,7 @@ public final class HealthKitFHIRExporter: Sendable {
     public let options: Options
     let assembly: HealthKitAssembly
     /// What shapes every graph beside the frozen facts; it fingerprints each request.
-    let context: ExportContext
+    let context: ExchangeRequestContext
 
     public convenience init(
         producer: ExchangeProducer,
@@ -65,7 +65,13 @@ public final class HealthKitFHIRExporter: Sendable {
             subject: producer.subject,
             repositoryScope: repositoryScope
         ))
-        self.context = ExportContext(producer: producer, repositoryScope: repositoryScope, options: options, revisions: outputRevisions)
+        self.context = ExchangeRequestContext(
+            label: "grove-healthkit-context-v0",
+            outputRevisions: [outputRevisions.assembler, outputRevisions.healthKit],
+            producer: producer,
+            repositoryScope: repositoryScope,
+            settings: options.fingerprintParts
+        )
     }
 
     /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
