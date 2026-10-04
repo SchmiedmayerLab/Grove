@@ -15,26 +15,17 @@ import HealthKit
 import Testing
 
 
-/// The compiled content plans' permanent invariants (oracle O6): the compile defects are the known set, every type
-/// has one plan, the rule table is total, every document row converts to its document on every platform that has
-/// it, exactly the known types state a metadata component, and every unit the plans read measures what it reads.
+/// The compiled content plans' permanent invariants (oracle O6): the compiler reports no defect, every type has one
+/// plan, the rule table is total, every document row converts to its document on every platform that has it, exactly
+/// the known types state a metadata component, and every unit the plans read measures what it reads.
 @Suite
 struct HealthKitContentPlanTests {
-    /// The walking-steadiness notification values, whose codes the contract does not admit: today's mapping states
-    /// the guide's value and occurrence as one code.
-    private static let knownDefects = [
-        "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 1 reports as initial-low, which the contract does not admit",
-        "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 2 reports as initial-very-low, which the contract does not admit",
-        "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 3 reports as repeat-low, which the contract does not admit",
-        "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 4 reports as repeat-very-low, which the contract does not admit"
-    ]
-
     /// The profiles a recording or clinical-record document claims.
     private static let documentProfiles = [Profile.healthkitRecordingDocument, Profile.healthkitClinicalRecordDocument]
 
-    @Test("The compiler reconciles every rule with its contract except the known walking-steadiness values")
-    func compileDefectsAreTheKnownSet() {
-        #expect(HealthKitContentPlan.compileDefects == Self.knownDefects)
+    @Test("The compiler reconciles every rule and every coded value with its contract")
+    func compileDefectsAreEmpty() {
+        #expect(HealthKitContentPlan.compileDefects.isEmpty, "\(HealthKitContentPlan.compileDefects)")
     }
 
     @Test("Every generated source type has exactly one plan, in inventory row order, found by type and by sample type")

@@ -37,7 +37,8 @@ struct MetadataVocabulary: Sendable {
 ///
 /// A value reports as one shared code in its contract's result CodeSystem, followed by the exact HealthKit case in the
 /// adapter's own CodeSystem when the table keeps one; a notification's table keeps none, because the source-type
-/// coding already carries the lineage. A value the table does not list is unsupported.
+/// coding already carries the lineage. A notification that HealthKit raises once and then repeats also states its
+/// occurrence, in the contract's notification-occurrence component. A value the table does not list is unsupported.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct CodedTable: Sendable {
     /// The codes one HealthKit value becomes.
@@ -51,13 +52,17 @@ struct CodedTable: Sendable {
         let source: String?
         /// The HealthKit case's display.
         let sourceDisplay: String?
+        /// The notification-occurrence component's result code: whether the notification is the first at its
+        /// classification or a repeat; `nil` when the value states no occurrence.
+        let occurrence: String?
 
         /// The codes of one value.
-        init(_ shared: String, display: String? = nil, source: String? = nil, sourceDisplay: String? = nil) {
+        init(_ shared: String, display: String? = nil, source: String? = nil, sourceDisplay: String? = nil, occurrence: String? = nil) {
             self.shared = shared
             self.display = display
             self.source = source
             self.sourceDisplay = sourceDisplay
+            self.occurrence = occurrence
         }
     }
 
@@ -216,16 +221,16 @@ extension CodedTable {
         rows: [.lowFitness: Row("low-fitness")]
     )
 
-    /// A walking-steadiness notification. The contract admits none of these codes, since the guide splits each into a
-    /// value and an occurrence component, so every value has no normative code and is a compile defect.
+    /// A walking-steadiness notification. The guide splits each HealthKit case in two: "Value is the severity
+    /// classification and the notification-occurrence component is whether it is a first or repeat notification."
     static let walkingSteadiness = CodedTable(
         HKCategoryValueAppleWalkingSteadinessEvent.self,
         sourceSystem: nil,
         rows: [
-            .initialLow: Row("initial-low"),
-            .initialVeryLow: Row("initial-very-low"),
-            .repeatLow: Row("repeat-low"),
-            .repeatVeryLow: Row("repeat-very-low")
+            .initialLow: Row("low", occurrence: "initial"),
+            .initialVeryLow: Row("very-low", occurrence: "initial"),
+            .repeatLow: Row("low", occurrence: "repeat"),
+            .repeatVeryLow: Row("very-low", occurrence: "repeat")
         ]
     )
 

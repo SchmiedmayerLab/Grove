@@ -287,7 +287,21 @@ extension HealthKitContentCompiler {
             throw HealthKitContentDefect("states no result code for the occurrence")
         }
         let value = CodeableConcept(coding: [Coding(occurred.code, display: occurred.display, system: system)])
-        return .coded(values: [HKCategoryValue.notApplicable.rawValue: value], unresolved: [])
+        return .coded(values: [HKCategoryValue.notApplicable.rawValue: CodedValue(value: value, occurrence: nil)], unresolved: [])
+    }
+
+    /// The component stating whether a notification is the first at its classification or a repeat: the contract's
+    /// notification-occurrence component, valued with its published `result`.
+    private static func notificationOccurrence(
+        _ result: String,
+        of contract: MeasurementContract
+    ) throws(HealthKitContentDefect) -> ObservationComponent {
+        guard let component = contract.components.first(where: { $0.id == "notification-occurrence" }),
+              let system = component.resultCodeSystem else {
+            throw HealthKitContentDefect("states no coded component notification-occurrence")
+        }
+        let code = CodeableConcept(coding: [Coding(component.code, system: component.system)])
+        return ObservationComponent(code: code, value: .codeableConcept(try component.resultCodes.concept(result, system: system)))
     }
 
     /// Whether protection was used, as the contract's unknown, protected and unprotected result codes.
@@ -346,8 +360,10 @@ extension HealthKitContentCompiler {
         }
     }
 
-    /// A category value's codings: the shared one, then the source case's. A value whose shared code the contract
-    /// does not admit has no normative code: it stays unresolved and is a defect, while the type's other values convert.
+    /// A category value's codings: the shared one, then the source case's; and its notification-occurrence component
+    /// when its row states an occurrence. A value whose shared code the contract does not admit has no normative code:
+    /// it stays unresolved and is a defect, while the type's other values convert. An occurrence the contract does
+    /// not admit refuses the type, as any component it lacks does.
     private mutating func coded(
         _ table: CodedTable,
         contract: MeasurementContract,
@@ -356,7 +372,7 @@ extension HealthKitContentCompiler {
         let system = try Self.resultCodeSystem(of: contract)
         let published = Dictionary(contract.resultCodes.map { ($0.code, $0.display) }) { first, _ in first }
         let admitted = Set(contract.allowedValues).union(published.keys)
-        var values: [Int: CodeableConcept] = [:]
+        var values: [Int: CodedValue] = [:]
         var unresolved: Set<Int> = []
         for (raw, row) in table.rows {
             guard values[raw] == nil, !unresolved.contains(raw) else {
@@ -371,7 +387,10 @@ extension HealthKitContentCompiler {
             if let sourceSystem = table.sourceSystem, let source = row.source {
                 codings.append(Coding(source, display: row.sourceDisplay, system: sourceSystem))
             }
-            values[raw] = CodeableConcept(coding: codings)
+            let occurrence = try row.occurrence.map { result throws(HealthKitContentDefect) in
+                try Self.notificationOccurrence(result, of: contract)
+            }
+            values[raw] = CodedValue(value: CodeableConcept(coding: codings), occurrence: occurrence)
         }
         return .coded(values: values, unresolved: unresolved)
     }

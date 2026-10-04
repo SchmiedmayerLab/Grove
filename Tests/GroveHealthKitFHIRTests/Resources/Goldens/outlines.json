@@ -2557,6 +2557,66 @@
 
     ]
   },
+  "walking-steadiness-notification" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:c0156e9c-c00e-5792-b341-b8bf1d951091",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:J_RgYQ6vfkhNqoPcumsLbup9EXLSO4EbYrbfL2EUdz8",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:mRzr9jt1bPWCrgnCJCSPKGs__faFnVKU3bUoHI8X_a4"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:cba364fc-bfd7-5fc0-a8f4-61a47464e33e",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:MnEps75Oo_puKzv4FV9mgC5HcbriSQWuJo7iVfWex4E",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:283336e3-a425-5583-be28-52ac5b78e86c",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:MLoz0efPabsBS0LIlJ8osnUFd0QeslDqc_erVV7Li90"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:d85926ff-233c-52aa-9768-52113a655585",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:VEBJzhLIgRruCBfzDf-09F8DaBhnR94oWCARmy2eDx8",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:2823abe9-d163-5a4f-8726-6bf8289ee523",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
   "workout-route" : {
     "entries" : [
       {
