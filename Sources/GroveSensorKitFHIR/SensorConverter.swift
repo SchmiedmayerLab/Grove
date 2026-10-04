@@ -18,6 +18,8 @@ public import ModelsR4
 
 /// The shared event context plus what the Sensor adapter needs of its own: the adapter token every
 /// identity preimage carries, the physical recorder and the source's time zone, when known.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorConversionContext: Sendable {
     public let event: ExchangeEventContext
     /// Closed adapter token included in every source identity.
@@ -119,6 +121,11 @@ public struct SensorBatchResult: Sendable {
 
 
 /// Builds source-neutral R4 graphs for sampled data, ECG, and native recordings.
+///
+/// > Note: A candidate for removal: nothing in Grove or its known integrators converts through it, and it still numbers
+/// > its events the caller-managed way, through ``SensorConversionContext`` and `ExchangeEventContext`, not through an
+/// > `ExchangeProducer`. A source-neutral sensor adapter that is needed later returns as an exporter on the shape of
+/// > ``SensorKitFHIRExporter``.
 public struct SensorConverter: Sendable {
     public init() {}
 

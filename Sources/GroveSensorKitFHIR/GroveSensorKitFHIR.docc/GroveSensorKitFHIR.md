@@ -226,6 +226,9 @@ Its `sourceTimeZone` gives every effective bound the source's own offset; withou
 
 > Tip: Keep the conversion context beside the outbox entry it produced; a retry then rebuilds identical bytes without touching the clock.
 
+> Note: The source-neutral producer is a candidate for removal: nothing in Grove or its known integrators converts through it.
+> A source-neutral sensor adapter that is needed later returns as an exporter on the shape of ``SensorKitFHIRExporter``.
+
 ## Glossary
 
 | IG term | Swift |
