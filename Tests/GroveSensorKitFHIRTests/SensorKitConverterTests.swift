@@ -27,30 +27,6 @@ struct GroveSensorKitFHIRConverterTests {
         }
     }
 
-    private static var context: SensorKitConversionContext {
-        get throws { try makeContext() }
-    }
-
-    private static func makeContext(
-        sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        visitLocationIdentifierSystem: IdentifierSystem = SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem
-    ) throws -> SensorKitConversionContext {
-        SensorKitConversionContext(
-                subject: SensorFHIRIdentityTestSupport.subject,
-                converter: ApplicationDevice.test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
-                eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
-                visitLocationIdentifierSystem: visitLocationIdentifierSystem,
-                sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
-                recordingDevice: RecordingDevice.test(
-                    stableUnitToken: "watch-42",
-                    name: "Example Watch"
-                ),
-                converterWasGateway: true,
-                sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                conversionInstant: start.addingTimeInterval(60)
-        )
-    }
-
     private static func native(
         admission: SensorRawPayloadAdmission = .verifiedSanitizedInput,
         format: RegisteredRecordingFormat = .nativeRecording
@@ -128,11 +104,11 @@ struct GroveSensorKitFHIRConverterTests {
                 .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: -0.01, z: 0.04)
             ]
         )
-        let conversion = try SensorKitConverter().convert(.rotationRate(record), context: Self.context)
-        #expect(conversion.bundle.timestamp?.value?.description == "2026-08-17T23:31:00Z")
-        #expect(conversion.provenance.recorded.value?.description == "2026-08-17T23:31:00Z")
-        guard case .dateTime(let occurred)? = conversion.provenance.occurred,
-              case .period(let effective)? = conversion.observations.first?.effective else {
+        let graph = try SensorKitExporterFixtures.graph(.rotationRate(record))
+        #expect(graph.bundle.timestamp?.value?.description == "2026-08-17T23:31:00Z")
+        #expect(try graph.provenance.recorded.value?.description == "2026-08-17T23:31:00Z")
+        guard case .dateTime(let occurred)? = try graph.provenance.occurred,
+              case .period(let effective)? = graph.observations.first?.effective else {
             Issue.record("The graph lost its Provenance time or its effective period")
             return
         }
@@ -159,7 +135,7 @@ struct GroveSensorKitFHIRConverterTests {
             #expect(try #require(decoded.end?.value).asNSDate() == end)
             #expect(decoded.end?.value?.description == endLexical)
         }
-        #expect(try SensorKitConverter.exactInstant(end, timeZone: zone).asNSDate() == end)
+        #expect(try SensorKitConverter.exactDateTime(end, timeZone: zone).asNSDate() == end)
     }
 
     @Test
@@ -172,9 +148,9 @@ struct GroveSensorKitFHIRConverterTests {
                 .init(timestamp: Self.start.addingTimeInterval(0.02), x: 0.01, y: -0.01, z: 0.02)
             ]
         )
-        let conversion = try SensorKitConverter().convert(.rotationRate(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.rotationRate(record))
+        let observation = try #require(graph.observations.first)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.id == nil)
         #expect(observation.issued == nil)
@@ -187,8 +163,8 @@ struct GroveSensorKitFHIRConverterTests {
             .sourceRecord,
             .sourceOutput
         ])
-        #expect(conversion.recordingDocument == nil)
-        #expect(conversion.provenance.target.count == 1)
+        #expect(graph.recordingDocument == nil)
+        #expect(try graph.provenance.target.count == 1)
         #expect(entries.count == 5)
         #expect(entries.allSatisfy { $0.fullUrl?.value?.url.absoluteString.hasPrefix("urn:uuid:") == true })
 
@@ -215,16 +191,15 @@ struct GroveSensorKitFHIRConverterTests {
         )
         let nativeSystem: IdentifierSystem =
             "https://study.example.org/fhir/identifier/sensorkit-source-record"
-        let context = try Self.makeContext(sourceIdentifierDisclosurePolicy: .authorized(
+        let graph = try SensorKitExporterFixtures.graph(.rotationRate(record), nativeIdentifier: .authorized(
             system: nativeSystem,
             type: GovernedSourceIdentifierType(
                 system: "https://study.example.org/fhir/CodeSystem/source-identifier-type",
                 code: "sensorkit-record-id"
             )
         ))
-        let conversion = try SensorKitConverter().convert(.rotationRate(record), context: context)
-        #expect(conversion.observations.count == 1)
-        let observation = try #require(conversion.observations.first)
+        #expect(graph.observations.count == 1)
+        let observation = try #require(graph.observations.first)
         let nativeValue = try Self.sourceID.value
         let native = try #require(observation.identifier?.first {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
@@ -232,9 +207,9 @@ struct GroveSensorKitFHIRConverterTests {
 
         #expect(native.value?.value?.string == nativeValue)
         #expect(observation.id == nil)
-        #expect(conversion.recordingDocument == nil)
-        let bundleJSON = String(decoding: try JSONEncoder().encode(conversion.bundle), as: UTF8.self)
-        #expect(conversion.bundle.entry?.contains {
+        #expect(graph.recordingDocument == nil)
+        let bundleJSON = String(decoding: try JSONEncoder().encode(graph.bundle), as: UTF8.self)
+        #expect(graph.bundle.entry?.contains {
             $0.fullUrl?.value?.url.absoluteString.contains(nativeValue) == true
         } != true)
         #expect(bundleJSON.components(separatedBy: nativeValue).count == 2)
@@ -252,9 +227,9 @@ struct GroveSensorKitFHIRConverterTests {
             locationID: locationID
         )
 
-        let conversion = try SensorKitConverter().convert(.visit(record), context: Self.context)
-        #expect(conversion.observations.count == 1)
-        let observation = try #require(conversion.observations.first)
+        let graph = try SensorKitExporterFixtures.graph(.visit(record))
+        #expect(graph.observations.count == 1)
+        let observation = try #require(graph.observations.first)
         #expect(observation.focus?.count == 1)
         let focus = try #require(observation.focus?.first)
         let identifier = try #require(focus.identifier)
@@ -265,7 +240,7 @@ struct GroveSensorKitFHIRConverterTests {
             SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem.rawValue)
         #expect(identifier.value?.value?.string == locationID.uuidString.lowercased())
         #expect(identifier.type == nil)
-        let encoded = try JSONEncoder().encode(conversion.bundle)
+        let encoded = try JSONEncoder().encode(graph.bundle)
         let json = try #require(String(data: encoded, encoding: .utf8))
         #expect(json.contains(locationID.uuidString.lowercased()))
     }
@@ -285,10 +260,10 @@ struct GroveSensorKitFHIRConverterTests {
             ],
             nativeRecording: try Self.native()
         )
-        let conversion = try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
-        let document = try #require(conversion.recordingDocument)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.electrocardiogram(record))
+        let observation = try #require(graph.observations.first)
+        let document = try #require(graph.recordingDocument)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.meta?.profile == [
             Profile.groveSensorEcgObservation,
@@ -306,12 +281,12 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
         #expect(format.code?.value?.string == "native-recording")
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
-        #expect(conversion.provenance.target.count == 2)
-        #expect(conversion.provenance.meta?.profile == [
+        #expect(try graph.provenance.target.count == 2)
+        #expect(try graph.provenance.meta?.profile == [
             FHIRPrimitive(Canonical(stringLiteral: SensorKitContract.conversionProvenanceProfile))
         ])
         #expect(entries.count == 6)
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.electrocardiogram",
             structuredDiscriminator: "ecg-waveform",
@@ -342,20 +317,17 @@ struct GroveSensorKitFHIRConverterTests {
         )
         let nativeSystem: IdentifierSystem =
             "https://study.example.org/fhir/identifier/sensorkit-source-record"
-        let conversion = try SensorKitConverter().convert(
-            .electrocardiogram(record),
-            context: Self.makeContext(sourceIdentifierDisclosurePolicy: .authorized(system: nativeSystem))
-        )
+        let graph = try SensorKitExporterFixtures.graph(.electrocardiogram(record), nativeIdentifier: .authorized(system: nativeSystem))
 
-        #expect(conversion.observations.count == 1)
-        let observation = try #require(conversion.observations.first)
+        #expect(graph.observations.count == 1)
+        let observation = try #require(graph.observations.first)
         #expect(observation.identifier?.contains {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         } == true)
-        #expect(conversion.recordingDocument?.identifier?.contains {
+        #expect(graph.recordingDocument?.identifier?.contains {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         } != true)
-        #expect(conversion.recordingDocument?.id == nil)
+        #expect(graph.recordingDocument?.id == nil)
     }
 
     @Test
@@ -370,8 +342,8 @@ struct GroveSensorKitFHIRConverterTests {
             batches: [.init(offsetSeconds: 0, millivolts: [0.1, 0.2])],
             nativeRecording: try Self.native()
         )
-        let conversion = try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
-        let codings = try #require(conversion.observations.first?.component?.first?.code.coding)
+        let graph = try SensorKitExporterFixtures.graph(.electrocardiogram(record))
+        let codings = try #require(graph.observations.first?.component?.first?.code.coding)
 
         #expect(codings.contains { $0.system?.value?.url.absoluteString == SensorKitContract.ecgLeadCodeSystem })
         #expect(!codings.contains {
@@ -396,7 +368,7 @@ struct GroveSensorKitFHIRConverterTests {
             nativeRecording: try Self.native()
         )
         #expect(throws: SensorKitConversionError.invalidRecord(.nonUniformTiming(index: 2))) {
-            try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
+            try SensorKitExporterFixtures.graph(.electrocardiogram(record))
         }
     }
 
@@ -406,8 +378,8 @@ struct GroveSensorKitFHIRConverterTests {
             beginMarker: Self.start.addingTimeInterval(-0.375),
             chunkDates: [Self.start, Self.start.addingTimeInterval(0.004)]
         )
-        let conversion = try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
+        let graph = try SensorKitExporterFixtures.graph(.electrocardiogram(record))
+        let observation = try #require(graph.observations.first)
         guard case .period(let effective) = observation.effective else {
             Issue.record("ECG must emit a Period")
             return
@@ -426,8 +398,8 @@ struct GroveSensorKitFHIRConverterTests {
         let record = try Self.ecgRecord(beginMarker: firstChunk, chunkDates: chunkDates)
         #expect(record.batches[1].offsetSeconds != 0.004)
 
-        let conversion = try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
+        let graph = try SensorKitExporterFixtures.graph(.electrocardiogram(record))
+        let observation = try #require(graph.observations.first)
         guard case .period(let effective) = observation.effective,
               case .sampledData(let waveform) = observation.component?.first?.value else {
             Issue.record("ECG must emit one SampledData lead over a Period")
@@ -454,7 +426,7 @@ struct GroveSensorKitFHIRConverterTests {
         )
 
         #expect(throws: SensorKitConversionError.invalidRecord(.nonUniformTiming(index: 4))) {
-            try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
+            try SensorKitExporterFixtures.graph(.electrocardiogram(record))
         }
     }
 
@@ -466,19 +438,19 @@ struct GroveSensorKitFHIRConverterTests {
             effectivePeriod: DateInterval(start: Self.start, duration: 1),
             nativeRecording: try Self.native(admission: admission, format: .heartRateSamples)
         )
-        let conversion = try SensorKitConverter().convert(.raw(record), context: Self.context)
-        let json = try #require(String(data: JSONEncoder().encode(conversion.bundle), encoding: .utf8))
+        let graph = try SensorKitExporterFixtures.graph(.raw(record))
+        let json = try #require(String(data: JSONEncoder().encode(graph.bundle), encoding: .utf8))
 
         for value in SensorRawPayloadAdmission.allCases {
             #expect(!json.contains(value.rawValue))
         }
-        #expect(conversion.observations.isEmpty)
-        #expect(conversion.recordingDocument?.content.first?.format?.code?.value?.string == "heart-rate-samples")
-        #expect(conversion.recordingDocument?.content.first?.format?.version == nil)
-        #expect(conversion.recordingDocument?.context?.period?.start != nil)
-        #expect(conversion.recordingDocument?.context?.period?.end != nil)
-        #expect(conversion.recordingDocument?.context?.related == nil)
-        #expect(conversion.provenance.target.count == 1)
+        #expect(graph.observations.isEmpty)
+        #expect(graph.recordingDocument?.content.first?.format?.code?.value?.string == "heart-rate-samples")
+        #expect(graph.recordingDocument?.content.first?.format?.version == nil)
+        #expect(graph.recordingDocument?.context?.period?.start != nil)
+        #expect(graph.recordingDocument?.context?.period?.end != nil)
+        #expect(graph.recordingDocument?.context?.related == nil)
+        #expect(try graph.provenance.target.count == 1)
     }
 
     @Test("A one-instant raw acquisition retains exact point coverage")
@@ -489,33 +461,16 @@ struct GroveSensorKitFHIRConverterTests {
             effectivePeriod: DateInterval(start: Self.start, duration: 0),
             nativeRecording: try Self.native(format: .heartRateSamples)
         )
-        let conversion = try SensorKitConverter().convert(.raw(record), context: Self.context)
-        let period = try #require(conversion.recordingDocument?.context?.period)
+        let graph = try SensorKitExporterFixtures.graph(.raw(record))
+        let period = try #require(graph.recordingDocument?.context?.period)
 
         #expect(period.start == period.end)
     }
 
-    /// Spec F2 in the SensorKit adapter: only an Observation names a gateway, so a raw-only graph under a gateway
-    /// application carries no gateway Device, while a hybrid ECG graph, whose Observation names it, does.
-    @Test("A gateway application travels only with an Observation that names it")
-    func gatewayApplicationTravelsOnlyWithAnObservation() throws {
-        let base = try Self.context
-        let gateway = ApplicationDevice.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1")
-        let context = SensorKitConversionContext(
-            event: base.event.with(converterRole: .gatewayApplication(gateway)),
-            visitLocationIdentifierSystem: base.visitLocationIdentifierSystem,
-            recordingDevice: base.recordingDevice,
-            sourceTimeZone: base.sourceTimeZone
-        )
-        let snapshot = try context.identityScope.deviceSnapshot(event: context.eventIdentifier, role: .application, sourceDeviceToken: gateway.sourceDeviceToken)
-        let raw = try SensorKitRawRecord(
-            sourceRecordID: try Self.sourceID,
-            sourceToken: "SRSensor.heartRate",
-            effectivePeriod: DateInterval(start: Self.start, duration: 1),
-            nativeRecording: try Self.native(format: .heartRateSamples)
-        )
-        let rawOnly = try SensorKitConverter().convert(.raw(raw), context: context)
-        #expect(rawOnly.graph.entry(fullURL: try snapshot.fullURL) == nil)
+    /// SensorKit names no gateway: the exporter converts as an assembler, so no Observation states
+    /// observation-gatewayDevice and no graph carries a second application snapshot.
+    @Test("A SensorKit graph names no gateway")
+    func sensorKitGraphNamesNoGateway() throws {
         let ecg = SensorKitECGRecord(
             sourceRecordID: try Self.sourceID,
             startDate: Self.start,
@@ -526,8 +481,11 @@ struct GroveSensorKitFHIRConverterTests {
             batches: [.init(offsetSeconds: 0, millivolts: [0.011, 0.023]), .init(offsetSeconds: 0.004, millivolts: [-0.005, 0.014])],
             nativeRecording: try Self.native()
         )
-        let hybrid = try SensorKitConverter().convert(.electrocardiogram(ecg), context: context)
-        #expect(hybrid.graph.entry(fullURL: try snapshot.fullURL) != nil)
+        let graph = try SensorKitExporterFixtures.graph(.electrocardiogram(ecg))
+        let observation = try #require(graph.observations.first)
+        #expect(observation.extension?.contains { $0.url == Canonicals.gatewayDevice } == false)
+        let devices = graph.bundle.entry?.filter { $0.resource?.get() is Device }
+        #expect(devices?.count == 3)
     }
 
     @Test("A raw-only source discloses its governed ID on the sole DocumentReference")
@@ -540,65 +498,40 @@ struct GroveSensorKitFHIRConverterTests {
         )
         let nativeSystem: IdentifierSystem =
             "https://study.example.org/fhir/identifier/sensorkit-source-record"
-        let conversion = try SensorKitConverter().convert(
-            .raw(record),
-            context: Self.makeContext(sourceIdentifierDisclosurePolicy: .authorized(system: nativeSystem))
-        )
+        let graph = try SensorKitExporterFixtures.graph(.raw(record), nativeIdentifier: .authorized(system: nativeSystem))
         let nativeValue = try Self.sourceID.value
 
-        #expect(conversion.observations.isEmpty)
-        #expect(conversion.recordingDocument?.identifier?.contains {
+        #expect(graph.observations.isEmpty)
+        #expect(graph.recordingDocument?.identifier?.contains {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
                 && $0.value?.value?.string == nativeValue
         } == true)
-        #expect(conversion.recordingDocument?.id == nil)
+        #expect(graph.recordingDocument?.id == nil)
     }
 
-    @Test("A governed native ID cannot masquerade under generic or provider opaque namespaces")
+    @Test("An exporter refuses a governed native ID under generic or provider opaque namespaces")
     func governedNativeIDRejectsReservedSystem() throws {
-        let record = SensorKitRotationRateRecord(
-            sourceRecordID: try Self.sourceID,
-            samples: [
-                .init(timestamp: Self.start, x: 0.01, y: 0.02, z: 0.03),
-                .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
-            ]
-        )
         let identityScope = SensorFHIRIdentityTestSupport.identityScope
         for reserved in [
             identityScope.systems.opaque.sourceRecord,
             identityScope.systems.opaque.providerOutput,
             identityScope.systems.opaque.providerArtifact
         ] {
-            let context = try Self.makeContext(
-                sourceIdentifierDisclosurePolicy: .authorized(system: reserved)
-            )
-            #expect(throws: SensorKitConversionError.invalidIdentity(
-                "governed SensorKit source identifier system must not reuse a Grove opaque-identity namespace"
-            )) {
-                try SensorKitConverter().convert(.rotationRate(record), context: context)
+            #expect(throws: SensorKitFHIRExporter.ConfigurationError.reservedIdentifierSystem(reserved)) {
+                try SensorKitExporterFixtures.exporter(SensorKitExporterFixtures.producer(), nativeIdentifier: .authorized(system: reserved))
             }
         }
     }
 
-    @Test("Visit locations cannot reuse provider output or artifact namespaces")
+    @Test("An exporter refuses visit locations under provider output or artifact namespaces")
     func visitLocationRejectsProviderOpaqueSystems() throws {
-        let record = SensorKitRotationRateRecord(
-            sourceRecordID: try Self.sourceID,
-            samples: [
-                .init(timestamp: Self.start, x: 0.01, y: 0.02, z: 0.03),
-                .init(timestamp: Self.start.addingTimeInterval(0.01), x: 0.02, y: 0.03, z: 0.04)
-            ]
-        )
         let identityScope = SensorFHIRIdentityTestSupport.identityScope
         for reserved in [
             identityScope.systems.opaque.providerOutput,
             identityScope.systems.opaque.providerArtifact
         ] {
-            let context = try Self.makeContext(visitLocationIdentifierSystem: reserved)
-            #expect(throws: SensorKitConversionError.invalidIdentity(
-                "visitLocationIdentifierSystem must not reuse a Grove opaque-identity namespace"
-            )) {
-                try SensorKitConverter().convert(.rotationRate(record), context: context)
+            #expect(throws: SensorKitFHIRExporter.ConfigurationError.reservedIdentifierSystem(reserved)) {
+                try SensorKitExporterFixtures.exporter(SensorKitExporterFixtures.producer(), visitLocationIdentifierSystem: reserved)
             }
         }
     }
@@ -614,7 +547,7 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(throws: SensorKitConversionError.invalidRecord(
             .recordingFormatNotAdmitted("native-recording")
         )) {
-            try SensorKitConverter().convert(.raw(record), context: Self.context)
+            try SensorKitExporterFixtures.graph(.raw(record))
         }
     }
 
@@ -629,7 +562,7 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(throws: SensorKitConversionError.invalidRecord(
             .sourceTypeHasNoRawContract("SRSensor.sleepSessions")
         )) {
-            try SensorKitConverter().convert(.raw(record), context: Self.context)
+            try SensorKitExporterFixtures.graph(.raw(record))
         }
     }
 
@@ -644,7 +577,7 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(throws: SensorKitConversionError.invalidRecord(
             .sourceTypeNotAdmitted("SRSensor.headphoneMotion")
         )) {
-            try SensorKitConverter().convert(.raw(record), context: Self.context)
+            try SensorKitExporterFixtures.graph(.raw(record))
         }
     }
 }

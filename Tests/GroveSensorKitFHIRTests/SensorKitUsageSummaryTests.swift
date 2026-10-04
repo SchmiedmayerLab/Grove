@@ -25,19 +25,6 @@ struct GroveSensorKitUsageSummaryTests {
         }
     }
 
-    private static var context: SensorKitConversionContext {
-        get throws {
-            SensorKitConversionContext(
-                subject: SensorFHIRIdentityTestSupport.subject,
-                converter: ApplicationDevice.test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
-                eventIdentifier: try SensorFHIRIdentityTestSupport.event(),
-                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
-                sourceTimeZone: try #require(TimeZone(identifier: "America/Los_Angeles")),
-                conversionInstant: start.addingTimeInterval(60)
-            )
-        }
-    }
-
     private static func native(format: RegisteredRecordingFormat = .nativeRecording) throws -> SensorKitNativeRecording {
         try SensorKitNativeRecording(
             title: "Exact SensorKit native report",
@@ -77,10 +64,10 @@ struct GroveSensorKitUsageSummaryTests {
     @Test
     func messagesUsageBuildsACountOnlySummaryLinkedToItsRecording() throws {
         let record = try Self.messagesUsage(nativeRecording: Self.native())
-        let conversion = try SensorKitConverter().convert(.messagesUsage(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
-        let document = try #require(conversion.recordingDocument)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.messagesUsage(record), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
+        let document = try #require(graph.recordingDocument)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-messages-usage-observation")])
         #expect(observation.value == nil)
@@ -91,13 +78,13 @@ struct GroveSensorKitUsageSummaryTests {
         ])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(document.content.first?.format?.code?.value?.string == "native-recording")
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.messagesUsageReport",
             structuredDiscriminator: "messages-usage-summary",
             includesNativeRecording: true
         )))
-        #expect(conversion.provenance.target.count == 2)
+        #expect(try graph.provenance.target.count == 2)
         guard case .period(let effective) = observation.effective else {
             Issue.record("Messages usage must span the exact report interval")
             return
@@ -109,19 +96,19 @@ struct GroveSensorKitUsageSummaryTests {
     @Test
     func messagesUsageWithoutARecordingOmitsTheDocumentAndLink() throws {
         let record = try Self.messagesUsage(nativeRecording: nil)
-        let conversion = try SensorKitConverter().convert(.messagesUsage(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
+        let graph = try SensorKitExporterFixtures.graph(.messagesUsage(record), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
 
-        #expect(conversion.recordingDocument == nil)
+        #expect(graph.recordingDocument == nil)
         #expect(observation.derivedFrom == nil)
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.messagesUsageReport",
             structuredDiscriminator: "messages-usage-summary",
             includesNativeRecording: false
         )))
-        #expect(conversion.provenance.target.count == 1)
-        #expect(conversion.bundle.entry?.count == 4)
+        #expect(try graph.provenance.target.count == 1)
+        #expect(graph.bundle.entry?.count == 4)
     }
 
     @Test
@@ -136,9 +123,9 @@ struct GroveSensorKitUsageSummaryTests {
             totalUniqueContacts: 4,
             nativeRecording: try Self.native()
         )
-        let conversion = try SensorKitConverter().convert(.phoneUsage(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.phoneUsage(record), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-phone-usage-observation")])
         #expect(Self.componentCounts(observation) == [
@@ -147,7 +134,7 @@ struct GroveSensorKitUsageSummaryTests {
             "unique-contacts": 4
         ])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.phoneUsageReport",
             structuredDiscriminator: "phone-usage-summary",
@@ -179,9 +166,9 @@ struct GroveSensorKitUsageSummaryTests {
             typingSpeed: 3.5,
             nativeRecording: try Self.native()
         )
-        let conversion = try SensorKitConverter().convert(.keyboardMetrics(record), context: Self.context)
-        let observation = try #require(conversion.observations.first)
-        let entries = try #require(conversion.bundle.entry)
+        let graph = try SensorKitExporterFixtures.graph(.keyboardMetrics(record), recordingDevice: nil)
+        let observation = try #require(graph.observations.first)
+        let entries = try #require(graph.bundle.entry)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-keyboard-metrics-observation")])
         #expect(Self.componentCounts(observation) == [
@@ -196,7 +183,7 @@ struct GroveSensorKitUsageSummaryTests {
             "typing-speed": 3.5
         ])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
-        #expect(conversion.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.keyboardMetrics",
             structuredDiscriminator: "keyboard-metrics-summary",
@@ -215,7 +202,6 @@ struct GroveSensorKitUsageSummaryTests {
 
     @Test
     func invalidUsageSummariesFailClosed() throws {
-        let converter = SensorKitConverter()
         let zeroDuration = SensorKitMessagesUsageRecord(
             sourceRecordID: try Self.sourceID,
             timestamp: Self.start,
@@ -234,12 +220,12 @@ struct GroveSensorKitUsageSummaryTests {
         )
 
         #expect(throws: SensorKitConversionError.invalidRecord(.invalidReportDuration(field: "duration"))) {
-            try converter.convert(.messagesUsage(zeroDuration), context: Self.context)
+            try SensorKitExporterFixtures.graph(.messagesUsage(zeroDuration))
         }
         #expect(throws: SensorKitConversionError.invalidRecord(
             .invalidReportCount(field: "incoming-messages", value: -1)
         )) {
-            try converter.convert(.messagesUsage(negativeCount), context: Self.context)
+            try SensorKitExporterFixtures.graph(.messagesUsage(negativeCount))
         }
     }
 }

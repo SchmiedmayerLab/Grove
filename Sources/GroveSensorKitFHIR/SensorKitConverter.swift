@@ -6,133 +6,100 @@
 // SPDX-License-Identifier: MIT
 //
 
-// One graph assembly transaction remains contiguous so identifiers, references, and repository ids
-// can be reviewed as a single deterministic operation against the exchange contract.
-// swiftlint:disable function_body_length file_length
-
-import FHIRModelsExtensions
-public import Foundation
-public import GroveFHIRContract
-public import ModelsR4
+import Foundation
+import GroveFHIRContract
+import ModelsR4
 
 
-/// The shared event context plus SensorKit's own: the visit-location namespace, the governed
-/// disclosure of the native record identifier, the physical recorder and the source time zone.
-public struct SensorKitConversionContext: Sendable {
-    public let event: ExchangeEventContext
-    /// Deployment/source-store namespace for the exact native `SRVisit.locationId` value.
-    ///
-    /// This is intentionally distinct from every Grove opaque identity system: the location id is
-    /// a governed lineage identifier on a logical Location, never a graph key.
-    public let visitLocationIdentifierSystem: IdentifierSystem
-    /// Optional governed disclosure of the exact `SensorKitSourceRecordID.value` on the designated
-    /// primary output. Grove opaque identifiers remain the only graph/business keys.
-    public let sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy
-    public let recordingDevice: RecordingDevice?
-    public let sourceTimeZone: TimeZone
-
-    var identityScope: OpaqueIdentityScope { event.identityScope }
-    var eventIdentifier: ExchangeEventIdentifier { event.event }
-    var repositoryScope: BusinessIdentifier { event.repositoryScope }
-    var entryNodeIdentifierSystem: IdentifierSystem { event.entryNodeIdentifierSystem }
-    var conversionInstant: Date { event.conversionInstant }
-    var subjectIdentifier: BusinessIdentifier { event.subject.identifier }
-    var subject: Reference { get throws { try event.subjectReference() } }
-    var researchStudies: [Reference] { get throws { try event.studyReferences() } }
-
-    public init(
-        event: ExchangeEventContext,
-        visitLocationIdentifierSystem: IdentifierSystem,
-        sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        recordingDevice: RecordingDevice? = nil,
-        sourceTimeZone: TimeZone
-    ) {
-        self.event = event
-        self.visitLocationIdentifierSystem = visitLocationIdentifierSystem
-        self.sourceIdentifierDisclosurePolicy = sourceIdentifierDisclosurePolicy
-        self.recordingDevice = recordingDevice
-        self.sourceTimeZone = sourceTimeZone
+/// The SensorKit adapter's content: the outputs one record yields before the shared assembler applies the
+/// event's envelope (identities, subject, devices, study context, Provenance and Bundle).
+enum SensorKitConverter {
+    /// What a record's content depends on beside the record itself.
+    struct ContentContext {
+        /// The zone the source reported its instants in; every effective bound states its offset.
+        let sourceTimeZone: TimeZone
+        /// Deployment/source-store namespace for the exact native `SRVisit.locationId` value.
+        let visitLocationIdentifierSystem: IdentifierSystem
     }
 
-    func repositoryID(_ node: ExchangeGraphNode) -> RepositoryID? {
-        event.repositoryIDs[node]
-    }
-}
-
-
-/// One complete SensorKit structured, raw, or hybrid FHIR graph.
-public struct SensorKitConversion: Sendable {
-    public let sourceIdentifier: Identifier
-    public let sourceTypeToken: String
-    /// The designated 1:1 primary representation of this source record.
-    public let primaryOutputIdentifier: RoledIdentifier
-    public let outputIdentifiers: [RoledIdentifier]
-    /// Exact wire-visible identities of any recording payloads carried by the graph.
-    public let artifactIdentifiers: [RoledIdentifier]
-    public let converterApplicationSnapshot: RoledIdentifier
-    public let converterHostSnapshot: RoledIdentifier
-    public let observations: [Observation]
-    public let recordingDocument: DocumentReference?
-    public let recordingDevice: Device?
-    public let converterApplication: Device
-    public let converterHost: Device
-    public let provenance: Provenance
-    /// The authoritative graph. Upload and persistence code must serialize this value.
-    public let graph: ExchangeGraph
-
-    public var bundle: ModelsR4.Bundle { graph.bundle }
-}
-
-
-public struct SensorKitRecordFailure: Error, Equatable, Sendable {
-    public let sourceRecordID: SensorKitSourceRecordID
-    public let reason: SensorKitConversionError
-}
-
-
-public struct SensorKitBatchResult: Sendable {
-    public let conversions: [SensorKitConversion]
-    public let failures: [SensorKitRecordFailure]
-}
-
-
-/// A no-fetch SensorKit adapter that emits only catalog-admitted R4 graph shapes.
-public struct SensorKitConverter: Sendable {
     /// The closed adapter token every SensorKit identity preimage carries.
     static let adapterID = "sensorkit"
 
-    public init() {}
+    /// The revision of the content this adapter drafts. Bump it whenever the bytes it emits can change for equal
+    /// inputs: it enters every exporter's context fingerprint, so an event reserved under an older revision is
+    /// never redelivered under the same identifier with different bytes.
+    static let outputRevision: UInt = 1
 
-    public func convert(
-        _ record: SensorKitRecord,
-        context: SensorKitConversionContext
-    ) throws(SensorKitConversionError) -> SensorKitConversion {
-        do {
-            return try Self.convertRecord(record, context: context)
-        } catch {
-            throw SensorKitConversionError(conversionFailure: error)
+    static let adapter = ExchangeAdapterContract(
+        adapterID: adapterID,
+        provenanceProfile: profile(SensorKitContract.conversionProvenanceProfile),
+        applicationDeviceProfile: Profile.groveApplicationDevice
+    )
+
+    /// The record's outputs, the designated primary first: the structured Observation, then the raw
+    /// DocumentReference, as the record's catalog row admits them. Each names the other by its source-output
+    /// identity, which does not depend on the event; `nativeIdentifier` travels on the primary alone.
+    static func outputs(
+        of record: SensorKitRecord,
+        sourceRecord: SourceRecordIdentity,
+        nativeIdentifier: Identifier?,
+        context: ContentContext
+    ) throws -> [ExchangeOutputDraft] {
+        try validateCatalogContract(record)
+        let descriptors = record.discriminators
+        let structuredURL = try descriptors.structured.map {
+            try sourceRecord.output(role: "structured", discriminator: $0).fullURLString
         }
+        let rawURL = try descriptors.raw.map {
+            try sourceRecord.output(role: "native-recording", discriminator: $0).fullURLString
+        }
+        var outputs: [ExchangeOutputDraft] = []
+        if let discriminator = descriptors.structured {
+            var structured = ExchangeOutputDraft(
+                role: "structured",
+                discriminator: discriminator,
+                resource: .observation(try buildObservation(record, rawURL: rawURL, context: context))
+            )
+            if case .wristTemperature(let record) = record {
+                structured.trailingExtensions = [algorithmVersionExtension(record)]
+            }
+            outputs.append(structured)
+        }
+        if let discriminator = descriptors.raw, let native = record.nativeRecording {
+            outputs.append(ExchangeOutputDraft(
+                role: "native-recording",
+                discriminator: discriminator,
+                resource: .document(try buildDocument(record, native: native, relatedURL: structuredURL, context: context)),
+                artifactFormatCode: native.format.rawValue
+            ))
+        }
+        guard !outputs.isEmpty else {
+            throw SensorKitConversionError.invalidIdentity("record has no catalog-admitted output")
+        }
+        outputs[0].clearIdentifiers = nativeIdentifier.map { [$0] } ?? []
+        return outputs
     }
 
-    public func convert<S: Sequence>(
-        _ records: S,
-        contextForRecord: (SensorKitRecord) throws -> SensorKitConversionContext
-    ) -> SensorKitBatchResult where S.Element == SensorKitRecord {
-        var conversions: [SensorKitConversion] = []
-        var failures: [SensorKitRecordFailure] = []
-        for record in records {
-            do {
-                conversions.append(try convert(record, context: contextForRecord(record)))
-            } catch let reason as SensorKitConversionError {
-                failures.append(.init(sourceRecordID: record.sourceRecordID, reason: reason))
-            } catch {
-                failures.append(.init(
-                    sourceRecordID: record.sourceRecordID,
-                    reason: SensorKitConversionError(conversionFailure: error)
-                ))
-            }
+    /// The Device body a recording device states from its own facts; the assembler adds its identities.
+    static func recordingDevice(_ device: RecordingDevice) -> ExchangeRecordingDeviceDraft {
+        var resource = Device()
+        resource.meta = Meta(profile: [Profile.groveRecordingDevice])
+        resource.status = FHIRPrimitive(.active)
+        if let name = device.name {
+            resource.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
         }
-        return SensorKitBatchResult(conversions: conversions, failures: failures)
+        resource.manufacturer = device.manufacturer?.asFHIRStringPrimitive()
+        resource.modelNumber = device.modelNumber?.asFHIRStringPrimitive()
+        return ExchangeRecordingDeviceDraft(device: device, resource: resource)
+    }
+
+    private static func validateCatalogContract(_ record: SensorKitRecord) throws {
+        guard let entry = SensorKitCatalog.current.entry(sourceToken: record.sourceToken) else {
+            throw SensorKitRecordError.sourceTypeNotAdmitted(record.sourceToken)
+        }
+        if case .raw = record, entry.rawProfiles.isEmpty {
+            throw SensorKitRecordError.sourceTypeHasNoRawContract(record.sourceToken)
+        }
     }
 }
 
@@ -145,10 +112,7 @@ extension SensorKitRecord {
         }
         return record.effectivePeriod
     }
-}
 
-
-extension SensorKitRecord {
     var sourceRecordID: SensorKitSourceRecordID {
         switch self {
         case .rotationRate(let record): record.sourceRecordID
@@ -185,6 +149,8 @@ extension SensorKitRecord {
         }
     }
 
+    /// The output discriminators the catalog row names: every raw representation is the logical
+    /// `native-recording` output (sensorkit-adapter.json, `raw.outputDiscriminator`).
     var discriminators: (structured: String?, raw: String?) {
         switch self {
         case .rotationRate: ("sampled-data", nil)
@@ -217,332 +183,6 @@ extension SensorKitRecord {
         case .wristTemperature(let record): record.nativeRecording
         case .ppg(let record): record.nativeRecording
         case .raw(let record): record.nativeRecording
-        }
-    }
-}
-
-
-extension SensorKitConverter {
-    struct OutputNode {
-        let identifier: RoledIdentifier
-        let artifactIdentifier: RoledIdentifier?
-        let fullURL: String
-    }
-
-    private static func convertRecord(
-        _ record: SensorKitRecord,
-        context: SensorKitConversionContext
-    ) throws -> SensorKitConversion {
-        try validate(record: record, context: context)
-        let sourceRecord = try context.identityScope.sourceRecord(
-            adapterID: Self.adapterID,
-            sourceType: record.sourceToken,
-            repositoryScope: context.repositoryScope,
-            nativeRecordID: record.sourceRecordID.value
-        )
-        let descriptors = record.discriminators
-        let structuredNode = try descriptors.structured.map {
-            try outputNode(
-                record: record,
-                sourceRecord: sourceRecord,
-                discriminator: $0,
-                outputRole: "structured",
-                includesArtifact: false
-            )
-        }
-        let rawNode = try descriptors.raw.map { _ in
-            try outputNode(
-                record: record,
-                sourceRecord: sourceRecord,
-                discriminator: "single",
-                outputRole: "native-recording",
-                includesArtifact: true
-            )
-        }
-        let converterApplicationIdentity = try context.identityScope.deviceSnapshot(
-            event: context.eventIdentifier,
-            role: .application,
-            sourceDeviceToken: context.event.application.sourceDeviceToken
-        )
-        let converterHostIdentity = try context.identityScope.deviceSnapshot(
-            event: context.eventIdentifier,
-            role: .host,
-            sourceDeviceToken: context.event.host.sourceDeviceToken
-        )
-        let converterURL = try converterApplicationIdentity.fullURLString
-        let converterHostURL = try converterHostIdentity.fullURLString
-        let studyContext = try context.event.studyContext()
-        let recordingDeviceIdentity = try context.recordingDevice.map {
-            try context.identityScope.recordingDevice(
-                adapterID: Self.adapterID,
-                subject: context.subjectIdentifier,
-                stableUnitToken: $0.stableUnitToken
-            )
-        }
-        let recordingDeviceSnapshot = try context.recordingDevice.map {
-            try context.identityScope.deviceSnapshot(
-                event: context.eventIdentifier,
-                role: .recordingDevice,
-                sourceDeviceToken: $0.stableUnitToken
-            )
-        }
-        let recordingDeviceURL = try recordingDeviceSnapshot.map {
-            try $0.fullURLString
-        }
-
-        var observations = try buildObservations(
-            record,
-            sourceIdentifier: sourceRecord.identifier,
-            outputNode: structuredNode,
-            rawURL: rawNode?.fullURL,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
-        )
-        // Only an Observation names a gateway (observation-gatewayDevice): a raw-only graph carries none.
-        let gateway = try observations.isEmpty ? nil : gatewayApplication(context: context)
-        var document = try buildDocument(
-            record,
-            sourceIdentifier: sourceRecord.identifier,
-            outputNode: rawNode,
-            relatedURLs: structuredNode.map { [$0.fullURL] } ?? [],
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
-        )
-        try applyOutputIdentities(
-            record: record,
-            structuredNode: structuredNode,
-            context: context,
-            observations: &observations,
-            document: &document
-        )
-
-        var converterApplication = SensorConverter.applicationDevice(context.event.application)
-        converterApplication.id = context.repositoryID(.applicationDevice)?.primitive
-        converterApplication.identifier = [converterApplicationIdentity.fhirIdentifier]
-        converterApplication.parent = Reference(reference: converterHostURL.asFHIRStringPrimitive())
-        var converterHost = SensorConverter.hostDevice(context.event.host)
-        converterHost.id = context.repositoryID(.hostDevice)?.primitive
-        converterHost.identifier = [converterHostIdentity.fhirIdentifier]
-        var recordingDeviceResource = try recordingDeviceResource(
-            context: context,
-            identity: recordingDeviceIdentity,
-            snapshot: recordingDeviceSnapshot
-        )
-        recordingDeviceResource?.id = context.repositoryID(.recordingDevice)?.primitive
-
-        let outputNodes = [structuredNode, rawNode].compactMap { $0 }
-        guard let primaryOutputIdentifier = structuredNode?.identifier ?? rawNode?.identifier else {
-            throw SensorKitConversionError.invalidIdentity("record has no catalog-admitted output")
-        }
-        let provenanceNodeKey = try EntryNodeKey(
-            system: context.entryNodeIdentifierSystem,
-            event: context.eventIdentifier,
-            nodeRole: "conversion-provenance",
-            ordinal: 0
-        )
-        var provenance = try conversionProvenance(
-            sourceIdentifier: sourceRecord.identifier.fhirIdentifier,
-            targetURLs: outputNodes.map(\.fullURL),
-            converterURL: converterURL,
-            recordedAt: context.conversionInstant
-        )
-        provenance.id = context.repositoryID(.provenance)?.primitive
-
-        var entries: [BundleEntry] = []
-        if let structuredNode, let observation = observations.first {
-            entries.append(try BundleEntry(
-                identifier: structuredNode.identifier,
-                resource: ResourceProxy(with: observation)
-            ))
-        }
-        if let rawNode, let document {
-            entries.append(try BundleEntry(
-                identifier: rawNode.identifier,
-                resource: ResourceProxy(with: document)
-            ))
-        }
-        entries.append(contentsOf: studyContext.allEntries)
-        if let recordingDevice = recordingDeviceResource, let recordingDeviceSnapshot {
-            entries.append(try BundleEntry(
-                identifier: recordingDeviceSnapshot,
-                resource: ResourceProxy(with: recordingDevice)
-            ))
-        }
-        entries.append(try BundleEntry(
-            identifier: converterHostIdentity,
-            resource: ResourceProxy(with: converterHost)
-        ))
-        entries.append(try BundleEntry(
-            identifier: converterApplicationIdentity,
-            resource: ResourceProxy(with: converterApplication)
-        ))
-        if let gateway {
-            entries.append(try BundleEntry(identifier: gateway.identity, resource: ResourceProxy(with: gateway.resource)))
-        }
-        entries.append(try BundleEntry(
-            identifier: provenanceNodeKey.identifier,
-            resource: ResourceProxy(with: provenance)
-        ))
-
-        var bundle = Bundle(
-            entry: entries,
-            identifier: context.eventIdentifier.identifier.fhirIdentifier,
-            meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try exactInstant(context.conversionInstant, timeZone: .utc)),
-            type: FHIRPrimitive(.collection)
-        )
-        bundle.id = context.repositoryID(.bundle)?.primitive
-        let graph = try ExchangeGraph(
-            kind: .active,
-            eventIdentifier: context.eventIdentifier,
-            bundle: bundle
-        )
-        return SensorKitConversion(
-            sourceIdentifier: sourceRecord.identifier.fhirIdentifier,
-            sourceTypeToken: record.sourceToken,
-            primaryOutputIdentifier: primaryOutputIdentifier,
-            outputIdentifiers: outputNodes.map(\.identifier),
-            artifactIdentifiers: outputNodes.compactMap(\.artifactIdentifier),
-            converterApplicationSnapshot: converterApplicationIdentity,
-            converterHostSnapshot: converterHostIdentity,
-            observations: observations,
-            recordingDocument: document,
-            recordingDevice: recordingDeviceResource,
-            converterApplication: converterApplication,
-            converterHost: converterHost,
-            provenance: provenance,
-            graph: graph
-        )
-    }
-
-    private static func applyOutputIdentities(
-        record: SensorKitRecord,
-        structuredNode: OutputNode?,
-        context: SensorKitConversionContext,
-        observations: inout [Observation],
-        document: inout DocumentReference?
-    ) throws {
-        if let id = context.repositoryID(.primaryOutput) {
-            guard !observations.isEmpty else {
-                throw SensorKitConversionError.repositoryIDWithoutStructuredOutput
-            }
-            observations[0].id = id.primitive
-        }
-        if let governedIdentifier = context.sourceIdentifierDisclosurePolicy.identifier(
-            for: record.sourceRecordID.value
-        ) {
-            if structuredNode != nil {
-                guard !observations.isEmpty else {
-                    throw SensorKitConversionError.invalidIdentity(
-                        "the designated structured primary output is missing"
-                    )
-                }
-                observations[0].identifier?.append(governedIdentifier)
-            } else {
-                guard document != nil else {
-                    throw SensorKitConversionError.invalidIdentity(
-                        "the designated raw primary output is missing"
-                    )
-                }
-                document?.identifier?.append(governedIdentifier)
-            }
-        }
-        if let id = context.repositoryID(.sourceArtifact) {
-            guard document != nil else {
-                throw SensorKitConversionError.repositoryIDWithoutRawOutput
-            }
-            document?.id = id.primitive
-        }
-    }
-
-    private static func recordingDeviceResource(
-        context: SensorKitConversionContext,
-        identity: RoledIdentifier?,
-        snapshot: RoledIdentifier?
-    ) throws -> Device? {
-        guard let source = context.recordingDevice else {
-            return nil
-        }
-        guard let identity, let snapshot else {
-            throw SensorKitConversionError.invalidIdentity(
-                "recording-device identity and event snapshot must be derived together"
-            )
-        }
-        return SensorConverter.recordingDevice(source, identity: identity, snapshot: snapshot)
-    }
-
-    private static func outputNode(
-        record: SensorKitRecord,
-        sourceRecord: SourceRecordIdentity,
-        discriminator: String,
-        outputRole: String,
-        includesArtifact: Bool
-    ) throws -> OutputNode {
-        let identifier = try sourceRecord.output(role: outputRole, discriminator: discriminator)
-        let artifactIdentifier = try record.nativeRecording.map { recording in
-            try sourceRecord.artifact(formatCode: recording.format.rawValue, partIndex: 0)
-        }
-        return OutputNode(
-            identifier: identifier,
-            artifactIdentifier: includesArtifact ? artifactIdentifier : nil,
-            fullURL: try identifier.fullURLString
-        )
-    }
-
-    private static func validate(
-        record: SensorKitRecord,
-        context: SensorKitConversionContext
-    ) throws {
-        try validateIdentifierSystems(context)
-        try validateRecordingDevice(context)
-        try validateCatalogContract(record)
-    }
-
-    /// A distinct gateway application travels as a second application snapshot when the graph emits an Observation.
-    static func gatewayApplication(context: SensorKitConversionContext) throws -> IdentifiedDevice? {
-        guard case .gatewayApplication(let application) = context.event.converterRole else {
-            return nil
-        }
-        let identity = try context.identityScope.deviceSnapshot(
-            event: context.eventIdentifier,
-            role: .application,
-            sourceDeviceToken: application.sourceDeviceToken
-        )
-        var resource = SensorConverter.applicationDevice(application)
-        resource.identifier = [identity.fhirIdentifier]
-        return IdentifiedDevice(resource: resource, identity: identity)
-    }
-
-    private static func validateIdentifierSystems(_ context: SensorKitConversionContext) throws {
-        let systems = context.identityScope.systems
-        let opaqueSystems = systems.opaque.all + [systems.event, systems.entryNode]
-        guard !opaqueSystems.contains(context.visitLocationIdentifierSystem) else {
-            throw SensorKitConversionError.invalidIdentity(
-                "visitLocationIdentifierSystem must not reuse a Grove opaque-identity namespace"
-            )
-        }
-        if case let .authorized(nativeSystem, _) = context.sourceIdentifierDisclosurePolicy,
-           opaqueSystems.contains(nativeSystem) {
-            throw SensorKitConversionError.invalidIdentity(
-                "governed SensorKit source identifier system must not reuse a Grove opaque-identity namespace"
-            )
-        }
-    }
-
-    private static func validateRecordingDevice(_ context: SensorKitConversionContext) throws {
-        if context.repositoryID(.recordingDevice) != nil, context.recordingDevice == nil {
-            throw SensorKitConversionError.repositoryIDWithoutRecordingDevice
-        }
-    }
-
-    private static func validateCatalogContract(_ record: SensorKitRecord) throws {
-        guard let entry = SensorKitCatalog.current.entry(sourceToken: record.sourceToken) else {
-            throw SensorKitRecordError.sourceTypeNotAdmitted(record.sourceToken)
-        }
-        if case .raw = record, entry.rawProfiles.isEmpty {
-            throw SensorKitRecordError.sourceTypeHasNoRawContract(record.sourceToken)
         }
     }
 }

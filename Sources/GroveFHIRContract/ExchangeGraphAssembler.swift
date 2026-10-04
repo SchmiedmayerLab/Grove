@@ -13,8 +13,8 @@ import Foundation
 import ModelsR4
 
 
-/// Builds the one exchange graph shape every adapter emits: outputs decorated with the event's
-/// identities and links, the study context, the device snapshots, the conversion Provenance, and the
+/// Builds the one exchange graph shape the HealthKit and SensorKit adapters emit: outputs decorated with the
+/// event's identities and links, the study context, the device snapshots, the conversion Provenance, and the
 /// Bundle header, in the fixed entry order the guide validates.
 ///
 /// Every identity is minted once and its fullUrl computed once. The adapter supplies content; the

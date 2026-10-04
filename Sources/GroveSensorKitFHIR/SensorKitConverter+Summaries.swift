@@ -6,120 +6,53 @@
 // SPDX-License-Identifier: MIT
 //
 
-// FHIR R4 initializers expose profile cardinalities directly; keeping those fields adjacent makes
-// the clinical projection auditable against the IG even when a builder exceeds generic style limits.
-// swiftlint:disable function_body_length function_parameter_count
-
 import Foundation
 import GroveFHIRContract
 import ModelsR4
 
 
 extension SensorKitConverter {
-    static func summaryObservation(
-        _ record: SensorKitRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
-        rawURL: String?,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
-    ) throws -> Observation {
+    static func summaryObservation(_ record: SensorKitRecord, rawURL: String?, context: ContentContext) throws -> Observation {
         switch record {
         case .messagesUsage(let record):
-            try messagesUsageObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                rawURL: rawURL,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try messagesUsageObservation(record, rawURL: rawURL, context: context)
         case .phoneUsage(let record):
-            try phoneUsageObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                rawURL: rawURL,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try phoneUsageObservation(record, rawURL: rawURL, context: context)
         case .keyboardMetrics(let record):
-            try keyboardMetricsObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.keyboardMetrics"),
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try keyboardMetricsObservation(record, rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.keyboardMetrics"), context: context)
         case .sleepSession(let record):
-            try sleepSessionObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try sleepSessionObservation(record, context: context)
         case .wristTemperature(let record):
-            try wristTemperatureObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.wristTemperature"),
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try wristTemperatureObservation(record, rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.wristTemperature"), context: context)
         case .accelerometer(let record):
-            try accelerometerObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.accelerometer"),
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try accelerometerObservation(record, rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.accelerometer"), context: context)
         case .ppg(let record):
-            try ppgObservation(
-                record,
-                sourceIdentifier: sourceIdentifier,
-                outputIdentifier: outputIdentifier,
-                rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.photoplethysmogram"),
-                context: context,
-                recordingDeviceURL: recordingDeviceURL,
-                converterURL: converterURL
-            )
+            try ppgObservation(record, rawURL: try requiredRawURL(rawURL, sourceToken: "SRSensor.photoplethysmogram"), context: context)
         case .rotationRate, .electrocardiogram, .onWrist, .deviceUsage, .visit, .raw:
             throw SensorKitRecordError.sourceTypeNotAdmitted(record.sourceToken)
         }
     }
 
+    /// The algorithm version of a wrist-temperature session. It describes how the samples were produced rather than
+    /// being a result of its own, which is why the contract carries it as an extension; it follows the study references.
+    static func algorithmVersionExtension(_ record: SensorKitWristTemperatureRecord) -> Extension {
+        Extension(
+            url: FHIRPrimitive(FHIRURI(stringLiteral: SensorKitContract.wristTemperatureAlgorithmVersionExtension)),
+            value: .string(record.algorithmVersion.asFHIRStringPrimitive())
+        )
+    }
+
     private static func messagesUsageObservation(
         _ record: SensorKitMessagesUsageRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String?,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let duration = try reportDuration(record.durationSeconds)
         let entry = try catalogEntry(sourceToken: "SRSensor.messagesUsageReport")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("messages-usage-summary", "Messages usage summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try reportPeriod(
             record.timestamp,
@@ -137,12 +70,8 @@ extension SensorKitConverter {
 
     private static func phoneUsageObservation(
         _ record: SensorKitPhoneUsageRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String?,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let duration = try reportDuration(record.durationSeconds)
         let callDuration = try nonNegativeDuration(
@@ -150,15 +79,10 @@ extension SensorKitConverter {
             field: "totalPhoneCallDuration"
         )
         let entry = try catalogEntry(sourceToken: "SRSensor.phoneUsageReport")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("phone-usage-summary", "Phone usage summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try reportPeriod(
             record.timestamp,
@@ -177,12 +101,8 @@ extension SensorKitConverter {
 
     private static func keyboardMetricsObservation(
         _ record: SensorKitKeyboardMetricsRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let duration = try reportDuration(record.durationSeconds)
         let typingDuration = try nonNegativeDuration(
@@ -193,15 +113,10 @@ extension SensorKitConverter {
             throw SensorKitRecordError.invalidTypingSpeed(record.typingSpeed)
         }
         let entry = try catalogEntry(sourceToken: "SRSensor.keyboardMetrics")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("keyboard-metrics-summary", "Keyboard metrics summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try reportPeriod(
             record.timestamp,
@@ -231,22 +146,13 @@ extension SensorKitConverter {
 
     private static func sleepSessionObservation(
         _ record: SensorKitSleepSessionRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let entry = try catalogEntry(sourceToken: "SRSensor.sleepSessions")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("sleep-session", "Sleep session"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try period(
             start: record.session.start,
@@ -263,23 +169,14 @@ extension SensorKitConverter {
 
     private static func accelerometerObservation(
         _ record: SensorKitAccelerometerRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let entry = try catalogEntry(sourceToken: "SRSensor.accelerometer")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("accelerometer-recording-summary", "Accelerometer recording summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try period(
             start: record.coverage.start,
@@ -296,26 +193,17 @@ extension SensorKitConverter {
 
     private static func wristTemperatureObservation(
         _ record: SensorKitWristTemperatureRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let entry = try catalogEntry(sourceToken: "SRSensor.wristTemperature")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding(
                 "wrist-temperature-recording-summary",
                 "Wrist temperature recording summary"
             ),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try period(
             start: record.coverage.start,
@@ -325,40 +213,20 @@ extension SensorKitConverter {
         observation.component = [
             try countComponent("sample-count", "Sample count", record.sampleCount)
         ]
-        // The algorithm version describes how the samples were produced rather than being a
-        // result of its own, which is why the contract carries it as an extension.
-        observation.append(
-            extension: Extension(
-                url: FHIRPrimitive(
-                    FHIRURI(stringLiteral: SensorKitContract.wristTemperatureAlgorithmVersionExtension)
-                ),
-                value: .string(record.algorithmVersion.asFHIRStringPrimitive())
-            ),
-            behaviour: .replace
-        )
         observation.derivedFrom = [reference(rawURL)]
         return observation
     }
 
     private static func ppgObservation(
         _ record: SensorKitPPGRecord,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
         rawURL: String,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
+        context: ContentContext
     ) throws -> Observation {
         let entry = try catalogEntry(sourceToken: "SRSensor.photoplethysmogram")
-        var observation = try baseObservation(
+        var observation = baseObservation(
             code: conceptCoding("ppg-recording-summary", "PPG recording summary"),
             profiles: entry.structuredProfiles,
-            sourceTypeCode: entry.sourceTypeCode,
-            sourceIdentifier: sourceIdentifier,
-            outputIdentifier: outputIdentifier,
-            context: context,
-            recordingDeviceURL: recordingDeviceURL,
-            converterURL: converterURL
+            sourceTypeCode: entry.sourceTypeCode
         )
         observation.effective = .period(try period(
             start: record.coverage.start,
@@ -374,7 +242,7 @@ extension SensorKitConverter {
         return observation
     }
 
-    private static func requiredRawURL(_ rawURL: String?, sourceToken: String) throws -> String {
+    static func requiredRawURL(_ rawURL: String?, sourceToken: String) throws -> String {
         guard let rawURL else {
             throw SensorKitRecordError.sourceTypeHasNoRawContract(sourceToken)
         }
