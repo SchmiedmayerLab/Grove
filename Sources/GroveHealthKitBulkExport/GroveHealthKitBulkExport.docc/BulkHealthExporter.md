@@ -83,13 +83,13 @@ let session = try await bulkExporter.session(
     using: FirebaseUploader(participantID: participantID, exporter: exporter)
 )
 
-// start the session
-try session.start()
+// start the session; `didPersist` releases each receipt, so the stream of receipts goes unread
+_ = try session.start()
 ```
 
 This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase. Firebase is only the destination chosen by this example; `GroveHealthKitFHIR` neither depends on Firebase nor reads from it.
 
-In this example the `FirebaseUploader`'s outputs are receipts its own `didPersist` releases, so we simply call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` and need nothing beyond that.
+In this example the `FirebaseUploader`'s outputs are receipts, so ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` returns an `AsyncStream` of them. The session hands each receipt to the processor's `didPersist` once it has recorded the batch, whether or not anyone reads the stream, so the example discards the stream.
 
 
 
