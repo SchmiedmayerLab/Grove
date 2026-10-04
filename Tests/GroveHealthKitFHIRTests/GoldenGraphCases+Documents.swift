@@ -19,7 +19,6 @@ import ModelsR4
 enum GoldenCaseError: Error {
     case unexpectedCompanions(Int)
     case routeOmitted
-    case unknownTimeZone(String)
     case notExported(String)
 }
 
@@ -201,25 +200,22 @@ extension GoldenCase {
     }
 
     /// The sinus-rhythm ECG sample and the validated evidence its voltages would yield, with symptoms present or none,
-    /// and the average heart rate the ECG states, if any.
+    /// and the average heart rate the ECG states, if any. The sample's metadata states the golden time zone unless
+    /// `timeZoned` is false; the evidence reads it from there, as the public path does.
     static func electrocardiogramEvidence(
         uuid ordinal: UInt8,
         symptomsPresent: Bool,
-        averageHeartRate: Double? = 72
+        averageHeartRate: Double? = 72,
+        timeZoned: Bool = true
     ) throws -> (sample: HKElectrocardiogram, evidence: HealthKitECGEvidence) {
-        let ecg = try StoredSampleFixtures.seriesSample(
-            HKElectrocardiogram.self,
-            sampleType: HKObjectType.electrocardiogramType(),
-            shape: seriesShape(uuid: ordinal, duration: 30)
-        )
-        guard let timeZone = TimeZone(identifier: GoldenFixtures.timeZone) else {
-            throw GoldenCaseError.unknownTimeZone(GoldenFixtures.timeZone)
-        }
+        var shape = seriesShape(uuid: ordinal, duration: 30)
+        shape.metadata = timeZoned ? shape.metadata : [:]
+        let ecg = try StoredSampleFixtures.seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), shape: shape)
         let source = HealthKitECGSourceEvidence(
             sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
             startDate: GoldenFixtures.sampleStart,
             endDate: GoldenFixtures.sampleStart.addingTimeInterval(30),
-            timeZone: timeZone,
+            timeZone: try HealthKitConverter.healthKitTimeZone(for: ecg),
             classification: .sinusRhythm,
             symptomsStatus: symptomsPresent ? .present : .none,
             numberOfVoltageMeasurements: 4,

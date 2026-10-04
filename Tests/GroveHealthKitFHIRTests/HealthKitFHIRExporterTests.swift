@@ -178,6 +178,39 @@ struct HealthKitFHIRExporterTests {
         #expect(bundle == expected)
     }
 
+    @Test("The UDI an HKDevice supplies reaches its recording Device only under Options.udi .authorized")
+    func udiFollowsItsOption() throws {
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13), device: GoldenFixtures.watch)
+        func carriedUDIs(_ udi: HealthKitFHIRExporter.Disclosure) throws -> [String] {
+            let (exports, _) = try Self.collect(Self.exporter { $0.udi = udi }, [sample])
+            let devices = exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
+            return devices.flatMap { $0.udiCarrier ?? [] }.compactMap { $0.deviceIdentifier?.value?.string }
+        }
+        #expect(try carriedUDIs(.authorized) == ["(01)00844588003288"])
+        #expect(try carriedUDIs(.omit).isEmpty)
+    }
+
+    @Test("Both bounds of an effective Period keep their milliseconds in the source's offset")
+    func effectivePeriodKeepsMilliseconds() throws {
+        let start = GoldenFixtures.sampleStart.addingTimeInterval(0.2514)
+        let steps = HKQuantitySample(
+            type: HKQuantityType(.stepCount),
+            quantity: HKQuantity(unit: .count(), doubleValue: 120),
+            start: start,
+            end: start.addingTimeInterval(60.4982),
+            metadata: GoldenFixtures.timeZoneMetadata
+        )
+        let sample = try StoredSampleFixtures.stored(steps, uuid: GoldenFixtures.uuid(14))
+        let (exports, _) = try Self.collect(Self.exporter(), [sample])
+        let observation = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
+        guard case .period(let period)? = observation.effective else {
+            Issue.record("A step count is effective over a Period")
+            return
+        }
+        #expect(period.start?.value?.description == "2026-08-17T15:30:00.251-07:00")
+        #expect(period.end?.value?.description == "2026-08-17T15:31:00.750-07:00")
+    }
+
     @Test("A native identifier under a deployment system is refused at configuration")
     func reservedNativeIdentifierSystemIsRefused() throws {
         let system = Self.base.identityScope.systems.opaque.sourceRecord

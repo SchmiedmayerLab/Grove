@@ -13,6 +13,7 @@ import Foundation
 @testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
+import ModelsR4
 import Testing
 
 
@@ -147,6 +148,19 @@ struct HealthKitFHIRExporterRecordTests {
             return
         }
         #expect(reason == .ecgEvidence(.duplicateSymptomSource(symptom.uuid)))
+    }
+
+    /// The ECG and its average-heart-rate child both state an effective Period; the omission names each field once.
+    @Test("An ECG without a time zone reports each effective field it states in UTC once, though its child states them too")
+    func electrocardiogramReportsEachOffsetOmissionOnce() throws {
+        let (ecg, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xE8, symptomsPresent: false, timeZoned: false)
+        let (exports, _) = try Fixtures.collect(Fixtures.exporter(), [.electrocardiogramEvidence(ecg, evidence: evidence, symptoms: [])])
+        try #require(exports.count == 1)
+        let observations = exports[0].graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        #expect(observations.count == 2, "the ECG and its average heart rate")
+        #expect(exports[0].warnings == ["Observation.effectivePeriod.start", "Observation.effectivePeriod.end"].map {
+            ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: $0)
+        })
     }
 }
 
