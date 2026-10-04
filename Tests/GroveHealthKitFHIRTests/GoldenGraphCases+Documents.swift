@@ -20,6 +20,7 @@ enum GoldenCaseError: Error {
     case unexpectedCompanions(Int)
     case routeOmitted
     case unknownTimeZone(String)
+    case notExported(String)
 }
 
 

@@ -27,6 +27,13 @@ struct GoldenOutput: Sendable {
     /// The identities the conversion reported; `nil` where the API reports none.
     let identifiers: ExchangeGraphIdentifiers?
 
+    init(graph: ExchangeGraph, renderedWarnings: [String], source: HealthKitSourceRecord?, identifiers: ExchangeGraphIdentifiers?) {
+        self.graph = graph
+        self.renderedWarnings = renderedWarnings
+        self.source = source
+        self.identifiers = identifiers
+    }
+
     init(_ conversion: HealthKitConversion) {
         graph = conversion.graph
         renderedWarnings = conversion.warnings.map { warning in

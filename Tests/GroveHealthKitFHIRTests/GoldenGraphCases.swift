@@ -18,7 +18,7 @@ import ModelsR4
 /// The Observation-graph shapes the goldens pin: one sample each, converted through `HealthKitConverter.convert(_:context:)`.
 extension GoldenCase {
     /// Every pinned shape, in the order the goldens directory lists them.
-    static let all: [GoldenCase] = observations + writers + disclosures + documents + retractions
+    static let all: [GoldenCase] = observations + writers + disclosures + documents + retractions + exporter
 
     /// Sequences 1-19: the measurement shapes under the default context.
     static let observations: [GoldenCase] = [
@@ -250,7 +250,8 @@ extension GoldenCase {
         try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(ordinal), device: GoldenFixtures.watch, metadata: metadata, writer: writer)
     }
 
-    static func bloodPressure() throws -> HKCorrelation {
+    /// A 120/80 reading from the watch; the correlation and its two components each take one of the ordinals.
+    static func bloodPressure(uuid ordinal: UInt8 = 9, components: (systolic: UInt8, diastolic: UInt8) = (0x91, 0x92)) throws -> HKCorrelation {
         func component(_ type: HKQuantityTypeIdentifier, _ value: Double, uuid: UInt8) throws -> HKQuantitySample {
             try GoldenFixtures.quantity(type, HKQuantity(unit: .millimeterOfMercury(), doubleValue: value), uuid: GoldenFixtures.uuid(uuid), device: GoldenFixtures.watch)
         }
@@ -258,11 +259,14 @@ extension GoldenCase {
             type: HKCorrelationType(.bloodPressure),
             start: GoldenFixtures.sampleStart,
             end: GoldenFixtures.sampleStart,
-            objects: [try component(.bloodPressureSystolic, 120, uuid: 0x91), try component(.bloodPressureDiastolic, 80, uuid: 0x92)],
+            objects: [
+                try component(.bloodPressureSystolic, 120, uuid: components.systolic),
+                try component(.bloodPressureDiastolic, 80, uuid: components.diastolic)
+            ],
             device: GoldenFixtures.watch,
             metadata: GoldenFixtures.timeZoneMetadata
         )
-        return try StoredSampleFixtures.stored(correlation, uuid: GoldenFixtures.uuid(9))
+        return try StoredSampleFixtures.stored(correlation, uuid: GoldenFixtures.uuid(ordinal))
     }
 }
 

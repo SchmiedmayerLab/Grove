@@ -51,6 +51,16 @@ enum StoredSampleFixtures {
         var writer: Writer
     }
 
+    #if !os(watchOS)
+    /// The FHIR resource a provider issued, as an `HKClinicalRecord` carries it.
+    struct ClinicalResource {
+        var version: HKFHIRVersion
+        var type: HKFHIRResourceType
+        var identifier: String
+        var data: Data
+    }
+    #endif
+
     enum FixtureError: Error, CustomStringConvertible {
         case classNotConstructible(String)
         case keyNotHonored(key: String, class: String)
@@ -117,6 +127,33 @@ enum StoredSampleFixtures {
         }
         return sample
     }
+
+    #if !os(watchOS)
+    /// An `HKClinicalRecord` carrying `resource` as the provider's FHIR resource, the way a fetched record carries it;
+    /// HealthKit offers no initializer for either class. Fails unless the record reads every value back.
+    static func clinicalRecord(
+        _ type: HKClinicalTypeIdentifier,
+        shape: SeriesShape,
+        displayName: String,
+        resource: ClinicalResource
+    ) throws -> HKClinicalRecord {
+        let fhirResource = try allocate(HKFHIRResource.self)
+        try write(resource.version, to: "FHIRVersion", of: fhirResource)
+        try write(resource.type.rawValue, to: "resourceType", of: fhirResource)
+        try write(resource.identifier, to: "identifier", of: fhirResource)
+        try write(resource.data, to: "data", of: fhirResource)
+        let record = try seriesSample(HKClinicalRecord.self, sampleType: HKClinicalType(type), shape: shape)
+        try write(displayName, to: "displayName", of: record)
+        try write(fhirResource, to: "FHIRResource", of: record)
+        guard record.displayName == displayName,
+              record.fhirResource?.data == resource.data,
+              record.fhirResource?.resourceType == resource.type,
+              record.fhirResource?.fhirVersion.fhirRelease == resource.version.fhirRelease else {
+            throw FixtureError.keyNotHonored(key: "displayName/FHIRResource", class: String(describing: HKClinicalRecord.self))
+        }
+        return record
+    }
+    #endif
 
     /// Whether every private ivar the fixtures write still exists, checked before a single value is written.
     static func privateStorageIsPresent() -> Bool {
