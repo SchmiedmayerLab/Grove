@@ -100,6 +100,26 @@ struct ExchangeEnvelopeFixTests {
     }
     #endif
 
+    /// The guide requires the pair be rejected on every HealthKit source record (mapping.md, logical identity and
+    /// revisions), so a document refuses a malformed pair although it would not state the identity.
+    @Test("A document refuses a malformed sync pair, as every HealthKit source record does")
+    @available(*, deprecated, message: "Exercises the deprecated converter's document path")
+    func documentsRefuseAMalformedSyncPair() throws {
+        let malformed: [[String: any Sendable]] = [
+            [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeySyncIdentifier: "series-1"],
+            [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeySyncIdentifier: "series-1", HKMetadataKeySyncVersion: 1.5]
+        ]
+        for metadata in malformed {
+            var shape = GoldenCase.seriesShape(uuid: 89, duration: 2)
+            shape.metadata = metadata
+            let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), shape: shape)
+            let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: [HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false)])
+            #expect(throws: HealthKitConversionError.invalidValue(.heartbeatSeries, .invalidMetadataValue(.syncVersion))) {
+                try HealthKitConverter().convert(record, context: HealthKitConversionContext())
+            }
+        }
+    }
+
     @Test("Event instants are written in UTC at millisecond precision, without binary noise")
     @available(*, deprecated, message: "Exercises the deprecated converter, which takes any instant")
     func eventInstantsAreMilliseconds() throws {

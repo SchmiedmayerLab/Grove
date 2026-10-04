@@ -79,30 +79,6 @@ extension HealthKitConverter {
         }
         return try locationTrackPayload(locations)
     }
-
-    // HealthKit itself models the metadata dictionary as absent when an object has no metadata.
-    /// Applies Apple's paired sync metadata exactly as the assembler decorates an output with it.
-    static func applySyncIdentity(
-        metadata: [String: Any]?, // swiftlint:disable:this discouraged_optional_collection
-        writerApplication: String,
-        to observation: inout Observation,
-        context: HealthKitConversionContext
-    ) throws {
-        guard let record = try HealthKitAssembly.SourceFacts.writerRecord(metadata: metadata, writerApplication: writerApplication) else {
-            return
-        }
-        let identity = try context.identityScope.writerRecord(
-            writerApplication: BusinessIdentifier(
-                system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem),
-                value: record.writerApplication
-            ),
-            writerRecordID: record.syncIdentifier
-        )
-        observation.identifier = (observation.identifier ?? []) + [identity.fhirIdentifier]
-        observation.extension = (observation.extension ?? []) + [
-            Extension(url: Canonicals.writerRecordVersion, value: .string(record.version.asFHIRStringPrimitive()))
-        ]
-    }
 }
 
 #endif

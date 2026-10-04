@@ -54,7 +54,10 @@ extension HealthKitFHIRExporter {
     /// a source nobody classified states no writer. Only the caller's explicit classification states one. The
     /// physical unit a sample was measured on is the recording Device, which ``RecordingDevicePolicy``
     /// resolves from `HKDevice` whatever this policy says. A sample's sync identifier and version likewise
-    /// travel as its writer-record identity, scoped to the source's bundle identifier, under every policy.
+    /// travel as its writer-record identity, scoped to the source's bundle identifier, under every policy; a
+    /// malformed pair (a half pair, a blank or non-text identifier, a version that is not a non-negative integral
+    /// number) refuses the record, a recording document too, although a document carries no writer-record identity
+    /// (HealthKit guide `mapping.md`, logical identity and revisions).
     public enum WriterPolicy: Sendable {
         /// No writer is stated, and the Provenance names no author. The default.
         case omit

@@ -270,6 +270,29 @@ struct HealthKitFHIRExporterTests {
         #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == [session])
     }
 
+    /// One refusal per record, chosen in a fixed order whatever the options: content, then writer, then sync pair.
+    @Test("A record with several faults reports its content first, then its writer, then its sync pair")
+    func refusalOrderIsContentWriterSyncPair() throws {
+        let exporter = try Self.exporter { $0.writer = .classify { _ in .application } }
+        var writer = GoldenFixtures.foreignWriter
+        writer.bundleIdentifier = "not a bundle id"
+        func heartRate(_ ordinal: UInt8, _ metadata: [String: Any]) throws -> HKQuantitySample {
+            try StoredSampleFixtures.withMetadata(GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(ordinal), writer: writer), metadata)
+        }
+        let samples = [
+            try heartRate(0xD1, [HKMetadataKeyHeartRateMotionContext: 99, HKMetadataKeySyncIdentifier: "half"]),
+            try heartRate(0xD2, [HKMetadataKeySyncIdentifier: "half"])
+        ]
+        let (exports, _) = try Self.collect(exporter, samples)
+        let reasons = exports.map { export -> HealthKitConversionError? in
+            guard case .refused(let reason) = export.outcome else {
+                return nil
+            }
+            return reason
+        }
+        #expect(reasons == [.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext)), .sourceApplicationInvalid])
+    }
+
     @Test("An export shares one receipt; an error in the receiver ends the call with the reservations kept")
     func receiverErrorsPropagate() throws {
         struct Stop: Error {}

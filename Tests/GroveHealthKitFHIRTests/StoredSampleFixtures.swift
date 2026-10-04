@@ -110,6 +110,16 @@ enum StoredSampleFixtures {
         return sample
     }
 
+    /// `sample` carrying exactly `metadata`, written past HealthKit's initializer, which raises an Objective-C exception
+    /// for a value it refuses (a half sync pair, a negative or textual sync version) instead of returning one.
+    static func withMetadata<Sample: HKSample>(_ sample: Sample, _ metadata: [String: Any]) throws -> Sample {
+        try write(metadata as NSDictionary, to: "metadata", of: sample)
+        guard (sample.metadata ?? [:]).keys.sorted() == metadata.keys.sorted() else {
+            throw FixtureError.keyNotHonored(key: "metadata", class: String(describing: type(of: sample)))
+        }
+        return sample
+    }
+
     /// A bare instance of a sample class without a public initializer, carrying exactly `shape`.
     static func seriesSample<Sample: HKSample>(_ type: Sample.Type, sampleType: HKSampleType, shape: SeriesShape) throws -> Sample {
         let object = try allocate(type)

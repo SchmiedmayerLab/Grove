@@ -255,83 +255,48 @@ struct HealthKitFHIRConverterTests {
         // The object identifiers differ, which is exactly why the sync identity is needed.
         #expect(first.observation.identifier?.first != revision.observation.identifier?.first)
 
-        // Exercise the production mapper through its source-attribution seam. HealthKit's public
-        // sample factory does not let a unit test construct the HKSourceRevision that owns it.
-        var attributable = plain.observation
-        try HealthKitConverter.applySyncIdentity(
-            metadata: [
-                HKMetadataKeySyncIdentifier: "scale-2026-08-19",
-                HKMetadataKeySyncVersion: NSNumber(value: UInt64.max)
-            ],
-            writerApplication: "org.example.connected-scale",
-            to: &attributable,
+        // A stored sample names the writing application, so the pair is scoped to it: the identity is the one the
+        // identity scope mints for that writer and record, and a UInt64 version survives as canonical decimal text.
+        let attributable = try converter.convert(
+            attributedBodyMass([HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: NSNumber(value: UInt64.max)]),
             context: context
         )
-        #expect(attributable.identifier?.contains { (try? RoledIdentifier($0).role) == .writerRecord } == true)
-        guard case .string(let version)? = attributable.extension?
-            .first(where: { $0.url == Canonicals.writerRecordVersion })?.value else {
-            Issue.record("The attributable writer carries its record version")
-            return
-        }
-        #expect(version.value?.string == "18446744073709551615")
+        let expected = try context.identityScope.writerRecord(
+            writerApplication: BusinessIdentifier(system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem), value: "org.example.connected-scale"),
+            writerRecordID: "scale-2026-08-19"
+        )
+        #expect(syncIdentifier(attributable) == expected.identifier.value)
+        #expect(syncVersion(attributable) == "18446744073709551615")
     }
 
     @Test("HealthKit sync identifier and version are a strict nonnegative-integral pair")
     func syncIdentityRejectsMalformedPairs() throws {
-        let plain = try converter.convert(
-            quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-            context: context
-        )
-        let invalidIdentifier = HealthKitValueFailure.invalidMetadataValue(.syncIdentifier)
-        let invalidVersion = HealthKitValueFailure.invalidMetadataValue(.syncVersion)
-
-        #expect(throws: invalidVersion) {
-            var observation = plain.observation
-            try HealthKitConverter.applySyncIdentity(
-                metadata: [HKMetadataKeySyncIdentifier: "logical-record"],
-                writerApplication: "org.example.writer",
-                to: &observation,
-                context: context
-            )
-        }
-        #expect(throws: invalidIdentifier) {
-            var observation = plain.observation
-            try HealthKitConverter.applySyncIdentity(
-                metadata: [HKMetadataKeySyncVersion: 1],
-                writerApplication: "org.example.writer",
-                to: &observation,
-                context: context
-            )
-        }
-
+        let invalidIdentifier = HealthKitConversionError.invalidValue(.bodyMass, .invalidMetadataValue(.syncIdentifier))
+        let invalidVersion = HealthKitConversionError.invalidValue(.bodyMass, .invalidMetadataValue(.syncVersion))
+        var malformed: [([String: Any], HealthKitConversionError)] = [
+            ([HKMetadataKeySyncIdentifier: "logical-record"], invalidVersion),
+            ([HKMetadataKeySyncVersion: 1], invalidIdentifier)
+        ]
         for invalid in [true, -1, 1.5, "1", NSNumber(value: Double.nan)] as [Any] {
-            #expect(throws: invalidVersion) {
-                var observation = plain.observation
-                try HealthKitConverter.applySyncIdentity(
-                    metadata: [
-                        HKMetadataKeySyncIdentifier: "logical-record",
-                        HKMetadataKeySyncVersion: invalid
-                    ],
-                    writerApplication: "org.example.writer",
-                    to: &observation,
-                    context: context
-                )
-            }
+            malformed.append(([HKMetadataKeySyncIdentifier: "logical-record", HKMetadataKeySyncVersion: invalid], invalidVersion))
         }
         for invalid in ["", 1] as [Any] {
-            #expect(throws: invalidIdentifier) {
-                var observation = plain.observation
-                try HealthKitConverter.applySyncIdentity(
-                    metadata: [
-                        HKMetadataKeySyncIdentifier: invalid,
-                        HKMetadataKeySyncVersion: 1
-                    ],
-                    writerApplication: "org.example.writer",
-                    to: &observation,
-                    context: context
-                )
+            malformed.append(([HKMetadataKeySyncIdentifier: invalid, HKMetadataKeySyncVersion: 1], invalidIdentifier))
+        }
+        for (metadata, refusal) in malformed {
+            let sample = try attributedBodyMass(metadata)
+            #expect(throws: refusal, "\(metadata)") {
+                try converter.convert(sample, context: context)
             }
         }
+    }
+
+    /// A stored body mass written by a connected scale's application, carrying exactly `metadata`, written past
+    /// HealthKit's initializer, which raises for most malformed sync pairs and for a version above Int64.
+    private func attributedBodyMass(_ metadata: [String: Any]) throws -> HKQuantitySample {
+        let writer = StoredSampleFixtures.Writer(name: "Connected Scale", bundleIdentifier: "org.example.connected-scale", version: "7", productType: "iPhone17,1")
+        let sample = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
+        return try StoredSampleFixtures.withMetadata(StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0xD0), writer: writer), metadata)
     }
 
 

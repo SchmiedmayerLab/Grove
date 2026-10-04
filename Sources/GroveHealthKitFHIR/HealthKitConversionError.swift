@@ -126,6 +126,10 @@ public struct HealthKitDependencyFailure: Error, Equatable, Sendable {
 
 
 /// A fail-closed refusal from the HealthKit conversion facade; every case reports one registry code.
+///
+/// A record with several faults is refused for the first in this order, whatever the options: its source type, then
+/// its content (values, units, effective times), then what it states about its origin (its recording device, its
+/// writer, its sync identifier and version). A content fault thus reads the same under every writer policy.
 public enum HealthKitConversionError: Error, Equatable, Sendable {
     /// The identifier is not in the adapter inventory at all.
     case unregisteredSourceType(String)
