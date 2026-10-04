@@ -37,36 +37,46 @@ extension StudyContext {
         event: ExchangeEventIdentifier,
         identityScope: OpaqueIdentityScope
     ) throws(ExchangeIdentityError) {
-        let nodeKey = { (role: StudyContextEntryNodeRole, ordinal: UInt64) throws(ExchangeIdentityError) -> EntryNodeKey in
-            try EntryNodeKey(system: identityScope.systems.entryNode, event: event, nodeRole: role.rawValue, ordinal: ordinal)
-        }
         var patientEntry: BundleEntry?
         let subjectReference: Reference
         switch subject {
         case .logical(let identifier):
             subjectReference = identifier.reference(to: .patient)
-        case .bundled(let identifier, var patient):
-            if patient.identifier?.contains(identifier.fhirIdentifier) != true {
-                patient.identifier = (patient.identifier ?? []) + [identifier.fhirIdentifier]
-            }
-            let key = try nodeKey(.patient, 0)
-            let entry = try BundleEntry(identifier: key.identifier, resource: ResourceProxy(with: patient))
-            patientEntry = entry
+        case .bundled:
+            let key = try EntryNodeKey(
+                system: identityScope.systems.entryNode,
+                event: event,
+                nodeRole: StudyContextEntryNodeRole.patient.rawValue,
+                ordinal: 0
+            )
+            patientEntry = try BundleEntry(identifier: key.identifier, resource: ResourceProxy(with: subject.bundledPatient))
             subjectReference = Reference(
                 reference: try key.identifier.identifier.fullURLString.asFHIRStringPrimitive(),
                 type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.patient.rawValue))
             )
         }
+        let enrolled = try StudyContext(studies: studies, subjectReference: subjectReference, event: event, identityScope: identityScope)
+        self.init(patient: patientEntry, entries: enrolled.entries, subjectReference: subjectReference, studyReferences: enrolled.studyReferences)
+    }
+
+    /// The study context of a graph that bundles and references its subject itself, as Questionnaire's bundles its own
+    /// Patient: no Patient entry, and every ResearchSubject names `subjectReference`.
+    package init(
+        studies: [StudyEnrollment],
+        subjectReference: Reference,
+        event: ExchangeEventIdentifier,
+        identityScope: OpaqueIdentityScope
+    ) throws(ExchangeIdentityError) {
         var entries: [BundleEntry] = []
         var studyReferences: [Reference] = []
         for (ordinal, enrollment) in studies.enumerated() {
             let study = try Self.studyEntries(for: enrollment, subjectReference: subjectReference) { role throws(ExchangeIdentityError) in
-                try nodeKey(role, UInt64(ordinal))
+                try EntryNodeKey(system: identityScope.systems.entryNode, event: event, nodeRole: role.rawValue, ordinal: UInt64(ordinal))
             }
             entries.append(contentsOf: study.entries)
             studyReferences.append(study.reference)
         }
-        self.init(patient: patientEntry, entries: entries, subjectReference: subjectReference, studyReferences: studyReferences)
+        self.init(patient: nil, entries: entries, subjectReference: subjectReference, studyReferences: studyReferences)
     }
 
     /// One enrollment's ResearchStudy, PlanDefinition and ResearchSubject entries, each under the key `nodeKey` mints

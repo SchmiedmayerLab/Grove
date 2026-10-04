@@ -10,7 +10,8 @@ package import Foundation
 package import ModelsR4
 
 
-/// Converter clock instants as the wire states them: UTC, millisecond precision, ASCII.
+/// Converter clock instants as the wire states them: millisecond precision, ASCII, and UTC unless a graph states
+/// one at its source's offset, as Questionnaire's `Provenance.occurred` follows the authored offset.
 ///
 /// The lexeme is computed with integer arithmetic over the proleptic Gregorian calendar, never through a
 /// `Formatter`, `Calendar` or `Locale`, so the same instant yields the same bytes in every process, on every
@@ -42,12 +43,37 @@ package enum ExchangeInstant {
 
     /// The instant as a FHIR `instant` lexeme in UTC.
     package static func utcLexeme(_ date: Date) -> String {
-        let (days, millisecondOfDay) = floorDivide(millisecondsSinceEpoch(date), by: 86_400_000)
+        lexeme(millisecondsSinceEpoch(date), offsetMinutes: 0)
+    }
+
+    /// The instant as a FHIR `Instant`, which keeps the parsed lexeme and prints it back verbatim.
+    package static func fhirInstant(_ date: Date) throws -> Instant {
+        try Instant(utcLexeme(date))
+    }
+
+    /// The instant as a FHIR `DateTime`, which keeps the parsed lexeme and prints it back verbatim.
+    package static func fhirDateTime(_ date: Date) throws -> DateTime {
+        try DateTime(utcLexeme(date))
+    }
+
+    /// The instant as a FHIR `DateTime` at the offset `timeZone` has at that instant: the wall time at that offset,
+    /// then `Z` for a zero offset or `±hh:mm`, such as `2026-08-28T08:32:05.123-07:00`.
+    ///
+    /// A lexeme states whole minutes only, so a zone's sub-minute remainder is dropped from the offset and the wall
+    /// time follows the stated offset: the lexeme always names the exact instant.
+    package static func fhirDateTime(_ date: Date, offsetIn timeZone: TimeZone) throws -> DateTime {
+        try DateTime(lexeme(millisecondsSinceEpoch(date), offsetMinutes: Int64(timeZone.secondsFromGMT(for: date) / 60)))
+    }
+
+    /// The lexeme of the instant `milliseconds` after 1970 as the wall time at `offsetMinutes` east of UTC.
+    private static func lexeme(_ milliseconds: Int64, offsetMinutes: Int64) -> String {
+        let (shifted, overflow) = milliseconds.addingReportingOverflow(offsetMinutes * 60_000)
+        let (days, millisecondOfDay) = floorDivide(overflow ? milliseconds : shifted, by: 86_400_000)
         let civil = civilDate(fromDays: days)
         let secondOfDay = millisecondOfDay / 1000
         let millisecond = millisecondOfDay % 1000
         var lexeme = ""
-        lexeme.reserveCapacity(24)
+        lexeme.reserveCapacity(29)
         lexeme += padded(civil.year, width: 4)
         lexeme += "-" + padded(civil.month, width: 2) + "-" + padded(civil.day, width: 2)
         lexeme += "T" + padded(secondOfDay / 3600, width: 2)
@@ -60,18 +86,13 @@ package enum ExchangeInstant {
             }
             lexeme += "." + fraction
         }
-        lexeme += "Z"
+        if offsetMinutes == 0 {
+            lexeme += "Z"
+        } else {
+            let offset = abs(offsetMinutes)
+            lexeme += (offsetMinutes < 0 ? "-" : "+") + padded(offset / 60, width: 2) + ":" + padded(offset % 60, width: 2)
+        }
         return lexeme
-    }
-
-    /// The instant as a FHIR `Instant`, which keeps the parsed lexeme and prints it back verbatim.
-    package static func fhirInstant(_ date: Date) throws -> Instant {
-        try Instant(utcLexeme(date))
-    }
-
-    /// The instant as a FHIR `DateTime`, which keeps the parsed lexeme and prints it back verbatim.
-    package static func fhirDateTime(_ date: Date) throws -> DateTime {
-        try DateTime(utcLexeme(date))
     }
 
     /// Milliseconds since 1970-01-01T00:00:00Z: the binary64 product of the seconds since 2001 and 1000, rounded half

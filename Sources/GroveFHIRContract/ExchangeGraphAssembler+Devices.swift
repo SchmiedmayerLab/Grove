@@ -10,7 +10,7 @@
 // swiftlint:disable multiline_literal_brackets
 
 import Foundation
-import ModelsR4
+package import ModelsR4
 
 
 // MARK: - Devices
@@ -174,7 +174,12 @@ extension ExchangeGraphAssembler {
 
     private func hostSnapshot(_ host: HostDevice, event: ExchangeEventIdentifier, repositoryID: RepositoryID?) throws -> IdentifiedDevice {
         let identity = try envelope.identityScope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: host.sourceDeviceToken)
-        var resource = hostDevice(host)
+        var resource = Self.hostDevice(
+            operatingSystemVersion: host.operatingSystemVersion,
+            modelNumber: host.modelNumber,
+            name: host.name,
+            manufacturer: host.manufacturer
+        )
         resource.id = repositoryID?.primitive
         resource.identifier = [identity.fhirIdentifier]
         return IdentifiedDevice(resource: resource, identity: identity)
@@ -191,44 +196,73 @@ extension ExchangeGraphAssembler {
             role: .application,
             sourceDeviceToken: application.sourceDeviceToken
         )
-        var resource = applicationDevice(application)
+        var resource = Self.applicationDevice(
+            name: application.name,
+            version: application.version,
+            build: application.build,
+            profile: envelope.adapter.applicationDeviceProfile
+        )
         resource.id = repositoryID?.primitive
-        resource.identifier = [identity.fhirIdentifier] + (resource.identifier ?? [])
+        resource.identifier = [identity.fhirIdentifier] + (envelope.adapter.applicationIdentifier?(application).map { [$0] } ?? [])
         resource.parent = parentURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
         return IdentifiedDevice(resource: resource, identity: identity)
     }
+}
 
-    private func applicationDevice(_ application: ApplicationDevice) -> Device {
+
+// MARK: - Device Bodies
+
+extension ExchangeGraphAssembler {
+    /// The body of an application Device snapshot as every exchange graph states it: the profile, the status, the
+    /// user-friendly name, the version, and the build when there is one.
+    ///
+    /// The caller adds the snapshot identity and any clear identifiers, the parent host and any repository id. The
+    /// assembler states the converting application and the writer this way, and Questionnaire its writer, which
+    /// names its own identifier and may state no host.
+    package static func applicationDevice(
+        name: String,
+        version: String,
+        build: String?,
+        profile: FHIRPrimitive<Canonical>
+    ) -> Device {
         var device = Device()
-        device.meta = Meta(profile: [envelope.adapter.applicationDeviceProfile])
+        device.meta = Meta(profile: [profile])
         device.status = FHIRPrimitive(.active)
-        device.identifier = envelope.adapter.applicationIdentifier?(application).map { [$0] }
-        device.deviceName = [DeviceDeviceName(name: application.name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
+        device.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
         var versions = [DeviceVersion(
             type: CodeableConcept(coding: [Coding(code: "531975", display: "MDC_ID_PROD_SPEC_SW", system: Canonicals.mdc)]),
-            value: application.version.asFHIRStringPrimitive()
+            value: version.asFHIRStringPrimitive()
         )]
-        if let build = application.build {
+        if let build {
             versions.append(groveVersion("build", "Build", build))
         }
         device.version = versions
         return device
     }
 
-    private func hostDevice(_ host: HostDevice) -> Device {
+    /// The body of a host Device snapshot as every exchange graph states it: the profile, the status, the name,
+    /// manufacturer and model when known, and the operating-system version.
+    ///
+    /// The caller adds the snapshot identity and any repository id.
+    package static func hostDevice(
+        operatingSystemVersion: String,
+        modelNumber: String?,
+        name: String? = nil,
+        manufacturer: String? = nil
+    ) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveHostDevice])
         device.status = FHIRPrimitive(.active)
-        if let name = host.name {
+        if let name {
             device.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
         }
-        device.manufacturer = host.manufacturer?.asFHIRStringPrimitive()
-        device.modelNumber = host.modelNumber?.asFHIRStringPrimitive()
-        device.version = [groveVersion("os-version", "Operating system version", host.operatingSystemVersion)]
+        device.manufacturer = manufacturer?.asFHIRStringPrimitive()
+        device.modelNumber = modelNumber?.asFHIRStringPrimitive()
+        device.version = [groveVersion("os-version", "Operating system version", operatingSystemVersion)]
         return device
     }
 
-    private func groveVersion(_ code: String, _ display: String, _ value: String) -> DeviceVersion {
+    private static func groveVersion(_ code: String, _ display: String, _ value: String) -> DeviceVersion {
         DeviceVersion(
             type: CodeableConcept(coding: [Coding(
                 code: code.asFHIRStringPrimitive(),
