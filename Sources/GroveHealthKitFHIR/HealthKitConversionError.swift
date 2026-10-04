@@ -266,6 +266,18 @@ extension HealthKitConversionError {
             self = .dependency(HealthKitDependencyFailure(underlying: error))
         }
     }
+
+    /// Narrows a failure to build a deleted record's retraction event to this published domain.
+    init(_ error: RetractionEventError) {
+        self = switch error {
+        case .reservedIdentifierSystem: .reservedIdentifierSystem
+        case .opaqueIdentity(let error): .opaqueIdentity(error)
+        case .exchangeIdentity(let error): .exchangeIdentity(error)
+        case .exchangeGraph(let error): .exchangeGraph(error)
+        case .emptyTargets, .duplicateTarget, .invalidSourceRecord, .invalidInstant, .invalidOccurrencePeriod:
+            .dependency(HealthKitDependencyFailure(underlying: error))
+        }
+    }
 }
 
 #endif
