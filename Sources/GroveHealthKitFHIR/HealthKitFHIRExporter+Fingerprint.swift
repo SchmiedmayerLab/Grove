@@ -125,8 +125,10 @@ extension Subject: ExchangeContextFingerprinted {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.WriterPolicy: ExchangeContextFingerprinted {
     /// The tag, then for an application set its count, which fixes how many parts follow, and its members in UTF-8
-    /// byte order, so equal sets fingerprint equally whatever their insertion order or the platform's collation. A
-    /// closure enters by its presence only; how it classifies is the caller's to keep stable.
+    /// byte order, so sets of the same strings, byte for byte, fingerprint equally whatever their insertion order.
+    /// `Set` equality is canonical equivalence, so two sets that spell a member in different Unicode normalization
+    /// forms compare equal yet fingerprint apart: a new sequence, never a reused one. A closure enters by its
+    /// presence only; how it classifies is the caller's to keep stable.
     var fingerprintParts: [String] {
         switch self {
         case .omit:

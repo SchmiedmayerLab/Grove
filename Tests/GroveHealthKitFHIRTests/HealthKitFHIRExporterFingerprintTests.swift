@@ -44,6 +44,8 @@ struct HealthKitFHIRExporterFingerprintTests {
             ("route", { $0.route = .authorized }),
             ("legacyBundleID", { $0.legacyBundleID = .healthKitUUID }),
             ("writer applications", { $0.writer = .applications(["org.example.writer"]) }),
+            // The size of the set above with another member: only the members tell the two apart.
+            ("writer applications other", { $0.writer = .applications(["org.example.other"]) }),
             ("writer applications member", { $0.writer = .applications(["org.example.writer", "org.example.other"]) }),
             ("writer applications empty", { $0.writer = .applications([]) }),
             ("writer classify", { $0.writer = .classify { _ in .application } }),
@@ -155,7 +157,29 @@ struct HealthKitFHIRExporterFingerprintTests {
             try Fixtures.exporter { $0.writer = .applications(bundleIdentifiers) }.context.request(for: key).fingerprint
         }
         #expect(try fingerprint(inserted) == fingerprint(reversed))
-        #expect(try fingerprint(inserted) != fingerprint(inserted.subtracting(["org.example.app0"])))
+        #expect(try fingerprint(inserted) != fingerprint(inserted.subtracting(["org.example.app0"])), "a member less")
+        #expect(
+            try fingerprint(inserted) != fingerprint(inserted.subtracting(["org.example.app0"]).union(["org.example.app24"])),
+            "another member in its place"
+        )
+    }
+
+    /// A reservation keeps the fingerprint it was made under, and every later export compares against it, across
+    /// launches and app updates: a build that derives the same context's fingerprint differently gives every pending
+    /// reservation a new sequence on redelivery, so the derivation changes only on purpose. One member of the
+    /// application set is not in Unicode normalization form C, so its UTF-8 byte order differs from Swift's `String`
+    /// order.
+    @Test("A fixed context fingerprints to a known answer, its application set as tag, count and members in UTF-8 byte order")
+    func contextFingerprintIsAKnownAnswer() throws {
+        let decomposed = "org.example.cafe\u{301}"
+        let writer = HealthKitFHIRExporter.WriterPolicy.applications(["org.example.caff", decomposed])
+        let expectedParts = ["applications", "2", decomposed, "org.example.caff"]
+        #expect(writer.fingerprintParts.map { Array($0.utf8) } == expectedParts.map { Array($0.utf8) })
+        let exporter = try Fixtures.exporter(try Fixtures.producer(sequencer: .inMemory()), revisions: .init(assembler: 1, healthKit: 2)) {
+            $0.writer = writer
+        }
+        let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
+        #expect(exporter.context.request(for: key).fingerprint == "Y9AmAuXc9kZTd8ZjijBhBS7QD_7A8w4YKQLk7RXFRig")
     }
 
     @Test("G3b: the fingerprint covers every stored option, each under its own name and with its own value")
