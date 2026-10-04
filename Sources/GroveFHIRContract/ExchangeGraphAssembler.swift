@@ -191,12 +191,14 @@ extension ExchangeGraphAssembler {
                     value: .string(writerRecord.version.asFHIRStringPrimitive())
                 ))
             }
+            output.trailingExtensions.forEach { observation.extension.append($0) }
             resource = .observation(observation)
         case .document(var document):
             document.id = repositoryID
             document.identifier = identifiers
             document.date = FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant))
             decorate(&document, links: output.links, surroundings: surroundings)
+            output.trailingExtensions.forEach { document.extension.append($0) }
             resource = .document(document)
         }
         return DecoratedOutput(identity: identity, url: try identity.fullURLString, artifact: artifact, resource: resource)

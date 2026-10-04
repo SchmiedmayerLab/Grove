@@ -145,6 +145,9 @@ package struct ExchangeOutputDraft: Sendable {
     package var clearIdentifiers: [Identifier]
     package var writerRecord: WriterRecord?
     package var wasUserEntered: Bool
+    /// Extensions the resource states after the ones its links add, in order, such as SensorKit's wrist-temperature
+    /// algorithm version, which follows the study references.
+    package var trailingExtensions: [Extension]
 
     package init(
         role: String,
@@ -155,7 +158,8 @@ package struct ExchangeOutputDraft: Sendable {
         artifactFormatCode: String? = nil,
         clearIdentifiers: [Identifier] = [],
         writerRecord: WriterRecord? = nil,
-        wasUserEntered: Bool = false
+        wasUserEntered: Bool = false,
+        trailingExtensions: [Extension] = []
     ) {
         self.role = role
         self.discriminator = discriminator
@@ -166,6 +170,7 @@ package struct ExchangeOutputDraft: Sendable {
         self.clearIdentifiers = clearIdentifiers
         self.writerRecord = writerRecord
         self.wasUserEntered = wasUserEntered
+        self.trailingExtensions = trailingExtensions
     }
 }
 
