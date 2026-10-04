@@ -597,6 +597,17 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 (root / name).write_text(json.dumps(value), encoding="utf-8")
             return MODULE.generate_healthkit(root)
 
+    def test_rejects_catalogs_of_different_versions(self):
+        for name in MODULE.CATALOGS:
+            catalogs = self.catalogs()
+            catalogs[name]["version"] = "999.0.0"
+
+            with self.subTest(catalog=name):
+                with self.assertRaisesRegex(ValueError, f"different versions: .*'{name}': '999.0.0'"):
+                    self.generate(catalogs)
+                with self.assertRaisesRegex(ValueError, f"different versions: .*'{name}': '999.0.0'"):
+                    self.generate_healthkit(catalogs)
+
     def test_generates_every_registered_rule_with_its_reason_and_severity(self):
         generated = self.generate(self.catalogs())
 

@@ -88,6 +88,16 @@ SWIFT_RESERVED_NAMES = frozenset({
     "while",
 })
 QUANTITY_KEYS = frozenset({"system", "code", "unit"})
+# Every catalog the two generated files read; one guide release states them all, so they share its version.
+CATALOGS = (
+    "package-graph.json",
+    "measurement-catalog.json",
+    "profile-claims.json",
+    "healthkit-adapter.json",
+    "providers-adapter.json",
+    "exchange-protocol.json",
+    "sensor-catalog.json",
+)
 # The CodeSystem of the guide's LOINC concept catalog (terminology/loinc-concepts.json).
 LOINC_SYSTEM = "http://loinc.org"
 
@@ -264,10 +274,11 @@ def equality_vectors(exchange_protocol: dict) -> dict[str, str]:
 def generate_healthkit(catalog_directory: Path) -> str:
     """The HealthKit-typed half of the contract: the source-type inventory and the ECG claim, `internal` to the
     HealthKit adapter, so the compiler checks every HealthKit SDK spelling the guide states."""
-    healthkit_catalog = load_catalog(catalog_directory / "healthkit-adapter.json")
-    package_graph = load_catalog(catalog_directory / "package-graph.json")
-    measurement_catalog = load_catalog(catalog_directory / "measurement-catalog.json")
-    sensor_catalog = load_catalog(catalog_directory / "sensor-catalog.json")
+    catalogs = load_catalogs(catalog_directory)
+    healthkit_catalog = catalogs["healthkit-adapter.json"]
+    package_graph = catalogs["package-graph.json"]
+    measurement_catalog = catalogs["measurement-catalog.json"]
+    sensor_catalog = catalogs["sensor-catalog.json"]
     loinc_concepts = load_concepts(catalog_directory / "terminology" / "loinc-concepts.json")
     identifiers = [row["sourceTypeIdentifier"] for row in healthkit_catalog["rows"]]
     source_type_cases: dict[str, str] = {}
@@ -733,6 +744,15 @@ def load_catalog(path: Path) -> dict:
     return value
 
 
+def load_catalogs(catalog_directory: Path) -> dict[str, dict]:
+    """Every catalog in `CATALOGS`, by file name; each must be an R4 catalog, and all must state one version."""
+    catalogs = {name: load_catalog(catalog_directory / name) for name in CATALOGS}
+    versions = {name: catalog.get("version") for name, catalog in catalogs.items()}
+    if len(set(versions.values())) != 1:
+        raise ValueError(f"the grove-fhir catalogs have different versions: {versions}")
+    return catalogs
+
+
 def load_concepts(path: Path) -> dict:
     """The concepts of one of the guide's terminology catalogs, by code."""
     with path.open(encoding="utf-8") as file:
@@ -743,22 +763,13 @@ def load_concepts(path: Path) -> dict:
 
 
 def generate(catalog_directory: Path) -> str:
-    package_graph = load_catalog(catalog_directory / "package-graph.json")
-    measurement_catalog = load_catalog(catalog_directory / "measurement-catalog.json")
-    profile_claims = load_catalog(catalog_directory / "profile-claims.json")
-    healthkit_catalog = load_catalog(catalog_directory / "healthkit-adapter.json")
-    providers_catalog = load_catalog(catalog_directory / "providers-adapter.json")
-    exchange_protocol = load_catalog(catalog_directory / "exchange-protocol.json")
-    versions = {
-        package_graph["version"],
-        measurement_catalog["version"],
-        profile_claims["version"],
-        healthkit_catalog["version"],
-        providers_catalog["version"],
-        exchange_protocol["version"],
-    }
-    if len(versions) != 1:
-        raise ValueError("package, measurement, and profile-claim catalogs have different versions")
+    catalogs = load_catalogs(catalog_directory)
+    package_graph = catalogs["package-graph.json"]
+    measurement_catalog = catalogs["measurement-catalog.json"]
+    profile_claims = catalogs["profile-claims.json"]
+    healthkit_catalog = catalogs["healthkit-adapter.json"]
+    providers_catalog = catalogs["providers-adapter.json"]
+    exchange_protocol = catalogs["exchange-protocol.json"]
 
     members = profile_members(package_graph)
 
