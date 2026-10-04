@@ -12,15 +12,20 @@ import Foundation
 import Testing
 
 
-/// Forwards to a storage and blocks the next transaction until signalled, before it starts or after it committed,
-/// so a test can run another call in between.
+/// Forwards to a storage and blocks the next transaction until signalled, before it starts, after it committed or after
+/// the storage discarded it, so a test can run another call in between.
 private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // `gate` is guarded by `lock`.
     enum Point {
         /// Before the transaction starts.
         case before
         /// After the transaction committed, before it returns to the sequencer.
         case afterCommit
+        /// After the transaction's body ran in an attempt the storage then discarded; the transaction throws `Discarded`.
+        case afterDiscard
     }
+
+    /// What a transaction gated after its discard throws.
+    struct Discarded: Error {}
 
     let base: any ExchangeEventSequencer.Storage
     /// Signalled when the gated transaction reaches its point.
@@ -49,6 +54,15 @@ private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Send
         lock.unlock()
         if gated == .before {
             wait()
+        }
+        if gated == .afterDiscard {
+            // The body runs, and notes what its call is about to hold, in an attempt that commits nothing.
+            _ = try? base.transaction { transaction -> R in
+                _ = try body(transaction)
+                throw Discarded()
+            }
+            wait()
+            throw Discarded()
         }
         let result = try base.transaction(body)
         if gated == .afterCommit {
@@ -312,5 +326,63 @@ struct ExchangeEventHoldRaceTests {
         try sequencer.finish(reused.values.map(\.handle), released: false, forgetting: [])
         #expect(!Fixtures.isHeld(first[request]?.handle, by: sequencer))
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil, "a holder released it; the last finisher removes it")
+    }
+
+    /// A release finds a reserve that noted the reservation in an attempt the storage then discarded: the call it handed
+    /// the release over to never takes its hold, so the hand-over ends with that reserve instead of reading as held.
+    @Test("G9d: a release handed over to a reserve whose attempt the storage discards ends with that reserve")
+    func handOverToADiscardedReserveEnds() throws {
+        let storage = GateStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let request = Fixtures.request("race")
+        let facts = try Fixtures.facts()
+        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let handle = try #require(first[request]?.handle)
+        let failed = DispatchSemaphore(value: 0)
+        storage.gate(.afterDiscard)
+        Thread {
+            _ = try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+            failed.signal()
+        }.start()
+        storage.entered.wait()
+        try sequencer.finish([handle], released: true, forgetting: [])
+        #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) != nil, "a reserve noted it, so it stays")
+        storage.proceed.signal()
+        failed.wait()
+        #expect(!Fixtures.isHeld(handle, by: sequencer), "the hand-over ended with the discarded reserve")
+        // As after a failed release, the reservation stays until a later exact export releases it.
+        let again = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        #expect(again == first)
+        try sequencer.finish(again.values.map(\.handle), released: true, forgetting: [])
+        #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil)
+    }
+
+    /// Two reserves noted the reservation when its last holder released it; the storage discards one, the other takes its
+    /// hold and its call lapses unreleased: the release mark survived the discarded reserve, so that lapse removes it.
+    @Test("G9d: a handed-over release survives a discarded reserve while another reserve of the reservation is pending")
+    func handOverSurvivesADiscardedReserveWhileAnotherIsPending() throws {
+        let storage = GateStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let request = Fixtures.request("race")
+        let facts = try Fixtures.facts()
+        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let handle = try #require(first[request]?.handle)
+        // A reserve whose transaction committed the reuse and that has not yet taken its hold, noted by hand.
+        let pending = HoldRegistry.Notes()
+        sequencer.holds.beginReserving([handle], in: pending)
+        let failed = DispatchSemaphore(value: 0)
+        storage.gate(.afterDiscard)
+        Thread {
+            _ = try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+            failed.signal()
+        }.start()
+        storage.entered.wait()
+        try sequencer.finish([handle], released: true, forgetting: [])
+        storage.proceed.signal()
+        failed.wait()
+        sequencer.holds.endReserving(pending, acquiring: [handle])
+        try sequencer.finish([handle], released: false, forgetting: [])
+        #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil, "the release mark survived")
+        #expect(!Fixtures.isHeld(handle, by: sequencer))
     }
 }
