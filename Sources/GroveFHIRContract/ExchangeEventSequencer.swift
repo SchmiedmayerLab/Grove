@@ -184,15 +184,19 @@ extension ExchangeEventSequencer {
     /// reservation in this process finishes and any holder released it, the reservation is removed, but
     /// only while the key still holds exactly that reservation and, checked inside the removing transaction,
     /// no call in this process holds it or is about to; such a call takes the release over, so the last one
-    /// to finish removes it. `keys` are forgotten whatever they hold, and only when `released` is true. Opens
-    /// one transaction when anything is to be removed, none otherwise.
+    /// to finish removes it. Only when `released` is true are `keys` forgotten: each key's reservation, whatever
+    /// event it holds, is removed the same way when a producer instance of `held` made it, so a caller from
+    /// before a reset, or one that holds nothing, forgets nothing. Opens one transaction when anything is to be
+    /// removed, none otherwise.
     package func finish(
         _ held: [ExchangeEventReservation.Handle],
         released: Bool,
         forgetting keys: [ExchangeEventKey]
     ) throws {
         let removable = holds.end(held, released: released)
-        let forgotten = released ? keys : []
+        // A reset mints a new producer instance, so nothing reserved after it carries one of these.
+        let instances = Set(held.map(\.instance))
+        let forgotten = released && !instances.isEmpty ? keys : []
         guard !removable.isEmpty || !forgotten.isEmpty else {
             return
         }
@@ -201,18 +205,27 @@ extension ExchangeEventSequencer {
             // release over; a reserve whose transaction runs after this one no longer finds it, as a storage runs a
             // process's transactions one at a time.
             for handle in removable where !holds.handOver(handle) {
-                let key = LedgerKey.event(handle.key)
-                guard let value = try transaction.read(key) else {
-                    continue
-                }
-                let stored = try EventEntry(decoding: value, key: key)
-                if stored.instance == handle.instance && stored.sequence == handle.sequence {
-                    try transaction.remove(key)
+                if try Self.reservation(of: handle.key, in: transaction) == handle {
+                    try transaction.remove(LedgerKey.event(handle.key))
                 }
             }
             for key in forgotten {
-                try transaction.remove(LedgerKey.event(key))
+                if let stored = try Self.reservation(of: key, in: transaction), instances.contains(stored.instance), !holds.handOver(stored) {
+                    try transaction.remove(LedgerKey.event(key))
+                }
             }
+        }
+    }
+}
+
+
+extension ExchangeEventSequencer {
+    /// The reservation `key` holds in `transaction`, if any.
+    private static func reservation(of key: ExchangeEventKey, in transaction: any Transaction) throws -> ExchangeEventReservation.Handle? {
+        let entryKey = LedgerKey.event(key)
+        return try transaction.read(entryKey).map { value in
+            let stored = try EventEntry(decoding: value, key: entryKey)
+            return ExchangeEventReservation.Handle(key: key, instance: stored.instance, sequence: stored.sequence)
         }
     }
 }

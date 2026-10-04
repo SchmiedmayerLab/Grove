@@ -64,7 +64,7 @@ What Grove promises a storage in return:
 An export or retraction is one transaction that touches only the entries of its own event keys, the `producer` entry and each distinct facts entry once; a reservation that is reused writes nothing.
 Releasing a receipt is at most one more transaction.
 An export's receipt runs none when it reserved nothing, or when another call in the process still holds its events.
-A retraction's receipt runs one whenever it names a deletion, even of a type with nothing to retract, because it also forgets each deleted record's active reservation.
+A retraction's receipt runs one whenever it reserved a retraction event, because it also forgets each deleted record's active reservation; one that reserved nothing runs none and forgets nothing.
 Backends that store entries individually (in memory, Core Data, SQL) therefore cost what a call touches, whatever the ledger's size.
 The single-file and keychain backends rewrite the whole map on every transaction and suit small ledgers, or ledgers you prune.
 
@@ -80,7 +80,8 @@ A reserve notes the reservations its transaction returns from inside that transa
 This relies on the storage running one process's transactions one at a time, as every backend above in its primary form does with its lock or a transaction that takes the write lock when it begins.
 A storage whose serializable transactions overlap, such as one that validates optimistically, still never reuses a sequence, but there a release can remove a reservation that a concurrent call has just reused, and that call's redelivery then becomes a new event, a duplicate and never a reuse.
 A release only ever removes the exact reservation its call made, never a successor's or one from before a reset.
-The one exception is a retraction's receipt: on release it forgets each deleted record's active reservation, whatever that reservation is, because no export will release it once the record is gone.
+The one exception is a retraction's receipt: on release it also forgets each deleted record's active reservation, whatever event that reservation holds, because no export will release it once the record is gone.
+It forgets only a reservation made under the producer instance of its own retraction events, never one from after a reset, and a reservation a live call still holds passes to that call, whose last finish removes it.
 Holds do not span processes; when two live processes share one storage, a release in one can remove a reservation the other still holds, and the other's redelivery then becomes a new event, a duplicate and never a reuse.
 
 ## Topics

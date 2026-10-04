@@ -75,8 +75,8 @@ struct HealthKitFHIRExporterCallTests {
         #expect(storage.take().transactions == 1)
     }
 
-    @Test("A retraction with nothing to retract reserves nothing; its release still forgets the deleted record's active reservation")
-    func nothingToRetractStillForgets() throws {
+    @Test("A retraction with nothing to retract reserves nothing, so its release owns nothing to forget and touches no ledger")
+    func nothingToRetractForgetsNothing() throws {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
         let deletion = HealthKitFHIRExporter.Deletion(
@@ -92,7 +92,7 @@ struct HealthKitFHIRExporterCallTests {
         }
         #expect(storage.take().transactions == 0)
         receipt.release()
-        #expect(storage.take() == (transactions: 1, writes: 1))
+        #expect(storage.take() == (transactions: 0, writes: 0))
     }
 
     @Test("A released receipt dropped while another call holds the same event leaves the event to that call")

@@ -159,15 +159,54 @@ struct ExchangeEventHoldTests {
         #expect(storage.takeCounts().transactions == 0, "a lapse with no released holder touches nothing")
     }
 
-    @Test("Forgetting removes a key whatever it holds, and only on release")
-    func forgettingRemovesUnconditionally() throws {
+    @Test("Forgetting removes a key's reservation of the caller's own instance, and only on release")
+    func forgettingIsOwnedAndOnlyOnRelease() throws {
+        let storage = CountingStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let active = Fixtures.request("a")
+        let retraction = Fixtures.request("a", kind: .retraction)
+        let lapsed = try sequencer.reserve([active], at: Fixtures.instant, facts: Fixtures.facts())
+        try sequencer.finish(lapsed.values.map(\.handle), released: false, forgetting: [])
+        let dropped = try sequencer.reserve([retraction], at: Fixtures.instant, facts: Fixtures.facts())
+        try sequencer.finish(dropped.values.map(\.handle), released: false, forgetting: [active.key])
+        #expect(try Self.isReserved(active, in: storage), "a lapse forgets nothing")
+        _ = storage.takeCounts()
+        try sequencer.finish([], released: true, forgetting: [active.key])
+        #expect(storage.takeCounts().transactions == 0, "a caller that holds nothing owns nothing to forget")
+        #expect(try Self.isReserved(active, in: storage))
+        let released = try sequencer.reserve([retraction], at: Fixtures.instant, facts: Fixtures.facts())
+        try sequencer.finish(released.values.map(\.handle), released: true, forgetting: [active.key])
+        #expect(try !Self.isReserved(active, in: storage))
+    }
+
+    @Test("G10: forgetting from before a reset removes nothing minted after it")
+    func forgettingFromBeforeAResetRemovesNothing() throws {
         let storage = ExchangeEventSequencer.InMemoryStorage()
         let sequencer = Fixtures.sequencer(storage)
         let active = Fixtures.request("a")
-        _ = try sequencer.reserve([active], at: Fixtures.instant, facts: Fixtures.facts())
-        try sequencer.finish([], released: false, forgetting: [active.key])
-        #expect(try Self.isReserved(active, in: storage))
-        try sequencer.finish([], released: true, forgetting: [active.key])
-        #expect(try !Self.isReserved(active, in: storage))
+        let retraction = try sequencer.reserve([Fixtures.request("a", kind: .retraction)], at: Fixtures.instant, facts: Fixtures.facts())
+        try sequencer.reset()
+        let after = try sequencer.reserve([active], at: Fixtures.instant, facts: Fixtures.facts())
+        try sequencer.finish(after.values.map(\.handle), released: false, forgetting: [])
+        try sequencer.finish(retraction.values.map(\.handle), released: true, forgetting: [active.key])
+        #expect(try Self.isReserved(active, in: storage), "a receipt from before the reset releases nothing")
+        #expect(try sequencer.reserve([active], at: Fixtures.instant, facts: Fixtures.facts()) == after)
+    }
+
+    @Test("G9: forgetting a reservation a live call holds leaves it to that call, whose finish removes it")
+    func forgettingAHeldReservationHandsItOver() throws {
+        let storage = ExchangeEventSequencer.InMemoryStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let active = Fixtures.request("a")
+        let live = try sequencer.reserve([active], at: Fixtures.instant, facts: Fixtures.facts())
+        let retraction = try sequencer.reserve([Fixtures.request("a", kind: .retraction)], at: Fixtures.instant, facts: Fixtures.facts())
+        try sequencer.finish(retraction.values.map(\.handle), released: true, forgetting: [active.key])
+        #expect(try Self.isReserved(active, in: storage), "the live call still holds it")
+        #expect(try sequencer.reserve([active], at: Fixtures.instant, facts: Fixtures.facts()) == live, "its redelivery is an exact retry")
+        try sequencer.finish(live.values.map(\.handle), released: false, forgetting: [])
+        #expect(try Self.isReserved(active, in: storage), "the redelivery still holds it")
+        try sequencer.finish(live.values.map(\.handle), released: false, forgetting: [])
+        #expect(try !Self.isReserved(active, in: storage), "the last holder to finish removes what the retraction forgot")
+        #expect(!Fixtures.isHeld(live[active]?.handle, by: sequencer))
     }
 }
