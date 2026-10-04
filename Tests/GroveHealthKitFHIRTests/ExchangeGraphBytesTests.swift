@@ -68,6 +68,34 @@ struct ExchangeGraphBytesTests {
         #expect(restored.isSemanticallyEqual(to: graph))
     }
 
+    /// The bytes are what travels, while the rules decide over the model, so a member the model drops is refused, at
+    /// the Bundle and inside a resource alike; a decimal lexeme the model rewrites is not a dropped member.
+    @Test("Re-validation refuses members the FHIR model does not keep")
+    func revalidationRefusesMembersTheModelDrops() throws {
+        let graph = try #require(GoldenCase.all.first).output().graph
+        func edited(_ change: (inout [String: Any]) throws -> Void) throws -> Data {
+            var bundle = try #require(try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])
+            try change(&bundle)
+            return try JSONSerialization.data(withJSONObject: bundle, options: [.sortedKeys, .withoutEscapingSlashes])
+        }
+        let refusal = ExchangeGraphError.invalidEntries("Serialized event carries members the model does not keep")
+        #expect(throws: refusal) {
+            try ExchangeGraph(validating: try edited { $0["note"] = "not a Bundle element" }, kind: graph.kind)
+        }
+        #expect(throws: refusal) {
+            try ExchangeGraph(validating: try edited { bundle in
+                var entries = try #require(bundle["entry"] as? [[String: Any]])
+                var resource = try #require(entries[0]["resource"] as? [String: Any])
+                resource["unmodeled"] = ["value": 1]
+                entries[0]["resource"] = resource
+                bundle["entry"] = entries
+            }, kind: graph.kind)
+        }
+        let rewritten = Data(String(decoding: graph.json, as: UTF8.self).replacingOccurrences(of: #""value":72}"#, with: #""value":72.0}"#).utf8)
+        #expect(rewritten != graph.json)
+        #expect(try ExchangeGraph(validating: rewritten, kind: graph.kind).json == rewritten)
+    }
+
     @Test("The earlier spelling forwards to the validating initializer")
     func earlierSpellingForwards() throws {
         let graph = try #require(GoldenCase.all.first).output().graph

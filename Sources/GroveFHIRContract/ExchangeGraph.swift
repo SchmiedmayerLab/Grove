@@ -88,6 +88,8 @@ public struct ExchangeGraph: Sendable {
     ///
     /// It applies every structural rule a built graph passes, including that each adapter output has exactly one conversion
     /// Provenance of its adapter; StructureDefinition and terminology conformance is the conformance lane's to prove.
+    /// Bytes carrying a member the FHIR model does not keep are refused: the rules decide over what the model holds, and
+    /// ``json`` is what travels, so such a member would travel unchecked.
     ///
     /// Serialized checks run first, because Foundation keeps only one of duplicate members and
     /// decoding through `Foundation.URL` could normalize an identity system or collapse a
@@ -144,15 +146,26 @@ public struct ExchangeGraph: Sendable {
         } catch {
             throw .ruleViolation(.mobileExchangeEventIdentity)
         }
-        // The model checks read the decoded model's own encoding, not the stored bytes: those may still
-        // carry members the model does not keep, and the checks decide over what the graph will hold.
+        // The model checks read the decoded model's own encoding, not the stored bytes, and decide over what the
+        // graph will hold; the bytes then must carry nothing more.
         try Self.validate(
             kind: kind,
             eventIdentifier: eventIdentifier,
             bundle: decodedBundle,
             document: ValidationDocument(bundle: decodedBundle, jsonData: nil)
         )
+        try Self.validateKeptMembers(of: jsonData, decoded: decodedBundle)
         return (eventIdentifier, decodedBundle)
+    }
+
+    /// Whether the bytes name exactly the members and elements the decoded model encodes; values may differ in
+    /// lexeme only, as the model rewrites a decimal such as `72.0`.
+    private static func validateKeptMembers(of jsonData: Data, decoded bundle: ModelsR4.Bundle) throws(ExchangeGraphError) {
+        guard let given = try? LosslessJSONValue(parsing: jsonData),
+              let kept = try? LosslessJSONValue(parsing: wireEncoder.encode(bundle)),
+              given.shape == kept.shape else {
+            throw .invalidEntries("Serialized event carries members the model does not keep")
+        }
     }
 
     /// Runs `body` in its own autorelease pool where there is one, so the Foundation temporaries of

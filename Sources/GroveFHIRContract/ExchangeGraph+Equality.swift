@@ -271,6 +271,15 @@ indirect enum LosslessJSONValue: Equatable {
 
 
 extension LosslessJSONValue {
+    /// The value with every scalar blanked: which members and elements exist, not what they hold.
+    var shape: LosslessJSONValue {
+        switch self {
+        case .object(let members): .object(members.mapValues(\.shape))
+        case .array(let elements): .array(elements.map(\.shape))
+        case .string, .number, .boolean, .null: .null
+        }
+    }
+
     /// Token equality, with strings, lexemes and member names compared scalar by scalar.
     static func == (lhs: LosslessJSONValue, rhs: LosslessJSONValue) -> Bool {
         switch (lhs, rhs) {
