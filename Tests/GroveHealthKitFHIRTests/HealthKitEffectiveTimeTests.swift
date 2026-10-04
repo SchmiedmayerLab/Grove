@@ -281,6 +281,21 @@ struct HealthKitEffectiveTimeTests {
         }
     }
 
+    /// HealthKit cannot produce such an instant (`HKSample` refuses an end at or after 4001), but no FHIR date-time
+    /// states a five-digit year.
+    @Test("ECG instants whose local year passes 9999 are refused")
+    func ecgYearTenThousandIsRefused() throws {
+        let lastSecond = Date(timeIntervalSince1970: 253_402_300_799)
+        #expect(try HealthKitEffectiveTime.exactDateTime(lastSecond, offset: 0.999, zone: .gmt).description == "9999-12-31T23:59:59.999Z")
+        #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
+            try HealthKitEffectiveTime.exactDateTime(lastSecond, offset: 1, zone: .gmt)
+        }
+        let oneHourEast = try #require(TimeZone(secondsFromGMT: 3_600))
+        #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
+            try HealthKitEffectiveTime.exactDateTime(Date(timeIntervalSince1970: 253_402_297_200), offset: 0, zone: oneHourEast)
+        }
+    }
+
     @Test("Mobile date-times read back to the millisecond they state over the seeded sweep and the edge list, also before the reform")
     func mobileRoundTrips() {
         let milliseconds = { (instant: Date) in (instant.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven) }
