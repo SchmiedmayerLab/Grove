@@ -75,12 +75,12 @@ struct ContentCorpusTests {
         let ids = grid.map(\.id)
         let duplicates = Dictionary(grouping: ids, by: \.self).filter { $0.value.count > 1 }.keys.sorted()
         #expect(duplicates.isEmpty, "the grid names vectors twice: \(duplicates.prefix(10))")
-        let stray = Set(checkedIn.map(\.id)).subtracting(ids).sorted()
-        let missing = Set(ids).subtracting(checkedIn.map(\.id)).sorted()
-        #expect(stray.isEmpty, "\(stray.count) lines without a vector: \(stray.prefix(10))")
-        #expect(missing.isEmpty, "\(missing.count) vectors without a line: \(missing.prefix(10))")
-        if let index = zip(ids, checkedIn.map(\.id)).enumerated().first(where: { $1.0 != $1.1 })?.offset {
-            Issue.record("the grid orders vectors differently from line \(index + 1): \(ids[index]) where the corpus has \(checkedIn[index].id)")
+        let lineIDs = checkedIn.map(\.id)
+        if ids != lineIDs {
+            let index = zip(ids, lineIDs).prefix { $0 == $1 }.count
+            let vector = index < ids.count ? ids[index] : "no vector"
+            let line = index < lineIDs.count ? lineIDs[index] : "no line"
+            Issue.record("the grid's \(ids.count) vectors differ from the \(lineIDs.count) lines at line \(index + 1): \(vector), the corpus \(line)")
         }
         let restated = try zip(grid, checkedIn).compactMap { vector, line in
             try ContentCorpusStore.inputText(vector.input) == ContentCorpusStore.inputText(line.input) ? nil : vector.id

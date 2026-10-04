@@ -214,10 +214,18 @@ enum HealthKitSampleProjection {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitSampleProjection {
+    /// The system and code of the coding that names a measurement.
+    struct MeasurementCode: Hashable {
+        /// The code system.
+        let system: String
+        /// The code.
+        let code: String
+    }
+
     /// Every generated measurement by its code's system and code, the first catalog stating one winning. Body-mass
     /// index, which no catalog lists, is unknown.
-    static let measurements: [[String]: MeasurementContract] = Dictionary(
-        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { ([$0.code.system, $0.code.code], $0) }
+    static let measurements: [MeasurementCode: MeasurementContract] = Dictionary(
+        (MeasurementCatalog.all + HealthKitMeasurementCatalog.all).map { (MeasurementCode(system: $0.code.system, code: $0.code.code), $0) }
     ) { first, _ in first }
 
     /// The quantity type each measurement lands on: the one quantity type whose plan reads the measurement in its
@@ -242,7 +250,7 @@ extension HealthKitSampleProjection {
         let coding = observation.code.coding?.first
         let system = coding?.system?.value?.url.absoluteString ?? ""
         let code = coding?.code?.value?.string ?? ""
-        guard let contract = measurements[[system, code]] else {
+        guard let contract = measurements[MeasurementCode(system: system, code: code)] else {
             throw .measurementUnknown(system: system, code: code)
         }
         let envelope = try envelope(of: observation, measurementID: contract.id, syncIdentifier: syncIdentifier)
