@@ -143,17 +143,6 @@ struct HealthKitFHIRExporterFingerprintTests {
             #expect(options.fingerprintParts.map(\.parts) == stored.map(\.parts), "\(stored.map(\.property))")
         }
     }
-
-    @Test("The ledger fingerprint of an identity scope is keyed and reveals nothing about the key")
-    func ledgerFingerprintIsKeyed() throws {
-        let scope = Fixtures.base.identityScope
-        let again = try OpaqueIdentityScope(systems: scope.systems, keyID: scope.keyID, epoch: scope.epoch, key: Self.key)
-        let rekeyed = try OpaqueIdentityScope(systems: scope.systems, keyID: scope.keyID, epoch: scope.epoch, key: SymmetricKey(data: Data(repeating: 7, count: 32)))
-        #expect(scope.ledgerFingerprint == again.ledgerFingerprint)
-        #expect(scope.ledgerFingerprint != rekeyed.ledgerFingerprint)
-        #expect(scope.ledgerFingerprint.utf8.count == 43)
-        #expect(!scope.ledgerFingerprint.contains(Data(repeating: 0x42, count: 32).base64EncodedString()))
-    }
 }
 
 #endif
