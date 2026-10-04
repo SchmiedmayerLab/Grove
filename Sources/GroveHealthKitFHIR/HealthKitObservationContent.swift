@@ -43,6 +43,16 @@ struct BloodPressureMember: Sendable {
 }
 
 
+/// One category value as its Observation states it.
+@available(iOS 18, macOS 15, watchOS 11, *)
+struct CodedValue: Sendable {
+    /// The value.
+    let value: CodeableConcept
+    /// The notification-occurrence component, when the value states one.
+    let occurrence: ObservationComponent?
+}
+
+
 /// How an Observation's value is read from its sample, compiled against the contract.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum ValueRule: Sendable {
@@ -50,7 +60,7 @@ enum ValueRule: Sendable {
     case quantity(QuantityTemplate, QuantityRead)
     /// A category value: the coded value of each raw value the table maps. A raw value in `unresolved` maps to a code
     /// the contract does not admit and has no normative code; any other unmapped raw value is unsupported.
-    case coded(values: [Int: CodeableConcept], unresolved: Set<Int>)
+    case coded(values: [Int: CodedValue], unresolved: Set<Int>)
     /// A category sample's duration in the contract's quantity, whose unit lasts `secondsPerUnit` seconds; the sample
     /// states `HKCategoryValue.notApplicable`.
     case duration(QuantityTemplate, secondsPerUnit: Double)
@@ -160,18 +170,19 @@ extension ValueRule {
         }
     }
 
-    /// Sets what `sample` states on `observation`: its value; a panel's components and no value; or a workout's or
-    /// reflection's components, then its value.
+    /// Sets what `sample` states on `observation`: its value, and a notification's occurrence; a panel's components
+    /// and no value; or a workout's or reflection's components, then its value.
     func apply(to observation: inout Observation, sample: HKSample, metadata: HealthKitSampleMetadata) throws {
         switch self {
         case let .quantity(template, read):
             observation.value = .quantity(try template.quantity(try read.value(of: sample)))
         case let .coded(values, unresolved):
             let raw = try sample.cast(to: HKCategorySample.self).value
-            guard let value = values[raw] else {
+            guard let coded = values[raw] else {
                 throw unresolved.contains(raw) ? HealthKitConversionError.ValueFailure.missingNormativeCode : .unsupportedValue(raw)
             }
-            observation.value = .codeableConcept(value)
+            observation.value = .codeableConcept(coded.value)
+            observation.component = coded.occurrence.map { [$0] }
         case let .duration(template, secondsPerUnit):
             try Self.requireNotApplicable(sample)
             observation.value = .quantity(try template.quantity(sample.endDate.timeIntervalSince(sample.startDate) / secondsPerUnit))

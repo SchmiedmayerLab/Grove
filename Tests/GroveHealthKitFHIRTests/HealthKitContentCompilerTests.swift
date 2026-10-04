@@ -116,15 +116,19 @@ struct HealthKitContentCompilerTests {
         try Self.expectRefused(.menstrualFlow, "states no coded cycleStart component") { $0.components = [] }
         try Self.expectRefused(.workout, "states no quantity component heart-rate-max") { $0.component("heart-rate-max") { _ in nil } }
         try Self.expectRefused(.stateOfMind, "states no coded component label") { $0.component("label") { _ in nil } }
+        try Self.expectRefused(.appleWalkingSteadinessEvent, "states no coded component notification-occurrence") { $0.components = [] }
     }
 
-    @Test("A hand-written workout or State of Mind code the contract does not admit refuses its type")
+    @Test("A hand-written workout, State of Mind or notification-occurrence code the contract does not admit refuses its type")
     func unadmittedCodesRefuseTheType() throws {
         let workoutSystem = try #require(MeasurementCatalog.workout.resultCodeSystem)
         try Self.expectRefused(.workout, "admits no code yoga in \(workoutSystem)") { $0.allowedValues.removeAll { $0 == "yoga" } }
         let labels = try #require(HealthKitMeasurementCatalog.stateOfMind.components.first { $0.id == "label" }?.resultCodeSystem)
         try Self.expectRefused(.stateOfMind, "admits no code happy in \(labels)") { draft in
             draft.component("label") { $0.with { $0.code != "happy" } }
+        }
+        try Self.expectRefused(.appleWalkingSteadinessEvent, "admits no result code repeat") { draft in
+            draft.component("notification-occurrence") { $0.with { $0.code != "repeat" } }
         }
     }
 
@@ -141,6 +145,26 @@ struct HealthKitContentCompilerTests {
         }
         #expect(unresolved == [mild])
         #expect(Set(values.keys) == Set(CodedTable.severity.rows.map { $0.raw }).subtracting([mild]))
+    }
+
+    @Test("A walking-steadiness classification the contract does not admit leaves both its occurrences unresolved")
+    func unadmittedClassificationIsUnresolved() throws {
+        let type = HealthKitSourceType.appleWalkingSteadinessEvent
+        let veryLow = [HKCategoryValueAppleWalkingSteadinessEvent.initialVeryLow, .repeatVeryLow].map(\.rawValue)
+        let compilation = try Self.compile(type) { draft in
+            draft.allowedValues.removeAll { $0 == "very-low" }
+            draft.resultCodes.removeAll { $0.code == "very-low" }
+        }
+        let defects = veryLow.map { "\(type.rawValue): value \($0) reports as very-low, which the contract does not admit" }
+        #expect(Self.ownDefects(of: compilation) == defects)
+        guard case .observation(let observation)? = compilation.byIdentifier[type.rawValue]?.route,
+              case let .coded(values, unresolved) = observation.value else {
+            Issue.record("Walking steadiness no longer converts through its coded values")
+            return
+        }
+        #expect(unresolved == Set(veryLow))
+        #expect(values.keys.sorted() == [HKCategoryValueAppleWalkingSteadinessEvent.initialLow, .repeatLow].map(\.rawValue))
+        #expect(values.values.allSatisfy { $0.occurrence != nil })
     }
 
     @Test("A type listed twice, or a table mapping one value twice, refuses its type")

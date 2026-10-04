@@ -92,7 +92,7 @@ struct HealthKitOutputSlot: Sendable {
 /// from the generated contracts and ``HealthKitContentRules``.
 ///
 /// Compiling never traps: a rule its contract cannot satisfy refuses its type as not yet convertible and names the
-/// mismatch in ``compileDefects``, which CI keeps to the known set.
+/// mismatch in ``compileDefects``, which CI keeps empty.
 @available(iOS 18, macOS 15, watchOS 11, *)
 final class HealthKitContentPlan: Sendable {
     /// What a source type converts through. Each payload lives in its own box, so a plan costs only what its route

@@ -153,6 +153,19 @@ extension GoldenCase {
                 "com.example.member": "x"
             ]
             return try GoldenFixtures.export(bloodPressure(uuid: 18, components: (0x93, 0x94), metadata: nil, memberMetadata: members), sequence: sequence)
+        },
+        // HealthKit's initial-low notification over one day: the classification low is the value and the first
+        // notification is the notification-occurrence component, as the guide's example states.
+        GoldenCase("walking-steadiness-notification", sequence: 19) { sequence in
+            try GoldenFixtures.export(
+                GoldenFixtures.category(
+                    .appleWalkingSteadinessEvent,
+                    value: HKCategoryValueAppleWalkingSteadinessEvent.initialLow.rawValue,
+                    uuid: GoldenFixtures.uuid(19),
+                    duration: 86_400
+                ),
+                sequence: sequence
+            )
         }
     ]
 

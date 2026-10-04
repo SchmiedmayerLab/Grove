@@ -293,6 +293,39 @@ struct HealthKitFHIRCategoryConversionTests {
         }
     }
 
+    /// The guide splits each HealthKit case into a classification value and a notification-occurrence component,
+    /// as its `HealthkitWalkingSteadinessNotificationExample` does.
+    @Test("A walking-steadiness notification states its classification as the value and its occurrence as a component")
+    func walkingSteadinessNotification() throws {
+        let notifications: KeyValuePairs<HKCategoryValueAppleWalkingSteadinessEvent, [String]> = [
+            .initialLow: ["low", "Low", "initial", "Initial"],
+            .initialVeryLow: ["very-low", "Very low", "initial", "Initial"],
+            .repeatLow: ["low", "Low", "repeat", "Repeat"],
+            .repeatVeryLow: ["very-low", "Very low", "repeat", "Repeat"]
+        ]
+        let contract = HealthKitMeasurementCatalog.walkingSteadinessNotification
+        let occurrence = try #require(contract.components.first { $0.id == "notification-occurrence" })
+        for (value, expected) in notifications {
+            let sample = categorySample(.appleWalkingSteadinessEvent, value: value.rawValue)
+            let observation = try ExporterFixtures.export(sample, inputs).observation
+            let classification = try codings(observation)
+            #expect(classification.map { $0.system?.value?.url.absoluteString } == [contract.resultCodeSystem])
+            #expect(classification.map { [$0.code?.value?.string, $0.display?.value?.string] } == [[expected[0], expected[1]]])
+
+            let component = try #require(observation.component?.first)
+            #expect(observation.component?.count == 1)
+            let code = component.code.coding?.map { [$0.system?.value?.url.absoluteString, $0.code?.value?.string] }
+            #expect(code == [[occurrence.system, occurrence.code]])
+            #expect(component.code.coding?.first?.display == nil)
+            guard case .codeableConcept(let stated)? = component.value else {
+                Issue.record("\(value) states no coded occurrence")
+                continue
+            }
+            #expect(stated.coding?.map { $0.system?.value?.url.absoluteString } == [occurrence.resultCodeSystem])
+            #expect(stated.coding?.map { [$0.code?.value?.string, $0.display?.value?.string] } == [[expected[2], expected[3]]])
+        }
+    }
+
     @Test("Interval flags emit their one fixed result code")
     func fixedResultCodes() throws {
         let pregnancy = try ExporterFixtures.export(

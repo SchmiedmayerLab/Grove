@@ -81,7 +81,8 @@ struct ConformanceFixtureTests {
         )
     }
 
-    /// The goldens whose shapes no fixture above covers: the workout session and every shape the fix round added.
+    /// The goldens whose shapes no fixture above covers: the workout session, every shape the fix round added, and
+    /// the walking-steadiness notification's occurrence component.
     /// `exporter-deployment-state-of-mind` is left out: its negative valence fails the pinned guide's own
     /// `healthkit-state-of-mind-value-domain-1` in the HL7 validator, which rejects every negative value although the
     /// invariant admits -1 through 1, an IG defect.
@@ -98,7 +99,8 @@ struct ConformanceFixtureTests {
         "exporter-deployment-blood-pressure",
         "exporter-deployment-retraction",
         "exporter-clinical-record-r4",
-        "exporter-clinical-record-dstu2"
+        "exporter-clinical-record-dstu2",
+        "walking-steadiness-notification"
     ]
 
     @Test
