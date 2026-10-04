@@ -88,6 +88,8 @@ SWIFT_RESERVED_NAMES = frozenset({
     "while",
 })
 QUANTITY_KEYS = frozenset({"system", "code", "unit"})
+# The CodeSystem of the guide's LOINC concept catalog (terminology/loinc-concepts.json).
+LOINC_SYSTEM = "http://loinc.org"
 
 # The generated Swift catalog of each measurement owner the Swift producers emit, in emission order.
 MEASUREMENT_CATALOGS = {
@@ -265,6 +267,8 @@ def generate_healthkit(catalog_directory: Path) -> str:
     healthkit_catalog = load_catalog(catalog_directory / "healthkit-adapter.json")
     package_graph = load_catalog(catalog_directory / "package-graph.json")
     measurement_catalog = load_catalog(catalog_directory / "measurement-catalog.json")
+    sensor_catalog = load_catalog(catalog_directory / "sensor-catalog.json")
+    loinc_concepts = load_concepts(catalog_directory / "terminology" / "loinc-concepts.json")
     identifiers = [row["sourceTypeIdentifier"] for row in healthkit_catalog["rows"]]
     source_type_cases: dict[str, str] = {}
     names: dict[str, str] = {}
@@ -293,8 +297,11 @@ def generate_healthkit(catalog_directory: Path) -> str:
     ])
     members = profile_members(package_graph)
     measurements = measurement_catalog["measurements"]
+    lines.extend(code_display_lines(healthkit_catalog, measurements, loinc_concepts))
+    ecg_claim = healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"]
     lines.extend(electrocardiogram_claim_lines(
-        healthkit_catalog["sensorAdapterClaims"]["electrocardiogram"],
+        ecg_claim,
+        waveform_code=electrocardiogram_waveform_code(ecg_claim, sensor_catalog["contracts"], loinc_concepts),
         measurement_members=measurement_members(measurements, measurement_canonicals(package_graph, measurements)),
         source_type_cases=source_type_cases,
         profile_reference=lambda canonical: members.get(canonical, swift_string(canonical)),
@@ -497,6 +504,56 @@ def measurement_members(measurements: list[dict], canonicals: list[str]) -> dict
     return members
 
 
+def loinc_display(coding: dict, concepts: dict, label: str) -> str:
+    """The display the guide's LOINC concept catalog states for a LOINC coding."""
+    concept = concepts.get(coding.get("code")) if coding.get("system") == LOINC_SYSTEM else None
+    if not isinstance(concept, dict) or not isinstance(concept.get("display"), str):
+        raise ValueError(f"{label} code {coding!r} is no LOINC concept the guide's terminology catalog displays")
+    return concept["display"]
+
+
+def code_display_lines(healthkit_catalog: dict, measurements: list[dict], concepts: dict) -> list[str]:
+    """The guide's display of each code a HealthKit row's measurement states without one, from the LOINC concept
+    catalog, keyed by the code exactly as the measurement states it. A row's measurement is a catalog measurement or
+    a standard adapter claim (body-mass index); a sensor adapter claim states its codes itself, and a row naming
+    neither is a defect the content compiler reports."""
+    named = {measurement["id"]: measurement for measurement in measurements}
+    named.update(healthkit_catalog["standardAdapterClaims"])
+    displays: dict[tuple[str, str], str] = {}
+    for row in healthkit_catalog["rows"]:
+        for measurement_id in row["measurementIDs"]:
+            code = named.get(measurement_id, {}).get("code")
+            if code is not None and not code.get("display"):
+                displays[(code["system"], code["code"])] = loinc_display(code, concepts, measurement_id)
+    return [
+        "/// The guide's display of each code a HealthKit row's measurement states without one, generated from the",
+        "/// guide's LOINC concept catalog (terminology/loinc-concepts.json) and keyed by the code exactly as the",
+        "/// measurement states it.",
+        "enum HealthKitTerminology {",
+        "    /// The display of each such code.",
+        "    static let displays: [CodingContract: String] = [",
+        *(
+            f"        {coding_contract_expression({'system': system, 'code': code})}: {swift_string(display)},"
+            for (system, code), display in sorted(displays.items())
+        ),
+        "    ]",
+        "}",
+        "",
+        "",
+    ]
+
+
+def electrocardiogram_waveform_code(ecg_claim: dict, sensor_contracts: list[dict], concepts: dict) -> dict:
+    """The waveform's code, which the HealthKit claim does not restate: the code of the sensor contract whose
+    profile the claim's first profile is, with the display the guide's LOINC concept catalog states."""
+    profile = ecg_claim["profiles"][0]
+    contracts = [contract for contract in sensor_contracts if contract.get("profile") == profile]
+    if len(contracts) != 1 or not isinstance(contracts[0].get("code"), dict):
+        raise ValueError(f"HealthKit ECG profile {profile!r} is no single coded sensor contract's")
+    code = contracts[0]["code"]
+    return {**code, "display": code.get("display") or loinc_display(code, concepts, "HealthKit ECG waveform")}
+
+
 def electrocardiogram_outputs(ecg_claim: dict) -> dict[str, dict]:
     """The ECG claim's outputs by role: exactly the waveform and the average heart rate."""
     outputs: dict[str, dict] = {}
@@ -589,13 +646,14 @@ def correlated_symptom_cases(identifiers: list[str], source_type_cases: dict[str
 
 def electrocardiogram_claim_lines(
     ecg_claim: dict,
+    waveform_code: dict,
     measurement_members: dict[str, tuple[str, dict]],
     source_type_cases: dict[str, str],
     profile_reference: Callable[[str], str],
 ) -> list[str]:
-    """The ECG claim typed against the HealthKit SDK, `internal` to the adapter: its outputs, the average heart
-    rate's code and measurement, the lead and its coding, the voltage unit, each closed value mapping and the
-    correlated symptom types."""
+    """The ECG claim typed against the HealthKit SDK, `internal` to the adapter: its outputs, the waveform's code,
+    the average heart rate's code and measurement, the lead and its coding, the voltage unit, each closed value
+    mapping and the correlated symptom types."""
     outputs = electrocardiogram_outputs(ecg_claim)
     average_heart_rate = outputs["average-heart-rate"]
     measurement_member = average_heart_rate_member(average_heart_rate, measurement_members)
@@ -633,6 +691,8 @@ def electrocardiogram_claim_lines(
         f"        discriminator: {swift_string(outputs['electrocardiogram']['outputDiscriminator'])},",
         "        profiles: HealthKitContract.electrocardiogramProfiles",
         "    )",
+        "    /// The waveform's code: the code of the sensor contract its first profile is, with the guide's display.",
+        f"    static let waveformCode = {coding_contract_expression(waveform_code)}",
         "    /// The average-heart-rate Observation, derived from the waveform.",
         "    static let averageHeartRate = Output(",
         f"        role: {swift_string(average_heart_rate['outputRole'])},",
@@ -671,6 +731,15 @@ def load_catalog(path: Path) -> dict:
     if value.get("fhirVersion") != "4.0.1":
         raise ValueError(f"{path} is not an R4 (4.0.1) catalog")
     return value
+
+
+def load_concepts(path: Path) -> dict:
+    """The concepts of one of the guide's terminology catalogs, by code."""
+    with path.open(encoding="utf-8") as file:
+        concepts = json.load(file).get("concepts")
+    if not isinstance(concepts, dict):
+        raise ValueError(f"{path} states no concepts")
+    return concepts
 
 
 def generate(catalog_directory: Path) -> str:

@@ -144,19 +144,6 @@ enum HealthKitContentRules {
     /// How many seconds one unit of a duration contract's UCUM code lasts.
     static let durationUnits: [String: Double] = ["s": 1, "min": 60]
 
-    /// The display of each emitted measurement code the catalog states without one; the guide states none either.
-    static let displays: [String: String] = [
-        "blood-pressure": "Blood pressure panel with all children optional",
-        "body-height": "Body height",
-        "body-mass-index": "Body mass index (BMI) [Ratio]",
-        "body-temperature": "Body temperature",
-        "body-weight": "Body weight",
-        "distance": "Distance traveled",
-        "heart-rate": "Heart rate",
-        "oxygen-saturation": "Oxygen saturation in Arterial blood",
-        "respiratory-rate": "Respiratory rate"
-    ]
-
     /// The categories Grove states for measurements the catalog fixes none for.
     static let categories: [String: CodingContract] = [
         "body-mass-index": category("vital-signs", "Vital Signs"),

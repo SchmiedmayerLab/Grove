@@ -36,6 +36,7 @@ HEART_RATE = {
 }
 BMI_PROFILE = "http://hl7.org/fhir/StructureDefinition/bmi"
 HEALTHKIT_OBSERVATION = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"
+SENSOR_ECG = "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation"
 
 
 class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
@@ -70,6 +71,20 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 **base,
                 "statusVocabulary": ["supported", "deferred"],
                 "measurements": [copy.deepcopy(HEART_RATE)],
+            },
+            "sensor-catalog.json": {
+                **base,
+                "contracts": [
+                    {"id": "sampled-data", "profile": "grove-sensor-sampled-data-observation"},
+                    {"id": "ecg", "profile": SENSOR_ECG, "code": {"system": "http://loinc.org", "code": "11524-6"}},
+                ],
+            },
+            "terminology/loinc-concepts.json": {
+                "concepts": {
+                    "11524-6": {"display": "EKG study"},
+                    "39156-5": {"display": "Body mass index (BMI) [Ratio]"},
+                    "8867-4": {"display": "Heart rate"},
+                },
             },
             "profile-claims.json": {
                 **base,
@@ -570,6 +585,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for name, value in catalogs.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / name).write_text(json.dumps(value), encoding="utf-8")
             return MODULE.generate(root)
 
@@ -577,6 +593,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for name, value in catalogs.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / name).write_text(json.dumps(value), encoding="utf-8")
             return MODULE.generate_healthkit(root)
 
@@ -1068,6 +1085,64 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         contract = self.generate(self.catalogs())
         self.assertNotIn("HealthKitElectrocardiogramClaim", contract)
         self.assertNotIn("ClosedValueMappingContract", contract)
+
+    def test_generates_the_guide_display_of_each_code_a_row_states_without_one(self):
+        generated = self.generate_healthkit(self.catalogs())
+
+        self.assertIn(
+            "enum HealthKitTerminology {\n"
+            "    /// The display of each such code.\n"
+            "    static let displays: [CodingContract: String] = [\n"
+            '        CodingContract(system: "http://loinc.org", code: "39156-5"): "Body mass index (BMI) [Ratio]",\n'
+            "    ]\n"
+            "}\n",
+            generated,
+        )
+        self.assertIn(
+            '    static let waveformCode = CodingContract(system: "http://loinc.org", code: "11524-6", '
+            'display: "EKG study")',
+            generated,
+        )
+
+        catalogs = self.catalogs()
+        catalogs["measurement-catalog.json"]["measurements"].append(
+            {**HEART_RATE, "id": "symptom-fatigue", "profile": "healthkit-symptom-fatigue", "category": None}
+        )
+        generated = self.generate_healthkit(catalogs)
+
+        self.assertIn('        CodingContract(system: "http://loinc.org", code: "8867-4"): "Heart rate",\n', generated)
+
+    def test_rejects_a_code_the_guide_states_no_display_for(self):
+        catalogs = self.catalogs()
+        catalogs["terminology/loinc-concepts.json"]["concepts"].pop("39156-5")
+
+        with self.assertRaisesRegex(ValueError, "body-mass-index code .* is no LOINC concept"):
+            self.generate_healthkit(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["healthkit-adapter.json"]["standardAdapterClaims"]["body-mass-index"]["code"]["system"] = "urn:other"
+
+        with self.assertRaisesRegex(ValueError, "body-mass-index code .* is no LOINC concept"):
+            self.generate_healthkit(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["terminology/loinc-concepts.json"]["concepts"].pop("11524-6")
+
+        with self.assertRaisesRegex(ValueError, "HealthKit ECG waveform code .* is no LOINC concept"):
+            self.generate_healthkit(catalogs)
+
+    def test_rejects_an_electrocardiogram_profile_no_single_coded_sensor_contract_has(self):
+        catalogs = self.catalogs()
+        catalogs["sensor-catalog.json"]["contracts"][1].pop("code")
+
+        with self.assertRaisesRegex(ValueError, "is no single coded sensor contract's"):
+            self.generate_healthkit(catalogs)
+
+        catalogs = self.catalogs()
+        catalogs["sensor-catalog.json"]["contracts"].append({"id": "ecg-copy", "profile": SENSOR_ECG, "code": {}})
+
+        with self.assertRaisesRegex(ValueError, "is no single coded sensor contract's"):
+            self.generate_healthkit(catalogs)
 
     def electrocardiogram_claim(self, catalogs: dict[str, dict]) -> dict:
         return catalogs["healthkit-adapter.json"]["sensorAdapterClaims"]["electrocardiogram"]

@@ -214,7 +214,7 @@ struct HealthKitContentCompiler {
         contract: MeasurementContract,
         type: HealthKitSourceType
     ) throws(HealthKitContentDefect) -> (ObservationPlan, HealthKitUnitBinding?) {
-        guard let display = contract.code.display ?? HealthKitContentRules.displays[contract.id] else {
+        guard let display = contract.code.display ?? HealthKitTerminology.displays[contract.code] else {
             throw HealthKitContentDefect("states no display for code \(contract.code.code)")
         }
         let primary = Coding(contract.code.code, display: display, system: contract.code.system)

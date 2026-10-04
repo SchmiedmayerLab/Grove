@@ -246,6 +246,25 @@ public enum HealthKitSourceType: String, CaseIterable, Sendable {
 }
 
 
+/// The guide's display of each code a HealthKit row's measurement states without one, generated from the
+/// guide's LOINC concept catalog (terminology/loinc-concepts.json) and keyed by the code exactly as the
+/// measurement states it.
+enum HealthKitTerminology {
+    /// The display of each such code.
+    static let displays: [CodingContract: String] = [
+        CodingContract(system: "http://loinc.org", code: "103208-5"): "Distance traveled",
+        CodingContract(system: "http://loinc.org", code: "2708-6"): "Oxygen saturation in Arterial blood",
+        CodingContract(system: "http://loinc.org", code: "29463-7"): "Body weight",
+        CodingContract(system: "http://loinc.org", code: "39156-5"): "Body mass index (BMI) [Ratio]",
+        CodingContract(system: "http://loinc.org", code: "8302-2"): "Body height",
+        CodingContract(system: "http://loinc.org", code: "8310-5"): "Body temperature",
+        CodingContract(system: "http://loinc.org", code: "85354-9"): "Blood pressure panel with all children optional",
+        CodingContract(system: "http://loinc.org", code: "8867-4"): "Heart rate",
+        CodingContract(system: "http://loinc.org", code: "9279-1"): "Respiratory rate",
+    ]
+}
+
+
 /// The HealthKit electrocardiogram claim, generated from healthkit-adapter.json sensorAdapterClaims and
 /// typed against the HealthKit SDK, so the compiler checks the guide's spelling of every HealthKit value.
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -266,6 +285,8 @@ enum HealthKitElectrocardiogramClaim {
         discriminator: "single",
         profiles: HealthKitContract.electrocardiogramProfiles
     )
+    /// The waveform's code: the code of the sensor contract its first profile is, with the guide's display.
+    static let waveformCode = CodingContract(system: "http://loinc.org", code: "11524-6", display: "EKG study")
     /// The average-heart-rate Observation, derived from the waveform.
     static let averageHeartRate = Output(
         role: "average-heart-rate",
