@@ -59,6 +59,55 @@
 
     ]
   },
+  "body-fat-percentage-fraction" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:7e2daf30-fa9f-5109-bf99-bde9f7372d48",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:61ntx4Wm6nYiCP94sBJqMHMt3K7lEmUKBnecIIlld_Y",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:EF6-KdQX48tK2qknDEBPily4QV7dJ3rSda3lpZcAC_0"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:6f014028-e036-55e4-8014-2c7a1283d5a7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:HAv_3jBYvdpINfE0fND78d-PrNz0KeHGfGHlmFv76U8"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:db2aecc1-1e64-5cb4-a658-48f84bda575b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:eQ7WLWVoWr6YMu8Uvk4G9HiY90zYM4KG9Tq4xIyJWwc",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:6297455a-b3bc-5487-b76b-d59f4beee18c",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
   "body-mass-user-entered" : {
     "entries" : [
       {

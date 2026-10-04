@@ -149,6 +149,14 @@ struct HealthKitFHIRConverterTests {
         }
     }
 
+    struct PercentCase: CustomTestStringConvertible, Sendable {
+        let type: HKQuantityTypeIdentifier
+        let fraction: Double
+        let expected: String
+
+        var testDescription: String { "\(type.rawValue) \(fraction) -> \(expected)" }
+    }
+
     enum SleepCase: Int, CaseIterable, CustomTestStringConvertible, Sendable {
         case inBed = 0
         case asleepUnspecified = 1
@@ -181,6 +189,18 @@ struct HealthKitFHIRConverterTests {
             }
         }
     }
+
+    /// Each percent type with a fraction the binary64 product `fraction * 100` states with a tail.
+    static let percentCases: [PercentCase] = [
+        PercentCase(type: .bodyFatPercentage, fraction: 0.282, expected: "28.2"),
+        PercentCase(type: .oxygenSaturation, fraction: 0.57, expected: "57"),
+        PercentCase(type: .peripheralPerfusionIndex, fraction: 0.14, expected: "14"),
+        PercentCase(type: .walkingAsymmetryPercentage, fraction: 0.07, expected: "7"),
+        PercentCase(type: .walkingDoubleSupportPercentage, fraction: 0.29, expected: "29"),
+        PercentCase(type: .bloodAlcoholContent, fraction: 0.0007, expected: "0.07"),
+        PercentCase(type: .atrialFibrillationBurden, fraction: 0.58, expected: "58"),
+        PercentCase(type: .appleWalkingSteadiness, fraction: 0.56, expected: "56")
+    ]
 
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
@@ -375,6 +395,32 @@ struct HealthKitFHIRConverterTests {
         if testCase == .bodyFatPercentage {
             #expect(quantity.value?.value?.decimal.description == "22.3")
         }
+    }
+
+    @Test("Every percent type states its fraction in percent exactly, not as the binary64 product", arguments: percentCases)
+    func percentTypesStateTheExactPercent(testCase: PercentCase) throws {
+        #expect(testCase.fraction * 100 != Double(testCase.expected), "the product states \(testCase.expected) exactly too")
+        let sample = quantitySample(testCase.type, unit: .percent(), value: testCase.fraction)
+
+        let observation = try ExporterFixtures.export(sample, inputs).observation
+
+        guard case .quantity(let quantity) = observation.value else {
+            Issue.record("a percent type states a quantity")
+            return
+        }
+        #expect(quantity.code?.value?.string == "%")
+        #expect(quantity.value?.value?.decimal.description == testCase.expected)
+    }
+
+    @Test("The percent cases cover every type whose plan reads a fraction")
+    func percentCasesCoverEveryPercentType() {
+        let percentTypes = HealthKitContentPlan.all.filter { plan in
+            guard case .observation(let observation) = plan.route, case .quantity(_, .percent) = observation.value else {
+                return false
+            }
+            return true
+        }
+        #expect(Set(percentTypes.map(\.sourceType.rawValue)) == Set(Self.percentCases.map(\.type.rawValue)))
     }
 
     @Test("Every HealthKit sleep-stage value maps to the shared code system", arguments: SleepCase.allCases)
@@ -950,6 +996,16 @@ struct HealthKitFHIRConverterTests {
         }
         #expect(throws: Never.self) {
             try QuantityTemplate(percentage).quantity(100)
+        }
+        // A fraction just above 1 or below 0 states a percent outside the domain; exactly 1 states 100.
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+            try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: 1.0000000000000002))
+        }
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+            try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: -0.01))
+        }
+        #expect(throws: Never.self) {
+            try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: 1))
         }
         #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try QuantityTemplate(valence).quantity(1.01)

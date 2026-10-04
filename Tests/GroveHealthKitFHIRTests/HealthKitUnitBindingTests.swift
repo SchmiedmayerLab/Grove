@@ -82,7 +82,7 @@ struct HealthKitUnitBindingTests {
     @Test(arguments: [
         UnitConversionCase(type: .bodyTemperature, unit: .degreeFahrenheit(), value: 98.6, lexeme: "37.00000000000006", code: "Cel"),
         UnitConversionCase(type: .distanceWalkingRunning, unit: .mile(), value: 1, lexeme: "1609.344", code: "m"),
-        UnitConversionCase(type: .oxygenSaturation, unit: .percent(), value: 0.07, lexeme: "7.000000000000001", code: "%"),
+        UnitConversionCase(type: .oxygenSaturation, unit: .percent(), value: 0.07, lexeme: "7", code: "%"),
         UnitConversionCase(
             type: .bloodGlucose,
             unit: HKUnit.moleUnit(with: .milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: .liter()),
