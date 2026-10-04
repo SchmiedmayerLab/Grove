@@ -9,8 +9,8 @@
 // Literal formatting follows FHIR resource shape.
 // swiftlint:disable multiline_literal_brackets
 
-import Foundation
-import ModelsR4
+package import Foundation
+package import ModelsR4
 
 
 /// Builds the one exchange graph shape the HealthKit and SensorKit adapters emit: outputs decorated with the
@@ -18,7 +18,8 @@ import ModelsR4
 /// Bundle header, in the fixed entry order the guide validates.
 ///
 /// Every identity is minted once and its fullUrl computed once. The adapter supplies content; the
-/// assembler supplies everything the graph says about the event, the producer and the record.
+/// assembler supplies everything the graph says about the event, the producer and the record. Questionnaire keeps
+/// its own entry list and takes only the Device bodies and the conversion Provenance from the assembler's builders.
 package struct ExchangeGraphAssembler: Sendable {
     /// What every output of one graph may link to, resolved once per graph.
     struct Surroundings {
@@ -90,13 +91,14 @@ package struct ExchangeGraphAssembler: Sendable {
             nodeRole: "conversion-provenance",
             ordinal: 0
         )
-        var provenance = try provenance(
-            sourceIdentifier: draft.sourceRecord.identifier.fhirIdentifier,
+        var provenance = try Self.conversionProvenance(
+            of: draft.sourceRecord,
             targetURLs: outputs.map(\.url),
-            converterURL: devices.converter.applicationURL,
+            assemblerURL: devices.converter.applicationURL,
             // The writer application is the Provenance author; without one the Provenance names none.
             authorURL: devices.writer?.applicationURL,
-            recordedAt: draft.instant
+            profile: envelope.adapter.provenanceProfile,
+            at: draft.instant
         )
         provenance.id = draft.repositoryIDs[.provenance]?.primitive
 
@@ -264,14 +266,31 @@ extension ExchangeGraphAssembler {
 // MARK: - Provenance
 
 extension ExchangeGraphAssembler {
-    private func provenance(
-        sourceIdentifier: Identifier,
+    /// The conversion Provenance as every exchange graph states it: the transform activity, the converting application as
+    /// the assembler agent, the source record as the entity, with the writer that authored it when the graph names one, and
+    /// every output as a target.
+    ///
+    /// `recorded` states the conversion instant in UTC and `occurred` the same instant at `occurredOffset`'s offset: UTC
+    /// in the assembler's graphs, the response's authored offset in Questionnaire's.
+    ///
+    /// - Parameters:
+    ///   - source: The record the outputs were converted from.
+    ///   - targetURLs: The fullUrl of every output, in entry order.
+    ///   - assemblerURL: The fullUrl of the converting application's snapshot.
+    ///   - authorURL: The fullUrl of the writer application's snapshot when the graph names the record's author.
+    ///   - profile: The adapter's conversion Provenance profile.
+    ///   - instant: The conversion instant, the event reservation's millisecond.
+    ///   - occurredOffset: The zone whose offset `occurred` states the instant at.
+    package static func conversionProvenance(
+        of source: SourceRecordIdentity,
         targetURLs: [String],
-        converterURL: String,
-        authorURL: String?,
-        recordedAt: Date
+        assemblerURL: String,
+        authorURL: String? = nil,
+        profile: FHIRPrimitive<Canonical>,
+        at instant: Date,
+        occurredOffset: TimeZone = .utc
     ) throws -> Provenance {
-        var entity = ProvenanceEntity(role: FHIRPrimitive(.source), what: Reference(identifier: sourceIdentifier))
+        var entity = ProvenanceEntity(role: FHIRPrimitive(.source), what: Reference(identifier: source.identifier.fhirIdentifier))
         entity.agent = authorURL.map { url in
             [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(code: "author", display: "Author", system: Canonicals.provenanceParticipantType)]),
@@ -286,12 +305,12 @@ extension ExchangeGraphAssembler {
             )]),
             agent: [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(code: "assembler", display: "Assembler", system: Canonicals.provenanceParticipantType)]),
-                who: Reference(reference: converterURL.asFHIRStringPrimitive())
+                who: Reference(reference: assemblerURL.asFHIRStringPrimitive())
             )],
             entity: [entity],
-            meta: Meta(profile: [envelope.adapter.provenanceProfile]),
-            occurred: .dateTime(FHIRPrimitive(try ExchangeInstant.fhirDateTime(recordedAt))),
-            recorded: FHIRPrimitive(try ExchangeInstant.fhirInstant(recordedAt)),
+            meta: Meta(profile: [profile]),
+            occurred: .dateTime(FHIRPrimitive(try ExchangeInstant.fhirDateTime(instant, offsetIn: occurredOffset))),
+            recorded: FHIRPrimitive(try ExchangeInstant.fhirInstant(instant)),
             target: targetURLs.map { Reference(reference: $0.asFHIRStringPrimitive()) }
         )
     }

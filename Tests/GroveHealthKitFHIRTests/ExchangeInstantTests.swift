@@ -41,6 +41,17 @@ struct ExchangeInstantTests {
         (253_402_300_799, "9999-12-31T23:59:59Z")
     ]
 
+    /// Instants and their lexemes at an offset of the given seconds east of UTC.
+    private static let pinnedAtOffsets: [(secondsEast: Int, pin: (seconds: TimeInterval, lexeme: String))] = [
+        (-25_200, (1_787_931_125.123, "2026-08-28T08:32:05.123-07:00")),
+        (19_800, (1_788_010_000.9876, "2026-08-29T18:56:40.988+05:30")),
+        (0, (1_787_931_125, "2026-08-28T15:32:05Z")),
+        (20_700, (1_787_931_125, "2026-08-28T21:17:05+05:45")),
+        (3_600, (1_767_225_599.5, "2026-01-01T00:59:59.5+01:00")),
+        (50_400, (0, "1970-01-01T14:00:00+14:00")),
+        (-43_200, (0, "1969-12-31T12:00:00-12:00"))
+    ]
+
     @Test("Whole seconds, fractions and boundaries print as pinned", arguments: Self.pinned)
     func pinnedLexemes(_ pin: (seconds: TimeInterval, lexeme: String)) {
         #expect(ExchangeInstant.utcLexeme(Date(timeIntervalSince1970: pin.seconds)) == pin.lexeme)
@@ -97,6 +108,39 @@ struct ExchangeInstantTests {
             #expect(instant.timeZone == TimeZone(secondsFromGMT: 0))
             #expect(try Instant(lexeme) == instant)
         }
+    }
+
+    @Test("An instant at an offset states the wall time there, to the millisecond, and the offset", arguments: Self.pinnedAtOffsets)
+    func offsetLexemes(_ pinned: (secondsEast: Int, pin: (seconds: TimeInterval, lexeme: String))) throws {
+        let zone = try #require(TimeZone(secondsFromGMT: pinned.secondsEast))
+        let dateTime = try ExchangeInstant.fhirDateTime(Date(timeIntervalSince1970: pinned.pin.seconds), offsetIn: zone)
+        #expect(dateTime.description == pinned.pin.lexeme)
+        #expect(abs(try dateTime.asNSDate().timeIntervalSince1970 - pinned.pin.seconds) < 0.000_5)
+    }
+
+    /// Questionnaire's `Provenance.occurred` was built by FHIRModels at the authored offset; whole seconds keep its bytes.
+    @Test("Whole-second offset instants equal what FHIRModels builds from the date in the zone", arguments: [
+        -25_200, 19_800, 20_700, 0, -12_600, 50_400
+    ])
+    func offsetMatchesFHIRModelsForWholeSeconds(_ offset: Int) throws {
+        let zone = try #require(TimeZone(secondsFromGMT: offset))
+        for seconds in [1_787_931_125, 1_767_225_599, 0, 951_825_600] as [TimeInterval] {
+            let date = Date(timeIntervalSince1970: seconds)
+            #expect(try ExchangeInstant.fhirDateTime(date, offsetIn: zone).description == DateTime(date: date, timeZone: zone).description)
+        }
+    }
+
+    @Test("A named zone states its offset at that instant, and a sub-minute offset is dropped with the wall time following")
+    func zoneOffsetsAtTheInstant() throws {
+        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        #expect(try ExchangeInstant.fhirDateTime(Date(timeIntervalSince1970: 1_787_931_125), offsetIn: losAngeles).description
+            == "2026-08-28T08:32:05-07:00")
+        #expect(try ExchangeInstant.fhirDateTime(Date(timeIntervalSince1970: 1_767_225_600), offsetIn: losAngeles).description
+            == "2025-12-31T16:00:00-08:00")
+        let subMinute = try #require(TimeZone(secondsFromGMT: 3_630))
+        let dateTime = try ExchangeInstant.fhirDateTime(Date(timeIntervalSince1970: 1_787_931_125), offsetIn: subMinute)
+        #expect(dateTime.description == "2026-08-28T16:32:05+01:00")
+        #expect(try dateTime.asNSDate() == Date(timeIntervalSince1970: 1_787_931_125))
     }
 
     @Test("A year outside four digits is not a FHIR instant")
