@@ -162,7 +162,9 @@ A sample that cannot be exported is refused in place with a ``HealthKitConversio
 ``HealthKitFHIRExporter/Export/warnings`` lists what a graph does not carry although its record did, each a registered `ProducerDiagnostic`; log them with that graph's event.
 `mobile-omission.recording-device` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``HealthKitFHIRExporter/RecordingDeviceResolver`` through ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)`` when you have one.
 `mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone; a blood-pressure correlation that names none takes the zone its systolic and diastolic members agree on.
-`mobile-omission.unmodeled-metadata` means the sample carried metadata outside the typed allowlist, which was left out; for blood pressure, the correlation's and its members' keys count.
+`mobile-omission.unmodeled-metadata` is located at `HKSample.metadata`: the record, or a correlation member, workout event or workout activity it contains, carried metadata its graph does not represent.
+A graph represents a key only through the element the guide maps it to, on an output that has that element: a time zone on a heartbeat series is withheld, because a document has no element for it, and so is a key one source type reads stated on another.
+`HKMetadataKeyWasUserEntered` stated `false` is represented by omission and never reported, and a blood-pressure member's zone or manual entry that the record takes is represented as the record's own.
 An omission an option chose, such as `recordingDevice` `.omit`, is never a warning.
 
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.

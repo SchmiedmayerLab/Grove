@@ -194,12 +194,17 @@ struct HealthKitContentCompiler {
             let contract = try contract(of: row)
             let observation = try self.observation(rule, contract: contract, type: type)
             let outputs = [HealthKitOutputSlot.primary(role: contract.id)]
-            let metadata: MetadataRule = if case .bloodPressure = rule { .bloodPressure } else { .allowlist }
-            return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, metadata: metadata)
+            return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, metadata: observation.metadataRule)
         case .electrocardiogram:
             let content = try HealthKitECGContent(sourceType: type)
             let outputs = [content.waveformSlot, content.averageHeartRateSlot]
-            return HealthKitContentPlan(type, entry: entry, route: .electrocardiogram(content), outputs: outputs)
+            return HealthKitContentPlan(
+                type,
+                entry: entry,
+                route: .electrocardiogram(content),
+                outputs: outputs,
+                metadata: HealthKitECGContent.metadataRule
+            )
         case let .recording(format, title):
             let document = DocumentPlan(sourceType: type, format: format, profiles: Self.recordingProfiles(of: row), title: title)
             let outputs = [HealthKitOutputSlot.document(role: HealthKitContentRules.nativeRecordingRole, format: format)]

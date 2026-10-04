@@ -18,14 +18,16 @@ import ModelsR4
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
     /// What a sample says about its origin, resolved once under the exporter's policies: the physical
-    /// unit it was measured on, who wrote it, which clear identifiers travel, and what is withheld.
+    /// unit it was measured on, who wrote it, and which clear identifiers travel.
     struct SourceFacts {
         let recordingDevice: ExchangeRecordingDeviceDraft?
         let writer: ExchangeWriterDraft?
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
         let wasUserEntered: Bool
-        /// Each one registered `mobile-omission` rule. An omission a policy chose is not a warning.
+        /// The recording device's omission, when its unit cannot be identified, as its registered `mobile-omission`
+        /// rule; an omission a policy chose is not a warning. What the graph withholds of the sample's metadata depends
+        /// on its outputs, so the assembly reports it.
         let warnings: [ProducerDiagnostic]
 
         /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it.
@@ -52,9 +54,6 @@ extension HealthKitAssembly {
             self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
             self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
             self.wasUserEntered = metadata.wasUserEntered
-            if !metadata.withheldKeys.isEmpty {
-                warnings.append(ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic)
-            }
             self.warnings = warnings
         }
     }

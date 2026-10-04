@@ -79,6 +79,12 @@ struct ObservationPlan: Sendable {
     /// The metadata stated as a further component, after the value's own components.
     let metadataComponent: MetadataComponentRule?
 
+    /// The metadata keys of its own the type's content carries (the value's, then the metadata component's), and whether
+    /// its record holds its correlation's members' metadata.
+    var metadataRule: MetadataRule {
+        MetadataRule(contentFields: [value.metadataField, metadataComponent?.field].compactMap(\.self), readsMembers: value.readsMembers)
+    }
+
     /// The Observation a source type's content starts from: final, of `code`, with the source-type extension as its
     /// only content extension, its profiles, and the category and aggregation method its measurement fixes.
     ///
@@ -120,6 +126,16 @@ struct ObservationPlan: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ValueRule {
+    /// The metadata key the value is read from: whether protection was used; every other value reads none.
+    var metadataField: HealthKitConversionError.MetadataField? {
+        if case .protection = self { .sexualActivityProtectionUsed } else { nil }
+    }
+
+    /// Whether the record holds its correlation's members' metadata: only a blood-pressure panel's does (spec F9).
+    var readsMembers: Bool {
+        if case .bloodPressure = self { true } else { false }
+    }
+
     /// A category sample that states only that it occurred states `HKCategoryValue.notApplicable`; any other value is
     /// unsupported.
     private static func requireNotApplicable(_ sample: HKSample) throws(HealthKitConversionError.ValueFailure) {

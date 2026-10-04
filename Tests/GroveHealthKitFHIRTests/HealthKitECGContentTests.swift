@@ -366,9 +366,12 @@ struct HealthKitECGContentTests {
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")
         ]
-        #expect(set.primary.warnings.isEmpty)
+        // The ECG states its zone's offset but not its name, so the name is withheld; the symptom names none.
+        let ecgWarnings = [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")]
+        #expect(set.primary.warnings == ecgWarnings)
+        #expect(try AssemblyFixtures.conversions(record).first?.withheldMetadataKeys == [HKMetadataKeyTimeZone])
         #expect(set.companions.map(\.warnings) == [symptomWarnings])
-        #expect(set.warnings == symptomWarnings)
+        #expect(set.warnings == ecgWarnings + symptomWarnings)
     }
 
     /// Each symptom is a source record of its own, so it converts under an event of its own beside the ECG's.

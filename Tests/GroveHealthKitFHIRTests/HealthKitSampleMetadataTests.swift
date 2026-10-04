@@ -28,8 +28,6 @@ struct HealthKitSampleMetadataTests {
         let zone: Result<TimeZone?, HealthKitConversionError.ValueFailure>
         /// Whether it states manual entry.
         var wasUserEntered = false
-        /// The keys it withholds.
-        var withheldKeys: [String] = []
     }
 
     /// One metadata component's outcome.
@@ -63,18 +61,26 @@ struct HealthKitSampleMetadataTests {
         BridgeCase(metadata: [HKMetadataKeyWasUserEntered: "true"], zone: .success(nil)),
         BridgeCase(
             metadata: ["Foreign": 1, "Another": "value", HKMetadataKeyTimeZone: "UTC", HKMetadataKeyHeartRateMotionContext: 1],
-            zone: .success(TimeZone(identifier: "UTC")),
-            withheldKeys: ["Another", "Foreign"]
+            zone: .success(TimeZone(identifier: "UTC"))
         ),
         BridgeCase(metadata: [HKMetadataKeySyncIdentifier: "record", HKMetadataKeySyncVersion: 3, HKMetadataKeyMenstrualCycleStart: true], zone: .success(nil))
     ]
 
-    @Test("Every plan consumes the adapter's typed allowlist")
-    func everyPlanConsumesTheAllowlist() {
-        #expect(HealthKitContentPlan.all.allSatisfy { $0.metadata.consumedKeys == HealthKitConversionError.MetadataField.keys })
+    @Test("Each plan names the metadata keys its own content carries, and only those")
+    func plansNameTheirContentKeys() {
+        let expected: [HealthKitSourceType: [HealthKitConversionError.MetadataField]] = [
+            .heartRate: [.heartRateMotionContext],
+            .insulinDelivery: [.insulinDeliveryReason],
+            .menstrualFlow: [.menstrualCycleStart],
+            .sexualActivity: [.sexualActivityProtectionUsed],
+            .electrocardiogram: [.appleECGAlgorithmVersion]
+        ]
+        for plan in HealthKitContentPlan.all {
+            #expect(plan.metadata.contentFields == expected[plan.sourceType] ?? [], "\(plan.sourceType.rawValue)")
+        }
     }
 
-    @Test("The bridge reads the time zone, manual entry and withheld keys")
+    @Test("The bridge reads the time zone and manual entry, and holds no contained metadata for a plain sample")
     func bridgeReadsTheMetadata() throws {
         let rule = HealthKitContentPlan[.heartRate].metadata
         for expected in Self.bridgeCases {
@@ -84,7 +90,7 @@ struct HealthKitSampleMetadataTests {
             #expect(bridged.statesTimeZone == (expected.metadata[HKMetadataKeyTimeZone] != nil), "\(label)")
             #expect(bridged.values.count == expected.metadata.count, "\(label)")
             #expect(bridged.wasUserEntered == expected.wasUserEntered, "\(label)")
-            #expect(bridged.withheldKeys == expected.withheldKeys, "\(label)")
+            #expect(bridged.containedValues.isEmpty, "\(label)")
         }
     }
 

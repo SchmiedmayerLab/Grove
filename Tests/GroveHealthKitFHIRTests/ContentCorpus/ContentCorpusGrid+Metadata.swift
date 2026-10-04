@@ -106,7 +106,9 @@ extension ContentCorpusGrid {
         return attributed + [convert("metadata/sync/pair-without-writer", ContentCorpusSource(heartRateRecord, metadata: pair(identifier, .integer(3))))]
     }
 
-    /// Keys no path reads, and keys one path reads stated on another: today every allowlisted key passes silently.
+    /// Keys no path reads, keys one path reads stated on another, and keys a graph has no element for (a document's
+    /// zone, manual entry and sync pair), each reported; and what stays silent: manual entry stated false, and a
+    /// correlation member's key the correlation carries with the equal value.
     static var unmodeledMetadata: [ContentCorpusVector] {
         func with(_ keys: [String: ContentCorpusMetadataValue]) -> [String: ContentCorpusMetadataValue] {
             zone.merging(keys) { _, new in new }
@@ -114,6 +116,13 @@ extension ContentCorpusGrid {
         let bodyMass = ContentCorpusRecord.quantity(type: HKQuantityTypeIdentifier.bodyMass.rawValue, value: 70, unit: "kg")
         let steps = ContentCorpusRecord.quantity(type: HKQuantityTypeIdentifier.stepCount.rawValue, value: 120, unit: "count")
         let series = ContentCorpusRecord.heartbeatSeries(beats: heartbeats)
+        let syncPair: [String: ContentCorpusMetadataValue] = [HKMetadataKeySyncIdentifier: .string("sync-abc"), HKMetadataKeySyncVersion: .integer(3)]
+        func pressure(_ members: [String: ContentCorpusMetadataValue]) -> ContentCorpusRecord {
+            .correlation(type: bloodPressure, members: [
+                ContentCorpusMember(type: HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue, value: 120, metadata: members),
+                ContentCorpusMember(type: HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue, value: 80, metadata: members)
+            ])
+        }
         let external: [String: ContentCorpusMetadataValue] = [HKMetadataKeyExternalUUID: .string("external-1")]
         let custom: [String: ContentCorpusMetadataValue] = ["org.example.flag": .boolean(true)]
         let cases: [(String, ContentCorpusSource)] = [
@@ -137,7 +146,11 @@ extension ContentCorpusGrid {
                 "heartbeat-series/menstrual-cycle-start",
                 ContentCorpusSource(series, end: start + 2, metadata: with([HKMetadataKeyMenstrualCycleStart: .boolean(true)]))
             ),
-            ("heartbeat-series/zone-only", ContentCorpusSource(series, end: start + 2))
+            ("heartbeat-series/zone-only", ContentCorpusSource(series, end: start + 2)),
+            ("heartbeat-series/user-entered-false", ContentCorpusSource(series, end: start + 2, metadata: with([HKMetadataKeyWasUserEntered: .boolean(false)]))),
+            ("heartbeat-series/sync-pair", ContentCorpusSource(series, end: start + 2, metadata: with(syncPair), writer: .foreign)),
+            ("blood-pressure/member-zone-equal", ContentCorpusSource(pressure(zone))),
+            ("blood-pressure/member-user-entered-false", ContentCorpusSource(pressure([HKMetadataKeyWasUserEntered: .boolean(false)])))
         ]
         return cases.map { label, source in
             convert("metadata/unmodeled/\(label)", source)

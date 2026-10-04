@@ -53,6 +53,9 @@ struct HealthKitECGContent: Sendable {
         let data: String
     }
 
+    /// The ECG's own metadata: its algorithm version, which the waveform states as its method.
+    static let metadataRule = MetadataRule(contentFields: [.appleECGAlgorithmVersion])
+
     /// The waveform's output, which links everything.
     let waveformSlot: HealthKitOutputSlot
     /// The average heart rate's output, derived from the waveform.
