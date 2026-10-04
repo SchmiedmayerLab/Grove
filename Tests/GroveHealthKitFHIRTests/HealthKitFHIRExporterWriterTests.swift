@@ -223,6 +223,41 @@ struct HealthKitFHIRExporterWriterTests {
         Self.statesNoWriter(try #require(exports[omitted.uuid]?.graph?.bundle), source: Self.otherApplication)
     }
 
+    @Test("A sample's writer-record identity and version travel whatever the writer policy says about its source")
+    func writerRecordTravelsUnderEveryWriterPolicy() throws {
+        let sample = try GoldenCase.attributedHeartRate(uuid: 0x61, writer: GoldenFixtures.foreignWriter, metadata: GoldenCase.syncMetadata)
+        // The writing application's bundle identifier scopes the sync identifier, whether or not the caller classified it.
+        let expected = try Fixtures.base.identityScope.writerRecord(
+            writerApplication: BusinessIdentifier(
+                system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem),
+                value: GoldenFixtures.foreignWriter.bundleIdentifier
+            ),
+            writerRecordID: "sync-abc"
+        )
+        let exporters: [(String, HealthKitFHIRExporter)] = try [
+            ("the default", Fixtures.exporter()),
+            ("omit", Fixtures.exporter { $0.writer = .omit }),
+            ("applications listing it", Fixtures.exporter { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }),
+            ("applications listing another", Fixtures.exporter { $0.writer = .applications([Self.otherApplication.bundleIdentifier]) }),
+            ("no applications", Fixtures.exporter { $0.writer = .applications([]) }),
+            ("classified as omitted", Fixtures.exporter { $0.writer = .classify { _ in .omit } }),
+            ("classified as an application", Fixtures.exporter { $0.writer = .classify { _ in .application } })
+        ]
+        for (policy, exporter) in exporters {
+            let bundle = try #require(try Self.exports(exporter, [sample])[sample.uuid]?.graph?.bundle)
+            let observation = try #require(bundle.entry?.compactMap { $0.resource?.get(if: ModelsR4.Observation.self) }.first)
+            let writerRecords = (observation.identifier ?? []).filter { (try? RoledIdentifier($0).role) == .writerRecord }
+            #expect(writerRecords.map { $0.value?.value?.string } == [expected.value], "under \(policy)")
+            let versions = (observation.extension ?? []).filter { $0.url == Canonicals.writerRecordVersion }.map { version -> String? in
+                guard case .string(let value)? = version.value else {
+                    return nil
+                }
+                return value.value?.string
+            }
+            #expect(versions == ["3"], "under \(policy)")
+        }
+    }
+
     @Test("W4: no source file of the adapter names Apple's per-device bundle-identifier prefix")
     func noSourceNamesThePerDevicePrefix() throws {
         let sources = URL(fileURLWithPath: #filePath)

@@ -53,13 +53,16 @@ extension HealthKitFHIRExporter {
     /// guide forbids classifying it from the bundle identifier's shape, the source name or the product type:
     /// a source nobody classified states no writer. Only the caller's explicit classification states one. The
     /// physical unit a sample was measured on is the recording Device, which ``RecordingDevicePolicy``
-    /// resolves from `HKDevice` whatever this policy says.
+    /// resolves from `HKDevice` whatever this policy says. A sample's sync identifier and version likewise
+    /// travel as its writer-record identity, scoped to the source's bundle identifier, under every policy.
     public enum WriterPolicy: Sendable {
         /// No writer is stated, and the Provenance names no author. The default.
         case omit
         /// A source whose bundle identifier is one of these, which the caller knows to be applications, is
         /// stated as that application, with its name, bundle identifier and `HKSourceRevision.version` and
-        /// the host it ran on. Every other source states no writer.
+        /// the host it ran on. Every other source states no writer. A listed source with a blank name or bundle
+        /// identifier states none either, and one whose bundle identifier is not a valid Apple bundle identifier
+        /// is refused with ``HealthKitConversionError/sourceApplicationInvalid``.
         case applications(Set<String>)
         /// The caller classifies each source. The closure must be a pure function of the source and stable
         /// across application versions: the context fingerprint records only that a closure classifies, so

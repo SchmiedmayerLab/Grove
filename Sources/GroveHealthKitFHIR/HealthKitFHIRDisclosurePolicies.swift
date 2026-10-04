@@ -30,7 +30,9 @@ public enum HealthKitUDIDisclosurePolicy: Hashable, Sendable {
 public enum HealthKitWriter: Hashable, Sendable {
     /// The source is an application: it is stated with its name, bundle identifier and version, all copied
     /// from the sample's `HKSourceRevision`, and the host it ran on, as the graph's `ExchangeGraphNode.writer`
-    /// and `ExchangeGraphNode.writerHost` snapshots and the Provenance author.
+    /// and `ExchangeGraphNode.writerHost` snapshots and the Provenance author. A source with a blank name or
+    /// bundle identifier states no writer, and one whose bundle identifier is not a valid Apple bundle
+    /// identifier is refused with ``HealthKitConversionError/sourceApplicationInvalid``.
     case application
     /// No writer is stated, and the Provenance names no author.
     case omit

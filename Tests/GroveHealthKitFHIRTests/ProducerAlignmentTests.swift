@@ -298,9 +298,16 @@ struct ProducerSurfaceTests {
                 try HealthKitConverter().convert(Self.heartRate, context: context)
             }
         }
-        let conversion = try HealthKitConverter().convert(Self.heartRate, context: HealthKitConversionContext(writer: .omit))
-        #expect(conversion.graphIdentifiers.writerSnapshot == nil)
-        #expect(conversion.graphIdentifiers.writerHostSnapshot == nil)
+        // Once the caller classifies an attributed sample's source as an application, the graph carries both nodes and
+        // a repository id names each.
+        let attributed = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xC1), writer: GoldenFixtures.foreignWriter)
+        let context = try HealthKitConversionContext(
+            writer: .application,
+            repositoryIDs: [.writer: RepositoryID("writer-1"), .writerHost: RepositoryID("writer-host-1")]
+        )
+        let conversion = try HealthKitConverter().convert(attributed, context: context)
+        #expect(conversion.graphIdentifiers.writerSnapshot != nil)
+        #expect(conversion.graphIdentifiers.writerHostSnapshot != nil)
     }
 
     @Test("A writer snapshot the converter already states is that entry, and its host goes with it")
