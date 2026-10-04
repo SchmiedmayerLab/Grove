@@ -29,6 +29,7 @@ extension ContentCorpusGrid {
 
     /// The four keys a single measurement reads: heart-rate motion context, insulin delivery reason, menstrual
     /// cycle start and sexual-activity protection, each absent, at every admitted value, out of range and mistyped.
+    /// An integer key read from a fractional number takes its integer part, whether the key is optional or required.
     static var typedMetadata: [ContentCorpusVector] {
         func family(_ name: String, _ record: ContentCorpusRecord, key: String, _ values: [(String, ContentCorpusMetadataValue?)]) -> [ContentCorpusVector] {
             values.map { label, value in
@@ -53,7 +54,8 @@ extension ContentCorpusGrid {
             "insulin-delivery-reason",
             insulin,
             key: HKMetadataKeyInsulinDeliveryReason,
-            [("absent", nil)] + integers([1, 2, 0, 3]) + [("string", .string("1")), ("boolean", .boolean(true)), ("double", .double(2))]
+            [("absent", nil)] + integers([1, 2, 0, 3])
+                + [("string", .string("1")), ("boolean", .boolean(true)), ("double", .double(2)), ("double-fractional", .double(1.5))]
         ) + family(
             "menstrual-cycle-start",
             flow,

@@ -168,9 +168,10 @@ extension ContentCorpusGrid {
         }
     }
 
-    /// Correlated symptoms: one, several sorted by type and UUID, refused types and duplicates, a status that
-    /// contradicts them, an invalid symptom value, a missing context, and what fails first beside them (each symptom
-    /// is checked for its type, then for its sample, before the next one).
+    /// Correlated symptoms: one, several sorted by type and UUID (two types whose UUIDs sort the other way among them),
+    /// refused types and duplicates, a status that contradicts them, an invalid symptom value, a missing context, and
+    /// what fails first beside them (the symptoms status, then whether the status admits symptoms at all, then each
+    /// symptom for its type and its sample before the next one).
     static var symptomRelationships: [(String, ContentCorpusElectrocardiogram)] {
         let present = HKElectrocardiogram.SymptomsStatus.present.rawValue
         let chest = HKCategoryTypeIdentifier.chestTightnessOrPain.rawValue
@@ -183,6 +184,7 @@ extension ContentCorpusGrid {
             ("symptoms/one", symptoms(present, [symptom(chest, 2, 0xE1)])),
             ("symptoms/two-types", symptoms(present, [symptom(fatigue, 2, 0xE2), symptom(chest, 3, 0xE1)])),
             ("symptoms/same-type", symptoms(present, [symptom(chest, 2, 0xE4), symptom(chest, 4, 0xE3)])),
+            ("symptoms/type-before-uuid", symptoms(present, [symptom(fatigue, 2, 0xE1), symptom(chest, 3, 0xE2)])),
             ("symptoms/unsupported-type", symptoms(present, [symptom(headache, 2, 0xE1)])),
             ("symptoms/duplicate-source", symptoms(present, [symptom(chest, 2, 0xE1), symptom(fatigue, 2, 0xE1)])),
             ("symptoms/unexpected", symptoms(HKElectrocardiogram.SymptomsStatus.none.rawValue, [symptom(chest, 2, 0xE1)])),
@@ -192,6 +194,8 @@ extension ContentCorpusGrid {
             ("precedence/symptoms-before-classification", reading(symptoms(present, [symptom(headache, 2, 0xE1)])) { $0.classification = 99 }),
             ("precedence/duplicate-source-before-later-type", symptoms(present, [symptom(chest, 2, 0xE1), symptom(chest, 2, 0xE1), symptom(headache, 2, 0xE2)])),
             ("precedence/type-before-duplicate-source", symptoms(present, [symptom(chest, 2, 0xE1), symptom(headache, 2, 0xE1)])),
+            ("precedence/symptoms-status-before-unexpected", symptoms(99, [symptom(chest, 2, 0xE1)])),
+            ("precedence/unexpected-before-type", symptoms(HKElectrocardiogram.SymptomsStatus.none.rawValue, [symptom(headache, 2, 0xE1)])),
             ("precedence/count-before-average-heart-rate", reading { reading in
                 reading.reportedCount = 3
                 reading.averageHeartRate = .nan
@@ -267,7 +271,9 @@ extension ContentCorpusGrid {
     }
 
     /// Heartbeat series and workout routes: their payloads, empty series, every link, the plain sample entry point, and
-    /// a route's disclosure and track checked before its source facts.
+    /// a route's disclosure and track checked before its source facts. A fix whose horizontal accuracy CoreLocation
+    /// reports negative (an invalid coordinate) still states it: the registry's column, unlike the optional readings,
+    /// cannot be empty.
     static var recordings: [ContentCorpusVector] {
         func series(_ label: String, _ beats: [ContentCorpusBeat], metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {
             convert("heartbeat-series/\(label)", ContentCorpusSource(.heartbeatSeries(beats: beats), end: start + 2, metadata: metadata))
@@ -289,6 +295,8 @@ extension ContentCorpusGrid {
             fix.speedAccuracy = -1
             return fix
         }
+        var invalidCoordinate = routeLocations[1]
+        invalidCoordinate.horizontalAccuracy = -1
         var linkedSeries = ContentCorpusSource(.heartbeatSeries(beats: heartbeats), end: start + 2)
         var linkedRoute = ContentCorpusSource(.workoutRoute(locations: routeLocations, disclosed: true), end: start + 1)
         linkedSeries.device = .watch
@@ -306,6 +314,7 @@ extension ContentCorpusGrid {
             route("row", routeLocations), route("omitted", routeLocations, disclosed: false), route("empty", []),
             route("unavailable-readings", unavailable),
             route("zero-readings", [routeLocations[0], restingFix]),
+            route("negative-horizontal-accuracy", [routeLocations[0], invalidCoordinate]),
             convert("workout-route/linked", linkedRoute),
             convert("workout-route/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.workoutRoute().identifier, sampleClass: "HKWorkoutRoute"))),
             route("precedence/omission-before-sync", routeLocations, disclosed: false, metadata: brokenSync),
