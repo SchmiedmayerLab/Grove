@@ -369,6 +369,27 @@ struct HealthKitECGEvidenceValidatorTests {
         }
     }
 
+    /// Two source records under one event would put two graphs under one event identifier; the positional symptom
+    /// contexts are the only shape that can state that, and the companion scope check does not compare events.
+    @Test("A symptom under the ECG's own event, or two symptoms under one event, are refused for the duplicate event")
+    @available(*, deprecated, message: "Exercises the deprecated converter's ECG path, the only one that takes symptom contexts")
+    func symptomEventsAreTheirOwn() throws {
+        let chest = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD1))
+        let fatigue = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD2), type: .fatigue)
+        let context = HealthKitConversionContext()
+        let shared = HealthKitConversionContext(conversionInstant: ExchangeEventContext.testInstant.addingTimeInterval(1))
+        let expected = HealthKitConversionError.ecgEvidence(.duplicateSymptomEventIdentity)
+        let single = try GoldenCase.electrocardiogramRecord(uuid: 0xD0, symptoms: [chest])
+        #expect(throws: expected) {
+            try HealthKitConverter().convert(single, context: context, symptomContexts: [context])
+        }
+        let pair = try GoldenCase.electrocardiogramRecord(uuid: 0xD0, symptoms: [chest, fatigue])
+        #expect(throws: expected) {
+            try HealthKitConverter().convert(pair, context: context, symptomContexts: [shared, shared])
+        }
+        #expect(try HealthKitConverter().convert(single, context: context, symptomContexts: [shared]).companions.count == 1)
+    }
+
     private func symptom(_ type: HKCategoryTypeIdentifier) -> HKCategorySample {
         HKCategorySample(
             type: HKCategoryType(type),

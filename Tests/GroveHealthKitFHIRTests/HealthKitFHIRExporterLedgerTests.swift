@@ -265,6 +265,40 @@ struct HealthKitFHIRExporterLedgerTests {
         #expect(reason == .ecgEvidence(.unsupportedSymptomType(type.rawValue)))
     }
 
+    @Test(
+        "An unregistered sample is refused under its own identifier, by the exporter and by the context API",
+        .enabled(if: HealthKitFHIRExporterLedgerTests.unregisteredCategoryType != nil, "no unregistered category type exists before OS 27")
+    )
+    @available(*, deprecated, message: "Exercises the deprecated converter's sample entry point beside the exporter")
+    func unregisteredSampleIsRefusedUnderItsIdentifier() throws {
+        let type = try #require(Self.unregisteredCategoryType)
+        let sample = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xA5), type: type, value: 1)
+        let expected = HealthKitConversionError.unregisteredSourceType(type.rawValue)
+        let (exports, _) = try Fixtures.collect(try Fixtures.exporter(), samples: [sample])
+        guard case .refused(let reason) = exports.first?.outcome else {
+            Issue.record("expected a refusal, got \(String(describing: exports.first?.outcome))")
+            return
+        }
+        #expect(reason == expected)
+        #expect(throws: expected) {
+            try HealthKitConverter().convert(sample, context: HealthKitConversionContext())
+        }
+    }
+
+    /// The ledger holds every reservation under its key's digest, so a key part that changed would orphan them all.
+    @Test("A record's active and retraction keys state the adapter token healthkit, its type and its lowercase UUID, a retraction also its bounds")
+    func eventKeysStateTheirParts() throws {
+        let record = "HKQuantityTypeIdentifierHeartRate|3a7e5c10-0000-4000-8000-0000000000c0"
+        let active = ExchangeEventKey(kind: .active, adapterID: "healthkit", sourceRecord: record)
+        #expect(ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(0xC0)) == active)
+        #expect(ExchangeEventKey.active(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xC0))) == active)
+        // The bounds in milliseconds since 1970, the unknown lower one empty.
+        let bounded = ExchangeEventKey(kind: .retraction, adapterID: "healthkit", sourceRecord: record, revision: "1787005800000|1787009400000")
+        #expect(ExchangeEventKey.retraction(Fixtures.deletion(0xC0, deletedAfter: GoldenFixtures.sampleStart)) == bounded)
+        let unbounded = ExchangeEventKey(kind: .retraction, adapterID: "healthkit", sourceRecord: record, revision: "|1787009400000")
+        #expect(ExchangeEventKey.retraction(Fixtures.deletion(0xC0)) == unbounded)
+    }
+
     @Test("E2: an ECG through the records path takes one reserve, mints its symptoms' events, and redelivers byte-identically")
     func electrocardiogramThroughTheRecordsPath() throws {
         let storage = LedgerCountingStorage()
