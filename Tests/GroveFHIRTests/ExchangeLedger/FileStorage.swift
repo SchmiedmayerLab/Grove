@@ -18,12 +18,12 @@ import GroveFHIRContract
 /// A single-file storage per the contract's backend table: the map is a binary property list rewritten
 /// atomically through a synced temporary file and a rename, serialised by a process lock and by `flock` on a
 /// sibling lock file that is never replaced.
-final class FileStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // The file is guarded by `lock` and `flock`.
+final class FileStorage: ExchangeProducer.Storage, @unchecked Sendable { // The file is guarded by `lock` and `flock`.
     struct IOFailure: Error, Equatable {
         let operation: String
     }
 
-    private final class Snapshot: ExchangeEventSequencer.Transaction {
+    private final class Snapshot: ExchangeProducer.Transaction {
         var entries: [String: Data]
         var changed = false
 
@@ -71,7 +71,7 @@ final class FileStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { /
         #endif
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         lock.lock()
         defer {
             lock.unlock()

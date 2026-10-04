@@ -53,7 +53,7 @@ struct HealthKitFHIRExporterRecordTests {
     private static func exports(
         _ records: [HealthKitFHIRExporter.Record],
         _ exporter: HealthKitFHIRExporter
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
+    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
         let receipt = try exporter.export(records: records, at: GoldenFixtures.conversionInstant) { exports.append($0) }
         return (exports, receipt)
@@ -62,7 +62,7 @@ struct HealthKitFHIRExporterRecordTests {
     @Test("An ECG record's voltages are validated against its sample, and a refusal holds the ECG's and its symptoms' events")
     func electrocardiogramRecord() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         // The fixture ECG states no reading, so it reports no voltage count and the record path refuses it; E2 covers
         // a converted ECG.
         let ecg = try StoredSampleFixtures.seriesSample(
@@ -125,7 +125,7 @@ struct HealthKitFHIRExporterRecordTests {
     @Test("A route the policy omits delivers nothing, neither graph nor refusal, and holds its event until release")
     func omittedWorkoutRouteDeliversNothing() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let route = try StoredSampleFixtures.seriesSample(
             HKWorkoutRoute.self,
             sampleType: HKSeriesType.workoutRoute(),

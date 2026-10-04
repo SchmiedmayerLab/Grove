@@ -51,7 +51,7 @@ Persist the key id and the epoch beside the key; rotating either changes every s
 Every export is an exchange event, and every event is immutable.
 An ``ExchangeEventIdentifier`` is your producer instance UUID plus a monotonic ``EventSequence``.
 A retry resends the same bytes under the same identifier; a new revision of the record gets a new sequence.
-An ``ExchangeProducer``'s ``ExchangeEventSequencer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
+An ``ExchangeProducer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
 An adapter that converts under an ``ExchangeEventContext`` you build yourself, such as `GroveSensorKitFHIR`, does not use the ledger: persist the producer instance once and durably advance the next sequence before you emit.
 
 ### The repository scope
@@ -80,19 +80,19 @@ let application = try ApplicationDevice(bundle: .main)
 ```
 
 Then build the producer over the ledger your app stores, and rebuild it when the participant, the studies or the application change.
-`ledgerStorage` conforms to ``ExchangeEventSequencer/Storage``.
+`ledgerStorage` conforms to ``ExchangeProducer/Storage``.
 
 ```swift
 let producer = try ExchangeProducer(
     identityScope: identityScope,
     subject: .logical(participant),
     application: application,
-    sequencer: ExchangeEventSequencer(storage: ledgerStorage)
+    storage: ledgerStorage
 )
 ```
 
 The exporter for your source mints each event through the producer and turns one record into an ``ExchangeGraph``.
-Store and upload its ``ExchangeGraph/json`` verbatim, never a re-encoding of its Bundle, and release the exporter's receipt only once those bytes and your source cursor are durably committed.
+Store and upload its ``ExchangeGraph/json`` verbatim, never a re-encoding of its Bundle, and release the call's ``ExchangeProducer/Receipt`` only once those bytes and your source cursor are durably committed.
 Before you trust bytes you stored or received, re-validate them.
 
 ```swift
@@ -183,7 +183,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 ### The producer and its ledger
 
 - ``ExchangeProducer``
-- ``ExchangeEventSequencer``
+- ``ExchangeProducer/Receipt``
 - <doc:ExchangeLedgerStorage>
 
 ### The event

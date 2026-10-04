@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 public import Foundation
-import GroveFHIRContract
+public import GroveFHIRContract
 import HealthKit
 
 
@@ -24,24 +24,21 @@ extension HealthKitFHIRExporter {
     /// both; a deletion reported again with other bounds is another event, and the reservation of the
     /// earlier bounds stays until its own receipt is released. Releasing the receipt also forgets each
     /// deleted record's active reservation, which no export will release once the record is gone: one the
-    /// same ledger generation made, never one from after a `reset()`, and one a live export still holds
+    /// same ledger generation made, never one from after a `resetLedger()`, and one a live export still holds
     /// only once that export finishes. A call with nothing to retract forgets nothing. The call ends early
     /// for the same reasons as ``export(_:at:receive:)``: an unstatable `instant`, a `LedgerError`
-    /// (recovered by `ExchangeEventSequencer.reset()`), and errors of the ledger's storage or of `receive`.
+    /// (recovered by `ExchangeProducer.resetLedger()`), and errors of the ledger's storage or of `receive`.
     public func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> Receipt {
+    ) throws -> ExchangeProducer.Receipt {
         let requests = deletions.map { deletion in
             isRetractable(deletion) ? context.request(for: .retraction(deletion)) : nil
         }
-        let unique = Set(requests.compactMap(\.self))
-        let reserved = unique.isEmpty ? [:] : try producer.reserve(unique, at: instant)
-        // Created before any delivery: when a delivery throws, the receipt is dropped and its holds lapse.
-        let receipt = Receipt(
-            sequencer: producer.sequencer,
-            held: reserved.values.map(\.handle),
+        let (reserved, receipt) = try producer.reserve(
+            Set(requests.compactMap(\.self)),
+            at: instant,
             forgetting: deletions.map { ExchangeEventKey.active(type: $0.sourceType, uuid: $0.uuid) }
         )
         for (deletion, request) in zip(deletions, requests) {

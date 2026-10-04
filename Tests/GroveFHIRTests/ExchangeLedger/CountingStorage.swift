@@ -12,7 +12,7 @@ import GroveFHIRContract
 
 /// Counts the transactions a storage runs and the reads, writes, removals and listings inside them, in total over
 /// every key: the cost bounds the tests state are totals.
-final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // `counts` is guarded by `lock`.
+final class CountingStorage: ExchangeProducer.Storage, @unchecked Sendable { // `counts` is guarded by `lock`.
     struct Counts: Equatable {
         var transactions = 0
         var reads = 0
@@ -21,8 +21,8 @@ final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable
         var listings = 0
     }
 
-    private struct Counting: ExchangeEventSequencer.Transaction {
-        let base: any ExchangeEventSequencer.Transaction
+    private struct Counting: ExchangeProducer.Transaction {
+        let base: any ExchangeProducer.Transaction
         let storage: CountingStorage
 
         func read(_ key: String) throws -> Data? {
@@ -46,15 +46,15 @@ final class CountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable
         }
     }
 
-    let base: any ExchangeEventSequencer.Storage
+    let base: any ExchangeProducer.Storage
     private let lock = NSLock()
     private var counts = Counts()
 
-    init(_ base: any ExchangeEventSequencer.Storage = ExchangeEventSequencer.InMemoryStorage()) {
+    init(_ base: any ExchangeProducer.Storage = ExchangeProducer.InMemoryStorage()) {
         self.base = base
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         count { $0.transactions += 1 }
         return try base.transaction { transaction in
             try body(Counting(base: transaction, storage: self))

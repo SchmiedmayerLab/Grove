@@ -144,9 +144,9 @@ struct ExporterCompanionFingerprintTests {
     /// Two exporters over one ledger, as before and after an app update that changed what its resolver returns.
     @Test("Custom resolver: a resolver naming another device under a reserved record takes a new sequence")
     func changedCustomResolverTakesANewSequence() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
-        let before = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
-        let after = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-b")) }
+        let storage = ExchangeProducer.InMemoryStorage()
+        let before = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
+        let after = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-b")) }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF3), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let original = try Self.primary(before, .sample(sample))
         let exact = try Self.primary(before, .sample(sample))
@@ -156,9 +156,9 @@ struct ExporterCompanionFingerprintTests {
 
     @Test("Custom resolver: a resolver naming the same unit otherwise under a reserved record takes a new sequence")
     func renamedCustomResolverTakesANewSequence() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
-        let before = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
-        let after = try Fixtures.exporter(sequencer: sequencer) {
+        let storage = ExchangeProducer.InMemoryStorage()
+        let before = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
+        let after = try Fixtures.exporter(storage: storage) {
             $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a", name: "Left Wrist"))
         }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF4), device: GoldenFixtures.watch)
@@ -170,9 +170,9 @@ struct ExporterCompanionFingerprintTests {
 
     @Test("Classify: a closure classifying a reserved record's source otherwise takes a new sequence")
     func changedClassificationTakesANewSequence() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
-        let before = try Fixtures.exporter(sequencer: sequencer) { $0.writer = .classify { _ in .application } }
-        let after = try Fixtures.exporter(sequencer: sequencer) { $0.writer = .classify { _ in .omit } }
+        let storage = ExchangeProducer.InMemoryStorage()
+        let before = try Fixtures.exporter(storage: storage) { $0.writer = .classify { _ in .application } }
+        let after = try Fixtures.exporter(storage: storage) { $0.writer = .classify { _ in .omit } }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF5), writer: GoldenFixtures.foreignWriter)
         let original = try Self.primary(before, .sample(sample))
         let exact = try Self.primary(before, .sample(sample))
@@ -184,9 +184,9 @@ struct ExporterCompanionFingerprintTests {
     /// event fingerprinted for `unit-a`, which a fixed `unit-a` resolver would then reuse with other bytes.
     @Test("Custom resolver: consulted once per input, so the graph states the device its fingerprint covers")
     func customResolverIsConsultedOncePerInput() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
-        let changing = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FirstAnswerResolver()) }
-        let fixed = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
+        let storage = ExchangeProducer.InMemoryStorage()
+        let changing = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FirstAnswerResolver()) }
+        let fixed = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF6), device: GoldenFixtures.watch)
         let first = try Self.primary(changing, .sample(sample))
         let again = try Self.primary(fixed, .sample(sample))

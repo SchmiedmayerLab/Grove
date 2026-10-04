@@ -50,21 +50,21 @@ enum LedgerEntryCoding {
         do {
             header = try JSONDecoder().decode(Header.self, from: value)
         } catch {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: key)
         }
         guard let version = header.version else {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: key)
         }
         guard version <= Self.version else {
-            throw ExchangeEventSequencer.LedgerError.unsupportedEntryVersion(key: key, version: version)
+            throw ExchangeProducer.LedgerError.unsupportedEntryVersion(key: key, version: version)
         }
         guard version == Self.version else {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: key)
         }
         do {
             return try JSONDecoder().decode(type, from: value)
         } catch {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: key)
         }
     }
 

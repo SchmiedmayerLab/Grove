@@ -9,11 +9,11 @@
 import Foundation
 
 
-extension ExchangeEventSequencer {
+extension ExchangeProducer {
     /// A ledger that lives in this process only, and the reference implementation of the storage contract.
     ///
     /// Every launch starts empty and mints a new producer instance, so nothing is ever reused. Use it for
-    /// tests, previews and single-process tools; share one instance to share one ledger across sequencers.
+    /// tests, previews and single-process tools; share one instance to share one ledger across producers.
     /// A transaction holds one lock, reads the live map, buffers its writes and applies them only when
     /// `body` returns, so a throw commits nothing and a transaction costs what it touches.
     public final class InMemoryStorage: Storage, @unchecked Sendable { // `entries` is guarded by `lock`.

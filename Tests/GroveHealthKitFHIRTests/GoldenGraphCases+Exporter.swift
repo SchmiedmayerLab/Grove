@@ -55,13 +55,13 @@ enum ExporterGolden {
     /// An exporter whose fresh ledger hands out `sequence` next under the fixed producer instance, with the
     /// deployment's application, studies and options, or with the test application and default options.
     static func exporter(sequence: UInt64, deployment: Bool) throws -> HealthKitFHIRExporter {
-        let storage = ExchangeEventSequencer.InMemoryStorage()
+        let storage = ExchangeProducer.InMemoryStorage()
         let instance = ExchangeEventContext.test().event.producerInstance
         try storage.transaction { try $0.write(ProducerEntry(instance: instance, next: sequence).encoded(), for: LedgerKey.producer) }
         let producer = try ExporterFixtures.producer(
             application: deployment ? deploymentApplication : .test,
             studies: deployment ? deploymentStudies : [],
-            sequencer: ExchangeEventSequencer(storage: storage)
+            storage: storage
         )
         return try ExporterFixtures.exporter(producer) { options in
             if deployment {

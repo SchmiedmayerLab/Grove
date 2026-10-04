@@ -6,9 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-package import Foundation
-
-
 /// What an event states about the converting application, its host and the participant's studies,
 /// frozen at reservation so an exact redelivery rebuilds identical bytes.
 ///
@@ -33,16 +30,5 @@ extension ExchangeProducer {
     /// back from the ledger's encoding, exactly as every graph states them.
     package var facts: ExchangeEventFacts {
         preparedFacts.facts
-    }
-
-    /// One reservation per distinct request in one ledger transaction, new ones under this producer's facts.
-    ///
-    /// See ``ExchangeEventSequencer`` for what a reservation keeps; each returned reservation is held for the
-    /// caller until it finishes it through the sequencer.
-    package func reserve(
-        _ requests: some Collection<ExchangeEventRequest>,
-        at instant: Date
-    ) throws -> [ExchangeEventRequest: ExchangeEventReservation] {
-        try sequencer.reserve(requests, at: instant, facts: preparedFacts)
     }
 }

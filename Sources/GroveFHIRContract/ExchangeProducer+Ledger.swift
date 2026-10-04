@@ -9,20 +9,7 @@
 public import Foundation
 
 
-/// The exchange-event ledger of one installation: it hands out event sequences and keeps what each
-/// event is rebuilt from until the caller releases it.
-///
-/// Grove owns the ledger's logic and its entries; the application supplies durable, transactional
-/// storage through ``Storage``. The ledger holds the producer instance and its counter, one reservation
-/// per event key an exporter has not yet released, and the facts (application, host, studies) each
-/// reservation was minted under. A key that is still reserved, under the same context, returns its
-/// reservation unchanged, so an exact redelivery after a crash rebuilds byte-identical output. Nothing
-/// is forgotten implicitly; ``forgetReservations(madeBefore:)`` is the explicit maintenance call.
-///
-/// Every operation is one storage transaction; the sequencer itself holds no lock and no mutable state,
-/// so any number of sequencers may share one storage. Calls block for their transaction, so keep them
-/// off the main actor. See <doc:ExchangeLedgerStorage> for the contract a storage must meet.
-public final class ExchangeEventSequencer: Sendable {
+extension ExchangeProducer {
     /// Durable, keyed, transactional storage for one ledger.
     ///
     /// The entries belong to Grove: a storage keeps keys and values byte-exact and never interprets them.
@@ -51,14 +38,14 @@ public final class ExchangeEventSequencer: Sendable {
         func remove(_ key: String) throws
         /// Every key that starts with `prefix`, in no particular order.
         ///
-        /// Grove calls it only from ``ExchangeEventSequencer/reset()`` and
-        /// ``ExchangeEventSequencer/forgetReservations(madeBefore:)``, never on the export path.
+        /// Grove calls it only from ``ExchangeProducer/resetLedger()`` and
+        /// ``ExchangeProducer/forgetReservations(madeBefore:)``, never on the export path.
         func keys(prefixedBy prefix: String) throws -> [String]
     }
 
     /// Faults in the stored entries themselves; errors a ``Storage`` throws propagate unchanged.
     ///
-    /// ``ExchangeEventSequencer/reset()`` is always a safe recovery.
+    /// ``ExchangeProducer/resetLedger()`` is always a safe recovery.
     public enum LedgerError: Error, Equatable, Sendable {
         /// The entry was written by a later layout; it is refused rather than misread.
         case unsupportedEntryVersion(key: String, version: Int)
@@ -68,76 +55,56 @@ public final class ExchangeEventSequencer: Sendable {
         case corruptEntry(key: String)
     }
 
-    let storage: any Storage
-    /// Which reservations live calls in this process hold or are about to hold.
-    let holds: HoldRegistry
-
-    /// Creates a sequencer over the application's storage.
+    /// The exchange-event ledger over one storage: it hands out event sequences and keeps what each event is
+    /// rebuilt from until the caller releases it.
     ///
-    /// Nothing is read here; the ledger is read, and any storage error surfaces, on first use.
-    public convenience init(storage: any Storage) {
-        self.init(storage: storage, holds: .shared)
-    }
+    /// It holds no lock and no mutable state of its own; which reservations live calls hold is tracked in
+    /// process memory by `HoldRegistry`.
+    struct Ledger: Sendable {
+        let storage: any Storage
+        /// Which reservations live calls in this process hold or are about to hold.
+        let holds: HoldRegistry
 
-    init(storage: any Storage, holds: HoldRegistry) {
-        self.storage = storage
-        self.holds = holds
-    }
-
-    /// A sequencer over a fresh ``InMemoryStorage``, for tests, previews and single-process tools.
-    public static func inMemory() -> ExchangeEventSequencer {
-        ExchangeEventSequencer(storage: InMemoryStorage())
-    }
-
-    /// Forgets every entry in one transaction.
-    ///
-    /// The next reservation mints a new producer instance and numbers from one, and a receipt from before
-    /// the reset releases nothing. Always a safe recovery from ``LedgerError``.
-    public func reset() throws {
-        try storage.transaction { transaction in
-            for key in try transaction.keys(prefixedBy: "") {
-                try transaction.remove(key)
+        /// Forgets every entry in one transaction.
+        func reset() throws {
+            try storage.transaction { transaction in
+                for key in try transaction.keys(prefixedBy: "") {
+                    try transaction.remove(key)
+                }
             }
         }
-    }
 
-    /// Forgets the reservations made before `cutoff`, by their reservation instant, then the facts no
-    /// remaining reservation references, in one transaction.
-    ///
-    /// Grove never calls this itself. It costs time proportional to the ledger. The cutoff and the
-    /// stored instants are on the caller's clock, so choose a cutoff that tolerates clock skew. A
-    /// forgotten key that is redelivered becomes a new event, including one a live call still holds.
-    ///
-    /// - Returns: The number of reservations forgotten.
-    @discardableResult
-    public func forgetReservations(madeBefore cutoff: Date) throws -> Int {
-        let cutoffMilliseconds = ExchangeInstant.millisecondsSinceEpoch(cutoff)
-        return try storage.transaction { transaction in
-            var forgotten = 0
-            var referenced: Set<String> = []
-            for key in try transaction.keys(prefixedBy: LedgerKey.eventPrefix) {
-                guard let value = try transaction.read(key) else {
-                    continue
+        /// Forgets the reservations made before `cutoff`, then the facts no remaining reservation references,
+        /// in one transaction, and returns how many reservations it forgot.
+        func forgetReservations(madeBefore cutoff: Date) throws -> Int {
+            let cutoffMilliseconds = ExchangeInstant.millisecondsSinceEpoch(cutoff)
+            return try storage.transaction { transaction in
+                var forgotten = 0
+                var referenced: Set<String> = []
+                for key in try transaction.keys(prefixedBy: LedgerKey.eventPrefix) {
+                    guard let value = try transaction.read(key) else {
+                        continue
+                    }
+                    let event = try EventEntry(decoding: value, key: key)
+                    if event.instantMilliseconds < cutoffMilliseconds {
+                        try transaction.remove(key)
+                        forgotten += 1
+                    } else {
+                        referenced.insert(event.factsDigest)
+                    }
                 }
-                let event = try EventEntry(decoding: value, key: key)
-                if event.instantMilliseconds < cutoffMilliseconds {
+                for key in try transaction.keys(prefixedBy: LedgerKey.factsPrefix)
+                where !referenced.contains(String(key.dropFirst(LedgerKey.factsPrefix.count))) {
                     try transaction.remove(key)
-                    forgotten += 1
-                } else {
-                    referenced.insert(event.factsDigest)
                 }
+                return forgotten
             }
-            for key in try transaction.keys(prefixedBy: LedgerKey.factsPrefix)
-            where !referenced.contains(String(key.dropFirst(LedgerKey.factsPrefix.count))) {
-                try transaction.remove(key)
-            }
-            return forgotten
         }
     }
 }
 
 
-extension ExchangeEventSequencer {
+extension ExchangeProducer.Ledger {
     /// One reservation per distinct request, durable before this returns.
     ///
     /// A key whose stored reservation carries the request's fingerprint returns that reservation
@@ -148,7 +115,8 @@ extension ExchangeEventSequencer {
     /// in one call takes two sequences and keeps the later, so a retry of that call mints both again: request
     /// one fingerprint per key and call for exact retries. Each returned reservation is held
     /// for the caller until ``finish(_:released:forgetting:)``. Exporters reach it through
-    /// `ExchangeProducer.reserve(_:at:)`, which passes the facts the producer prepared once.
+    /// `ExchangeProducer.reserve(_:at:forgetting:)`, which passes the facts the producer prepared once and
+    /// hands the holds to a receipt.
     ///
     /// An `instant` no FHIR instant can state (before year 1 or after year 9999) throws
     /// `ExchangeIdentityError.invalidInstant` before the ledger is touched, as the ledger would refuse to read
@@ -190,7 +158,7 @@ extension ExchangeEventSequencer {
     /// event it holds, is removed the same way when a producer instance of `held` made it, so a caller from
     /// before a reset, or one that holds nothing, forgets nothing. Opens one transaction when anything is to be
     /// removed, none otherwise.
-    package func finish(
+    func finish(
         _ held: [ExchangeEventReservation.Handle],
         released: Bool,
         forgetting keys: [ExchangeEventKey]
@@ -221,9 +189,12 @@ extension ExchangeEventSequencer {
 }
 
 
-extension ExchangeEventSequencer {
+extension ExchangeProducer.Ledger {
     /// The reservation `key` holds in `transaction`, if any.
-    private static func reservation(of key: ExchangeEventKey, in transaction: any Transaction) throws -> ExchangeEventReservation.Handle? {
+    private static func reservation(
+        of key: ExchangeEventKey,
+        in transaction: any ExchangeProducer.Transaction
+    ) throws -> ExchangeEventReservation.Handle? {
         let entryKey = LedgerKey.event(key)
         return try transaction.read(entryKey).map { value in
             let stored = try EventEntry(decoding: value, key: entryKey)

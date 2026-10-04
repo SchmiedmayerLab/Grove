@@ -45,7 +45,7 @@ struct HealthKitFHIRExporterLedgerTests {
     /// One heart rate, one ECG with a symptom, and one retraction, under `producer`.
     private static func deliver(
         under producer: ExchangeProducer
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipts: [HealthKitFHIRExporter.Receipt]) {
+    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipts: [ExchangeProducer.Receipt]) {
         let exporter = try Fixtures.exporter(producer)
         let records: [HealthKitFHIRExporter.Record] = [
             .sample(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1))),
@@ -58,12 +58,12 @@ struct HealthKitFHIRExporterLedgerTests {
 
     @Test("G2: a redelivery before release is byte-identical across app, OS and study changes; after release it is new")
     func redeliveryIsByteIdenticalAcrossFactChanges() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
+        let storage = ExchangeProducer.InMemoryStorage()
         let original = try Fixtures.producer(
             application: .test(name: "Grove Test", bundleIdentifier: "org.grovealliance.test", version: "1.0", build: "100"),
             host: try HostDevice(operatingSystemVersion: "26.0", modelNumber: "iPhone17,1"),
             studies: [],
-            sequencer: sequencer
+            storage: storage
         )
         let first = try Self.deliver(under: original)
         try #require(first.exports.count == 4)
@@ -74,7 +74,7 @@ struct HealthKitFHIRExporterLedgerTests {
                 application: .test(name: "Grove Test", bundleIdentifier: "org.grovealliance.test", version: "1.1", build: "110"),
                 host: try HostDevice(operatingSystemVersion: "27.0", modelNumber: "iPhone17,1"),
                 studies: [try Self.study(revision: revision)],
-                sequencer: sequencer
+                storage: storage
             )
         }
         for producer in updated {
@@ -96,11 +96,10 @@ struct HealthKitFHIRExporterLedgerTests {
 
     @Test("G18: the first delivery and a redelivery through a fresh process produce byte-equal graphs")
     func redeliveryThroughAFreshProcessIsByteEqual() throws {
-        let storage = ExchangeEventSequencer.InMemoryStorage()
+        let storage = ExchangeProducer.InMemoryStorage()
         let studies = [try Self.study(revision: "1"), StudyEnrollment.test("s2")]
-        let first = try Self.deliver(under: try Fixtures.producer(studies: studies, sequencer: ExchangeEventSequencer(storage: storage, holds: HoldRegistry())))
-        let restarted = ExchangeEventSequencer(storage: storage, holds: HoldRegistry())
-        let again = try Self.deliver(under: try Fixtures.producer(studies: [], sequencer: restarted))
+        let first = try Self.deliver(under: try Fixtures.producer(studies: studies, storage: storage, holds: HoldRegistry()))
+        let again = try Self.deliver(under: try Fixtures.producer(studies: [], storage: storage, holds: HoldRegistry()))
         #expect(again.exports.map(\.graph?.json) == first.exports.map(\.graph?.json))
     }
 
@@ -108,7 +107,7 @@ struct HealthKitFHIRExporterLedgerTests {
     func throwingDeliveryLapses() throws {
         struct Stop: Error {}
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(5))
         let key = try #require(ExchangeEventKey.active(sample))
         #expect(throws: Stop.self) {
@@ -124,11 +123,11 @@ struct HealthKitFHIRExporterLedgerTests {
     @Test("G9: overlapping calls keep a shared event until the last one finishes; double releases count once")
     func overlappingReceipts() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(6))
         let key = try #require(ExchangeEventKey.active(sample))
         let (live, liveReceipt) = try Fixtures.collect(exporter, samples: [sample])
-        var bulkReceipt: HealthKitFHIRExporter.Receipt?
+        var bulkReceipt: ExchangeProducer.Receipt?
         do {
             let bulk = try Fixtures.collect(exporter, samples: [sample])
             #expect(live[0].graph?.json == bulk.exports[0].graph?.json)
@@ -153,7 +152,7 @@ struct HealthKitFHIRExporterLedgerTests {
     @Test("G9e: a refused ECG companion keeps the standalone symptom's event in the same call")
     func refusedCompanionKeepsTheStandaloneSymptom() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0x71))
         // Symptoms present but the ECG states none: the ECG is refused, its companion with it.
         let ecg = try GoldenCase.electrocardiogramRecord(uuid: 0x70, symptoms: [])
@@ -175,7 +174,7 @@ struct HealthKitFHIRExporterLedgerTests {
     @Test("G10: an export and its release take one ledger transaction each; an empty receipt and a reuse write nothing")
     func transactionBudget() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let samples = try (7...9).map { try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid($0)) }
         let (_, receipt) = try Fixtures.collect(exporter, samples: samples)
         #expect(storage.take().transactions == 1)
@@ -216,7 +215,7 @@ struct HealthKitFHIRExporterLedgerTests {
     @Test("G11: a released retraction forgets the deleted record's active reservation; an unreleased one forgets nothing")
     func retractionForgetsTheActiveKey() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x90))
         let key = try #require(ExchangeEventKey.active(sample))
         let (first, _) = try Fixtures.collect(exporter, samples: [sample])
@@ -311,7 +310,7 @@ struct HealthKitFHIRExporterLedgerTests {
     @Test("E2: an ECG through the records path takes one reserve, mints its symptoms' events, and redelivers byte-identically")
     func electrocardiogramThroughTheRecordsPath() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xB1))
         let input = try Fixtures.electrocardiogram(uuid: 0xB0, symptoms: [symptom])
         let (first, receipt) = try Fixtures.collect(exporter, [input])

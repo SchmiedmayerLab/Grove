@@ -72,8 +72,8 @@ struct HealthKitFHIRExporterFingerprintTests {
 
     /// The base context first, then every perturbation of an option, the subject, a scope or an output revision.
     @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
-    private static func contexts(sequencer: ExchangeEventSequencer) throws -> [(String, HealthKitFHIRExporter)] {
-        let base = try Fixtures.producer(sequencer: sequencer)
+    private static func contexts(storage: any ExchangeProducer.Storage) throws -> [(String, HealthKitFHIRExporter)] {
+        let base = try Fixtures.producer(storage: storage)
         let systems = Fixtures.base.identityScope.systems
         let pseudonym = Fixtures.base.subject.identifier
         var patient = Patient()
@@ -86,13 +86,13 @@ struct HealthKitFHIRExporterFingerprintTests {
             (name, try Fixtures.exporter(base, configure))
         }
         contexts += [
-            ("subject", try Fixtures.exporter(try Fixtures.producer(subject: .logical(.test(.patient, "other")), sequencer: sequencer))),
-            ("bundled subject", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(pseudonym, Patient()), sequencer: sequencer))),
-            ("bundled Patient content", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(pseudonym, patient), sequencer: sequencer))),
+            ("subject", try Fixtures.exporter(try Fixtures.producer(subject: .logical(.test(.patient, "other")), storage: storage))),
+            ("bundled subject", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(pseudonym, Patient()), storage: storage))),
+            ("bundled Patient content", try Fixtures.exporter(try Fixtures.producer(subject: .bundled(pseudonym, patient), storage: storage))),
             ("repository scope", try Fixtures.exporter(base, repositoryScope: .test(.device, "secondary"))),
-            ("epoch", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(epoch: 2), sequencer: sequencer))),
-            ("key", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(key: SymmetricKey(data: Data(repeating: 7, count: 32))), sequencer: sequencer))),
-            ("key id", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(keyID: "other"), sequencer: sequencer))),
+            ("epoch", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(epoch: 2), storage: storage))),
+            ("key", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(key: SymmetricKey(data: Data(repeating: 7, count: 32))), storage: storage))),
+            ("key id", try Fixtures.exporter(try Fixtures.producer(identityScope: scope(keyID: "other"), storage: storage))),
             ("assembler revision", try Fixtures.exporter(base, revisions: .init(assembler: ExchangeGraphAssembler.outputRevision + 1, healthKit: HealthKitAssembly.outputRevision))),
             ("adapter revision", try Fixtures.exporter(base, revisions: .init(assembler: ExchangeGraphAssembler.outputRevision, healthKit: HealthKitAssembly.outputRevision + 1)))
         ]
@@ -102,7 +102,7 @@ struct HealthKitFHIRExporterFingerprintTests {
     @Test("G3: the base context and every perturbation of an option, the subject, a scope or an output revision fingerprint pairwise apart")
     @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
     func everyContextInputVersionsTheEvent() throws {
-        let contexts = try Self.contexts(sequencer: .inMemory())
+        let contexts = try Self.contexts(storage: ExchangeProducer.InMemoryStorage())
         let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
         let fingerprints = contexts.map { name, exporter in (name, exporter.context.request(for: key).fingerprint) }
         for (index, (name, fingerprint)) in fingerprints.enumerated() {
@@ -116,8 +116,8 @@ struct HealthKitFHIRExporterFingerprintTests {
     @Test("G3: an export reserves under its context's fingerprint; an equal context reuses the event and another does not")
     @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
     func exportsReserveUnderTheirContextFingerprint() throws {
-        let storage = ExchangeEventSequencer.InMemoryStorage()
-        let contexts = try Self.contexts(sequencer: ExchangeEventSequencer(storage: storage))
+        let storage = ExchangeProducer.InMemoryStorage()
+        let contexts = try Self.contexts(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let key = try #require(ExchangeEventKey.active(sample))
         let (original, _) = try Fixtures.collect(contexts[0].1, samples: [sample])
@@ -125,7 +125,7 @@ struct HealthKitFHIRExporterFingerprintTests {
         let planned = HealthKitFHIRExporter.Plan(.sample(sample), exporter: contexts[0].1).primary?.request
         #expect(planned?.key == key)
         #expect(try EventEntry(decoding: stored, key: LedgerKey.event(key)).fingerprint == planned?.fingerprint)
-        let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(sequencer: ExchangeEventSequencer(storage: storage))), samples: [sample])
+        let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(storage: storage)), samples: [sample])
         #expect(unchanged[0].event == original[0].event, "an equal context reuses the reservation")
         let (changed, _) = try Fixtures.collect(contexts[1].1, samples: [sample])
         #expect(changed[0].event != original[0].event, "\(contexts[1].0) reused an event")
@@ -133,10 +133,10 @@ struct HealthKitFHIRExporterFingerprintTests {
 
     @Test("A writer-policy change gives a reserved record a new sequence, never one handed out under another policy")
     func writerPolicyChangeTakesANewSequence() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
+        let storage = ExchangeProducer.InMemoryStorage()
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(2), writer: GoldenFixtures.foreignWriter)
-        let omitting = try Fixtures.exporter(sequencer: sequencer)
-        let classifying = try Fixtures.exporter(sequencer: sequencer) { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }
+        let omitting = try Fixtures.exporter(storage: storage)
+        let classifying = try Fixtures.exporter(storage: storage) { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }
         let (omitted, _) = try Fixtures.collect(omitting, samples: [sample])
         let (stated, _) = try Fixtures.collect(classifying, samples: [sample])
         let (reverted, _) = try Fixtures.collect(omitting, samples: [sample])
@@ -177,7 +177,7 @@ struct HealthKitFHIRExporterFingerprintTests {
         let writer = HealthKitFHIRExporter.WriterPolicy.applications(["org.example.caff", decomposed])
         let expectedParts = ["applications", "2", decomposed, "org.example.caff"]
         #expect(writer.fingerprintParts.map { Array($0.utf8) } == expectedParts.map { Array($0.utf8) })
-        let exporter = try Fixtures.exporter(try Fixtures.producer(sequencer: .inMemory()), revisions: .init(assembler: 1, healthKit: 2)) {
+        let exporter = try Fixtures.exporter(try Fixtures.producer(storage: ExchangeProducer.InMemoryStorage()), revisions: .init(assembler: 1, healthKit: 2)) {
             $0.writer = writer
         }
         let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
@@ -189,7 +189,7 @@ struct HealthKitFHIRExporterFingerprintTests {
     /// only on purpose.
     @Test("A record's parts state the policies' answers for its sample and fingerprint to a known answer")
     func recordPartsAreAKnownAnswer() throws {
-        let exporter = try Fixtures.exporter(try Fixtures.producer(sequencer: .inMemory()), revisions: .init(assembler: 1, healthKit: 2)) {
+        let exporter = try Fixtures.exporter(try Fixtures.producer(storage: ExchangeProducer.InMemoryStorage()), revisions: .init(assembler: 1, healthKit: 2)) {
             $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier])
         }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)

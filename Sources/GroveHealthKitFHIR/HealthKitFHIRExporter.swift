@@ -16,11 +16,11 @@ public import HealthKit
 /// Turns HealthKit samples into exchange graphs for one deployment, participant and installation.
 ///
 /// Configure it once and keep it for as long as its `ExchangeProducer` is valid; it is safe to share
-/// across tasks. Every export mints the events itself through the producer's sequencer, in one ledger
-/// transaction per call, so an exact redelivery before ``Receipt/release()`` reproduces the same events
-/// byte for byte, even when the application, the host or the studies changed in between. A sample that
-/// cannot be converted is reported as a refusal instead of ending the call. The exporter never queries
-/// HealthKit: companion data such as ECG voltages arrives through ``Record``.
+/// across tasks. Every export mints its events through the producer, in one ledger transaction per call,
+/// so an exact redelivery before `ExchangeProducer.Receipt.release()` reproduces the same events byte for
+/// byte, even when the application, the host or the studies changed in between. A sample that cannot be
+/// converted is reported as a refusal instead of ending the call. The exporter never queries HealthKit:
+/// companion data such as ECG voltages arrives through ``Record``.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public final class HealthKitFHIRExporter: Sendable {
     /// Why an exporter could not be configured.
@@ -29,10 +29,10 @@ public final class HealthKitFHIRExporter: Sendable {
         case reservedNativeIdentifierSystem(IdentifierSystem)
     }
 
-    public let producer: ExchangeProducer
+    let producer: ExchangeProducer
     /// The business identifier naming this installation's HealthKit store; it enters every source identity.
-    public let repositoryScope: BusinessIdentifier
-    public let options: Options
+    let repositoryScope: BusinessIdentifier
+    let options: Options
     let assembly: HealthKitAssembly
     /// What shapes every graph beside the frozen facts; it fingerprints each request.
     let context: ExchangeRequestContext
@@ -82,15 +82,15 @@ public final class HealthKitFHIRExporter: Sendable {
     /// its event, so an exact retry of the call reproduces every event. Only these end the call:
     /// - an `instant` no FHIR instant can state (before year 1 or after year 9999) throws
     ///   `ExchangeIdentityError.invalidInstant` before the ledger is touched;
-    /// - the producer's ledger throws `ExchangeEventSequencer.LedgerError` when a stored entry is corrupt or
-    ///   from a later layout, and `ExchangeEventSequencer.reset()` always recovers;
+    /// - the producer's ledger throws `ExchangeProducer.LedgerError` when a stored entry is corrupt or
+    ///   from a later layout, and `ExchangeProducer.resetLedger()` always recovers;
     /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and the reservations made
     ///   stay for the redelivery.
     public func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> Receipt where Samples.Element: HKSample {
+    ) throws -> ExchangeProducer.Receipt where Samples.Element: HKSample {
         try export(records: samples.map { Record.sample($0) }, at: instant, receive: receive)
     }
 
@@ -102,7 +102,7 @@ public final class HealthKitFHIRExporter: Sendable {
         records: some Collection<Record>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> Receipt {
+    ) throws -> ExchangeProducer.Receipt {
         let plans = records.map { record in
             autoreleasepool {
                 Plan(record, exporter: self)
@@ -111,11 +111,8 @@ public final class HealthKitFHIRExporter: Sendable {
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
         // later, and a retry of the call would mint both again.
         let firstPerKey = Dictionary(plans.flatMap(\.requests).map { ($0.key, $0) }) { first, _ in first }
-        let requests = Set(firstPerKey.values)
-        // Nothing reserved means the ledger is never touched; refusals alone need no event.
-        let reserved = requests.isEmpty ? [:] : try producer.reserve(requests, at: instant)
-        // Created before any delivery: when a delivery throws, the receipt is dropped and its holds lapse.
-        let receipt = Receipt(sequencer: producer.sequencer, held: reserved.values.map(\.handle), forgetting: [])
+        // Refusals alone need no event, and a call that reserves nothing never touches the ledger.
+        let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
         for plan in plans {
             try autoreleasepool {
                 try deliver(plan, reserved: reserved, receive: receive)

@@ -111,7 +111,7 @@ struct PreparedFacts: Sendable {
     static func decode(_ value: Data, key: String) throws -> ExchangeEventFacts {
         let payload = try LedgerEntryCoding.decode(Payload.self, from: value, key: key)
         guard let facts = facts(from: payload) else {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: key)
         }
         return facts
     }

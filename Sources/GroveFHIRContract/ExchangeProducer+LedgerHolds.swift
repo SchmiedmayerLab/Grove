@@ -18,7 +18,7 @@ import Foundation
 /// it, so a reservation it is about to hold is never seen unused in between. A removal that finds such a holder
 /// hands the release over to it, so the release mark survives until the last holder finishes. Handles include
 /// the producer instance, which every ledger mints for itself, so they are unique across ledgers and the same
-/// through every storage object or sequencer in front of one ledger; one registry serves every storage. Holds do
+/// through every storage object or producer in front of one ledger; one registry serves every storage. Holds do
 /// not span processes; the lock is never held across I/O.
 final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are guarded by `lock`.
     /// The reservations one reserve call noted, so an attempt the storage runs again notes nothing twice.
@@ -31,7 +31,7 @@ final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are g
         var released: Bool
     }
 
-    /// The registry every sequencer of this process shares.
+    /// The registry every ledger of this process shares.
     static let shared = HoldRegistry()
 
     private let lock = NSLock()

@@ -19,7 +19,7 @@ package import Foundation
 /// for a request with the same fingerprint, so an event identifier never carries different content.
 package struct ExchangeEventRequest: Hashable, Sendable {
     package let key: ExchangeEventKey
-    /// SHA-256, base64url without padding; opaque to the sequencer.
+    /// SHA-256, base64url without padding; opaque to the ledger.
     package let fingerprint: String
 
     package init(key: ExchangeEventKey, fingerprint: String) {
