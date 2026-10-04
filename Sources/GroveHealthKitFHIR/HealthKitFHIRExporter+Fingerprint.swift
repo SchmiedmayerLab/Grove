@@ -102,8 +102,8 @@ extension HealthKitFHIRExporter.Options {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// What the writer and recording-device policies answer for one sample, resolved once, before its event is
-    /// reserved: the event's fingerprint covers these answers and its graph states them, so a
+    /// What the writer and recording-device policies answer for one sample, resolved once per input that names it,
+    /// before its event is reserved: the event's fingerprint covers these answers and its graph states them, so a
     /// ``WriterPolicy/classify(_:)`` closure or a custom ``RecordingDevicePolicy`` resolver that answers otherwise
     /// for a reserved record takes a new sequence instead of restating the reserved event.
     struct ResolvedPolicies: ExchangeContextFingerprinted {

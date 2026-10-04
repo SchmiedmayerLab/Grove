@@ -77,9 +77,11 @@ extension HealthKitFHIRExporter {
         /// identifier states none either, and one whose bundle identifier is not a valid Apple bundle identifier
         /// is refused with ``HealthKitConversionError/sourceApplicationInvalid``.
         case applications(Set<String>)
-        /// The caller classifies each source. The closure is consulted once per record and call, before the
-        /// record's event is reserved, and the event's fingerprint covers its answer: an answer that changes for a
-        /// reserved record takes a new sequence rather than restating that event's writer.
+        /// The caller classifies each source. The closure is consulted for every input that names a record, an ECG's
+        /// correlated symptoms included, before the call reserves any event, and the event's fingerprint covers its
+        /// answer: an answer that changes for a reserved record takes a new sequence rather than restating that
+        /// event's writer, and one that changes within a call refuses the later input as
+        /// ``HealthKitConversionError/conflictingDuplicate``.
         case classify(@Sendable (HKSource) -> HealthKitWriter)
 
         /// The classification of one source under this policy.
@@ -102,9 +104,11 @@ extension HealthKitFHIRExporter {
         case localIdentifier
         /// Never emit a recording Device from `HKDevice`.
         case omit
-        /// The deployment's own resolver. It is consulted once per record and call, before the record's event is
-        /// reserved, and the event's fingerprint covers the device it names: a resolver whose answer changes for a
-        /// reserved record takes a new sequence rather than restating that event's recording Device.
+        /// The deployment's own resolver. It is consulted for the `HKDevice` of every input that names a record, an
+        /// ECG's correlated symptoms included, before the call reserves any event, and the event's fingerprint covers
+        /// the device it names: a resolver whose answer changes for a reserved record takes a new sequence rather than
+        /// restating that event's recording Device, and one whose answer changes within a call refuses the later input
+        /// as ``HealthKitConversionError/conflictingDuplicate``.
         case custom(any RecordingDeviceResolver)
 
         /// The unit this policy resolves `device` to.

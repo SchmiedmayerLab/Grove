@@ -191,8 +191,8 @@ struct ExporterCompanionFingerprintTests {
 
     /// What is fingerprinted is what is emitted: a resolver consulted again for the graph would state `unit-b` under the
     /// event fingerprinted for `unit-a`, which a fixed `unit-a` resolver would then reuse with other bytes.
-    @Test("Custom resolver: consulted once per record, so the graph states the device its fingerprint covers")
-    func customResolverIsConsultedOncePerRecord() throws {
+    @Test("Custom resolver: consulted once per input, so the graph states the device its fingerprint covers")
+    func customResolverIsConsultedOncePerInput() throws {
         let sequencer = ExchangeEventSequencer.inMemory()
         let changing = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FirstAnswerResolver()) }
         let fixed = try Fixtures.exporter(sequencer: sequencer) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
