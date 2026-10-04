@@ -156,7 +156,7 @@ struct HealthKitContentCompilerTests {
         Self.expectRefused(.appetiteChanges, "maps value 0 twice", in: HealthKitContentCompiler.compile(groups: groups))
     }
 
-    @Test("A row the inventory converts but no rule covers is refused as today and named")
+    @Test("A row the inventory converts but no rule covers is refused for what its row admits, and named")
     func missingRulesAreNamed() {
         for type in [HealthKitSourceType.heartbeatSeries, .cda, .coverageRecord] {
             let compilation = HealthKitContentCompiler.compile(groups: Self.groups(without: type))
@@ -164,7 +164,7 @@ struct HealthKitContentCompilerTests {
         }
         let compilation = HealthKitContentCompiler.compile(groups: Self.groups(without: .sexualActivity))
         let defect = "supported, but has no rule and is not declared not yet convertible"
-        Self.expectRefused(.sexualActivity, defect, in: compilation, as: .unsupportedSourceType(.sexualActivity))
+        Self.expectRefused(.sexualActivity, defect, in: compilation)
     }
 }
 

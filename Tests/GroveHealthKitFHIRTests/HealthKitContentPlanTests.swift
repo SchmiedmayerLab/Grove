@@ -55,7 +55,7 @@ struct HealthKitContentPlanTests {
         #expect(HealthKitContentPlan.plan(for: heartRate) === HealthKitContentPlan[.heartRate])
     }
 
-    @Test("Every rule names a distinct type; supported rows convert unless declared not yet; refusals keep today's order")
+    @Test("Every rule names a distinct type; supported rows convert unless declared not yet; other admitted rows are not yet convertible")
     func ruleTableIsTotal() throws {
         let listed = HealthKitContentRules.groups.flatMap(\.types)
         #expect(listed.count == Set(listed).count, "a type is listed under two rules")
@@ -78,9 +78,10 @@ struct HealthKitContentPlanTests {
             switch row.implementationStatus {
             case .supported:
                 unconverted.insert(type)
-                #expect(refusal == .unsupportedSourceType(type))
+                #expect(refusal == .notYetConvertible(type))
             case .platformExclusive:
-                #expect(refusal == .platformExclusiveSourceType(type))
+                // Admitted as a structured resource, not as a recording document, which no path emits yet.
+                #expect(refusal == .notYetConvertible(type))
             case .intentionallyUnsupported:
                 let expected: HealthKitConversionError = [.bloodPressureSystolic, .bloodPressureDiastolic].contains(type)
                     ? .componentRequiresCorrelation(type)

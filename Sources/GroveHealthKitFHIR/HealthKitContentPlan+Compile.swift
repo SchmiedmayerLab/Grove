@@ -103,15 +103,16 @@ struct HealthKitContentCompiler {
     }
 
     /// Why a type without a rule is refused: a correlation member converts only inside its correlation, and any other
-    /// type for what its inventory row states.
+    /// type for what its inventory row states. A row admitted only as a recording document is platform exclusive; any
+    /// other row the inventory admits is not yet convertible, as this producer version emits no graph for it.
     private static func refusal(of type: HealthKitSourceType, row: HealthKitContractRow) -> HealthKitConversionError {
         if HealthKitContentRules.bloodPressureMembers.contains(where: { $0.value == type }) {
             return .componentRequiresCorrelation(type)
         }
         return switch row.implementationStatus {
         case .intentionallyUnsupported: .intentionallyUnsupported(type, reason: row.requirement ?? "")
-        case .platformExclusive: .platformExclusiveSourceType(type)
-        case .supported: .unsupportedSourceType(type)
+        case .platformExclusive where !documentProfiles.isDisjoint(with: row.profiles): .platformExclusiveSourceType(type)
+        case .platformExclusive, .supported: .notYetConvertible(type)
         }
     }
 

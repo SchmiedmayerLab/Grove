@@ -226,7 +226,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 
 - ``HealthKitConversionError``
 
-### Coverage
+### Catalog
 
 - ``HealthKitCatalog``
 

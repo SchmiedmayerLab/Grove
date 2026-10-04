@@ -893,36 +893,21 @@ struct HealthKitFHIRConverterTests {
         #expect(rows.filter { $0.implementationStatus == .intentionallyUnsupported }
         .allSatisfy { $0.requirement?.isEmpty == false })
 
-        // Supported rows that convert through no Observation of their sample: the ECG evidence
-        // path, the characteristic reads that are not HKSamples, and the panel components admitted
-        // only inside the correlation. Workouts are served now, so they are not exempt.
-        let sampleObservationExemptions: Set<String> = [
-            HKObjectType.electrocardiogramType().identifier,
-            HKDataTypeIdentifierHeartbeatSeries,
-            HKWorkoutRouteTypeIdentifier,
-            HKDocumentTypeIdentifier.CDA.rawValue,
-            HKClinicalTypeIdentifier.allergyRecord.rawValue,
-            HKClinicalTypeIdentifier.conditionRecord.rawValue,
-            HKClinicalTypeIdentifier.immunizationRecord.rawValue,
-            HKClinicalTypeIdentifier.labResultRecord.rawValue,
-            HKClinicalTypeIdentifier.medicationRecord.rawValue,
-            HKClinicalTypeIdentifier.procedureRecord.rawValue,
-            HKClinicalTypeIdentifier.vitalSignRecord.rawValue,
-            "HKCharacteristicTypeIdentifierBiologicalSex",
-            "HKCharacteristicTypeIdentifierDateOfBirth",
-            "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
-            "HKCorrelationTypeIdentifierFood",
-            "HKDataTypeIdentifierAudiogram",
-            HKCharacteristicTypeIdentifier.bloodType.rawValue,
-            HKCharacteristicTypeIdentifier.wheelchairUse.rawValue,
-            HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue,
-            HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue
-        ]
+        // Supported rows that convert through no Observation of their sample: the ECG, which its record entry point
+        // serves, and the rows this producer does not emit yet (the characteristics are no HKSample at all). Every
+        // other row converts its own sample; a row of another status never does.
+        let servedByRecordEntryPoint: Set<HealthKitSourceType> = [.electrocardiogram]
+        let notYetEmitted: Set<HealthKitSourceType> = [.food, .audiogram, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse]
         for row in rows {
-            let plan = HealthKitSourceType(rawValue: row.sourceTypeIdentifier).map { HealthKitContentPlan[$0] }
+            let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier)
+            let plan = type.map { HealthKitContentPlan[$0] }
             let observes = if case .observation = plan?.route { true } else { false }
-            if row.implementationStatus != .supported || sampleObservationExemptions.contains(row.sourceTypeIdentifier) {
-                #expect(!observes, "\(row.sourceTypeIdentifier) converts to an Observation of its sample")
+            if row.implementationStatus != .supported {
+                #expect(!observes, "\(row.sourceTypeIdentifier) is \(row.implementationStatus), yet converts to an Observation of its sample")
+            } else if let type, servedByRecordEntryPoint.contains(type) {
+                #expect(!observes, "\(row.sourceTypeIdentifier) converts through its record entry point, not its bare sample")
+            } else if let type, notYetEmitted.contains(type) {
+                #expect(!observes, "\(row.sourceTypeIdentifier) is not emitted yet, yet converts to an Observation of its sample")
             } else {
                 #expect(observes, "\(row.sourceTypeIdentifier) is supported but converts to no Observation")
                 #expect(plan?.outputs.first?.role == row.measurements.first?.id)
@@ -1035,8 +1020,8 @@ struct HealthKitFHIRConverterTests {
             return
         }
         #expect(exports[1].source.uuid == deferred.uuid)
-        #expect(error == .unsupportedSourceType(.food))
-        #expect(error.diagnostic.code == "mobile-input.unsupported-source-type")
+        #expect(error == .notYetConvertible(.food))
+        #expect(error.diagnostic.code == "mobile-input.not-yet-convertible")
     }
 }
 

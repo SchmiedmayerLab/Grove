@@ -22,8 +22,8 @@ import HealthKit
 public enum HealthKitConversionError: Error, Equatable, Sendable {
     /// The identifier is not in the adapter inventory at all.
     case unregisteredSourceType(String)
-    case unsupportedSourceType(HealthKitSourceType)
     case intentionallyUnsupported(HealthKitSourceType, reason: String)
+    /// The catalog admits the type, but this producer version emits no graph for it.
     case notYetConvertible(HealthKitSourceType)
     /// Admitted only as a platform-exclusive recording document, which a bare sample of the type does not carry.
     case platformExclusiveSourceType(HealthKitSourceType)
@@ -59,7 +59,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
 
     private var rule: ExchangeGraphRule {
         switch self {
-        case .unregisteredSourceType, .unsupportedSourceType: .mobileInputUnsupportedSourceType
+        case .unregisteredSourceType: .mobileInputUnsupportedSourceType
         case .intentionallyUnsupported: .mobileInputIntentionallyUnsupportedSourceType
         case .notYetConvertible: .mobileInputNotYetConvertible
         case .platformExclusiveSourceType: .mobileInputPlatformExclusiveSourceType
@@ -76,7 +76,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
 
     private var location: String {
         switch self {
-        case .unregisteredSourceType, .unsupportedSourceType, .intentionallyUnsupported, .notYetConvertible,
+        case .unregisteredSourceType, .intentionallyUnsupported, .notYetConvertible,
              .platformExclusiveSourceType, .componentRequiresCorrelation:
             "HKSample.sampleType"
         case .invalidValue(_, let failure): failure.location

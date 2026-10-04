@@ -135,10 +135,31 @@ struct HealthKitFHIRExporterTests {
             ),
             uuid: GoldenFixtures.uuid(7)
         )
-        let expected = [
-            (HealthKitConversionError.invalidValue(.stepCount, .outsideDomain), ExchangeGraphRule.mobileInputValueOutsideDomain.diagnostic(at: "HKSample.value"))
+        let food = HKCorrelation(
+            type: HKCorrelationType(.food),
+            start: start,
+            end: start,
+            objects: [HKQuantitySample(type: HKQuantityType(.dietaryEnergyConsumed), quantity: HKQuantity(unit: .kilocalorie(), doubleValue: 320), start: start, end: start)]
+        )
+        let audiogram = try StoredSampleFixtures.seriesSample(
+            HKAudiogramSample.self,
+            sampleType: HKObjectType.audiogramSampleType(),
+            facts: GoldenCase.seriesFacts(uuid: 0xF5, duration: 0)
+        )
+        let prescription = try StoredSampleFixtures.seriesSample(
+            HKVisionPrescription.self,
+            sampleType: HKObjectType.visionPrescriptionType(),
+            facts: GoldenCase.seriesFacts(uuid: 0xF6, duration: 0)
+        )
+        let notYetConvertible = ExchangeGraphRule.mobileInputNotYetConvertible.diagnostic(at: "HKSample.sampleType")
+        let expected: [(HealthKitConversionError, ProducerDiagnostic)] = [
+            (.invalidValue(.stepCount, .outsideDomain), ExchangeGraphRule.mobileInputValueOutsideDomain.diagnostic(at: "HKSample.value")),
+            (.notYetConvertible(.food), notYetConvertible),
+            (.notYetConvertible(.audiogram), notYetConvertible),
+            (.notYetConvertible(.visionPrescription), notYetConvertible)
         ]
-        let (exports, _) = try Self.collect(try Self.exporter(), [fractionalSteps, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))])
+        let samples: [HKSample] = [fractionalSteps, food, audiogram, prescription, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))]
+        let (exports, _) = try Self.collect(try Self.exporter(), samples)
         try #require(exports.count == expected.count + 1)
         for (export, (error, diagnostic)) in zip(exports, expected) {
             guard case .refused(let reason) = export.outcome else {
