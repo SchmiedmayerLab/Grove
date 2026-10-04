@@ -35,9 +35,9 @@ public final class ExchangeEventSequencer: Sendable {
         /// Runs `body` as one transaction and returns its result.
         ///
         /// The transaction is valid only inside `body`. Grove never calls `transaction` from inside `body`,
-        /// and its bodies have no effect outside the transaction other than process-memory notes that end
-        /// when the call returns, so a storage may discard an attempt and run `body` again. A `body` that
-        /// throws commits nothing.
+        /// and its bodies have no effect outside the transaction other than idempotent process-memory notes
+        /// about which calls hold a reservation, so a storage may discard an attempt and run `body` again. A
+        /// `body` that throws commits nothing.
         func transaction<R>(_ body: (any Transaction) throws -> R) throws -> R
     }
 
@@ -183,8 +183,9 @@ extension ExchangeEventSequencer {
     /// `released` says the caller's output is durably handed off. When the last live holder of a
     /// reservation in this process finishes and any holder released it, the reservation is removed, but
     /// only while the key still holds exactly that reservation and, checked inside the removing transaction,
-    /// no call in this process holds it or is about to. `keys` are forgotten whatever they hold, and only
-    /// when `released` is true. Opens one transaction when anything is to be removed, none otherwise.
+    /// no call in this process holds it or is about to; such a call takes the release over, so the last one
+    /// to finish removes it. `keys` are forgotten whatever they hold, and only when `released` is true. Opens
+    /// one transaction when anything is to be removed, none otherwise.
     package func finish(
         _ held: [ExchangeEventReservation.Handle],
         released: Bool,
@@ -196,10 +197,10 @@ extension ExchangeEventSequencer {
             return
         }
         try storage.transaction { transaction in
-            // A reserve whose transaction returned the reservation noted it there, so it stays; a reserve whose
-            // transaction runs after this one no longer finds it, as a storage runs a process's transactions one at
-            // a time.
-            for handle in removable where !holds.isHeld(handle) {
+            // A reserve whose transaction returned the reservation noted it there, so it stays and that call takes the
+            // release over; a reserve whose transaction runs after this one no longer finds it, as a storage runs a
+            // process's transactions one at a time.
+            for handle in removable where !holds.handOver(handle) {
                 let key = LedgerKey.event(handle.key)
                 guard let value = try transaction.read(key) else {
                     continue

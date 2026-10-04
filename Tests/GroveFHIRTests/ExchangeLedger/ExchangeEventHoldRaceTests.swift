@@ -268,4 +268,49 @@ struct ExchangeEventHoldRaceTests {
         #expect(redelivery.handle.instance == held.handle.instance)
         #expect(redelivery.handle.sequence > held.handle.sequence)
     }
+
+    /// G9d under a race: the last holder releases while another call reuses the reservation, either committed but not yet
+    /// holding it (`reuseHoldsBeforeRemoval` false) or fully holding it before the release's transaction opens (true).
+    @Test("G9d: a release racing a reuse keeps its mark; the reusing call's lapse removes the reservation", arguments: [false, true])
+    func releaseRacingAReuseThenLapse(reuseHoldsBeforeRemoval: Bool) throws {
+        let storage = GateStorage()
+        let sequencer = Fixtures.sequencer(storage)
+        let request = Fixtures.request("race")
+        let facts = try Fixtures.facts()
+        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let reused: [ExchangeEventRequest: ExchangeEventReservation]
+        if reuseHoldsBeforeRemoval {
+            // The last holder ended its hold and waits to open its removal transaction; another call reuses it now.
+            let finished = DispatchSemaphore(value: 0)
+            storage.gate()
+            Thread {
+                try? sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+                finished.signal()
+            }.start()
+            storage.entered.wait()
+            reused = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+            storage.proceed.signal()
+            finished.wait()
+        } else {
+            // Another call's reuse committed and is still noted as reserving when the last holder releases.
+            let box = ReservedBox()
+            let reserved = DispatchSemaphore(value: 0)
+            storage.gate(.afterCommit)
+            Thread {
+                box.reserved = (try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)) ?? [:]
+                reserved.signal()
+            }.start()
+            storage.entered.wait()
+            try sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+            storage.proceed.signal()
+            reserved.wait()
+            reused = box.reserved
+        }
+        #expect(reused == first, "the second call reused the reservation")
+        #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) != nil, "the second call still holds it")
+        // The reusing call is dropped unreleased, as the loser of an anchor compare-exchange is; it is the last holder.
+        try sequencer.finish(reused.values.map(\.handle), released: false, forgetting: [])
+        #expect(!Fixtures.isHeld(first[request]?.handle, by: sequencer))
+        #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil, "a holder released it; the last finisher removes it")
+    }
 }

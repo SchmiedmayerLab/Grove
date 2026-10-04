@@ -15,10 +15,11 @@ import Foundation
 /// process finishes and any holder released it, so overlapping exports of one record never remove each
 /// other's reservation, and a call that throws leaves its reservations for the redelivery. A reserve notes the
 /// reservations its transaction returns from inside that transaction and turns them into holds in one step after
-/// it, so a reservation it is about to hold is never seen unused in between. Handles include the producer
-/// instance, which every ledger mints for itself, so they are unique across ledgers and the same through every
-/// storage object or sequencer in front of one ledger; one registry serves every storage. Holds do not span
-/// processes; the lock is never held across I/O.
+/// it, so a reservation it is about to hold is never seen unused in between. A removal that finds such a holder
+/// hands the release over to it, so the release mark survives until the last holder finishes. Handles include
+/// the producer instance, which every ledger mints for itself, so they are unique across ledgers and the same
+/// through every storage object or sequencer in front of one ledger; one registry serves every storage. Holds do
+/// not span processes; the lock is never held across I/O.
 final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are guarded by `lock`.
     /// The reservations one reserve call noted, so an attempt the storage runs again notes nothing twice.
     final class Notes: @unchecked Sendable { // `handles` is guarded by the registry's `lock`.
@@ -63,6 +64,11 @@ final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are g
         for handle in notes.handles {
             let remaining = (reserving[handle] ?? 1) - 1
             reserving[handle] = remaining > 0 ? remaining : nil
+            // A release handed over to a reserve that then did not commit has no holder left to finish it; the
+            // reservation stays, as after a failed release.
+            if remaining <= 0, holds[handle]?.live == 0 {
+                holds[handle] = nil
+            }
         }
         notes.handles = []
     }
@@ -89,6 +95,22 @@ final class HoldRegistry: @unchecked Sendable { // `holds` and `reserving` are g
             }
         }
         return removable
+    }
+
+    /// Whether a live call holds `handle` or a reserving transaction returned it to a call about to hold it; if so,
+    /// the release passes to that call, so the last holder to finish removes the reservation. Called inside the
+    /// removing transaction; marking again, when a storage runs that body again, changes nothing.
+    func handOver(_ handle: ExchangeEventReservation.Handle) -> Bool {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        guard holds[handle] != nil || reserving[handle] != nil else {
+            return false
+        }
+        // A call still reserving takes its hold on this entry, and with it the release mark.
+        holds[handle, default: Hold(live: 0, released: true)].released = true
+        return true
     }
 
     /// Whether a live call holds `handle`, or a reserving transaction returned it and its call is about to hold it.

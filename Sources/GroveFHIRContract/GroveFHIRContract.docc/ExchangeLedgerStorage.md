@@ -45,7 +45,7 @@ What Grove promises a storage in return:
 
 - Keys are ASCII from `[A-Za-z0-9_/-]` and at most 64 bytes: `producer`, `event/<key>` and `facts/<digest>`.
 - Values are UTF-8 JSON, typically under 1 KiB; accept values up to 1 MiB, as facts grow with the number of studies.
-- Grove never nests transactions, never lets a transaction escape its body, and its bodies have no effect outside the transaction other than process-memory notes that end when the call returns, so a storage may discard an attempt and run the body again.
+- Grove never nests transactions, never lets a transaction escape its body, and its bodies have no effect outside the transaction other than idempotent process-memory notes about which calls hold a reservation, so a storage may discard an attempt and run the body again.
 - `keys(prefixedBy:)` is called only by ``ExchangeEventSequencer/reset()`` and ``ExchangeEventSequencer/forgetReservations(madeBefore:)``.
 - One storage holds one ledger and nothing else.
 
@@ -76,7 +76,7 @@ Both the cutoff and the stored instants are on the caller's clock, so choose one
 
 The entries hold no per-call state.
 Live calls are tracked in process memory: when the last call in the process that holds an event finishes and any of them released it, the event's reservation is removed, and otherwise it stays for the redelivery.
-A reserve notes the reservations its transaction returns from inside that transaction until it holds them, and the removing transaction checks those notes and the holds, so a release never removes a reservation another call in the process holds or is about to hold, whichever storage object, value or sequencer either call goes through.
+A reserve notes the reservations its transaction returns from inside that transaction until it holds them, and the removing transaction checks those notes and the holds, so a release never removes a reservation another call in the process holds or is about to hold, whichever storage object, value or sequencer either call goes through; that call takes the release over, and the last one to finish removes the reservation.
 This relies on the storage running one process's transactions one at a time, as every backend above in its primary form does with its lock or a transaction that takes the write lock when it begins.
 A storage whose serializable transactions overlap, such as one that validates optimistically, still never reuses a sequence, but there a release can remove a reservation that a concurrent call has just reused, and that call's redelivery then becomes a new event, a duplicate and never a reuse.
 A release only ever removes the exact reservation its call made, never a successor's or one from before a reset.
