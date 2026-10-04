@@ -47,6 +47,7 @@ extension ContentCorpusGrid {
             convert("correlation/blood-pressure/\(label)", ContentCorpusSource(.correlation(type: bloodPressure, members: members), end: end, metadata: metadata))
         }
         let sync: [String: ContentCorpusMetadataValue] = [HKMetadataKeySyncIdentifier: .string("member-sync"), HKMetadataKeySyncVersion: .integer(1)]
+        let entered: [String: ContentCorpusMetadataValue] = [HKMetadataKeyWasUserEntered: .boolean(true)]
         return [
             pressure("row", pair()), pressure("interval", pair(), end: start + 60),
             pressure("missing-systolic", [pair()[1]]), pressure("missing-diastolic", [pair()[0]]), pressure("no-members", []),
@@ -69,6 +70,24 @@ extension ContentCorpusGrid {
             ),
             pressure("member-foreign-key", pair(diastolic: ["org.example.member": .string("x")])),
             pressure("member-sync-identity", pair(systolic: sync)),
+            pressure("member-user-entered-both", pair(systolic: entered, diastolic: entered)),
+            pressure(
+                "member-user-entered-both-correlation-not",
+                pair(systolic: entered, diastolic: entered),
+                metadata: zone.merging([HKMetadataKeyWasUserEntered: .boolean(false)]) { _, new in new }
+            ),
+            pressure("member-zone-one-correlation-none", pair(systolic: kolkata), metadata: [:]),
+            pressure(
+                "member-zone-alias-correlation-none",
+                pair(systolic: [HKMetadataKeyTimeZone: .string("US/Pacific")], diastolic: [HKMetadataKeyTimeZone: .string("America/Los_Angeles")]),
+                metadata: [:]
+            ),
+            pressure("member-zone-invalid-correlation-zone", pair(systolic: [HKMetadataKeyTimeZone: .string("Not/A-Time-Zone")])),
+            pressure(
+                "member-foreign-keys-shared",
+                pair(systolic: ["org.example.shared": .string("s")], diastolic: ["org.example.member": .string("x")]),
+                metadata: zone.merging(["org.example.shared": .string("c")]) { _, new in new }
+            ),
             convert("correlation/food/row", ContentCorpusSource(.correlation(
                 type: HKCorrelationTypeIdentifier.food.rawValue,
                 members: [ContentCorpusMember(type: HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue, value: 320, unit: "kcal")]
