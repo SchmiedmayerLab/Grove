@@ -493,6 +493,27 @@ struct HealthKitEffectiveTimeTests {
         }
     }
 
+    @Test("A Period is judged on the wire's half-even milliseconds, and an instant rule admits none")
+    func periodsAreJudgedOnWireMilliseconds() throws {
+        let start = Date(timeIntervalSince1970: 1_787_148_600)
+        let subMillisecond = start.addingTimeInterval(0.0003)
+        #expect(try EffectiveRule.interval(nonZero: true).admitsPeriod(from: start, to: subMillisecond) == false)
+        #expect(try EffectiveRule.interval(nonZero: false).admitsPeriod(from: start, to: subMillisecond))
+        #expect(try EffectiveRule.interval(nonZero: true).admitsPeriod(from: start, to: start.addingTimeInterval(0.0007)))
+        #expect(try EffectiveRule.instant.admitsPeriod(from: start, to: start.addingTimeInterval(45)) == false)
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+            try EffectiveRule.interval(nonZero: false).admitsPeriod(from: start, to: Date(timeIntervalSince1970: .infinity))
+        }
+    }
+
+    @Test("A measurement's rule is the effective datatype its profile fixes")
+    func rulesFollowTheProfile() {
+        #expect(EffectiveRule(MeasurementCatalog.respiratoryRate) == .instant)
+        #expect(EffectiveRule(MeasurementCatalog.heartRate) == .instant)
+        #expect(EffectiveRule(MeasurementCatalog.stepCount) == .interval(nonZero: true))
+        #expect(EffectiveRule(MeasurementCatalog.dietaryEnergy) == .interval(nonZero: false))
+    }
+
     @Test("ECG instants keep exact Decimal seconds at the zone's fixed offset, without a timezone extension")
     func ecgExactSeconds() throws {
         let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))

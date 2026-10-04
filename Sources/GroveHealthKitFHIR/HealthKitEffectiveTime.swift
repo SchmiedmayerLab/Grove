@@ -13,7 +13,8 @@ import GroveFHIRContract
 import ModelsR4
 
 
-/// How a measurement's effective time is drawn from a HealthKit sample's start and end.
+/// How a measurement's effective time is drawn from a HealthKit sample's start and end, inside the datatype its
+/// profile fixes; a Period is judged on the milliseconds the wire states.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum EffectiveRule: Hashable, Sendable {
     /// `effectiveDateTime` at the sample's start.
@@ -23,17 +24,36 @@ enum EffectiveRule: Hashable, Sendable {
     /// `start == end`, so a point-in-time source keeps its instant as an equal-endpoint Period.
     case interval(nonZero: Bool)
 
+    /// The rule of a measurement: the effective datatype its profile fixes, and whether its Period must be non-zero.
+    /// A dateTime-or-Period measurement (heart rate) states its instant: a scalar HealthKit sample stays point-in-time.
+    init(_ contract: MeasurementContract) {
+        switch contract.effective {
+        case .dateTime, .dateTimeOrPeriod: self = .instant
+        case .period: self = .interval(nonZero: HealthKitContentRules.nonZeroPeriods.contains(contract.id))
+        }
+    }
+
     /// The effective value for a sample spanning `start` to `end` in the source's `zone`.
     func value(start: Date, end: Date, zone: TimeZone?) throws(HealthKitConversionError.ValueFailure) -> Observation.EffectiveX {
-        switch self {
-        case .instant:
+        guard self != .instant else {
             return .dateTime(try HealthKitEffectiveTime.dateTime(start, zone: zone))
-        case let .interval(nonZero):
-            guard end > start || (end == start && !nonZero) else {
-                throw .effectivePeriodInvalid
-            }
-            return .period(try HealthKitEffectiveTime.period(start: start, end: end, zone: zone))
         }
+        guard try admitsPeriod(from: start, to: end) else {
+            throw .effectivePeriodInvalid
+        }
+        return .period(try HealthKitEffectiveTime.period(start: start, end: end, zone: zone))
+    }
+
+    /// Whether the profile admits a Period from `start` to `end`, judged on the half-even milliseconds the wire
+    /// states: never where it fixes an instant, never reversed, and zero-width only where the measurement does not
+    /// require a non-zero Period. An endpoint with no wire millisecond has an invalid shape.
+    func admitsPeriod(from start: Date, to end: Date) throws(HealthKitConversionError.ValueFailure) -> Bool {
+        guard case .interval(let nonZero) = self else {
+            return false
+        }
+        let start = try HealthKitEffectiveTime.milliseconds(start)
+        let end = try HealthKitEffectiveTime.milliseconds(end)
+        return end > start || (end == start && !nonZero)
     }
 }
 
@@ -172,7 +192,7 @@ enum HealthKitEffectiveTime {
     /// outside 1…9999. Zone offsets change only on whole seconds, so the rounded instant's whole second
     /// has the rounded instant's offset.
     private static func mobileLexeme(_ date: Date, zone: TimeZone?) -> String? {
-        guard let milliseconds = milliseconds(date) else {
+        guard let milliseconds = try? milliseconds(date) else {
             return nil
         }
         let (wholeSeconds, millisecond) = ExchangeInstant.floorDivide(milliseconds, by: 1_000)
@@ -193,8 +213,9 @@ enum HealthKitEffectiveTime {
         return lexeme + (offset < 0 ? "-" : "+") + twoDigits(magnitude / 3_600) + ":" + twoDigits(magnitude % 3_600 / 60)
     }
 
-    /// Milliseconds since 1970 of the exact instant `date` holds, rounded to the nearest, ties to even; `nil` when
-    /// it is non-finite or 2^52 milliseconds or more from 2001, far beyond the statable years.
+    /// The milliseconds since 1970 an effective instant states on the wire: the exact instant `date` holds, rounded
+    /// to the nearest, ties to even. An instant that is non-finite, or 2^52 milliseconds or more from 2001, far beyond
+    /// the statable years, has an invalid shape.
     ///
     /// `Date` holds binary64 seconds since 2001, which begins an even number of milliseconds after 1970, so the
     /// exact count is those seconds times 1000 shifted by that even number, ties intact. The binary64 product
@@ -202,11 +223,11 @@ enum HealthKitEffectiveTime {
     /// `….28149998…` seconds, whose product is `….5`): the product's rounding error, exact by a fused
     /// multiply-add, breaks such a tie. A product that is no tie rounds as the exact count does, since every
     /// half below 2^52 is a binary64 value.
-    private static func milliseconds(_ date: Date) -> Int64? {
+    static func milliseconds(_ date: Date) throws(HealthKitConversionError.ValueFailure) -> Int64 {
         let seconds = date.timeIntervalSinceReferenceDate
         let product = seconds * 1_000
         guard product.magnitude < 0x1p52 else {
-            return nil
+            throw .shapeInvalid
         }
         let error = (-product).addingProduct(seconds, 1_000)
         let isTie = (product - product.rounded(.towardZero)).magnitude == 0.5

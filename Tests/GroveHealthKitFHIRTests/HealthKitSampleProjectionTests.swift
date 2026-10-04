@@ -262,5 +262,8 @@ struct HealthKitSampleProjectionTests {
         #expect(throws: HealthKitSampleProjectionError.effectiveMissing(id: "body-weight")) {
             try observation.healthKitSample()
         }
+        let diagnostic = HealthKitSampleProjectionError.effectiveMissing(id: "body-weight").diagnostic
+        #expect(diagnostic.code == "mobile-input.effective-period-invalid")
+        #expect(diagnostic.location == "Observation.effective")
     }
 }
