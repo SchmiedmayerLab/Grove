@@ -196,6 +196,23 @@ struct ExchangeProducerTests {
         #expect(try Self.producer(studies: [Self.enrollment(name: "a"), Self.enrollment(name: "b")]).studies.count == 2)
     }
 
+    @Test("Facts the ledger cannot read back are refused: a study protocol canonical with an empty URL")
+    func unfreezableFactsAreRefused() throws {
+        // Foundation builds a URL with empty text from empty components; no canonical text states it.
+        let empty = try #require(URLComponents().url)
+        #expect(empty.absoluteString.isEmpty)
+        let study = try StudyEnrollment(
+            study: Self.identifier("https://study.example.org/fhir/study", "a"),
+            protocolURL: FHIRPrimitive(Canonical(empty)),
+            protocolVersion: "1",
+            enrollment: Self.identifier("https://study.example.org/fhir/enrollment", "enrollment-a")
+        )
+        #expect(throws: ExchangeProducer.ConfigurationError.unfreezableFacts) {
+            try Self.producer(studies: [study])
+        }
+        #expect(try Self.producer(studies: [Self.enrollment(name: "a")]).studies.count == 1)
+    }
+
     @Test("Every configuration fault reports the unclassified input diagnostic at the producer")
     func configurationFaultsReportOneDiagnostic() throws {
         let identifier = try Self.identifier("https://study.example.org/fhir/study", "s")
@@ -203,7 +220,8 @@ struct ExchangeProducerTests {
             .reservedSubjectIdentifierSystem(identifier.system),
             .reservedStudyIdentifierSystem(identifier.system),
             .duplicateStudy(identifier),
-            .duplicateEnrollment(identifier)
+            .duplicateEnrollment(identifier),
+            .unfreezableFacts
         ]
         for fault in faults {
             #expect(fault.diagnostic.code == ExchangeGraphRule.mobileInputUnclassified.rawValue)

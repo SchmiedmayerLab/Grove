@@ -23,7 +23,8 @@ public final class ExchangeProducer: Sendable {
         case duplicateStudy(BusinessIdentifier)
         /// Two enrollments carry the same enrollment identifier.
         case duplicateEnrollment(BusinessIdentifier)
-        /// The application, host or studies do not survive the ledger's encoding, so no event could freeze them.
+        /// The application, host or studies do not survive the ledger's encoding, so no event could freeze them,
+        /// such as a study whose protocol canonical has an empty URL, which no canonical text states.
         case unfreezableFacts
 
         /// The registered diagnostic: every configuration fault is a deployment defect.
