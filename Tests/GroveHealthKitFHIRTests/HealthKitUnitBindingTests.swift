@@ -9,10 +9,24 @@
 #if canImport(HealthKit)
 
 import Foundation
+@testable import GroveFHIRContract
 import GroveHealthKit
 @testable import GroveHealthKitFHIR
 import HealthKit
 import Testing
+
+
+/// A sample HealthKit holds in a unit other than its contract's, and the `valueQuantity` the graph states for it.
+struct UnitConversionCase: CustomTestStringConvertible, Sendable {
+    let type: HKQuantityTypeIdentifier
+    let unit: HKUnit
+    let value: Double
+    /// The decimal lexeme on the wire, exactly.
+    let lexeme: String
+    let code: String
+
+    var testDescription: String { "\(value) \(unit.unitString) \(type.rawValue)" }
+}
 
 
 /// The published UCUM-to-HealthKit correspondence.
@@ -61,6 +75,28 @@ struct HealthKitUnitBindingTests {
             #expect(HealthKitCatalog.unit(forUnitSpelling: binding.ucumCode) == binding.unit)
             #expect(HealthKitCatalog.unit(forUnitSpelling: binding.displayUnit) == binding.unit)
         }
+    }
+
+    /// The converter reads a value in its contract's unit whatever unit HealthKit holds it in. The wire lexeme is
+    /// pinned exactly, binary noise included, so any change to the arithmetic is a visible, deliberate delta.
+    @Test(arguments: [
+        UnitConversionCase(type: .bodyTemperature, unit: .degreeFahrenheit(), value: 98.6, lexeme: "37.00000000000006", code: "Cel"),
+        UnitConversionCase(type: .distanceWalkingRunning, unit: .mile(), value: 1, lexeme: "1609.344", code: "m"),
+        UnitConversionCase(type: .oxygenSaturation, unit: .percent(), value: 0.07, lexeme: "7.000000000000001", code: "%"),
+        UnitConversionCase(
+            type: .bloodGlucose,
+            unit: HKUnit.moleUnit(with: .milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: .liter()),
+            value: 5.5,
+            lexeme: "99.08573400002975",
+            code: "mg/dL"
+        )
+    ])
+    func convertsFromAnotherUnit(_ conversion: UnitConversionCase) throws {
+        let sample = try GoldenFixtures.quantity(conversion.type, HKQuantity(unit: conversion.unit, doubleValue: conversion.value), uuid: GoldenFixtures.uuid(0xC8))
+        let graph = try HealthKitConverter().convert(sample, context: GoldenFixtures.context(sequence: 900)).graph
+        let quantity = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements?.first?["resource"]?["valueQuantity"]
+        #expect(quantity?["value"] == .number(conversion.lexeme))
+        #expect(quantity?["code"]?.text == conversion.code)
     }
 
     /// One spelling never names two different HealthKit units. The reverse does not hold — every

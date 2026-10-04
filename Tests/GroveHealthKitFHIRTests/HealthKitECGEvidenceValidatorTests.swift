@@ -115,6 +115,98 @@ struct HealthKitECGEvidenceValidatorTests {
         }
     }
 
+    /// The facts the public record path reads off an `HKElectrocardiogram` beside its voltages, field by field.
+    @Test("An ECG's source evidence states the sample's own classification, symptoms, rate, algorithm and zone")
+    func sourceEvidenceReadsTheSample() throws {
+        let start = GoldenFixtures.sampleStart
+        let shape = StoredSampleFixtures.SeriesShape(
+            uuid: GoldenFixtures.uuid(0xC0),
+            start: start,
+            end: start.addingTimeInterval(30),
+            device: GoldenFixtures.watch,
+            metadata: [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue],
+            writer: GoldenFixtures.foreignWriter
+        )
+        let ecg = try StoredSampleFixtures.electrocardiogram(
+            shape: shape,
+            reading: (privateClassification: 4, classification: .atrialFibrillation),
+            symptomsStatus: .present,
+            averageHeartRate: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 112)
+        )
+        let evidence = try HealthKitConverter.ecgSourceEvidence(ecg)
+        #expect(evidence.sourceTypeIdentifier == HealthKitContract.electrocardiogramSourceTypeIdentifier)
+        #expect(evidence.startDate == start)
+        #expect(evidence.endDate == start.addingTimeInterval(30))
+        #expect(evidence.timeZone.identifier == GoldenFixtures.timeZone)
+        #expect(evidence.classification == .atrialFibrillation)
+        #expect(evidence.symptomsStatus == .present)
+        #expect(evidence.averageHeartRate == 112)
+        #expect(evidence.algorithmVersion == HKAppleECGAlgorithmVersion.version2.rawValue)
+        // Unset voltages report no measurements and no sampling frequency.
+        #expect(evidence.numberOfVoltageMeasurements == 0)
+        #expect(evidence.samplingFrequency == nil)
+    }
+
+    /// Every HealthKit classification states its code of the guide's closed code system
+    /// (healthkit `terminology.fsh`, `HealthKitECGClassificationCS`).
+    @Test(arguments: [
+        (HKElectrocardiogram.Classification.notSet, "notSet"),
+        (.sinusRhythm, "sinusRhythm"),
+        (.atrialFibrillation, "atrialFibrillation"),
+        (.inconclusiveLowHeartRate, "inconclusiveLowHeartRate"),
+        (.inconclusiveHighHeartRate, "inconclusiveHighHeartRate"),
+        (.inconclusivePoorReading, "inconclusivePoorReading"),
+        (.inconclusiveOther, "inconclusiveOther"),
+        (.unrecognized, "unrecognized")
+    ])
+    func classificationsStateTheGuideCodes(_ classification: HKElectrocardiogram.Classification, _ code: String) throws {
+        let (_, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xC1, symptomsPresent: false)
+        let source = evidence.source
+        let observation = try HealthKitConverter.ecgObservation(input: HealthKitECGObservationInput(
+            source: HealthKitECGSourceEvidence(
+                sourceTypeIdentifier: source.sourceTypeIdentifier,
+                startDate: source.startDate,
+                endDate: source.endDate,
+                timeZone: source.timeZone,
+                classification: classification,
+                symptomsStatus: source.symptomsStatus,
+                numberOfVoltageMeasurements: source.numberOfVoltageMeasurements,
+                averageHeartRate: source.averageHeartRate,
+                samplingFrequency: source.samplingFrequency,
+                algorithmVersion: source.algorithmVersion
+            ),
+            waveform: evidence.waveform,
+            symptomOutputIdentifiers: []
+        ))
+        #expect(observation.interpretation?.first?.coding?.map { $0.code?.value?.string } == [code])
+    }
+
+    /// One record states one entry method: the ECG's own metadata marks its waveform and its average heart rate alike.
+    @Test("A user-entered ECG states manual entry on the waveform and on its average heart rate")
+    func userEnteredECGMarksEveryOutput() throws {
+        let start = GoldenFixtures.sampleStart
+        let ecg = try StoredSampleFixtures.seriesSample(
+            HKElectrocardiogram.self,
+            sampleType: HKObjectType.electrocardiogramType(),
+            shape: StoredSampleFixtures.SeriesShape(
+                uuid: GoldenFixtures.uuid(0xC2),
+                start: start,
+                end: start.addingTimeInterval(30),
+                device: GoldenFixtures.watch,
+                metadata: [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeyWasUserEntered: true],
+                writer: GoldenFixtures.foreignWriter
+            )
+        )
+        let (_, evidence) = try GoldenCase.electrocardiogramEvidence(uuid: 0xC2, symptomsPresent: false)
+        let conversion = try HealthKitConverter.convertECG(ecg, evidence: evidence, symptoms: [], context: HealthKitConversionContext(), symptomContexts: [])
+        let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        #expect(observations.count == 2)
+        for observation in observations {
+            let methods = observation.extension?.filter { $0.url == Canonicals.recordingMethod } ?? []
+            #expect(methods.count == 1, "\(observation.code.coding?.first?.code?.value?.string ?? "") states no manual entry")
+        }
+    }
+
     @Test(
         "Incomplete, contradictory, or nonuniform ECG evidence fails closed",
         arguments: [
@@ -255,8 +347,7 @@ struct HealthKitECGEvidenceValidatorTests {
             numberOfVoltageMeasurements: Self.validPoints.count,
             averageHeartRate: nil,
             samplingFrequency: 500,
-            algorithmVersion: nil,
-            wasUserEntered: false
+            algorithmVersion: nil
         )
         let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
             reportedCount: Self.validPoints.count,

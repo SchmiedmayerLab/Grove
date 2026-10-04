@@ -137,7 +137,10 @@ struct HealthKitAssembly: Sendable {
         let facts = try SourceFacts(sample, options: request.options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
-        outputs[0].wasUserEntered = facts.wasUserEntered
+        // One record states one entry method: the sample's own metadata decides it for every output it yields.
+        for index in outputs.indices {
+            outputs[index].wasUserEntered = facts.wasUserEntered
+        }
         // A writer-record identity travels only with its version, and only an Observation carries the version
         // extension; a document states neither, though the pair is still validated.
         if case .observation = outputs[0].resource {

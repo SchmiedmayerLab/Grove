@@ -117,6 +117,15 @@ extension GoldenCase {
                 StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(14)),
                 sequence: sequence
             )
+        },
+        // HealthKit scores the answers itself: 0 + 1 + 2 + 3 + 0 + 1 + 2.
+        GoldenCase("gad7-assessment", sequence: 15) { sequence in
+            let assessment = HKGAD7Assessment(
+                date: GoldenFixtures.sampleStart,
+                answers: [.notAtAll, .severalDays, .moreThanHalfTheDays, .nearlyEveryDay, .notAtAll, .severalDays, .moreThanHalfTheDays],
+                metadata: GoldenFixtures.timeZoneMetadata
+            )
+            return try GoldenFixtures.convert(StoredSampleFixtures.stored(assessment, uuid: GoldenFixtures.uuid(15)), sequence: sequence)
         }
     ]
 

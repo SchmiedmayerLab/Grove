@@ -223,8 +223,7 @@ extension GoldenCase {
             numberOfVoltageMeasurements: 4,
             averageHeartRate: 72,
             samplingFrequency: 500,
-            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue,
-            wasUserEntered: false
+            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
         )
         let waveform = try HealthKitECGEvidenceValidator.validateWaveform(
             reportedCount: source.numberOfVoltageMeasurements,

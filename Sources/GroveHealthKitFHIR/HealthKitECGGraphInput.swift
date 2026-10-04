@@ -43,7 +43,6 @@ struct HealthKitECGSourceEvidence: Sendable {
     let averageHeartRate: Double?
     let samplingFrequency: Double?
     let algorithmVersion: Int?
-    let wasUserEntered: Bool
 }
 
 #endif

@@ -50,8 +50,7 @@ extension HealthKitConverter {
             numberOfVoltageMeasurements: ecg.numberOfVoltageMeasurements,
             averageHeartRate: ecg.averageHeartRate?.doubleValue(for: .count().unitDivided(by: .minute())),
             samplingFrequency: ecg.samplingFrequency?.doubleValue(for: .hertz()),
-            algorithmVersion: (ecg.metadata?[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue,
-            wasUserEntered: (ecg.metadata?[HKMetadataKeyWasUserEntered] as? Bool) == true
+            algorithmVersion: (ecg.metadata?[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue
         )
     }
 
@@ -110,8 +109,7 @@ extension HealthKitConverter {
         return ExchangeOutputDraft(
             role: "average-heart-rate",
             resource: .observation(try averageHeartRateObservation(value: averageHeartRate, effective: effective, input: input)),
-            derivedFromPrimary: true,
-            wasUserEntered: input.source.wasUserEntered
+            derivedFromPrimary: true
         )
     }
 

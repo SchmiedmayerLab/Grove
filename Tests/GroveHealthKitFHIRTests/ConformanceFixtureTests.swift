@@ -410,8 +410,7 @@ struct ConformanceFixtureTests {
             numberOfVoltageMeasurements: 4,
             averageHeartRate: 72,
             samplingFrequency: 500,
-            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue,
-            wasUserEntered: false
+            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
         )
         let ecgWaveform = try HealthKitECGEvidenceValidator.validateWaveform(
             reportedCount: ecgSource.numberOfVoltageMeasurements,

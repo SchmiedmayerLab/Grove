@@ -128,6 +128,28 @@ enum StoredSampleFixtures {
         return sample
     }
 
+    /// An `HKElectrocardiogram` reading `shape`'s facts, its classification, symptoms status and average heart rate.
+    /// Its voltages are HealthKit's private storage and stay unset, so it reports no measurement count and no sampling
+    /// frequency. HealthKit keeps the classification under a private numbering: `reading` names that number and the
+    /// public classification it must read back as, and the fixture fails unless every value reads back.
+    static func electrocardiogram(
+        shape: SeriesShape,
+        reading: (privateClassification: Int, classification: HKElectrocardiogram.Classification),
+        symptomsStatus: HKElectrocardiogram.SymptomsStatus,
+        averageHeartRate: HKQuantity
+    ) throws -> HKElectrocardiogram {
+        let ecg = try seriesSample(HKElectrocardiogram.self, sampleType: HKObjectType.electrocardiogramType(), shape: shape)
+        try write(NSNumber(value: reading.privateClassification), to: "privateClassification", of: ecg)
+        try write(NSNumber(value: symptomsStatus.rawValue), to: "symptomsStatus", of: ecg)
+        try write(averageHeartRate, to: "averageHeartRate", of: ecg)
+        guard ecg.classification == reading.classification,
+              ecg.symptomsStatus == symptomsStatus,
+              ecg.averageHeartRate == averageHeartRate else {
+            throw FixtureError.keyNotHonored(key: "privateClassification/symptomsStatus/averageHeartRate", class: String(describing: HKElectrocardiogram.self))
+        }
+        return ecg
+    }
+
     #if !os(watchOS)
     /// An `HKClinicalRecord` carrying `resource` as the provider's FHIR resource, the way a fetched record carries it;
     /// HealthKit offers no initializer for either class. Fails unless the record reads every value back.
