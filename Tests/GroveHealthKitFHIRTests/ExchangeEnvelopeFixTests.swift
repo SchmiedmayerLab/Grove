@@ -133,6 +133,15 @@ struct ExchangeEnvelopeFixTests {
             return
         }
         #expect(occurred.value?.description == "2026-08-17T23:30:00.251Z")
+        // No FHIR instant states an event before year 1: the conversion is refused, never written as a sentinel.
+        let unstatable = HealthKitConversionContext(event: .test(conversionInstant: .distantPast))
+        let refusal = #expect(throws: HealthKitConversionError.self) {
+            try HealthKitConverter().convert(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92)), context: unstatable)
+        }
+        guard case .dependency? = refusal else {
+            Issue.record("An unstatable event instant is a dependency refusal, not \(String(describing: refusal))")
+            return
+        }
     }
 
     @Test("A retraction states its bounds and its recording in UTC at millisecond precision, and a start before year 1 as year 1")
@@ -166,6 +175,35 @@ struct ExchangeEnvelopeFixTests {
             return
         }
         #expect(clamped.start?.value?.description == "0001-01-01T00:00:00Z")
+    }
+
+    /// No FHIR dateTime states an instant before year 1 or from year 10000 on. Only a period's start is clamped, as a
+    /// lower bound stays true; a retraction refuses any other such occurrence or recording rather than write a sentinel.
+    @Test("A retraction refuses an occurrence or a recording no FHIR dateTime can state")
+    func retractionRefusesUnstatableInstants() throws {
+        let record = try Self.base.identityScope.sourceRecord(
+            adapterID: HealthKitConverter.adapterID,
+            sourceType: HealthKitSourceType.heartRate.rawValue,
+            repositoryScope: Self.base.repositoryScope,
+            nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()
+        )
+        let target = try RetractionTarget(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
+        func retraction(_ occurred: RetractionOccurrence, recordedAt: Date = GoldenFixtures.conversionInstant) throws {
+            _ = try RetractionEvent(targets: [target], context: .test(conversionInstant: recordedAt), sourceRecord: record.identifier, occurred: occurred)
+        }
+        let yearTenThousand = Date(timeIntervalSince1970: 253_402_300_800)
+        let unstatable: [RetractionOccurrence] = [
+            .instant(.distantPast), .instant(yearTenThousand), .period(start: nil, end: .distantPast), .period(start: nil, end: yearTenThousand)
+        ]
+        for occurred in unstatable {
+            #expect(throws: RetractionEventError.invalidInstant, "occurred \(occurred)") {
+                try retraction(occurred)
+            }
+        }
+        #expect(throws: RetractionEventError.invalidInstant, "recorded before year 1") {
+            try retraction(.instant(GoldenFixtures.conversionInstant), recordedAt: .distantPast)
+        }
+        try retraction(.period(start: .distantPast, end: GoldenFixtures.conversionInstant))
     }
 
     @Test("A document's date is the event instant in UTC at millisecond precision")
