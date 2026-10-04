@@ -271,7 +271,7 @@ extension HealthKitECGContent.Waveform {
     }
 
     /// The ECG reports a positive count, and exactly that many voltages, at least two, are supplied.
-    private static func requireCount(_ reported: Int, supplied: Int) throws(HealthKitConversionError) {
+    static func requireCount(_ reported: Int, supplied: Int) throws(HealthKitConversionError) {
         guard reported > 0 else {
             throw .ecgEvidence(.invalidReportedVoltageCount(reported))
         }

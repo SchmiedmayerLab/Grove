@@ -355,7 +355,10 @@ struct HealthKitFHIRConverterTests {
             #expect(profileClaims.count == ProfileClaims.observationAdapterCardinality)
             #expect(profileClaims.contains(Profile.healthkitObservation))
         }
-        if testCase != .bodyMassIndex {
+        if testCase == .bodyMassIndex {
+            // The plan derives these from the profile rule; the guide states them (standardAdapterClaims).
+            #expect(profileClaims == HealthKitContract.bodyMassIndexProfiles)
+        } else {
             #expect(profileClaims.allSatisfy { !ProfileClaims.forbiddenExplicitProfiles.contains($0) })
         }
         #expect(quantity.system?.value?.url.absoluteString == testCase.contract.quantity?.system)

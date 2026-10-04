@@ -113,6 +113,7 @@ struct HealthKitECGContentTests {
     @Test("Reported ECG frame counts are not constrained by a removed wire integer field")
     func reportedCountHasNoArtificialInt32Limit() throws {
         let count = Int(Int32.max) + 1
+        try HealthKitECGContent.Waveform.requireCount(count, supplied: count)
         #expect(throws: HealthKitConversionError.ecgEvidence(.voltageCountMismatch(reported: count, supplied: Self.validPoints.count))) {
             try Self.waveform(reportedCount: count, samplingFrequencyHertz: 500, points: Self.validPoints)
         }
