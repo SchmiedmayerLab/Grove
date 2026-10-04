@@ -18,6 +18,10 @@ extension ContentCorpusGrid {
     /// A 72 bpm heart rate, the record every metadata family varies unless it needs another.
     static let heartRateRecord = ContentCorpusRecord.quantity(type: heartRate, value: 72, unit: "count/min")
 
+    /// The zone and a sync pair the source facts refuse, as its version is a string: a record's source facts are
+    /// checked after its content, so beside a content fault it pins that order.
+    static let brokenSync = zone.merging([HKMetadataKeySyncIdentifier: .string("sync-abc"), HKMetadataKeySyncVersion: .string("3")]) { $1 }
+
     /// Every metadata family, in corpus order.
     static var metadata: [ContentCorpusVector] {
         typedMetadata + userEntered + syncIdentity + unmodeledMetadata + devices
@@ -152,7 +156,6 @@ extension ContentCorpusGrid {
         let invalidZone: [String: ContentCorpusMetadataValue] = [HKMetadataKeyTimeZone: .string("Not/A-Time-Zone")]
         let nanHeartRate = ContentCorpusRecord.quantity(type: heartRate, value: .nan, unit: "count/min")
         let steps = HKQuantityTypeIdentifier.stepCount.rawValue
-        let badSync: [String: ContentCorpusMetadataValue] = [HKMetadataKeySyncIdentifier: .string("sync-abc"), HKMetadataKeySyncVersion: .string("3")]
         let motion: [String: ContentCorpusMetadataValue] = [HKMetadataKeyHeartRateMotionContext: .integer(3)]
         let cases: [(String, ContentCorpusSource)] = [
             ("zone-before-value", ContentCorpusSource(nanHeartRate, metadata: invalidZone)),
@@ -166,8 +169,8 @@ extension ContentCorpusGrid {
             )),
             ("value-before-cycle-start", ContentCorpusSource(.category(type: HKCategoryTypeIdentifier.menstrualFlow.rawValue, value: 9), end: start + 60)),
             ("value-before-insulin-reason", ContentCorpusSource(.quantity(type: HKQuantityTypeIdentifier.insulinDelivery.rawValue, value: .nan, unit: "IU"))),
-            ("value-before-sync", ContentCorpusSource(nanHeartRate, metadata: zone.merging(badSync) { $1 }, writer: .foreign)),
-            ("motion-context-before-sync", ContentCorpusSource(heartRateRecord, metadata: zone.merging(badSync.merging(motion) { $1 }) { $1 }, writer: .foreign)),
+            ("value-before-sync", ContentCorpusSource(nanHeartRate, metadata: brokenSync, writer: .foreign)),
+            ("motion-context-before-sync", ContentCorpusSource(heartRateRecord, metadata: brokenSync.merging(motion) { $1 }, writer: .foreign)),
             ("zone-before-missing-member", ContentCorpusSource(
                 .correlation(type: bloodPressure, members: [ContentCorpusMember(type: HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue, value: 80)]),
                 metadata: invalidZone
@@ -190,7 +193,7 @@ extension ContentCorpusGrid {
                 .assessment(type: HKScoredAssessmentTypeIdentifier.GAD7.rawValue, score: 99),
                 metadata: invalidZone
             )),
-            ("empty-series-before-sync", ContentCorpusSource(.heartbeatSeries(beats: []), end: start + 2, metadata: zone.merging(badSync) { $1 }, writer: .foreign)),
+            ("empty-series-before-sync", ContentCorpusSource(.heartbeatSeries(beats: []), end: start + 2, metadata: brokenSync, writer: .foreign)),
             ("value-before-unmodeled-warning", ContentCorpusSource(nanHeartRate, metadata: zone.merging(["org.example.flag": .boolean(true)]) { $1 }))
         ]
         var deviceOmission = ContentCorpusSource(nanHeartRate)

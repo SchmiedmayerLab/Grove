@@ -54,9 +54,9 @@ extension ContentCorpusGrid {
         ]
     }
 
-    /// A minimal Observation of every generated measurement and of body-mass index, and the edges of the
-    /// reverse projection: Period and missing effective times, missing and mismatched values, manual entry,
-    /// zones, a pre-1582 date, sync identity and amendment, and blood-pressure components.
+    /// A minimal Observation of every generated measurement and of body-mass index, the edges of the reverse
+    /// projection (Period and missing effective times, missing and mismatched values, manual entry, zones, a pre-1582
+    /// date, sync identity and amendment, and blood-pressure components), and its multi-fault precedence.
     ///
     /// Body-mass index, which no catalog lists, keeps the literal Observation it was recorded with, and every other
     /// measurement appears once, the first catalog winning.
@@ -69,8 +69,11 @@ extension ContentCorpusGrid {
         let projected = observations.map { id, resource in
             ContentCorpusVector(id: "reverse/\(id)", input: .reverse(observation: json(resource)))
         }
-        return projected + reverseEdges.map { label, resource in
+        let edges = reverseEdges.map { label, resource in
             ContentCorpusVector(id: "reverse/edge/\(label)", input: .reverse(observation: json(resource)))
+        }
+        return projected + edges + reversePrecedence.map { label, resource in
+            ContentCorpusVector(id: "reverse/precedence/\(label)", input: .reverse(observation: json(resource)))
         }
     }
 
@@ -115,6 +118,30 @@ extension ContentCorpusGrid {
             }),
             ("blood-pressure-missing-diastolic", bloodPressure(diastolic: false)),
             ("blood-pressure-unit-mismatch", bloodPressure(diastolic: true, unit: "kPa"))
+        ]
+    }
+
+    /// Observations with two faults at once, one for every pair of adjacent checks of the reverse projection (the
+    /// effective time, the value, the measurement's one quantity type, the value's number and unit, then each
+    /// blood-pressure member in order): which one is reported pins their order. Speed, which several quantity types
+    /// read, has no quantity type to land on.
+    static var reversePrecedence: [(String, [String: Any])] {
+        let heartRate = minimalObservation(MeasurementCatalog.heartRate, value: 72)
+        let speed = minimalObservation(MeasurementCatalog.speed)
+        func changed(_ resource: [String: Any], _ change: (inout [String: Any]) -> Void) -> [String: Any] {
+            var resource = resource
+            change(&resource)
+            return resource
+        }
+        return [
+            ("effective-before-value", changed(heartRate) { resource in
+                resource["effectiveDateTime"] = nil
+                resource["valueQuantity"] = nil
+            }),
+            ("value-before-quantity-type", changed(speed) { $0["valueQuantity"] = nil }),
+            ("quantity-type-before-unit", changed(speed) { $0["valueQuantity"] = quantity("/min", unit: "beats/minute", value: 72) }),
+            ("number-before-unit", changed(heartRate) { $0["valueQuantity"] = ["system": "http://unitsofmeasure.org", "code": "/s", "unit": "beats/second"] }),
+            ("systolic-before-diastolic", changed(bloodPressure(diastolic: true)) { $0["component"] = nil })
         ]
     }
 

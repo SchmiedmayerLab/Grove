@@ -46,11 +46,17 @@ extension ContentCorpusGrid {
     }
 
     /// Every clinical type in R4, then DSTU2, an unknown release, payloads the guides refuse, a missing resource,
-    /// bytes kept with their whitespace, every link, and which refusal comes first.
+    /// bytes kept with their whitespace, every link, and which refusal comes first, the record's source facts last.
     static var clinicalRecords: [ContentCorpusVector] {
         let labResult = "HKClinicalTypeIdentifierLabResultRecord"
-        func record(_ label: String, type: String = labResult, version: String = "4.0.1", resource: String? = clinicalResource) -> ContentCorpusVector {
-            convert("clinical/\(label)", ContentCorpusSource(.clinicalRecord(type: type, fhirVersion: version, resource: resource), end: start))
+        func record(
+            _ label: String,
+            type: String = labResult,
+            version: String = "4.0.1",
+            resource: String? = clinicalResource,
+            metadata: [String: ContentCorpusMetadataValue] = zone
+        ) -> ContentCorpusVector {
+            convert("clinical/\(label)", ContentCorpusSource(.clinicalRecord(type: type, fhirVersion: version, resource: resource), end: start, metadata: metadata))
         }
         let types = rows(prefix: "HKClinicalTypeIdentifier").map { record("type/\($0.sourceTypeIdentifier)", type: $0.sourceTypeIdentifier) }
         var linked = ContentCorpusSource(.clinicalRecord(type: labResult, fhirVersion: "4.0.1", resource: clinicalResource))
@@ -70,7 +76,8 @@ extension ContentCorpusGrid {
             record("whitespace-kept", resource: "  {\n  \"resourceType\": \"Observation\", \"id\": \"r4\"\n}\n"),
             convert("clinical/linked", linked),
             record("precedence/release-before-payload", version: "3.0.1", resource: duplicateMember),
-            record("precedence/empty-before-release", version: "3.0.1", resource: nil)
+            record("precedence/empty-before-release", version: "3.0.1", resource: nil),
+            record("precedence/payload-before-sync", resource: duplicateMember, metadata: brokenSync)
         ]
     }
 }

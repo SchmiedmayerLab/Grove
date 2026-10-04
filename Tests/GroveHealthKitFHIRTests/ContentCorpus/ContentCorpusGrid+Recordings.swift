@@ -94,7 +94,8 @@ extension ContentCorpusGrid {
 
     /// Two faults at once for every pair of adjacent checks of an ECG conversion (zone, lead presence, count,
     /// offsets, period, sampling frequency, finite voltages, symptom contexts, symptom validation and status,
-    /// source period, classification, algorithm version, average heart rate): which one is reported pins their order.
+    /// source period, classification, algorithm version, average heart rate, then the ECG's source facts): which one
+    /// is reported pins their order.
     static var electrocardiogramPrecedence: [ContentCorpusVector] {
         let present = HKElectrocardiogram.SymptomsStatus.present.rawValue
         let chest = ContentCorpusElectrocardiogram.Symptom(type: HKCategoryTypeIdentifier.chestTightnessOrPain.rawValue, value: 2, ordinal: 0xE1)
@@ -134,7 +135,8 @@ extension ContentCorpusGrid {
             ("symptoms-status-before-classification", source(reading(reading { $0.symptomsStatus = 99 }) { $0.classification = 99 })),
             ("source-period-before-classification", sourcePeriodInYear10000),
             ("classification-before-algorithm-version", source(reading { $0.classification = 99 }, metadata: versionThree)),
-            ("algorithm-version-before-average-heart-rate", source(reading { $0.averageHeartRate = .nan }, metadata: versionThree))
+            ("algorithm-version-before-average-heart-rate", source(reading { $0.averageHeartRate = .nan }, metadata: versionThree)),
+            ("average-heart-rate-before-sync", source(reading { $0.averageHeartRate = .nan }, metadata: electrocardiogramMetadata.merging(brokenSync) { $1 }))
         ]
         return pairs.map { label, source in
             convert("electrocardiogram/precedence/\(label)", source)
@@ -264,13 +266,19 @@ extension ContentCorpusGrid {
         ]
     }
 
-    /// Heartbeat series and workout routes: their payloads, empty series, every link, and the plain sample entry point.
+    /// Heartbeat series and workout routes: their payloads, empty series, every link, the plain sample entry point, and
+    /// a route's disclosure and track checked before its source facts.
     static var recordings: [ContentCorpusVector] {
         func series(_ label: String, _ beats: [ContentCorpusBeat], metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {
             convert("heartbeat-series/\(label)", ContentCorpusSource(.heartbeatSeries(beats: beats), end: start + 2, metadata: metadata))
         }
-        func route(_ label: String, _ locations: [ContentCorpusLocation], disclosed: Bool = true) -> ContentCorpusVector {
-            convert("workout-route/\(label)", ContentCorpusSource(.workoutRoute(locations: locations, disclosed: disclosed), end: start + 1))
+        func route(
+            _ label: String,
+            _ locations: [ContentCorpusLocation],
+            disclosed: Bool = true,
+            metadata: [String: ContentCorpusMetadataValue] = zone
+        ) -> ContentCorpusVector {
+            convert("workout-route/\(label)", ContentCorpusSource(.workoutRoute(locations: locations, disclosed: disclosed), end: start + 1, metadata: metadata))
         }
         let unavailable = routeLocations.map { fix in
             var fix = fix
@@ -299,7 +307,9 @@ extension ContentCorpusGrid {
             route("unavailable-readings", unavailable),
             route("zero-readings", [routeLocations[0], restingFix]),
             convert("workout-route/linked", linkedRoute),
-            convert("workout-route/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.workoutRoute().identifier, sampleClass: "HKWorkoutRoute")))
+            convert("workout-route/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.workoutRoute().identifier, sampleClass: "HKWorkoutRoute"))),
+            route("precedence/omission-before-sync", routeLocations, disclosed: false, metadata: brokenSync),
+            route("precedence/empty-before-sync", [], metadata: brokenSync)
         ]
     }
 
