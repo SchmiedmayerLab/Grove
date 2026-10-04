@@ -235,14 +235,14 @@ struct GoldenGraphTests {
         #expect(provenance.target.count == 1)
     }
 
-    /// A writer whose bundle identifier is not one is a refusal; a writer with a blank name is merely no writer
-    /// (`writer-blank-name-with-sync-identity` pins that graph).
+    /// A writer classified as an application whose bundle identifier is not one is a refusal; a writer with a blank
+    /// name is merely no writer (`writer-blank-name-with-sync-identity` pins that graph).
     @Test
     func invalidWriterBundleIdentifierIsRefused() throws {
         var writer = GoldenFixtures.foreignWriter
         writer.bundleIdentifier = "not a bundle id"
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xA1), writer: writer)
-        let context = try GoldenFixtures.context(sequence: 201)
+        let context = try GoldenFixtures.context(sequence: 201, .applicationWriter)
         #expect(throws: HealthKitConversionError.sourceApplicationInvalid) {
             try HealthKitConverter().convert(sample, context: context)
         }

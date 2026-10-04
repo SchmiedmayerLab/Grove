@@ -18,7 +18,7 @@ The Grove Mobile implementation guide (`https://grovealliance.org/fhir/mobile`) 
 
 A conversion context is an event record, not a bag of defaults.
 The shared `ExchangeEventContext` carries the subject, the producer instance and monotonic event sequence, the converting application and its host, the deployment's identity scope, the source repository scope, and the conversion instant.
-``HealthKitConversionOptions`` adds the HealthKit-specific choices: which writer the source revision names, how a sample's `HKDevice` resolves to a recording device, and which disclosures the deployment authorizes.
+``HealthKitConversionOptions`` adds the HealthKit-specific choices: whether the source revision's writer is stated (only when you classify it as an application; by default it is omitted), how a sample's `HKDevice` resolves to a recording device, and which disclosures the deployment authorizes.
 Construct and persist the event inputs before conversion; an exact retry reuses them unchanged.
 
 ```swift

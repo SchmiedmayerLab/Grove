@@ -41,9 +41,6 @@ extension HealthKitAssembly {
                     warnings.append(.recordingDeviceOmitted(deviceName: healthKitDevice.name?.nonBlank))
                 }
             }
-            if recordingDevice == nil, options.writer == .device {
-                recordingDevice = Self.recordingDevice(fromAppleSource: revision)
-            }
             self.recordingDevice = recordingDevice
             self.writer = try Self.writer(revision, classification: options.writer)
             self.nativeIdentifiers = [options.nativeIdentifierDisclosure.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
@@ -85,26 +82,6 @@ extension HealthKitAssembly.SourceFacts {
         return ExchangeRecordingDeviceDraft(device: recorder, resource: device)
     }
 
-    /// The physical unit an Apple per-device source stands for, when the sample carries no `HKDevice`
-    /// with a stable token: the source's per-device bundle identifier is that token. Any other source
-    /// yields nothing; its manufacturer and model are not known.
-    private static func recordingDevice(fromAppleSource revision: HKSourceRevision) -> ExchangeRecordingDeviceDraft? {
-        let bundleIdentifier = revision.source.bundleIdentifier
-        guard bundleIdentifier.hasPrefix(HealthKitConverter.appleDeviceSourcePrefix),
-              let recorder = try? RecordingDevice(
-                  stableUnitToken: bundleIdentifier,
-                  name: revision.source.name.nonBlank,
-                  manufacturer: "Apple Inc.",
-                  modelNumber: revision.productType?.nonBlank
-              ) else {
-            return nil
-        }
-        return ExchangeRecordingDeviceDraft(
-            device: recorder,
-            resource: recordingDevice(name: recorder.name, manufacturer: recorder.manufacturer, modelNumber: recorder.modelNumber)
-        )
-    }
-
     private static func recordingDevice(name: String?, manufacturer: String?, modelNumber: String?) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveRecordingDevice])
@@ -127,8 +104,6 @@ extension HealthKitAssembly.SourceFacts {
         switch classification {
         case .omit:
             return nil
-        case .device:
-            return .recordingDevice
         case .application:
             guard let name = revision.source.name.nonBlank,
                   let bundleIdentifier = revision.source.bundleIdentifier.nonBlank else {

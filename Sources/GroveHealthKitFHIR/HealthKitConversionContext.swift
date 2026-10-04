@@ -45,6 +45,7 @@ public struct HealthKitConversionOptions: Sendable {
     /// Every policy omits.
     public static let `default` = Self()
 
+    /// How every sample's source is stated: by default not at all, as nothing classified it. See ``HealthKitWriter``.
     public var writer: HealthKitWriter
     public var recordingDevice: any RecordingDeviceResolver
     public var udiDisclosure: HealthKitUDIDisclosurePolicy
@@ -52,7 +53,7 @@ public struct HealthKitConversionOptions: Sendable {
     public var nativeIdentifierDisclosure: GovernedSourceIdentifierDisclosurePolicy
 
     public init(
-        writer: HealthKitWriter = .application,
+        writer: HealthKitWriter = .omit,
         recordingDevice: any RecordingDeviceResolver = .healthKitLocalIdentifier,
         udiDisclosure: HealthKitUDIDisclosurePolicy = .omit,
         routeDisclosure: RouteDisclosurePolicy = .omit,

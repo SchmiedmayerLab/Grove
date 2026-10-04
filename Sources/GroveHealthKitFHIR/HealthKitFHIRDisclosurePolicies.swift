@@ -22,22 +22,17 @@ public enum HealthKitUDIDisclosurePolicy: Hashable, Sendable {
 }
 
 
-/// Interpretation of `HKSourceRevision.source` for one conversion.
+/// How the caller classifies the source (`HKSourceRevision.source`) of one sample.
 ///
-/// Which application wrote a sample is provenance a study needs — a weight from a connected scale
-/// is different evidence from one typed in by hand — so the writer is always recorded. An
-/// `HKSource` always carries a bundle identifier and is an application; hardware attribution is
-/// `HKDevice`, which the recording device carries separately.
+/// HealthKit does not say whether a source is an application or a device, so the classification is the
+/// caller's: Grove never infers it from the bundle identifier, the source name or the product type. Which
+/// physical unit measured the sample is `HKDevice`, which the recording Device carries separately.
 public enum HealthKitWriter: Hashable, Sendable {
-    /// Record the writer as the application it is, with the host it ran on, as the graph's
-    /// `ExchangeGraphNode.writer` and `ExchangeGraphNode.writerHost` snapshots. This is the default.
+    /// The source is an application: it is stated with its name, bundle identifier and version, all copied
+    /// from the sample's `HKSourceRevision`, and the host it ran on, as the graph's `ExchangeGraphNode.writer`
+    /// and `ExchangeGraphNode.writerHost` snapshots and the Provenance author.
     case application
-    /// The caller has established that the source stands for a device rather than an application.
-    /// The Provenance author reuses the dual-identity recording Device when stable per-unit
-    /// evidence exists. Without that evidence, the Device author is omitted rather than inferred
-    /// from model, product, application, or record identifiers.
-    case device
-    /// The caller has not classified the source; no writer is stated and the Provenance names no author.
+    /// No writer is stated, and the Provenance names no author.
     case omit
 }
 

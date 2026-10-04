@@ -84,12 +84,8 @@ extension ExchangeGraphAssembler {
         if draft.repositoryIDs[.writerHost] != nil, !writerEntries.contains(where: { $0 == writer?.host.identity }) {
             throw ExchangeAssemblyError.repositoryIDWithoutNode(.writerHost)
         }
-        let authorURL: String? = switch draft.writer {
-        case .application: writer?.applicationURL
-        case .recordingDevice: recording?.url
-        case nil: nil
-        }
-        return Devices(converter: converter, recording: recording, writer: writer, authorURL: authorURL)
+        // The writer application is the Provenance author; without one the Provenance names none.
+        return Devices(converter: converter, recording: recording, writer: writer, authorURL: writer?.applicationURL)
     }
 
     private func converterSnapshots(

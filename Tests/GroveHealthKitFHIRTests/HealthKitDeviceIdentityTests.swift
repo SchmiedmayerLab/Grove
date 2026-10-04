@@ -25,7 +25,7 @@ struct HealthKitFHIRDeviceIdentityTests {
         subjectID: String = "1a2b3c",
         eventOffset: TimeInterval = 0,
         stableUnitToken: String? = nil,
-        writer: HealthKitWriter = .application
+        writer: HealthKitWriter = .omit
     ) -> HealthKitConversionContext {
         HealthKitConversionContext(
             subject: .logical(.test(.patient, subjectID)),
@@ -157,18 +157,16 @@ struct HealthKitFHIRDeviceIdentityTests {
         #expect(conversion.graphIdentifiers.recordingDeviceSnapshot != nil)
     }
 
-    @Test("A device source reuses the dual-identity recording snapshot as its Provenance author")
-    func deviceSourceReusesRecordingDevice() throws {
-        let conversion = try converter.convert(
-            sample(watch()),
-            context: context(stableUnitToken: "watch-unit-7", writer: .device)
-        )
-        let author = try #require(conversion.provenance.entity?.first?.agent?.first)
+    @Test("An unclassified source keeps the recording Device its HKDevice names, and the Provenance names no author")
+    func unclassifiedSourceKeepsTheRecordingDevice() throws {
+        let attributed = try StoredSampleFixtures.stored(sample(watch()), uuid: GoldenFixtures.uuid(0xB7), writer: GoldenFixtures.foreignWriter)
+        let conversion = try converter.convert(attributed, context: context(stableUnitToken: "watch-unit-7", writer: .omit))
+        let recordingDevice = try #require(conversion.graphIdentifiers.recordingDeviceSnapshot)
 
         #expect(conversion.writer == nil)
-        #expect(author.who.reference == conversion.observation.device?.reference)
         #expect(conversion.graphIdentifiers.writerSnapshot == nil)
-        #expect(conversion.graphIdentifiers.recordingDeviceSnapshot != nil)
+        #expect(conversion.provenance.entity?.first?.agent == nil)
+        #expect(conversion.observation.device?.reference?.value?.string == (try recordingDevice.fullURLString))
     }
 }
 

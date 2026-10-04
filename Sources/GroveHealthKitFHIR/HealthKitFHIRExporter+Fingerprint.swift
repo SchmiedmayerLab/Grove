@@ -42,8 +42,8 @@ extension HealthKitFHIRExporter {
     /// A request's fingerprint is the SHA-256, base64url without padding, of the length-framed call parts
     /// followed by the record's own parts. A stored reservation is reused only under an equal fingerprint, so
     /// a Grove update that changes output, any option change, or another participant over the same ledger
-    /// never reuses an event identifier for other bytes. A custom ``RecordingDevicePolicy`` resolver enters
-    /// by its presence only; its behaviour is not fingerprinted.
+    /// never reuses an event identifier for other bytes. A ``WriterPolicy/classify(_:)`` closure and a custom
+    /// ``RecordingDevicePolicy`` resolver enter by their presence only; their behaviour is not fingerprinted.
     struct ExportContext: Sendable {
         /// The length-framed parts every request of this exporter starts with, in order.
         private let framedCallParts: Data
@@ -124,12 +124,18 @@ extension Subject: ExchangeContextFingerprinted {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.WriterPolicy: ExchangeContextFingerprinted {
+    /// The tag, then for an application set its count, which fixes how many parts follow, and its members in UTF-8
+    /// byte order, so equal sets fingerprint equally whatever their insertion order or the platform's collation. A
+    /// closure enters by its presence only; how it classifies is the caller's to keep stable.
     var fingerprintParts: [String] {
         switch self {
-        case .automatic: ["automatic"]
-        case .application: ["application"]
-        case .device: ["device"]
-        case .omit: ["omit"]
+        case .omit:
+            return ["omit"]
+        case .applications(let bundleIdentifiers):
+            let sorted = bundleIdentifiers.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+            return ["applications", String(sorted.count)] + sorted
+        case .classify:
+            return ["classify"]
         }
     }
 }

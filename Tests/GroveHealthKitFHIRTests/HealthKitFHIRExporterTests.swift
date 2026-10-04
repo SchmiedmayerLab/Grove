@@ -147,36 +147,6 @@ struct HealthKitFHIRExporterTests {
         #expect(try !storage.holdsReservation(for: ecgKey))
     }
 
-    @Test("Under the automatic writer policy an Apple per-device source is the recording Device that authored the sample")
-    func automaticWriterClassifiesAppleDeviceSources() throws {
-        let exporter = try Self.exporter()
-        let watchSource = StoredSampleFixtures.Writer(
-            name: "Lukas's Apple Watch",
-            bundleIdentifier: "com.apple.health.6C4B1D1E-0000-4000-8000-000000000009",
-            version: "26.1",
-            productType: "Watch7,12"
-        )
-        let fromWatch = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(7), writer: watchSource)
-        let fromApp = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8), writer: GoldenFixtures.foreignWriter)
-        let (exports, _) = try Self.collect(exporter, [fromWatch, fromApp])
-        let watchBundle = try #require(exports[0].graph?.bundle)
-        let devices = watchBundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
-        let recorder = try #require(devices.first { $0.manufacturer?.value?.string == "Apple Inc." })
-        #expect(recorder.deviceName?.first?.name.value?.string == "Lukas's Apple Watch")
-        #expect(recorder.modelNumber?.value?.string == "Watch7,12")
-        #expect(recorder.meta?.profile?.contains(Profile.groveRecordingDevice) == true)
-        let provenance = try #require(watchBundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        let recorderURL = try #require(watchBundle.entry?.first { $0.resource?.get(if: Device.self) == recorder }?.fullUrl?.value?.url.absoluteString)
-        let author = provenance.entity?.first?.agent?.first { agent in
-            agent.type?.coding?.contains { $0.code?.value?.string == "author" } == true
-        }
-        #expect(author?.who.reference?.value?.string == recorderURL)
-        #expect(exports[0].warnings.isEmpty)
-        // The application source converts exactly as the old entry point's default (`.application`) did.
-        let reference = try Self.reference(fromApp, event: exports[1].event, instant: GoldenFixtures.conversionInstant)
-        #expect(exports[1].graph?.json == reference.graph.json)
-    }
-
     @Test("The omit policies state nothing and never warn; the legacy Bundle.id keeps the HealthKit UUID")
     func policiesApply() throws {
         let exporter = try Self.exporter { options in

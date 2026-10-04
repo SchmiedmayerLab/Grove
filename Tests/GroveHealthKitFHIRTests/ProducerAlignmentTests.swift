@@ -76,7 +76,7 @@ struct ProducerDefaultsTests {
     @Test("Every HealthKit disclosure omits and the recording device resolves by local identifier")
     func healthKitOptionDefaults() {
         for options in [HealthKitConversionOptions(), .default, HealthKitConversionContext(event: .test()).options] {
-            #expect(options.writer == .application)
+            #expect(options.writer == .omit)
             #expect(options.recordingDevice is HealthKitLocalIdentifierResolver)
             #expect(options.udiDisclosure == .omit)
             #expect(options.routeDisclosure == .omit)
@@ -298,7 +298,7 @@ struct ProducerSurfaceTests {
                 try HealthKitConverter().convert(Self.heartRate, context: context)
             }
         }
-        let conversion = try HealthKitConverter().convert(Self.heartRate, context: HealthKitConversionContext(writer: .device))
+        let conversion = try HealthKitConverter().convert(Self.heartRate, context: HealthKitConversionContext(writer: .omit))
         #expect(conversion.graphIdentifiers.writerSnapshot == nil)
         #expect(conversion.graphIdentifiers.writerHostSnapshot == nil)
     }

@@ -93,6 +93,9 @@ let exporter = try HealthKitFHIRExporter(
 )
 ```
 
+The exporter states the application that wrote a sample only for sources you classify: HealthKit does not say whether a source is an application or a device, so by default no writer is stated.
+Pass the bundle identifiers you know to be applications as `options.writer = .applications(...)`, or classify each source with `.classify`; see ``HealthKitFHIRExporter/WriterPolicy``.
+
 Export a batch and store each graph's bytes verbatim.
 Release the receipt only once the stored graphs and the HealthKit anchor are durably committed; until then an exact redelivery reproduces the same events, byte for byte.
 

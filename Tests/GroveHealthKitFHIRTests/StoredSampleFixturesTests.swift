@@ -98,7 +98,7 @@ struct StoredSampleFixturesTests {
     @Test("The chosen UUID and writer are what the converter sees")
     func converterReadsTheStoredFacts() throws {
         let sample = try GoldenFixtures.heartRate(uuid: Self.uuid, device: GoldenFixtures.watch, writer: Self.writer)
-        let context = try GoldenFixtures.context(sequence: 250)
+        let context = try GoldenFixtures.context(sequence: 250, .applicationWriter)
         let conversion = try HealthKitConverter().convert(sample, context: context).primary
 
         #expect(conversion.source.uuid == Self.uuid)

@@ -27,8 +27,8 @@ extension HealthKitFHIRExporter {
     /// The HealthKit-specific choices of one exporter: how sources, devices and identifiers are stated,
     /// and which disclosures the deployment authorizes. Every disclosure defaults to omission.
     public struct Options: Sendable {
-        /// How the source that wrote a sample is stated. See ``WriterPolicy``.
-        public var writer: WriterPolicy = .automatic
+        /// How the source that wrote a sample is stated: by default not at all. See ``WriterPolicy``.
+        public var writer: WriterPolicy = .omit
         /// How the physical unit behind a sample's `HKDevice` is identified. See ``RecordingDevicePolicy``.
         public var recordingDevice: RecordingDevicePolicy = .localIdentifier
         /// How the converting application relates to each measurement. See ``RolePolicy``.
@@ -49,32 +49,32 @@ extension HealthKitFHIRExporter {
 
     /// How `HKSourceRevision.source`, the app or device that wrote a sample into HealthKit, is stated.
     ///
-    /// The origin of a sample is always kept: an application becomes an application Device snapshot with
-    /// its bundle identifier and version plus the host it ran on; a physical device becomes a recording
-    /// Device with a stable, pseudonymous identity. The two shapes differ, so the exporter needs to know
-    /// which one a source is.
-    public enum WriterPolicy: Hashable, Sendable {
-        /// Apple's per-device sources (bundle identifiers `com.apple.health.<device-UUID>`, i.e. a watch or
-        /// phone that recorded the sample itself) are physical devices; every other source is an application.
-        case automatic
-        /// Every source is stated as an application.
-        case application
-        /// Every source stands for the sample's physical device; the Provenance author is the recording Device.
-        case device
-        /// No writer is stated and the Provenance names no author.
+    /// `HKSourceRevision` does not say whether its source is an application or a device, and the HealthKit
+    /// guide forbids classifying it from the bundle identifier's shape, the source name or the product type:
+    /// a source nobody classified states no writer. Only the caller's explicit classification states one. The
+    /// physical unit a sample was measured on is the recording Device, which ``RecordingDevicePolicy``
+    /// resolves from `HKDevice` whatever this policy says.
+    public enum WriterPolicy: Sendable {
+        /// No writer is stated, and the Provenance names no author. The default.
         case omit
+        /// A source whose bundle identifier is one of these, which the caller knows to be applications, is
+        /// stated as that application, with its name, bundle identifier and `HKSourceRevision.version` and
+        /// the host it ran on. Every other source states no writer.
+        case applications(Set<String>)
+        /// The caller classifies each source. The closure must be a pure function of the source and stable
+        /// across application versions: the context fingerprint records only that a closure classifies, so
+        /// a closure whose answers change can restate a reserved event's writer differently on redelivery.
+        case classify(@Sendable (HKSource) -> HealthKitWriter)
 
         /// The classification of one source under this policy.
         func classification(of source: HKSource) -> HealthKitWriter {
             switch self {
-            case .automatic:
-                source.bundleIdentifier.hasPrefix(HealthKitConverter.appleDeviceSourcePrefix) ? .device : .application
-            case .application:
-                .application
-            case .device:
-                .device
             case .omit:
                 .omit
+            case .applications(let bundleIdentifiers):
+                bundleIdentifiers.contains(source.bundleIdentifier) ? .application : .omit
+            case .classify(let classify):
+                classify(source)
             }
         }
     }

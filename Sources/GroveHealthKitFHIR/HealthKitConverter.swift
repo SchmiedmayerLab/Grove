@@ -77,9 +77,6 @@ public struct HealthKitConverter: Sendable {
 extension HealthKitConverter {
     /// The closed adapter token every HealthKit identity preimage carries.
     static let adapterID = "healthkit"
-    /// The bundle-identifier prefix of HealthKit's per-device sources: the watch or phone that recorded a
-    /// sample itself, as `com.apple.health.<device UUID>`.
-    static let appleDeviceSourcePrefix = "com.apple.health."
 
     /// The catalog-driven reason a sample without a binding fails closed.
     static func unconvertibleSampleError(for type: HealthKitSourceType) -> HealthKitConversionError {

@@ -43,9 +43,10 @@ struct HealthKitFHIRExporterFingerprintTests {
         return [
             ("route", { $0.route = .authorized }),
             ("legacyBundleID", { $0.legacyBundleID = .healthKitUUID }),
-            ("writer application", { $0.writer = .application }),
-            ("writer device", { $0.writer = .device }),
-            ("writer omit", { $0.writer = .omit }),
+            ("writer applications", { $0.writer = .applications(["org.example.writer"]) }),
+            ("writer applications member", { $0.writer = .applications(["org.example.writer", "org.example.other"]) }),
+            ("writer applications empty", { $0.writer = .applications([]) }),
+            ("writer classify", { $0.writer = .classify { _ in .application } }),
             ("recordingDevice omit", { $0.recordingDevice = .omit }),
             ("recordingDevice custom", { $0.recordingDevice = .custom(NoRecordingDevice()) }),
             ("role gatewayForOwnWrites", { $0.role = .gatewayForOwnWrites }),
@@ -124,6 +125,37 @@ struct HealthKitFHIRExporterFingerprintTests {
         #expect(unchanged[0].event == original[0].event, "an equal context reuses the reservation")
         let (changed, _) = try Fixtures.collect(contexts[1].1, samples: [sample])
         #expect(changed[0].event != original[0].event, "\(contexts[1].0) reused an event")
+    }
+
+    @Test("A writer-policy change gives a reserved record a new sequence, never one handed out under another policy")
+    func writerPolicyChangeTakesANewSequence() throws {
+        let sequencer = ExchangeEventSequencer.inMemory()
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(2), writer: GoldenFixtures.foreignWriter)
+        let omitting = try Fixtures.exporter(sequencer: sequencer)
+        let classifying = try Fixtures.exporter(sequencer: sequencer) { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }
+        let (omitted, _) = try Fixtures.collect(omitting, samples: [sample])
+        let (stated, _) = try Fixtures.collect(classifying, samples: [sample])
+        let (reverted, _) = try Fixtures.collect(omitting, samples: [sample])
+        #expect([omitted, stated, reverted].map { $0.first?.sequence } == ["1", "2", "3"])
+        #expect(stated.first?.graph?.json != omitted.first?.graph?.json, "the classified source states its writer")
+    }
+
+    @Test("Equal application sets fingerprint equally, whatever order their members were inserted in")
+    func applicationSetsFingerprintByMembership() throws {
+        let identifiers = (0..<24).map { "org.example.app\($0)" }
+        let inserted = Set(identifiers)
+        var reversed = Set<String>(minimumCapacity: 512)
+        for identifier in identifiers.reversed() {
+            reversed.insert(identifier)
+        }
+        try #require(inserted == reversed)
+        try #require(Array(inserted) != Array(reversed), "the two sets must iterate in different orders for this test to discriminate")
+        let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
+        func fingerprint(_ bundleIdentifiers: Set<String>) throws -> String {
+            try Fixtures.exporter { $0.writer = .applications(bundleIdentifiers) }.context.request(for: key).fingerprint
+        }
+        #expect(try fingerprint(inserted) == fingerprint(reversed))
+        #expect(try fingerprint(inserted) != fingerprint(inserted.subtracting(["org.example.app0"])))
     }
 
     @Test("G3b: the fingerprint covers every stored option, each under its own name and with its own value")

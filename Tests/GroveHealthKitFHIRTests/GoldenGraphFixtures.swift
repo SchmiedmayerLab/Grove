@@ -76,6 +76,14 @@ struct GoldenCase: Sendable, CustomTestStringConvertible {
 enum GoldenFixtures {
     /// What a case varies beyond its sample: every field defaults to the test context's fixed facts.
     struct Inputs: Sendable {
+        /// The default inputs with the sample's source classified as an application, for the cases that pin how a
+        /// writer travels; by default no writer is stated.
+        static var applicationWriter: Inputs {
+            var inputs = Inputs()
+            inputs.options.writer = .application
+            return inputs
+        }
+
         var subject: Subject = .testPatient
         var converter: ApplicationDevice = .test
         var converterHost: HostDevice = .test

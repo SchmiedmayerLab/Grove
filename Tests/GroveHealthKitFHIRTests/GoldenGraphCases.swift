@@ -120,42 +120,45 @@ extension GoldenCase {
         }
     ]
 
-    /// Sequences 20-39: how the sample's writer (`HKSourceRevision`) travels.
+    /// Sequences 20-39: how the sample's writer (`HKSourceRevision`) travels once the caller classified its source as an
+    /// application, and what an unclassified source states.
     static let writers: [GoldenCase] = [
         GoldenCase("writer-foreign-application", sequence: 20) { sequence in
-            try GoldenFixtures.convert(attributedHeartRate(uuid: 20, writer: GoldenFixtures.foreignWriter), sequence: sequence)
+            try GoldenFixtures.convert(attributedHeartRate(uuid: 20, writer: GoldenFixtures.foreignWriter), sequence: sequence, .applicationWriter)
         },
         // The converter states version 1.2.3 build 42 and HealthKit records revision version 42: the shape a real
         // device produces. The tokens differ, so the writer travels as a second application Device of the same bundle.
         GoldenCase("writer-self-build-equals-revision", sequence: 21) { sequence in
-            var inputs = GoldenFixtures.Inputs()
+            var inputs = GoldenFixtures.Inputs.applicationWriter
             inputs.converter = GoldenFixtures.selfConverter(version: "1.2.3", build: "42")
             return try GoldenFixtures.convert(attributedHeartRate(uuid: 21, writer: GoldenFixtures.selfWriter(revisionVersion: "42")), sequence: sequence, inputs)
         },
         GoldenCase("writer-self-older-build", sequence: 22) { sequence in
-            var inputs = GoldenFixtures.Inputs()
+            var inputs = GoldenFixtures.Inputs.applicationWriter
             inputs.converter = GoldenFixtures.selfConverter(version: "1.2.3", build: "43")
             return try GoldenFixtures.convert(attributedHeartRate(uuid: 22, writer: GoldenFixtures.selfWriter(revisionVersion: "42")), sequence: sequence, inputs)
         },
         // No build and a version equal to the revision's: the only shape whose writer token equals the converter's.
         GoldenCase("writer-self-token-identical", sequence: 23) { sequence in
-            var inputs = GoldenFixtures.Inputs()
+            var inputs = GoldenFixtures.Inputs.applicationWriter
             inputs.converter = GoldenFixtures.selfConverter(version: "42", build: nil)
             return try GoldenFixtures.convert(attributedHeartRate(uuid: 23, writer: GoldenFixtures.selfWriter(revisionVersion: "42")), sequence: sequence, inputs)
         },
         GoldenCase("writer-host-equals-converter-host", sequence: 24) { sequence in
-            var inputs = GoldenFixtures.Inputs()
+            var inputs = GoldenFixtures.Inputs.applicationWriter
             inputs.converterHost = try HostDevice(operatingSystemVersion: "26.1.0", name: "Phone", manufacturer: "Apple", modelNumber: "iPhone17,1")
             return try GoldenFixtures.convert(attributedHeartRate(uuid: 24, writer: GoldenFixtures.foreignWriter), sequence: sequence, inputs)
         },
-        GoldenCase("writer-device-classification", sequence: 25) { sequence in
+        // An unclassified source states no writer and the Provenance no author; the recording Device the sample's
+        // `HKDevice` names stays.
+        GoldenCase("writer-omitted", sequence: 25) { sequence in
             var inputs = GoldenFixtures.Inputs()
-            inputs.options.writer = .device
+            inputs.options.writer = .omit
             return try GoldenFixtures.convert(attributedHeartRate(uuid: 25, writer: GoldenFixtures.foreignWriter), sequence: sequence, inputs)
         },
-        GoldenCase("writer-device-classification-without-recording-device", sequence: 26) { sequence in
+        GoldenCase("writer-omitted-without-recording-device", sequence: 26) { sequence in
             var inputs = GoldenFixtures.Inputs()
-            inputs.options.writer = .device
+            inputs.options.writer = .omit
             return try GoldenFixtures.convert(
                 GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(26), writer: GoldenFixtures.foreignWriter),
                 sequence: sequence,
@@ -165,15 +168,19 @@ extension GoldenCase {
         GoldenCase("writer-blank-name-with-sync-identity", sequence: 27) { sequence in
             var writer = GoldenFixtures.foreignWriter
             writer.name = ""
-            return try GoldenFixtures.convert(attributedHeartRate(uuid: 27, writer: writer, metadata: syncMetadata), sequence: sequence)
+            return try GoldenFixtures.convert(attributedHeartRate(uuid: 27, writer: writer, metadata: syncMetadata), sequence: sequence, .applicationWriter)
         },
         GoldenCase("writer-without-version", sequence: 28) { sequence in
             var writer = GoldenFixtures.foreignWriter
             writer.version = nil
-            return try GoldenFixtures.convert(attributedHeartRate(uuid: 28, writer: writer), sequence: sequence)
+            return try GoldenFixtures.convert(attributedHeartRate(uuid: 28, writer: writer), sequence: sequence, .applicationWriter)
         },
         GoldenCase("sync-identity", sequence: 29) { sequence in
-            try GoldenFixtures.convert(attributedHeartRate(uuid: 29, writer: GoldenFixtures.foreignWriter, metadata: syncMetadata), sequence: sequence)
+            try GoldenFixtures.convert(
+                attributedHeartRate(uuid: 29, writer: GoldenFixtures.foreignWriter, metadata: syncMetadata),
+                sequence: sequence,
+                .applicationWriter
+            )
         }
     ]
 
@@ -209,8 +216,9 @@ extension GoldenCase {
             inputs.studies = [.test("study-a"), .test("study-b")]
             return try GoldenFixtures.convert(attributedHeartRate(uuid: 45, writer: GoldenFixtures.foreignWriter), sequence: sequence, inputs)
         },
+        // The writer and its host are nodes only once the source is classified as an application.
         GoldenCase("repository-ids-on-every-node", sequence: 46) { sequence in
-            var inputs = GoldenFixtures.Inputs()
+            var inputs = GoldenFixtures.Inputs.applicationWriter
             inputs.repositoryIDs = try Dictionary(uniqueKeysWithValues: [
                 (ExchangeGraphNode.bundle, "bundle-46"), (.primaryOutput, "output-46"), (.provenance, "provenance-46"),
                 (.applicationDevice, "app-46"), (.hostDevice, "host-46"), (.recordingDevice, "recorder-46"),

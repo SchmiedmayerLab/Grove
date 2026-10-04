@@ -156,7 +156,7 @@ extension HealthKitConversionContext {
         converter: ApplicationDevice = .test,
         converterHost: HostDevice = .test,
         graphIdentifierSystem: IdentifierSystem? = nil,
-        writer: HealthKitWriter = .application,
+        writer: HealthKitWriter = .omit,
         converterWasGateway: Bool = false,
         conversionInstant: Date = ExchangeEventContext.testInstant,
         recordingDeviceStableUnitToken: String? = nil,
