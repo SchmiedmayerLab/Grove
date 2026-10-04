@@ -127,7 +127,7 @@
             "value" : "v0:test:1:OFv8xcXen2S9ewx-C_x6Kf_LK21ZvQR443wn4GQknhw"
           },
           {
-            "system" : "https://study.example.org/fhir/NamingSystem/healthkit-store",
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record",
             "value" : "3a7e5c10-0000-4000-8000-0000000000b2"
           }
         ],

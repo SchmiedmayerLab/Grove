@@ -255,6 +255,21 @@ struct HealthKitFHIRExporterTests {
         #expect(period.end != nil)
     }
 
+    @Test("F1: an exported workout is its session alone, and its retraction targets exactly that session")
+    func workoutExportAndRetraction() throws {
+        let exporter = try Self.exporter()
+        let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA3))
+        let (exports, _) = try Self.collect(exporter, [workout])
+        let observations = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) })
+        try #require(observations.count == 1)
+        let session = try #require(observations[0].identifier?.first { (try? RoledIdentifier($0).role) == .sourceOutput }?.value?.value?.string)
+        var retractions: [HealthKitFHIRExporter.Export] = []
+        let deletion = HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant)
+        _ = try exporter.retract([deletion], at: GoldenFixtures.conversionInstant) { retractions.append($0) }
+        let provenance = try #require(retractions.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == [session])
+    }
+
     @Test("An export shares one receipt; an error in the receiver ends the call with the reservations kept")
     func receiverErrorsPropagate() throws {
         struct Stop: Error {}

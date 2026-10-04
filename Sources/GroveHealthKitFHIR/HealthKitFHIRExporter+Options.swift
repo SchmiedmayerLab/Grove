@@ -108,9 +108,13 @@ extension HealthKitFHIRExporter {
     public enum RolePolicy: Hashable, Sendable {
         /// The application assembled graphs from records it did not mediate.
         case assembler
-        /// Samples this application wrote itself in the build it runs (the source bundle identifier equals the
-        /// application's and the revision's version equals its build) are stated as mediated by it; every other
-        /// sample is merely assembled.
+        /// Samples this application wrote in the build it states (the source's bundle identifier equals the
+        /// application's, and `HKSourceRevision.version`, the source's `CFBundleVersion`, equals
+        /// `ApplicationDevice.build`) are stated as mediated by it. Every other sample is merely assembled: one
+        /// written by another build, one whose revision states no version, and every sample when the application
+        /// states no build, which `ApplicationDevice(bundle:)` always reads from `CFBundleVersion`. The comparison
+        /// uses the application the event froze. iOS lets an app reuse a build number in another release; an app
+        /// that does so names the current release for such a sample.
         case gatewayForOwnWrites
         /// The converting application mediated every measurement.
         case gateway

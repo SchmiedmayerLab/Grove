@@ -81,6 +81,25 @@ struct ConformanceFixtureTests {
         )
     }
 
+    /// The goldens whose shapes no fixture above covers: the workout session and every shape the fix round added.
+    /// `exporter-deployment-state-of-mind` is left out: its negative valence fails the pinned guide's own
+    /// `healthkit-state-of-mind-value-domain-1` in the HL7 validator, which rejects every negative value although the
+    /// invariant admits -1 through 1, an IG defect.
+    private static let validatedGoldens: Set<String> = [
+        "workout-session",
+        "workout-session-context",
+        "writer-non-ascii-name",
+        "gad7-assessment",
+        "exporter-default-apple-watch-heart-rate",
+        "exporter-deployment-own-heart-rate",
+        "exporter-deployment-electrocardiogram",
+        "exporter-deployment-electrocardiogram-symptom",
+        "exporter-deployment-blood-pressure",
+        "exporter-deployment-retraction",
+        "exporter-clinical-record-r4",
+        "exporter-clinical-record-dstu2"
+    ]
+
     @Test
     func writeConformanceFixtures() throws {
         let encoder = JSONEncoder()
@@ -305,6 +324,41 @@ struct ConformanceFixtureTests {
             metadata: [HKMetadataKeySexualActivityProtectionUsed: true]
         )
 
+        // Spec F1: the workout session, its one output, from the guide's workout vector; its lap is withheld.
+        let workout = try vector("workout")
+        guard case .codeableConcept("running") = workout.result else {
+            throw FixtureError.unexpectedResult(workout.id)
+        }
+        let workoutDates = try dates(workout)
+        try add("workout", HKWorkout(
+            activityType: .running,
+            start: workoutDates.start,
+            end: workoutDates.end,
+            workoutEvents: [HKWorkoutEvent(type: .lap, dateInterval: DateInterval(start: workoutDates.start, duration: 900), metadata: nil)],
+            totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: 420),
+            totalDistance: HKQuantity(unit: .meter(), doubleValue: 7_500),
+            device: Self.device,
+            metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
+        ))
+
+        // A source the caller classifies as an application: its writer Device, its host and the Provenance author.
+        let writerContext = HealthKitConversionContext(
+            subject: Self.subject,
+            converter: context.converter,
+            graphIdentifierSystem: context.graphIdentifierSystem,
+            writer: .application,
+            converterWasGateway: true,
+            conversionInstant: contextTime
+        )
+        fixtures["heart-rate-classified-writer"] = try converter.convert(
+            StoredSampleFixtures.stored(
+                quantity(.heartRate, .count().unitDivided(by: .minute()), 64, effective: .dateTime("2026-08-20T08:25:00-07:00")),
+                uuid: UUID(uuidString: "6C4B1D1E-0000-4000-8000-0000000000F1") ?? UUID(),
+                writer: GoldenFixtures.foreignWriter
+            ),
+            context: writerContext
+        ).bundle
+
         let mindfulness = try vector("mindfulness-session")
         try add("mindfulness-session", category(
             .mindfulSession,
@@ -519,7 +573,12 @@ struct ConformanceFixtureTests {
         try encoder.encode(ecgConversion.bundle).write(
             to: directory.appendingPathComponent("electrocardiogram.json")
         )
-        #expect(fixtures.count == 27)
+        let validatedGoldens = Self.validatedGoldens.subtracting(GoldenCase.unavailableHere)
+        #expect(Set(GoldenCase.all.map(\.name)).isSuperset(of: validatedGoldens))
+        for goldenCase in GoldenCase.all where validatedGoldens.contains(goldenCase.name) {
+            try goldenCase.output().graph.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
+        }
+        #expect(fixtures.count == 29)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))
         #expect(emittedVectorIDs == Set([
             "active-energy",
@@ -544,7 +603,8 @@ struct ConformanceFixtureTests {
             "resting-heart-rate",
             "sexual-activity",
             "sleep-stage",
-            "step-count"
+            "step-count",
+            "workout"
         ]))
     }
 

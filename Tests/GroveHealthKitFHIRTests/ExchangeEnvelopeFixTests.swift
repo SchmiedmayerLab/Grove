@@ -18,6 +18,19 @@ import Testing
 
 /// The envelope rules the pinned guide states and the first assembler missed: what a document graph
 /// carries, how event instants are written, and which deletions a route policy lets the exporter retract.
+/// One revision and converter build, and whether the converter wrote the sample in the build it runs.
+struct SameBuildCase: CustomTestStringConvertible, Sendable {
+    let revisionVersion: String?
+    let build: String?
+    let expected: Bool
+    var bundleIdentifier = ApplicationDevice.test.bundleIdentifier
+
+    var testDescription: String {
+        "revision \(revisionVersion.map { "'\($0)'" } ?? "nil") of \(bundleIdentifier), build \(build ?? "nil")"
+    }
+}
+
+
 @Suite
 struct ExchangeEnvelopeFixTests {
     private static let base = ExchangeEventContext.test()
@@ -102,6 +115,47 @@ struct ExchangeEnvelopeFixTests {
         #expect(occurred.value?.description == "2026-08-17T23:30:00.251Z")
     }
 
+    @Test("A retraction states its bounds and its recording in UTC at millisecond precision, and a start before year 1 as year 1")
+    @available(*, deprecated, message: "Exercises the deprecated converter's retraction, which takes any instant")
+    func retractionInstantsAreMilliseconds() throws {
+        let context = HealthKitConversionContext(event: .test(conversionInstant: Date(timeIntervalSince1970: 1_787_009_400.2514)))
+        func provenance(_ occurred: RetractionOccurrence) throws -> (bundle: ModelsR4.Bundle, provenance: Provenance) {
+            let record = HealthKitSourceRecord(uuid: GoldenFixtures.uuid(96), type: .heartRate)
+            let bundle = try HealthKitConverter().retraction(for: record, context: context, occurred: occurred).graph.bundle
+            return (bundle, try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first))
+        }
+        let bounded = try provenance(.period(
+            start: Date(timeIntervalSince1970: 1_787_005_800.0004),
+            end: Date(timeIntervalSince1970: 1_787_009_400.9996)
+        ))
+        guard case .period(let period)? = bounded.provenance.occurred else {
+            Issue.record("A retraction with bounds occurs over a period")
+            return
+        }
+        #expect(period.start?.value?.description == "2026-08-17T22:30:00Z")
+        #expect(period.end?.value?.description == "2026-08-17T23:30:01Z", "rounding carries into the next second")
+        #expect(bounded.provenance.recorded.value?.description == "2026-08-17T23:30:00.251Z")
+        #expect(bounded.bundle.timestamp?.value?.description == "2026-08-17T23:30:00.251Z")
+        guard case .dateTime(let instant)? = try provenance(.instant(Date(timeIntervalSince1970: 1_787_009_400.2516))).provenance.occurred else {
+            Issue.record("A retraction at an instant occurs at that instant")
+            return
+        }
+        #expect(instant.value?.description == "2026-08-17T23:30:00.252Z")
+        guard case .period(let clamped)? = try provenance(.period(start: .distantPast, end: GoldenFixtures.conversionInstant)).provenance.occurred else {
+            Issue.record("A retraction with bounds occurs over a period")
+            return
+        }
+        #expect(clamped.start?.value?.description == "0001-01-01T00:00:00Z")
+    }
+
+    @Test("A document's date is the event instant in UTC at millisecond precision")
+    @available(*, deprecated, message: "Exercises the deprecated converter's document path")
+    func documentDateIsMilliseconds() throws {
+        let context = HealthKitConversionContext(event: .test(conversionInstant: Date(timeIntervalSince1970: 1_787_009_400.2514)))
+        let conversion = try HealthKitConverter().convert(try Self.heartbeatSeries(uuid: 97), context: context)
+        #expect(conversion.document.date?.value?.description == "2026-08-17T23:30:00.251Z")
+    }
+
     @Test("A route deletion is retracted only while routes are disclosed")
     func routeRetractionFollowsTheRoutePolicy() throws {
         let deletion = HealthKitFHIRExporter.Deletion(
@@ -136,6 +190,56 @@ struct ExchangeEnvelopeFixTests {
         try #require(exports.count == 2)
         #expect(statesGateway(exports[0]))
         #expect(!statesGateway(exports[1]))
+    }
+
+    /// Spec F3: only the exact build matches; HealthKit copies the source's `CFBundleVersion` into the revision.
+    @Test(arguments: [
+        SameBuildCase(revisionVersion: "42", build: "42", expected: true),
+        SameBuildCase(revisionVersion: "41", build: "42", expected: false),
+        SameBuildCase(revisionVersion: nil, build: "42", expected: false),
+        SameBuildCase(revisionVersion: "   ", build: "42", expected: false),
+        SameBuildCase(revisionVersion: "42 ", build: "42", expected: false),
+        SameBuildCase(revisionVersion: "42", build: "42", expected: false, bundleIdentifier: "org.example.writer"),
+        // An application stating no build is never matched, even when its version equals the revision's.
+        SameBuildCase(revisionVersion: "42", build: nil, expected: false)
+    ])
+    func sameBuildIsExact(_ testCase: SameBuildCase) throws {
+        var writer = GoldenFixtures.selfWriter(revisionVersion: testCase.revisionVersion)
+        writer.bundleIdentifier = testCase.bundleIdentifier
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(98), writer: writer)
+        let application = GoldenFixtures.selfConverter(version: testCase.build == nil ? "42" : "1.2.3", build: testCase.build)
+        #expect(HealthKitAssembly.isSameBuild(sample.sourceRevision, as: application) == testCase.expected)
+    }
+
+    /// Spec F2: a gateway no output names is no snapshot, so a writer whose token equals it gets its own entries.
+    @Test("A writer equal to a gateway no output names is its own snapshot and author, beside its own host")
+    @available(*, deprecated, message: "Exercises the deprecated converter's document path")
+    func writerEqualToAnUnnamedGatewayIsItsOwnSnapshot() throws {
+        var inputs = GoldenFixtures.Inputs.applicationWriter
+        inputs.converterRole = .gatewayApplication(.test(name: "Cuff Companion", bundleIdentifier: "org.example.writer", version: "42"))
+        var documentInputs = inputs
+        documentInputs.repositoryIDs = [.writer: try RepositoryID("w-1")]
+        let document = try HealthKitConverter().convert(try Self.heartbeatSeries(uuid: 99), context: GoldenFixtures.context(sequence: 99, documentInputs))
+        let writer = try #require(document.writer)
+        let writerHost = try #require(document.identifiers.writerHostSnapshot)
+        #expect(writer.deviceName?.first?.name.value?.string == "Example Writer")
+        #expect(writer.parent?.reference?.value?.string == (try writerHost.fullURLString))
+        #expect(writer.id?.value?.string == "w-1")
+        let author = document.provenance.entity?.first?.agent?.first { $0.type?.coding?.first?.code?.value?.string == "author" }
+        #expect(author?.who.reference?.value?.string == (try document.identifiers.writerSnapshot?.fullURLString))
+        // On an Observation, which names the gateway, the same writer is the gateway's entry.
+        let observation = try HealthKitConverter().convert(
+            GoldenCase.attributedHeartRate(uuid: 0x99, writer: GoldenFixtures.foreignWriter),
+            context: GoldenFixtures.context(sequence: 100_099, inputs)
+        )
+        #expect(observation.writer?.deviceName?.first?.name.value?.string == "Cuff Companion")
+        #expect(observation.identifiers.writerHostSnapshot == nil)
+        let gateway = observation.observation.extension?.first { $0.url == Canonicals.gatewayDevice }
+        guard case .reference(let reference)? = gateway?.value else {
+            Issue.record("The Observation names its gateway")
+            return
+        }
+        #expect(reference.reference?.value?.string == (try observation.identifiers.writerSnapshot?.fullURLString))
     }
 }
 

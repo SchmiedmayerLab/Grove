@@ -179,6 +179,25 @@ struct ExchangeGraphCorpusTests {
         }
     }
 
+    /// T5 of spec F11: the adapter-provenance-graph rule walks the claims in the pinned catalog's order, and the
+    /// first failing claim decides the reported location, so the generated table must keep that order and sets.
+    @Test("The adapter conversion claims are the pinned catalog's, in its order")
+    func adapterConversionClaimsMatchTheCatalog() throws {
+        struct Catalog: Decodable {
+            struct Claim: Decodable {
+                let profile: String
+                let targetAdapterProfiles: [String]
+            }
+
+            let adapterConversionProvenanceClaims: [Claim]
+        }
+
+        let catalogURL = protocolCatalogURL.deletingLastPathComponent().appendingPathComponent("profile-claims.json")
+        let claims = try JSONDecoder().decode(Catalog.self, from: Data(contentsOf: catalogURL)).adapterConversionProvenanceClaims
+        #expect(ExchangeGraph.adapterConversionClaims.map(\.provenanceProfile) == claims.map(\.profile))
+        #expect(ExchangeGraph.adapterConversionClaims.map(\.outputProfiles) == claims.map { Set($0.targetAdapterProfiles) })
+    }
+
     @Test("Every shared mutation reports the exact structured Grove diagnostic")
     func reportsExactSharedCorpusDiagnostics() throws {
         let corpusURL = corpusDirectory.appendingPathComponent("corpus.json")

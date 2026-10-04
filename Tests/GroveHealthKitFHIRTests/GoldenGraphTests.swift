@@ -242,6 +242,22 @@ struct GoldenGraphTests {
         #expect(provenance.target.count == 1)
     }
 
+    /// F1: a workout's retraction names exactly the outputs its addition emitted, recomputed from its type and UUID.
+    @Test
+    func workoutRetractionIsExact() throws {
+        #expect(HealthKitCatalog.outputs(for: .workout).map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
+        let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA2))
+        let conversion = try HealthKitConverter().convert(workout, context: GoldenFixtures.context(sequence: 202))
+        let retraction = try HealthKitConverter().retraction(
+            for: HealthKitSourceRecord(uuid: workout.uuid, type: .workout),
+            context: GoldenFixtures.context(sequence: 203),
+            occurred: .instant(GoldenFixtures.conversionInstant)
+        )
+        let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let emitted = ([conversion.identifiers.primaryOutput] + conversion.identifiers.childOutputs).map(\.identifier.value)
+        #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == emitted)
+    }
+
     /// A writer classified as an application whose bundle identifier is not one is a refusal; a writer with a blank
     /// name is merely no writer (`writer-blank-name-with-sync-identity` pins that graph).
     @Test

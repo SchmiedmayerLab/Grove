@@ -126,6 +126,15 @@ extension GoldenCase {
                 metadata: GoldenFixtures.timeZoneMetadata
             )
             return try GoldenFixtures.convert(StoredSampleFixtures.stored(assessment, uuid: GoldenFixtures.uuid(15)), sequence: sequence)
+        },
+        // The session under every envelope link it takes (spec F1): a study, a gateway application, manual entry
+        // and the watch that recorded it.
+        GoldenCase("workout-session-context", sequence: 16) { sequence in
+            var inputs = GoldenFixtures.Inputs()
+            inputs.studies = [.test("study-a")]
+            inputs.converterRole = .gatewayApplication(.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1"))
+            let workout = GoldenFixtures.workout(withEvents: false, device: GoldenFixtures.watch, userEntered: true)
+            return try GoldenFixtures.convert(StoredSampleFixtures.stored(workout, uuid: GoldenFixtures.uuid(16)), sequence: sequence, inputs)
         }
     ]
 

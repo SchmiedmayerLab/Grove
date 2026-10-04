@@ -20,6 +20,8 @@ enum ExporterGolden {
     /// The deployment's own application, in the build it runs.
     static let deploymentApplication = ApplicationDevice.test(name: "Grove Study", bundleIdentifier: "org.example.study", version: "4.1.0", build: "412")
     static let deploymentStudies: [StudyEnrollment] = [.test("study-a")]
+    /// The deployment's own system for the HealthKit UUID; not an example URL, so the HL7 validator accepts it.
+    static let deploymentNativeIdentifierSystem: IdentifierSystem = "https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record"
 
     /// A sample the deployment's own application wrote in the build it runs.
     static let deploymentWriter = StoredSampleFixtures.Writer(
@@ -43,7 +45,7 @@ enum ExporterGolden {
     /// bundle identifier the one source classified as an application, and every other option at its default.
     static var deploymentOptions: HealthKitFHIRExporter.Options {
         var options = HealthKitFHIRExporter.Options()
-        options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+        options.nativeIdentifier = .authorized(system: deploymentNativeIdentifierSystem)
         options.legacyBundleID = .healthKitUUID
         options.role = .gatewayForOwnWrites
         options.writer = .applications([deploymentApplication.bundleIdentifier])
