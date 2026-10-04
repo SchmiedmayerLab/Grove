@@ -107,7 +107,7 @@ struct HealthKitWorkoutContent: Sendable {
 
     /// Sets a session's components, then its activity, on `observation`: the active duration, then each statistic
     /// HealthKit recorded. Statistics of one quantity type (the heart-rate average, maximum and minimum) share its lookup.
-    func apply(to observation: inout Observation, workout: HKWorkout) throws(HealthKitConversionError.ValueFailure) {
+    func apply(to observation: inout Observation, workout: HKWorkout) throws {
         let activity = self.activity(workout.workoutActivityType.rawValue)
         var components = [try activeDuration.component(workout.duration)]
         var recorded: (type: HKQuantityTypeIdentifier, statistics: HKStatistics?)?

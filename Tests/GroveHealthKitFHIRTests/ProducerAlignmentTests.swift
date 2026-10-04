@@ -150,7 +150,7 @@ struct ProducerWarningTests {
     func errorsAreErrorRows() {
         let errors: [HealthKitConversionError] = [
             .unsupportedSourceType(.workout),
-            .invalidValue(.heartRate, .shapeInvalid),
+            .invalidValue(.stepCount, .outsideDomain),
             .ecgEvidence(.evidenceRequired)
         ]
         for error in errors {

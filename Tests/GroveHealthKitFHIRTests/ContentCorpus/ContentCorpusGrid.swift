@@ -19,7 +19,8 @@ import HealthKit
 /// on every platform; a platform without a record type skips its vectors when it rebuilds them.
 ///
 /// Families: every quantity type over a value sweep (every percent type also over fractions, insulin delivery also
-/// with its required reason, every unit-bound type also in another unit), every category type over raw values -1
+/// with its required reason, every unit-bound type also in another unit, three types also over values without a
+/// `Decimal`), every category type over raw values -1
 /// through 8, effective-time edges for each effective kind, blood-pressure member variants, every workout activity
 /// raw with and without statistics, State of Mind permutations, scored assessments, each metadata key valid,
 /// wrongly typed and absent, ECG evidence and time edges, every recording and clinical document builder,
@@ -44,6 +45,13 @@ enum ContentCorpusGrid {
     static let sweep: [Double] = [0, 1.5, -1, 1e-7, 1e21, .nan, .infinity, -.infinity]
     /// Fractions a percent type is stated in, among them the binary64 products that print with a tail.
     static let fractions: [Double] = [0.07, 0.14, 0.28, 0.282, 0.29, 0.55, 0.56, 0.57, 0.58, 0.98, 0.5, 1]
+    /// Finite values Foundation's `Decimal` cannot hold, for a type without a value domain, an integer-only one and a
+    /// percent one: refused as outside the domain where the domain excludes them, else unclassified.
+    static let withoutDecimal: [String: [Double]] = [
+        HKQuantityTypeIdentifier.heartRate.rawValue: [5e-324, 1e200],
+        HKQuantityTypeIdentifier.stepCount.rawValue: [5e-324, 1e200, -1e300],
+        HKQuantityTypeIdentifier.oxygenSaturation.rawValue: [5e-324, 1e200]
+    ]
 
     /// Units for quantity types whose contract names no unit the catalog binds, tried in order.
     static let fallbackUnits: [HKUnit] = [
@@ -78,8 +86,9 @@ enum ContentCorpusGrid {
             + roundTrips
     }
 
-    /// The vectors of every quantity row: a value the contract admits, the sweep, a percent type's fractions, insulin
-    /// delivery's sweep again with the reason it requires, and the admitted value in another unit.
+    /// The vectors of every quantity row: a value the contract admits, the sweep, values without a `Decimal`, a percent
+    /// type's fractions, insulin delivery's sweep again with the reason it requires, and the admitted value in another
+    /// unit.
     static var quantities: [ContentCorpusVector] {
         rows(prefix: "HKQuantityTypeIdentifier").flatMap { row -> [ContentCorpusVector] in
             let identifier = HKQuantityTypeIdentifier(rawValue: row.sourceTypeIdentifier)
@@ -89,7 +98,8 @@ enum ContentCorpusGrid {
             }
             let isPercent = measurement?.quantity?.code == "%"
             let admitted = isPercent ? 0.25 : representative(measurement)
-            let values = [("row", admitted)] + sweep.map { (String($0), $0) } + (isPercent ? fractions.map { ("fraction-\($0)", $0) } : [])
+            let swept = sweep + (withoutDecimal[row.sourceTypeIdentifier] ?? [])
+            let values = [("row", admitted)] + swept.map { (String($0), $0) } + (isPercent ? fractions.map { ("fraction-\($0)", $0) } : [])
             func vector(_ label: String, _ value: Double, unit: HKUnit, metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {
                 let record = ContentCorpusRecord.quantity(type: row.sourceTypeIdentifier, value: value, unit: unit.unitString)
                 return convert("quantity/\(row.sourceTypeIdentifier)/\(label)", ContentCorpusSource(record, end: start + span(measurement), metadata: metadata))

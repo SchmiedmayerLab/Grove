@@ -79,7 +79,7 @@ extension ContentCorpusGrid {
     /// Every classification, symptoms status and algorithm version, average heart rate and sampling frequency
     /// edges, every waveform refusal, zones, symptom relationships, and the plain sample entry point.
     static var electrocardiograms: [ContentCorpusVector] {
-        let averages: [(String, Double?)] = [("none", nil), ("fraction", 72.5), ("nan", .nan), ("zero", 0), ("tiny", 1e-7)]
+        let averages: [(String, Double?)] = [("none", nil), ("fraction", 72.5), ("nan", .nan), ("zero", 0), ("tiny", 1e-7), ("subnormal", 5e-324)]
         let frequencies: [(String, Double?)] = [("none", nil), ("mismatch", 250), ("zero", 0), ("nan", .nan), ("negative", -500), ("near", 499.99)]
         let readings: [(String, ContentCorpusElectrocardiogram)] = [("row", electrocardiogramReading)]
             + [0, 2, 3, 4, 5, 6, 100, 99].map { raw in ("classification/\(raw)", reading { $0.classification = raw }) }

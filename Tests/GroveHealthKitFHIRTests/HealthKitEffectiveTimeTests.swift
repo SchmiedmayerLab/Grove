@@ -306,16 +306,21 @@ struct HealthKitEffectiveTimeTests {
         #expect(second.value?.description == "2026-11-01T01:30:00-08:00")
     }
 
-    @Test("Instants with no Mobile lexeme are refused")
+    /// FHIR states an offset in whole minutes only, and the source's own must not be replaced: Monrovia kept -0:44:30
+    /// until 1972, so its 1960 instants have no FHIR date-time.
+    @Test("Instants with no Mobile lexeme are refused as no valid FHIR date-time")
     func refusals() throws {
         let seconds = try #require(TimeZone(secondsFromGMT: 37))
         let kiritimati = try #require(TimeZone(identifier: "Pacific/Kiritimati"))
+        let monrovia = try #require(TimeZone(identifier: "Africa/Monrovia"))
         let refused: [(TimeInterval, TimeZone?)] = [
-            (.infinity, nil), (.nan, nil), (1e21, nil), (1_787_148_600, seconds), (253_402_300_799.9995, nil),
-            (253_402_290_000, kiritimati), (1_787_148_600, TimeZone(secondsFromGMT: 64_800)), (1_787_148_600, TimeZone(secondsFromGMT: 50_460))
+            (.infinity, nil), (.nan, nil), (1e21, nil), (1_787_148_600, seconds), (1_787_148_600, TimeZone(secondsFromGMT: 1_172)),
+            (-315_619_200, monrovia), (253_402_300_799.9995, nil), (253_402_300_800, nil), (253_402_290_000, kiritimati),
+            (1_787_148_600, TimeZone(secondsFromGMT: 64_800)), (1_787_148_600, TimeZone(secondsFromGMT: 50_460))
         ] + Self.unstatableLocalMeanTimes.map { ($0.instant, $0.zone) }
+        #expect(monrovia.secondsFromGMT(for: Date(timeIntervalSince1970: -315_619_200)) == -2_670)
         for (since1970, zone) in refused {
-            #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+            #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
                 try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: since1970), zone: zone)
             }
         }
@@ -335,7 +340,7 @@ struct HealthKitEffectiveTimeTests {
         let lastJulianSecond = Date(timeIntervalSince1970: -12_219_292_801)
         #expect(try HealthKitEffectiveTime.exactDateTime(lastJulianSecond, offset: 0.25, zone: .gmt).description == "1582-10-14T23:59:59.25Z")
         let yearZero = Date(timeIntervalSince1970: -62_135_596_801)
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try HealthKitEffectiveTime.dateTime(yearZero, zone: nil)
         }
         #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
@@ -501,7 +506,7 @@ struct HealthKitEffectiveTimeTests {
         #expect(try EffectiveRule.interval(nonZero: false).admitsPeriod(from: start, to: subMillisecond))
         #expect(try EffectiveRule.interval(nonZero: true).admitsPeriod(from: start, to: start.addingTimeInterval(0.0007)))
         #expect(try EffectiveRule.instant.admitsPeriod(from: start, to: start.addingTimeInterval(45)) == false)
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try EffectiveRule.interval(nonZero: false).admitsPeriod(from: start, to: Date(timeIntervalSince1970: .infinity))
         }
     }
@@ -517,7 +522,7 @@ struct HealthKitEffectiveTimeTests {
         #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try EffectiveRule.instantOrInterval.value(start: end, end: start, zone: nil)
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try EffectiveRule.instantOrInterval.value(start: start, end: Date(timeIntervalSince1970: .infinity), zone: nil)
         }
         #expect(try EffectiveRule.instantOrInterval.admitsPeriod(from: start, to: start))

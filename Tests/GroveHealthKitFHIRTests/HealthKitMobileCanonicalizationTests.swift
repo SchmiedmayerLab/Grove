@@ -134,22 +134,22 @@ struct HealthKitFHIRMobileCanonicalizationTests {
         let template = QuantityTemplate(try #require(MeasurementCatalog.oxygenSaturation.quantity))
         for fraction in [Double.nan, .infinity, -.infinity] {
             #expect(QuantityRead.percent(ofFraction: fraction).isNaN)
-            #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+            #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
                 try template.quantity(QuantityRead.percent(ofFraction: fraction))
             }
         }
     }
 
-    @Test("Non-finite effective instants and quantities fail closed")
+    @Test("Non-finite quantities are outside the domain; a non-finite effective instant is no valid FHIR date-time")
     func nonFiniteValues() throws {
         let template = QuantityTemplate(try #require(MeasurementCatalog.bodyTemperature.quantity))
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try template.quantity(.infinity)
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
             try template.quantity(.nan)
         }
-        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: .infinity), zone: nil)
         }
     }

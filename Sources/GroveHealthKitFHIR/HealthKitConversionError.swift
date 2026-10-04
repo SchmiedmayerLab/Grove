@@ -150,6 +150,8 @@ extension HealthKitConversionError {
     public enum ValueFailure: Error, Hashable, Sendable {
         /// The value's shape is not what the selected mapping requires.
         case shapeInvalid
+        /// A numeric value is nonfinite, outside the contract's inclusive value domain, or fractional where only
+        /// integers are admitted.
         case outsideDomain
         /// An enumeration value with no published mapping.
         case unsupportedValue(Int)
@@ -158,6 +160,8 @@ extension HealthKitConversionError {
         case requiredMetadataMissing(MetadataField)
         /// A panel is missing one of its catalog components, named by the component id.
         case requiredComponentMissing(component: String)
+        /// The effective time is not a valid FHIR date-time, or its period is reversed, or empty where the
+        /// measurement requires a duration.
         case effectivePeriodInvalid
         case emptyRecordingSeries
         case recordingPayloadTooLarge(byteCount: Int)
