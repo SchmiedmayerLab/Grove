@@ -160,9 +160,9 @@ extension HealthKitFHIRExporter.Record {
             let voltages = evidence.map { evidence in Self.digest { try evidence.waveform.serialized() } } ?? Self.unserializable
             return Self.symptomParts(symptoms) + ["voltages", voltages]
         case let .heartbeatSeries(series, beats):
-            return ["beats", Self.digest { try HealthKitConverter.beatIntervalPayload(seriesStart: series.startDate, heartbeats: beats) }]
+            return ["beats", Self.digest { try DocumentPlan.beatIntervals(seriesStart: series.startDate, heartbeats: beats) }]
         case let .workoutRoute(_, locations):
-            return ["locations", Self.digest { try HealthKitConverter.locationTrackPayload(locations) }]
+            return ["locations", Self.digest { try DocumentPlan.locationTrack(locations) }]
         }
     }
 }

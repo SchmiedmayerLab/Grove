@@ -60,44 +60,56 @@ struct DocumentPlan: Sendable {
         value < 0 ? .absent : .number(value)
     }
 
-    /// The document of a heartbeat series: one row per beat, its instant in epoch seconds and whether a gap preceded
-    /// it. A series without beats is refused.
-    func document(_ record: HealthKitHeartbeatSeriesRecord) throws -> DocumentReference {
-        guard !record.heartbeats.isEmpty else {
+    /// A heartbeat series' beats in the registry's `beat-interval-series` column schema: one row per beat, its instant
+    /// in epoch seconds and whether a gap preceded it. A series without beats is refused. The exporter's companion
+    /// fingerprint digests exactly these bytes.
+    static func beatIntervals(seriesStart: Date, heartbeats: [HealthKitHeartbeat]) throws -> Data {
+        guard !heartbeats.isEmpty else {
             throw HealthKitValueFailure.emptyRecordingSeries
         }
-        var writer = try RecordingCSVWriter(format: format)
+        var writer = try RecordingCSVWriter(format: .beatIntervalSeries)
         // Composed in epoch seconds rather than by offsetting the start: `Date` counts from 2001, so offsetting one
         // and reading it back as epoch seconds rounds twice and moves the beat.
-        let start = record.series.startDate.timeIntervalSince1970
-        for beat in record.heartbeats {
+        let start = seriesStart.timeIntervalSince1970
+        for beat in heartbeats {
             try writer.append([.number(start + beat.timeSinceSeriesStart), .integer(beat.precededByGap ? 1 : 0)])
         }
-        return try document(writer.data(), title: title, contentType: format.registeredContentType)
+        return writer.data()
     }
 
-    /// The document of a workout route: one row per fix in the registry's column order. A route without fixes is
-    /// refused.
-    func document(_ record: HealthKitWorkoutRouteRecord) throws -> DocumentReference {
-        guard !record.locations.isEmpty else {
+    /// A workout route's fixes in the registry's `location-track-samples` column schema, one row per fix. A route
+    /// without fixes is refused. The exporter's companion fingerprint digests exactly these bytes.
+    static func locationTrack(_ locations: [CLLocation]) throws -> Data {
+        guard !locations.isEmpty else {
             throw HealthKitValueFailure.emptyRecordingSeries
         }
-        var writer = try RecordingCSVWriter(format: format)
-        for fix in record.locations {
+        var writer = try RecordingCSVWriter(format: .locationTrackSamples)
+        for fix in locations {
             try writer.append([
                 .timestamp(fix.timestamp),
                 .number(fix.coordinate.latitude),
                 .number(fix.coordinate.longitude),
                 .number(fix.altitude),
                 .number(fix.horizontalAccuracy),
-                Self.reported(fix.verticalAccuracy),
-                Self.reported(fix.speed),
-                Self.reported(fix.speedAccuracy),
-                Self.reported(fix.course),
-                Self.reported(fix.courseAccuracy)
+                reported(fix.verticalAccuracy),
+                reported(fix.speed),
+                reported(fix.speedAccuracy),
+                reported(fix.course),
+                reported(fix.courseAccuracy)
             ])
         }
-        return try document(writer.data(), title: title, contentType: format.registeredContentType)
+        return writer.data()
+    }
+
+    /// The document of a heartbeat series, carrying its beat intervals.
+    func document(_ record: HealthKitHeartbeatSeriesRecord) throws -> DocumentReference {
+        let payload = try Self.beatIntervals(seriesStart: record.series.startDate, heartbeats: record.heartbeats)
+        return try document(payload, title: title, contentType: format.registeredContentType)
+    }
+
+    /// The document of a workout route, carrying its location track.
+    func document(_ record: HealthKitWorkoutRouteRecord) throws -> DocumentReference {
+        try document(try Self.locationTrack(record.locations), title: title, contentType: format.registeredContentType)
     }
 
     /// The document carrying `payload` under `title`, with its SHA-1 hash and size.
