@@ -149,7 +149,8 @@ struct ProducerWarningTests {
     @Test("Every error the adapters raise maps to a rule of severity error")
     func errorsAreErrorRows() {
         let errors: [HealthKitConversionError] = [
-            .unsupportedSourceType(.workout),
+            .unregisteredSourceType("HKQuantityTypeIdentifierExample"),
+            .notYetConvertible(.food),
             .invalidValue(.stepCount, .outsideDomain),
             .ecgEvidence(.evidenceRequired)
         ]

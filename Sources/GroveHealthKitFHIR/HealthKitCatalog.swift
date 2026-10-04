@@ -21,7 +21,7 @@ public enum HealthKitCatalog {
     /// Every platform identifier in the frozen HealthKit inventory, including characteristics
     /// and other non-sample identifiers that are outside the exporter's input type. The
     /// sleep-duration aggregate lives in the catalog's derivedAggregates, not in these rows.
-    /// A consumer can render this directly as the implementation coverage matrix.
+    /// The statuses state the guide's contract, not this producer's coverage.
     public static let entries: [Entry] = HealthKitContentPlan.all.map(\.entry)
 
     /// Every unit this adapter binds, as the pair of spellings the same quantity carries.
@@ -86,7 +86,7 @@ public enum HealthKitCatalog {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitCatalog {
-    /// One authoritative row in the HealthKit implementation matrix.
+    /// One row of the guide's HealthKit status matrix: what the guide admits, not what this producer emits.
     public struct Entry: Sendable {
         /// One measurement and its exact direct profile claims.
         public struct Measurement: Sendable {

@@ -68,6 +68,19 @@ struct HealthKitFHIRAggregateConversionTests {
         return inputs
     }
 
+    /// The assembly under the test context's scope, and a request for one event of that context.
+    private static func assembly() -> (HealthKitAssembly, HealthKitAssembly.Request) {
+        let base = ExchangeEventContext.test()
+        let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
+            adapter: HealthKitAssembly.adapter,
+            identityScope: base.identityScope,
+            subject: base.subject,
+            repositoryScope: base.repositoryScope
+        ))
+        let facts = ExchangeEventFacts(application: base.application, host: base.host, studies: [])
+        return (assembly, HealthKitAssembly.Request(event: base.event, instant: base.conversionInstant, facts: facts))
+    }
+
     private func quantitySample(
         _ type: HKQuantityTypeIdentifier,
         unit: HKUnit,
@@ -172,24 +185,60 @@ struct HealthKitFHIRAggregateConversionTests {
         }() == expected)
     }
 
-    @Test("Rows outside this converter's Observation surface fail closed with their catalog reason")
+    /// The refusal of every registered type's bare sample, written out rather than derived from the rule the plans
+    /// compile: an admitted type no path emits yet is not yet convertible, a type admitted only as a recording document
+    /// is platform exclusive, and only an identifier outside the inventory is an unsupported source type. A deletion
+    /// of a type with no outputs is refused for the same reason by the assembly's retraction, which the exporter never
+    /// reaches for such a type: it reports that the deletion has nothing to retract.
+    @Test("Every registered type a bare sample cannot convert is refused for what its catalog row states")
     func unconvertibleRowsFailClosedWithTheirCatalogReason() throws {
-        let reason = try #require(HealthKitCatalog[.nikeFuel].requirement)
-        #expect(HealthKitContentPlan[.bloodPressureSystolic].refusal == .componentRequiresCorrelation(.bloodPressureSystolic))
-        #expect(HealthKitContentPlan[.nikeFuel].refusal == .intentionallyUnsupported(.nikeFuel, reason: reason))
-        // A heartbeat series converts only with the beats its caller enumerated, so its bare sample is refused.
-        let series = try StoredSampleFixtures.seriesSample(
-            HKHeartbeatSeriesSample.self,
-            sampleType: HKSeriesType.heartbeat(),
-            facts: GoldenCase.seriesFacts(uuid: 0xF4, duration: 2)
-        )
-        #expect(throws: HealthKitConversionError.platformExclusiveSourceType(.heartbeatSeries)) {
-            try ExporterFixtures.export(series, inputs)
+        let notYetConvertible: Set<HealthKitSourceType> = [
+            .food, .audiogram, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse,
+            .visionPrescription, .medicationDoseEvent, .userAnnotatedMedicationConcept
+        ]
+        let recordingDocuments: Set<HealthKitSourceType> = [
+            .heartbeatSeries, .workoutRoute, .cda, .allergyRecord, .clinicalNoteRecord, .conditionRecord, .coverageRecord,
+            .immunizationRecord, .labResultRecord, .medicationRecord, .procedureRecord, .vitalSignRecord
+        ]
+        let members: Set<HealthKitSourceType> = [.bloodPressureSystolic, .bloodPressureDiastolic]
+        let intentionallyUnsupported: Set<HealthKitSourceType> = [.activityMoveMode, .nikeFuel]
+        // A refused route never reads the sample, and a clinical route refuses one that carries no clinical record.
+        let standIn = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
+        let (assembly, request) = Self.assembly()
+        for type in HealthKitSourceType.allCases {
+            let reason = HealthKitCatalog[type].requirement ?? ""
+            let expected: (error: HealthKitConversionError, code: String)? = if notYetConvertible.contains(type) {
+                (.notYetConvertible(type), "mobile-input.not-yet-convertible")
+            } else if recordingDocuments.contains(type) {
+                (.platformExclusiveSourceType(type), "mobile-input.platform-exclusive-source-type")
+            } else if members.contains(type) {
+                (.componentRequiresCorrelation(type), "healthkit-input.component-requires-correlation")
+            } else if intentionallyUnsupported.contains(type) {
+                (.intentionallyUnsupported(type, reason: reason), "mobile-input.intentionally-unsupported-source-type")
+            } else if type == .electrocardiogram {
+                (.ecgEvidence(.evidenceRequired), "healthkit-input.ecg-evidence")
+            } else {
+                nil
+            }
+            guard let expected else {
+                let converts = if case .observation = HealthKitContentPlan[type].route { true } else { false }
+                #expect(converts && !HealthKitContentPlan[type].outputs.isEmpty, "\(type) converts no sample of its own")
+                continue
+            }
+            #expect(throws: expected.error, "\(type)") {
+                try assembly.convert(standIn, plan: HealthKitContentPlan[type], request: request)
+            }
+            #expect(expected.error.diagnostic.code == expected.code, "\(type)")
+            guard HealthKitContentPlan[type].outputs.isEmpty else {
+                continue
+            }
+            #expect(throws: expected.error, "\(type)") {
+                try assembly.retraction(of: standIn.uuid, type: type, request: request, occurred: .instant(request.instant))
+            }
         }
-        for error in [HealthKitConversionError.intentionallyUnsupported(.nikeFuel, reason: reason), .platformExclusiveSourceType(.heartbeatSeries)] {
-            #expect(ExchangeGraphRule(rawValue: error.diagnostic.code) != nil)
-            #expect(error.diagnostic.code.hasPrefix("mobile-input."))
-        }
+        #expect(!intentionallyUnsupported.contains { HealthKitCatalog[$0].requirement?.isEmpty != false })
+        let emitsNothing = Set(HealthKitSourceType.allCases.filter { HealthKitContentPlan[$0].outputs.isEmpty })
+        #expect(emitsNothing == notYetConvertible.union(members).union(intentionallyUnsupported))
     }
 }
 
