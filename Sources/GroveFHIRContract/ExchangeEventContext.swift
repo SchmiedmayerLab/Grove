@@ -13,6 +13,9 @@ public import Foundation
 ///
 /// Recording and clinical documents carry no gateway link under any role: the guide defines
 /// `observation-gatewayDevice` for Observations only.
+///
+/// Public only for the caller-managed converters that take an ``ExchangeEventContext``; a candidate for package
+/// access once they are gone.
 public enum ConverterRole: Hashable, Sendable {
     /// The application assembled the graph from a record it did not mediate.
     case assembler
@@ -25,6 +28,9 @@ public enum ConverterRole: Hashable, Sendable {
 
 
 /// The graph nodes a repository may have assigned a logical id to.
+///
+/// Public only for the caller-managed converters that take an ``ExchangeEventContext`` and the errors they report;
+/// a candidate for package access once they are gone.
 public enum ExchangeGraphNode: Hashable, Sendable {
     case bundle
     case primaryOutput
@@ -56,6 +62,10 @@ public enum RouteDisclosurePolicy: Hashable, Sendable {
 ///
 /// Callers persist the event identity and identity-scope inputs with the event and reuse them for
 /// an exact retry. Grove never reads the clock; ``conversionInstant`` is the caller's.
+///
+/// A candidate for removal: the exporters number their events through an ``ExchangeProducer`` instead, and only
+/// the caller-managed converters still take it (HealthKit's deprecated converter and the source-neutral sensor
+/// converter, itself a removal candidate).
 public struct ExchangeEventContext: Sendable {
     public let subject: Subject
     public let event: ExchangeEventIdentifier
