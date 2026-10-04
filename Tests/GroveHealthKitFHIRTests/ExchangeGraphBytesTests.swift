@@ -78,7 +78,7 @@ struct ExchangeGraphBytesTests {
             try change(&bundle)
             return try JSONSerialization.data(withJSONObject: bundle, options: [.sortedKeys, .withoutEscapingSlashes])
         }
-        let refusal = ExchangeGraphError.invalidEntries("Serialized event carries members the model does not keep")
+        let refusal = ExchangeGraphError.invalidEntries("Serialized event carries content the model does not keep")
         #expect(throws: refusal) {
             try ExchangeGraph(validating: try edited { $0["note"] = "not a Bundle element" }, kind: graph.kind)
         }
@@ -94,6 +94,46 @@ struct ExchangeGraphBytesTests {
         let rewritten = Data(String(decoding: graph.json, as: UTF8.self).replacingOccurrences(of: #""value":72}"#, with: #""value":72.0}"#).utf8)
         #expect(rewritten != graph.json)
         #expect(try ExchangeGraph(validating: rewritten, kind: graph.kind).json == rewritten)
+    }
+
+    /// The rules decide over the values the model holds, so bytes stating a value the model rewrote are refused: a
+    /// profile canonical with an empty version, which the model drops and the IG refuses as a profile claim, and a
+    /// decimal beyond the model's precision, which it rounds.
+    @Test("Re-validation refuses values the FHIR model rewrites")
+    func revalidationRefusesValuesTheModelRewrites() throws {
+        let graph = try #require(GoldenCase.all.first).output().graph
+        let json = String(decoding: graph.json, as: UTF8.self)
+        let rewrites = [
+            (#"healthkit-conversion-provenance""#, #"healthkit-conversion-provenance|""#),
+            (#""value":72}"#, #""value":72.00000000000000000000000000000000000000001}"#)
+        ]
+        for (original, rewritten) in rewrites {
+            let edited = json.replacingOccurrences(of: original, with: rewritten)
+            #expect(edited != json)
+            #expect(throws: ExchangeGraphError.invalidEntries("Serialized event carries content the model does not keep")) {
+                try ExchangeGraph(validating: Data(edited.utf8), kind: graph.kind)
+            }
+        }
+    }
+
+    /// What re-validation compares: numbers by their exact value, every other scalar by its tokens.
+    @Test("Kept content compares numbers by exact value and every other scalar as given")
+    func keptContentComparesNumbersByExactValue() throws {
+        func tokens(_ json: String) throws -> LosslessJSONValue {
+            try LosslessJSONValue(parsing: Data(json.utf8))
+        }
+        for lexeme in ["72", "72.0", "7.2e1", "720E-1", "0.0072e+4"] {
+            #expect(try tokens(lexeme).isKept(as: tokens("72")), "\(lexeme)")
+        }
+        #expect(try tokens("-0.0").isKept(as: tokens("0")))
+        // An exponent of 2^32 or more in magnitude compares by its lexeme, so no scale computation overflows.
+        for lexeme in ["7.2", "-72", "720", "72.00000000000000000000000000000000000000001", "72e4294967296", "1.5e-9223372036854775808"] {
+            #expect(try !tokens(lexeme).isKept(as: tokens("72")), "\(lexeme)")
+        }
+        #expect(try !tokens(#"{"profile":"x|"}"#).isKept(as: tokens(#"{"profile":"x"}"#)))
+        #expect(try !tokens(#"{"flag":true}"#).isKept(as: tokens(#"{"flag":"true"}"#)))
+        #expect(try !tokens("[72,72]").isKept(as: tokens("[72]")))
+        #expect(try !tokens("{}").isKept(as: tokens(#"{"value":72}"#)))
     }
 
     @Test("The earlier spelling forwards to the validating initializer")

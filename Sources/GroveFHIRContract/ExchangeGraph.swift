@@ -88,8 +88,9 @@ public struct ExchangeGraph: Sendable {
     ///
     /// It applies every structural rule a built graph passes, including that each adapter output has exactly one conversion
     /// Provenance of its adapter; StructureDefinition and terminology conformance is the conformance lane's to prove.
-    /// Bytes carrying a member the FHIR model does not keep are refused: the rules decide over what the model holds, and
-    /// ``json`` is what travels, so such a member would travel unchecked.
+    /// Bytes stating anything the FHIR model does not keep, a member it drops or a value it rewrites, are refused: the
+    /// rules decide over what the model holds, and ``json`` is what travels, so such content would travel unchecked.
+    /// A decimal may differ in lexeme only, as `72.0` and `72` state one value.
     ///
     /// Serialized checks run first, because Foundation keeps only one of duplicate members and
     /// decoding through `Foundation.URL` could normalize an identity system or collapse a
@@ -154,17 +155,19 @@ public struct ExchangeGraph: Sendable {
             bundle: decodedBundle,
             document: ValidationDocument(bundle: decodedBundle, jsonData: nil)
         )
-        try Self.validateKeptMembers(of: jsonData, decoded: decodedBundle)
+        try Self.validateKeptContent(of: jsonData, decoded: decodedBundle)
         return (eventIdentifier, decodedBundle)
     }
 
-    /// Whether the bytes name exactly the members and elements the decoded model encodes; values may differ in
-    /// lexeme only, as the model rewrites a decimal such as `72.0`.
-    private static func validateKeptMembers(of jsonData: Data, decoded bundle: ModelsR4.Bundle) throws(ExchangeGraphError) {
+    /// Whether the bytes state exactly what the decoded model encodes: the same members, elements and scalars. A number
+    /// may differ in lexeme only, as the model rewrites a decimal such as `72.0`; a value the model rewrote, such as a
+    /// canonical whose empty version it dropped or a decimal it rounded, is refused, as the rules decided over the
+    /// rewritten value.
+    private static func validateKeptContent(of jsonData: Data, decoded bundle: ModelsR4.Bundle) throws(ExchangeGraphError) {
         guard let given = try? LosslessJSONValue(parsing: jsonData),
               let kept = try? LosslessJSONValue(parsing: wireEncoder.encode(bundle)),
-              given.shape == kept.shape else {
-            throw .invalidEntries("Serialized event carries members the model does not keep")
+              given.isKept(as: kept) else {
+            throw .invalidEntries("Serialized event carries content the model does not keep")
         }
     }
 

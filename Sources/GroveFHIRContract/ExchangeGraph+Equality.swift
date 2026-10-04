@@ -9,6 +9,32 @@
 import Foundation
 
 
+/// The exact value of a JSON number lexeme: its sign, its significant digits and the power of ten that scales them, so
+/// `72`, `72.0` and `7.2e1` are one value and nothing is rounded.
+private struct ExactNumber: Equatable {
+    let isNegative: Bool
+    let digits: Substring
+    let exponent: Int64
+
+    /// The value of a lexeme the parser admitted; `nil` for an exponent of 2^32 or more in magnitude, which then
+    /// compares by its lexeme alone.
+    init?(_ lexeme: String) {
+        let parts = lexeme.split(maxSplits: 1) { $0 == "e" || $0 == "E" }
+        guard let mantissa = parts.first, let stated = parts.count == 2 ? Int64(parts[1]) : 0, stated.magnitude < 1 << 32 else {
+            return nil
+        }
+        let point = mantissa.firstIndex(of: ".")
+        let fraction = point.map { mantissa[mantissa.index(after: $0)...] } ?? ""
+        let significant = (mantissa[..<(point ?? mantissa.endIndex)].drop { $0 == "-" } + fraction).drop { $0 == "0" }
+        let trailingZeros = significant.reversed().prefix { $0 == "0" }.count
+        self.digits = significant.dropLast(trailingZeros)
+        // Zero has neither sign nor scale, whatever its lexeme.
+        self.isNegative = !digits.isEmpty && mantissa.hasPrefix("-")
+        self.exponent = digits.isEmpty ? 0 : stated - Int64(fraction.count) + Int64(trailingZeros)
+    }
+}
+
+
 /// A JSON document read without losing what the receiver compares: number lexemes stay text, and strings
 /// keep every Unicode scalar they were written with.
 ///
@@ -271,30 +297,37 @@ indirect enum LosslessJSONValue: Equatable {
 
 
 extension LosslessJSONValue {
-    /// The value with every scalar blanked: which members and elements exist, not what they hold.
-    var shape: LosslessJSONValue {
-        switch self {
-        case .object(let members): .object(members.mapValues(\.shape))
-        case .array(let elements): .array(elements.map(\.shape))
-        case .string, .number, .boolean, .null: .null
+    /// Token equality, with strings, lexemes and member names compared scalar by scalar.
+    static func == (lhs: LosslessJSONValue, rhs: LosslessJSONValue) -> Bool {
+        lhs.matches(rhs) { $0.unicodeScalars.elementsEqual($1.unicodeScalars) }
+    }
+
+    /// Whether `kept`, the FHIR model's encoding of what it decoded from this document, states the same content: the
+    /// same members, elements and scalars, with numbers compared by their exact value, as the model rewrites a decimal
+    /// lexeme such as `72.0` but must not round a value or rewrite any other scalar.
+    func isKept(as kept: LosslessJSONValue) -> Bool {
+        matches(kept) { given, kept in
+            given == kept || ExactNumber(given).map { $0 == ExactNumber(kept) } ?? false
         }
     }
 
-    /// Token equality, with strings, lexemes and member names compared scalar by scalar.
-    static func == (lhs: LosslessJSONValue, rhs: LosslessJSONValue) -> Bool {
-        switch (lhs, rhs) {
+    /// Token equality with numbers compared by `sameNumber`.
+    private func matches(_ other: LosslessJSONValue, numbers sameNumber: (String, String) -> Bool) -> Bool {
+        switch (self, other) {
         case let (.object(lhs), .object(rhs)):
             // A dictionary finds a member under any canonically equivalent name, so the name found is compared too.
             lhs.count == rhs.count && lhs.allSatisfy { name, value in
                 guard let index = rhs.index(forKey: name) else {
                     return false
                 }
-                return rhs[index].key.unicodeScalars.elementsEqual(name.unicodeScalars) && rhs[index].value == value
+                return rhs[index].key.unicodeScalars.elementsEqual(name.unicodeScalars) && value.matches(rhs[index].value, numbers: sameNumber)
             }
         case let (.array(lhs), .array(rhs)):
-            lhs == rhs
-        case let (.string(lhs), .string(rhs)), let (.number(lhs), .number(rhs)):
+            lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0.matches($1, numbers: sameNumber) }
+        case let (.string(lhs), .string(rhs)):
             lhs.unicodeScalars.elementsEqual(rhs.unicodeScalars)
+        case let (.number(lhs), .number(rhs)):
+            sameNumber(lhs, rhs)
         case let (.boolean(lhs), .boolean(rhs)):
             lhs == rhs
         case (.null, .null):
