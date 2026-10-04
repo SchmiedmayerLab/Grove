@@ -16,12 +16,15 @@ import ModelsR4
 import Testing
 
 
-/// A sample's interval in the effective datatype its measurement's profile fixes, a Period's width judged on the
-/// half-even milliseconds the wire states.
+/// A sample's interval in the effective datatype its measurement's profile fixes: a heart rate whose start and end
+/// differ on the wire states a Period, an instant-only measurement states its start alone, and a Period's width is
+/// judged on the half-even milliseconds the wire states.
 @Suite
 struct HealthKitEffectiveIntervalTests {
     /// 2026-08-19T14:10:00Z, a whole millisecond.
     private static let start = Date(timeIntervalSince1970: 1_787_148_600)
+    /// The Los Angeles zone, as HealthKit states it.
+    private static let losAngeles = [HKMetadataKeyTimeZone: "America/Los_Angeles"]
 
     /// A quantity sample from `start` to `end` seconds after the base instant.
     private static func quantity(
@@ -40,6 +43,11 @@ struct HealthKitEffectiveIntervalTests {
         )
     }
 
+    /// A heart rate from `start` to `end` seconds after the base instant.
+    private static func heartRate(from start: TimeInterval = 0, to end: TimeInterval, metadata: [String: Any] = [:]) -> HKQuantitySample {
+        quantity(.heartRate, unit: .count().unitDivided(by: .minute()), from: start, to: end, metadata: metadata)
+    }
+
     /// The export of `sample` under the default inputs.
     private static func export(_ sample: HKSample) throws -> ExportedRecord {
         try ExporterFixtures.export(sample)
@@ -52,6 +60,66 @@ struct HealthKitEffectiveIntervalTests {
         case .period(let period): [period.start?.value?.description, period.end?.value?.description]
         default: []
         }
+    }
+
+    @Test("A minute-long heart rate in a named zone states a Period, each bound in the zone with its extension")
+    func heartRateIntervalIsAPeriod() throws {
+        let conversion = try Self.export(Self.heartRate(to: 60, metadata: Self.losAngeles))
+        guard case .period(let period)? = conversion.observation.effective else {
+            Issue.record("A heart rate whose start and end differ must state an effectivePeriod")
+            return
+        }
+        #expect(period.start?.value?.description == "2026-08-19T07:10:00-07:00")
+        #expect(period.end?.value?.description == "2026-08-19T07:11:00-07:00")
+        for bound in [period.start, period.end] {
+            #expect(bound?.extension?.map(\.url) == [Canonicals.timezone])
+            #expect(bound?.extension?.first?.value == .code("America/Los_Angeles".asFHIRStringPrimitive()))
+        }
+        #expect(conversion.warnings.isEmpty)
+    }
+
+    @Test("A heart rate is a point exactly when its start and end state the same wire millisecond")
+    func heartRatePointIsJudgedOnWireMilliseconds() throws {
+        #expect(try Self.effective(of: Self.heartRate(to: 0)) == ["2026-08-19T14:10:00Z"])
+        // 0.3 ms that both round down to the base millisecond.
+        #expect(try Self.effective(of: Self.heartRate(to: 0.0003)) == ["2026-08-19T14:10:00Z"])
+        // 0.8 ms that both round up to the next millisecond.
+        #expect(try Self.effective(of: Self.heartRate(from: 0.0006, to: 0.0014)) == ["2026-08-19T14:10:00.001Z"])
+        // 0.3 ms across a half millisecond: the wire states two instants, so a Period.
+        #expect(try Self.effective(of: Self.heartRate(from: 0.0004, to: 0.0007)) == ["2026-08-19T14:10:00Z", "2026-08-19T14:10:00.001Z"])
+    }
+
+    @Test(
+        "An interval of an instant-only measurement states its start alone, without a warning",
+        arguments: [
+            (HKQuantityTypeIdentifier.respiratoryRate, HKUnit.count().unitDivided(by: .minute())),
+            (.heartRateVariabilitySDNN, .secondUnit(with: .milli))
+        ]
+    )
+    func instantOnlyIntervalStatesItsStart(type: HKQuantityTypeIdentifier, unit: HKUnit) throws {
+        let conversion = try Self.export(Self.quantity(type, unit: unit, to: 60, metadata: Self.losAngeles))
+        guard case .dateTime(let instant)? = conversion.observation.effective else {
+            Issue.record("\(type.rawValue) fixes effectiveDateTime")
+            return
+        }
+        #expect(instant == (try HealthKitEffectiveTime.dateTime(Self.start, zone: TimeZone(identifier: "America/Los_Angeles"))))
+        #expect(conversion.warnings.isEmpty)
+    }
+
+    @Test("A coded instant-only measurement's interval states its start alone")
+    func codedInstantOnlyIntervalStatesItsStart() throws {
+        var metadata: [String: Any] = Self.losAngeles
+        metadata[HKMetadataKeyMenstrualCycleStart] = true
+        let flow = HKCategorySample(
+            type: HKCategoryType(.menstrualFlow),
+            value: HKCategoryValueVaginalBleeding.light.rawValue,
+            start: Self.start,
+            end: Self.start.addingTimeInterval(60),
+            metadata: metadata
+        )
+        let conversion = try Self.export(flow)
+        #expect(try Self.effective(of: flow) == ["2026-08-19T07:10:00-07:00"])
+        #expect(conversion.warnings.isEmpty)
     }
 
     @Test("A non-zero Period is judged on the wire: endpoints that round to one millisecond are refused")

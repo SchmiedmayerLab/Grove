@@ -123,13 +123,16 @@ struct ConformanceFixtureTests {
             try #require(MobileSemanticVectorFixtures.all.first { $0.id == id })
         }
 
+        // A dateTime vector's source is a minute-long interval unless stated otherwise: an instant-only measurement
+        // must still state the vector's instant, its start.
         func dates(
-            _ effective: MobileSemanticVectorFixture.Effective
+            _ effective: MobileSemanticVectorFixture.Effective,
+            interval: TimeInterval = 60
         ) throws -> (start: Date, end: Date) {
             switch effective {
             case .dateTime(let value):
                 let start = try instant(value)
-                return (start, start.addingTimeInterval(60))
+                return (start, start.addingTimeInterval(interval))
             case let .period(start, end):
                 return (try instant(start), try instant(end))
             }
@@ -166,9 +169,10 @@ struct ConformanceFixtureTests {
             _ unit: HKUnit,
             _ value: Double,
             effective: MobileSemanticVectorFixture.Effective,
+            interval: TimeInterval = 60,
             metadata: [String: Any] = [:]
         ) throws -> HKQuantitySample {
-            let period = try dates(effective)
+            let period = try dates(effective, interval: interval)
             var sourceMetadata = metadata
             sourceMetadata[HKMetadataKeyTimeZone] = Self.sourceTimeZoneIdentifier
             return HKQuantitySample(
@@ -189,6 +193,7 @@ struct ConformanceFixtureTests {
             type: HKQuantityTypeIdentifier,
             unit: HKUnit,
             sourceValue: (Double) -> Double = { $0 },
+            interval: TimeInterval = 60,
             metadata: [String: Any] = [:]
         ) throws {
             let fixture = try vector(id)
@@ -197,6 +202,7 @@ struct ConformanceFixtureTests {
                 unit,
                 sourceValue(try normalizedQuantity(fixture)),
                 effective: fixture.effective,
+                interval: interval,
                 metadata: metadata
             ))
         }
@@ -236,10 +242,12 @@ struct ConformanceFixtureTests {
             metadata: [HKMetadataKeyWasUserEntered: true]
         )
         try addQuantityVector("distance", type: .distanceWalkingRunning, unit: .meter())
+        // The guide's heart-rate vector is a point: a heart rate whose start and end differ states a Period.
         try addQuantityVector(
             "heart-rate",
             type: .heartRate,
             unit: .count().unitDivided(by: .minute()),
+            interval: 0,
             metadata: [
                 HKMetadataKeyHeartRateMotionContext: NSNumber(value: 1)
             ]
@@ -440,6 +448,10 @@ struct ConformanceFixtureTests {
             ecgInputs
         )
         fixtures["heart-rate-two-studies"] = studyQuantity.bundle
+        // A minute-long heart rate states a Period, which the validator checks against the heart-rate profile.
+        let studyDates = try dates(.dateTime("2026-08-20T08:20:00-07:00"))
+        let studyZone = TimeZone(identifier: Self.sourceTimeZoneIdentifier)
+        #expect(studyQuantity.observation.effective == .period(try HealthKitEffectiveTime.period(start: studyDates.start, end: studyDates.end, zone: studyZone)))
         let quantityStudies = studyQuantity.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(quantityStudies.count == 2)
         #expect(studyQuantity.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)

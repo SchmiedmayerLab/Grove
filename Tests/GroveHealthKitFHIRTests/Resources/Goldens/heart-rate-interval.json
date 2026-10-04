@@ -20,14 +20,6 @@
       ],
       "fullUrl" : "urn:uuid:1e5229cf-7fd0-5b3e-b863-30715d61c524",
       "resource" : {
-        "_effectiveDateTime" : {
-          "extension" : [
-            {
-              "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
-              "valueCode" : "America/Los_Angeles"
-            }
-          ]
-        },
         "category" : [
           {
             "coding" : [
@@ -48,7 +40,26 @@
             }
           ]
         },
-        "effectiveDateTime" : "2026-08-17T15:30:00-07:00",
+        "effectivePeriod" : {
+          "_end" : {
+            "extension" : [
+              {
+                "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                "valueCode" : "America/Los_Angeles"
+              }
+            ]
+          },
+          "_start" : {
+            "extension" : [
+              {
+                "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                "valueCode" : "America/Los_Angeles"
+              }
+            ]
+          },
+          "end" : "2026-08-17T15:30:45-07:00",
+          "start" : "2026-08-17T15:30:00-07:00"
+        },
         "extension" : [
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",

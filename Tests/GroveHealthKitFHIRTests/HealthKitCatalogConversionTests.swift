@@ -60,34 +60,10 @@ struct HealthKitFHIRCatalogConversionTests {
 
     @Test("Every supported quantity row converts to its exact catalog contract", arguments: identifiers)
     func supportedQuantityRowConverts(identifier: String) throws {
-        let plan = HealthKitContentPlan[try #require(HealthKitSourceType(rawValue: identifier))]
-        let contract = try #require(plan.entry.measurements.first.flatMap { Self.contracts[$0.id] }, "\(identifier) names no contract")
-        guard let unit = plan.unitBinding?.unit else {
-            Issue.record("\(identifier) lost its quantity unit")
-            return
-        }
-        // HealthKit traps rather than throws on a mismatched unit, so the binding is checked
-        // against the platform type before a sample is built.
-        guard let type = HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier(rawValue: identifier)) else {
-            Issue.record("\(identifier) is bound as a quantity but is not a platform quantity type")
-            return
-        }
-        guard type.is(compatibleWith: unit) else {
-            Issue.record("\(identifier) is bound to \(unit), which its platform type does not accept")
-            return
-        }
         // A period metric needs a real interval; an instant metric is a zero-length sample.
-        let interval: TimeInterval = contract.effective == .period ? 60 : 0
-        let sample = HKQuantitySample(
-            type: type,
-            quantity: HKQuantity(unit: unit, doubleValue: 1),
-            start: timestamp,
-            end: timestamp.addingTimeInterval(interval),
-            metadata: requiredMetadata(for: identifier)
-        )
-
-        let observation = try ExporterFixtures.export(sample, inputs).observation
-
+        guard case let (observation, contract)? = try convert(identifier, lasting: { $0.effective == .period ? 60 : 0 }) else {
+            return
+        }
         #expect(observation.meta?.profile == contract.healthKitProfiles, "\(identifier) profile claim")
         let codings = try #require(observation.code.coding, "\(identifier) has no code")
         let code = try #require(codings.first)
@@ -101,7 +77,53 @@ struct HealthKitFHIRCatalogConversionTests {
             #expect(coding.system?.value?.url.absoluteString == required.system, "\(identifier) required code system")
             #expect(coding.code?.value?.string == required.code, "\(identifier) required code")
         }
+        let emittedPeriod = if case .period = observation.effective { true } else { false }
+        #expect(emittedPeriod == (contract.effective == .period), "\(identifier) effective kind")
         assertSourceAndValue(observation, contract: contract, identifier: identifier)
+    }
+
+    @Test("A minute-long sample of every supported quantity row states the effective its profile admits", arguments: identifiers)
+    func supportedQuantityRowStatesItsInterval(identifier: String) throws {
+        guard case let (observation, contract)? = try convert(identifier, lasting: { _ in 60 }) else {
+            return
+        }
+        // Only a profile that fixes an instant states the start alone; a heart rate's distinct endpoints are a Period.
+        let expected: Observation.EffectiveX = try contract.effective == .dateTime
+            ? .dateTime(HealthKitEffectiveTime.dateTime(timestamp, zone: nil))
+            : .period(HealthKitEffectiveTime.period(start: timestamp, end: timestamp.addingTimeInterval(60), zone: nil))
+        #expect(observation.effective == expected, "\(identifier) effective")
+    }
+
+    /// The Observation a sample of `identifier`'s row converts to, the sample lasting `interval` seconds of its
+    /// contract, and that contract; `nil` once it has recorded why no sample can be built.
+    private func convert(
+        _ identifier: String,
+        lasting interval: (MeasurementContract) -> TimeInterval
+    ) throws -> (Observation, MeasurementContract)? {
+        let plan = HealthKitContentPlan[try #require(HealthKitSourceType(rawValue: identifier))]
+        let contract = try #require(plan.entry.measurements.first.flatMap { Self.contracts[$0.id] }, "\(identifier) names no contract")
+        guard let unit = plan.unitBinding?.unit else {
+            Issue.record("\(identifier) lost its quantity unit")
+            return nil
+        }
+        // HealthKit traps rather than throws on a mismatched unit, so the binding is checked
+        // against the platform type before a sample is built.
+        guard let type = HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier(rawValue: identifier)) else {
+            Issue.record("\(identifier) is bound as a quantity but is not a platform quantity type")
+            return nil
+        }
+        guard type.is(compatibleWith: unit) else {
+            Issue.record("\(identifier) is bound to \(unit), which its platform type does not accept")
+            return nil
+        }
+        let sample = HKQuantitySample(
+            type: type,
+            quantity: HKQuantity(unit: unit, doubleValue: 1),
+            start: timestamp,
+            end: timestamp.addingTimeInterval(interval(contract)),
+            metadata: requiredMetadata(for: identifier)
+        )
+        return (try ExporterFixtures.export(sample, inputs).observation, contract)
     }
 
     private func assertSourceAndValue(
@@ -118,8 +140,6 @@ struct HealthKitFHIRCatalogConversionTests {
             return
         }
         #expect(sourceCode.value?.string == identifier, "\(identifier) source type")
-        let emittedPeriod = if case .period = observation.effective { true } else { false }
-        #expect(emittedPeriod == (contract.effective == .period), "\(identifier) effective kind")
         guard case .quantity(let value)? = observation.value else {
             Issue.record("\(identifier) did not emit a value Quantity")
             return

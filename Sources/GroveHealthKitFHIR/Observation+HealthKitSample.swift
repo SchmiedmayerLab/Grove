@@ -237,7 +237,7 @@ enum HealthKitSampleProjection {
         switch observation.effective {
         case nil:
             throw .effectiveMissing(id: contract.id)
-        case .dateTime(let effective) where rule == .instant:
+        case .dateTime(let effective) where rule == .instant || rule == .instantOrInterval:
             guard let instant = instant(effective) else {
                 throw .effectiveMissing(id: contract.id)
             }

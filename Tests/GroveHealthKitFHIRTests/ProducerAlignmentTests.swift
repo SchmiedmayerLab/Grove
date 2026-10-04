@@ -199,16 +199,19 @@ struct ProducerWarningTests {
         #expect(complete.warnings.isEmpty, "the omitted UDI is the deployment's disclosure choice, not a loss")
     }
 
-    @Test("An interval names each effective field that lost its offset")
-    func intervalReportsBothBounds() throws {
+    @Test("An interval names each effective field that lost its offset", arguments: [
+        (HKQuantityTypeIdentifier.stepCount, HKUnit.count()),
+        (.heartRate, .count().unitDivided(by: .minute()))
+    ])
+    func intervalReportsBothBounds(type: HKQuantityTypeIdentifier, unit: HKUnit) throws {
         let start = ExchangeEventContext.testInstant
-        let steps = HKQuantitySample(
-            type: HKQuantityType(.stepCount),
-            quantity: HKQuantity(unit: .count(), doubleValue: 120),
+        let interval = HKQuantitySample(
+            type: HKQuantityType(type),
+            quantity: HKQuantity(unit: unit, doubleValue: 120),
             start: start,
             end: start.addingTimeInterval(60)
         )
-        let conversion = try ExporterFixtures.export(steps)
+        let conversion = try ExporterFixtures.export(interval)
         #expect(conversion.warnings == [
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")

@@ -67,7 +67,7 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("gateway-application-role", digest: "z4GLZX9z_-CYLMxzF6l78eLQXXDu_vCV6gHzIRVouYY", assembler: 1, healthKit: 2),
         GoldenRevision("gateway-role", digest: "6cz0Bpd-k9mt_HFFY8xyRT3dkjpDMjI8WnqlyMlGgO8", assembler: 1, healthKit: 2),
         GoldenRevision("heart-rate-device-without-unit-token", digest: "gKIE0MA3n8uoEIiPTWI-TJOBDAD1osZVz6C0sWLibk8", assembler: 1, healthKit: 1),
-        GoldenRevision("heart-rate-interval", digest: "D4QTr9s6IiDjDLGr6Gm41p4QjU8Go6oXajrRteRhwaU", assembler: 1, healthKit: 1),
+        GoldenRevision("heart-rate-interval", digest: "lRTaSgFI-j8yzZe3OLu8P4b2GYaFHJ6fajgVMWFEcno", assembler: 1, healthKit: 6),
         GoldenRevision("heart-rate-minimal", digest: "iYrgj5FAgmujztGZvH5fPK2gu0rzDPJF0Z3CSWallZ0", assembler: 1, healthKit: 1),
         GoldenRevision("heart-rate-motion-context", digest: "2eNSC6noLNjTP_8f0QwoBCIPwoBAIBlr-gOiRTG0lpw", assembler: 1, healthKit: 1),
         GoldenRevision("heart-rate-no-time-zone", digest: "7tJhGKGIbj6MVPQ2P4cNI0KN-MLI2MBUk763HC5kkfk", assembler: 1, healthKit: 1),

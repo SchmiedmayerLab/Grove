@@ -78,8 +78,8 @@ extension ContentCorpusGrid {
         }
     }
 
-    /// Heart-rate Observations that each change one thing the reverse projection reads; the last states an ECG's
-    /// lineage, as the ECG's average heart rate does.
+    /// Heart-rate Observations that each change one thing the reverse projection reads: among them an ECG's lineage,
+    /// as the ECG's average heart rate states it, and Periods of zero width, without an end and reversed.
     static var reverseEdges: [(String, [String: Any])] {
         let heartRate = minimalObservation(MeasurementCatalog.heartRate, value: 72)
         func changed(_ change: (inout [String: Any]) -> Void) -> [String: Any] {
@@ -124,7 +124,19 @@ extension ContentCorpusGrid {
             }),
             ("blood-pressure-missing-diastolic", bloodPressure(diastolic: false)),
             ("blood-pressure-unit-mismatch", bloodPressure(diastolic: true, unit: "kPa")),
-            ("electrocardiogram-lineage", changed { $0["extension"] = [electrocardiogramLineage] })
+            ("electrocardiogram-lineage", changed { $0["extension"] = [electrocardiogramLineage] }),
+            ("period-zero-width", changed { resource in
+                resource["effectiveDateTime"] = nil
+                resource["effectivePeriod"] = ["start": "2026-08-17T15:30:00-07:00", "end": "2026-08-17T15:30:00-07:00"]
+            }),
+            ("period-without-end", changed { resource in
+                resource["effectiveDateTime"] = nil
+                resource["effectivePeriod"] = ["start": "2026-08-17T15:30:00-07:00"]
+            }),
+            ("period-reversed", changed { resource in
+                resource["effectiveDateTime"] = nil
+                resource["effectivePeriod"] = ["start": "2026-08-17T15:30:45-07:00", "end": "2026-08-17T15:30:00-07:00"]
+            })
         ]
     }
 
