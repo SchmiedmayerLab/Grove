@@ -28,13 +28,17 @@ extension ContentCorpusGrid {
     ]
 
     /// Both occurrences of Los Angeles's repeated 2026 hour, its local mean time in 1800 (a non-minute offset),
-    /// a .250 fraction, exact half-millisecond ties, the year 9999/10000 and year 1/0 boundaries, 1500, and
-    /// 1960-01-01T12:00:00Z, before 1970 at a whole-hour offset.
+    /// a .250 fraction, exact half-millisecond ties, the year 9999/10000 and year 1/0 boundaries, 1500,
+    /// 1960-01-01T12:00:00Z, before 1970 at a whole-hour offset, instants just beside a half millisecond whose
+    /// binary64 product rounds the other way, and instants 0.3 ms before Los Angeles's 2026 transitions, which
+    /// round onto them.
     static let instants: [(String, Double)] = [
         ("repeated-hour-first", 1_793_521_800), ("repeated-hour-second", 1_793_525_400), ("lmt-1800", -5_364_662_400),
         ("fraction-250", 1_787_148_600.25), ("tie-even", 1_787_148_600.0625), ("tie-odd", 1_787_148_600.1875),
         ("year-9999", 253_402_300_799), ("year-10000", 253_402_300_800), ("pre-reform-1500", -14_831_769_600),
-        ("year-1", -62_135_596_800), ("year-0", -62_135_596_801), ("pre-1970", -315_576_000)
+        ("year-1", -62_135_596_800), ("year-0", -62_135_596_801), ("pre-1970", -315_576_000),
+        ("near-tie-above", 1_790_638_382.1925), ("near-tie-below", 1_795_885_209.9215),
+        ("rounds-onto-dst-start", 1_772_963_999.9997), ("rounds-onto-dst-end", 1_793_523_599.9997)
     ]
 
     /// The zones every instant is stated in: none, Los Angeles, and UTC by name (which keeps its `timezone`

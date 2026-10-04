@@ -61,11 +61,13 @@ struct HealthKitEffectiveTimeTests {
     /// Thirteen sweep zones: none (UTC) and every named or fixed zone above.
     private static let zones: [TimeZone?] = [nil] + namedZones
 
-    /// Ties, fractions, a repeated DST hour, the year 0 and 9999 boundaries, the 1582 reform, Foundation's
+    /// Ties, near ties whose binary64 product rounds the other way, fractions, a repeated DST hour, instants that
+    /// round onto Los Angeles's 2026 transitions, the year 0 and 9999 boundaries, the 1582 reform, Foundation's
     /// far-future clamp, and instants with no millisecond count.
     private static let edges: [Date] = {
         let instants: [TimeInterval] = [
             0.0005, 0.0015, -0.0005, -0.0015, 0.9995, 1.0005, 1_787_148_600.251, 1_787_148_600.25,
+            1_790_638_382.1925, 1_795_885_209.9215, 1_772_963_999.9997, 1_793_523_599.9997,
             1_793_521_800, 1_793_525_400, 253_402_300_799, 253_402_300_799.9995, 253_402_300_800, 253_402_290_000,
             -62_135_596_800, -62_135_596_801, -62_167_219_200, -62_200_000_000, -2_208_988_800,
             1e13, 1e15, 9.2e15, 1e21, -1e21, .nan, .infinity, -.infinity
@@ -121,16 +123,38 @@ struct HealthKitEffectiveTimeTests {
         return [parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second].compactMap(\.self)
     }
 
-    /// The Mobile lexeme of `date` in `zone` that Foundation's fields state: the instant rounded to the millisecond,
-    /// ties to even, counted from 1970; the fields of its whole second at the zone's offset at the instant; `.mmm`
-    /// when a millisecond remains; the offset, `Z` for none. `nil` where Foundation cannot check the kernel: an
-    /// offset the kernel refuses (not whole minutes, or beyond the ±14 h a FHIR date-time states) or a local time
+    /// The exact instant's milliseconds since 1970, rounded half to even: `Date`'s binary64 seconds since 2001 taken
+    /// apart into an integer significand and a power of two and rounded in integers, a route independent of the
+    /// kernel's fused multiply-add. `nil` from 2^40 seconds on, which no statable year reaches.
+    private static func exactMilliseconds(_ date: Date) -> Int64? {
+        let seconds = date.timeIntervalSinceReferenceDate
+        guard seconds.isFinite, seconds.magnitude < 0x1p40 else {
+            return nil
+        }
+        // The magnitude is significand / 2^shift; a shift past 64 leaves less than a quarter millisecond.
+        let shift = seconds == 0 ? 65 : 52 - Int(seconds.exponent)
+        guard shift <= 64 else {
+            return 978_307_200_000
+        }
+        let scaled = UInt64(seconds.significand * 0x1p52) * 1_000
+        let quotient = scaled >> shift
+        let remainder = scaled - (quotient << shift)
+        let half = UInt64(1) << (shift - 1)
+        let rounded = Int64(remainder > half || (remainder == half && !quotient.isMultiple(of: 2)) ? quotient + 1 : quotient)
+        return (seconds < 0 ? -rounded : rounded) + 978_307_200_000
+    }
+
+    /// The Mobile lexeme of `date` in `zone` that Foundation's fields state: the exact instant rounded to the
+    /// millisecond, ties to even; the fields of its whole second at the offset the zone has at that rounded instant;
+    /// `.mmm` when a millisecond remains; the offset, `Z` for none. `nil` where Foundation cannot check the kernel:
+    /// an offset the kernel refuses (not whole minutes, or beyond the ±14 h a FHIR date-time states) or a local time
     /// outside ``foundationWindow``; those refusals and the proleptic dates before the reform are pinned separately.
     private static func foundationLexeme(_ date: Date, zone: TimeZone?) -> String? {
-        let offset = zone?.secondsFromGMT(for: date) ?? 0
-        guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)),
-              offset.isMultiple(of: 60),
-              abs(offset) <= 50_400 else {
+        guard let milliseconds = exactMilliseconds(date) else {
+            return nil
+        }
+        let offset = zone?.secondsFromGMT(for: Date(timeIntervalSince1970: Double(milliseconds) / 1_000)) ?? 0
+        guard offset.isMultiple(of: 60), abs(offset) <= 50_400 else {
             return nil
         }
         let millisecond = (milliseconds % 1_000 + 1_000) % 1_000
@@ -224,12 +248,26 @@ struct HealthKitEffectiveTimeTests {
         #expect(mismatches.isEmpty, "\(mismatches.count) mismatches: \(mismatches.prefix(20))")
     }
 
-    /// `ExchangeInstant` counts milliseconds from 2001, so this half-millisecond tie rounds up there and down here.
-    @Test("Mobile milliseconds round half to even from 1970, never through ExchangeInstant")
+    /// The IG rounds the exact instant. This one lies just below a half millisecond, but its binary64 product since 2001
+    /// is the tie itself, which `ExchangeInstant` rounds up to even.
+    @Test("Mobile milliseconds round the exact instant half to even, never through ExchangeInstant")
     func roundingGuard() throws {
         let date = Date(timeIntervalSinceReferenceDate: 713_073_860.2815)
         #expect(try HealthKitEffectiveTime.dateTime(date, zone: nil).value?.description == "2023-08-07T04:04:20.281Z")
         #expect(ExchangeInstant.utcLexeme(date) == "2023-08-07T04:04:20.282Z")
+    }
+
+    /// The first two lie beside a half millisecond, where their binary64 product since 1970 rounds the other way
+    /// (`….192` and `….922`); the last two are exact ties.
+    @Test("Mobile milliseconds round the exact instant, not its binary64 product, and break exact ties to even")
+    func exactInstantRounding() throws {
+        let instants: [(TimeInterval, String)] = [
+            (1_790_638_382.1925, "2026-09-28T23:33:02.193Z"), (1_795_885_209.9215, "2026-11-28T17:00:09.921Z"),
+            (1_787_148_600.0625, "2026-08-19T14:10:00.062Z"), (1_787_148_600.1875, "2026-08-19T14:10:00.188Z")
+        ]
+        for (since1970, expected) in instants {
+            #expect(try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: since1970), zone: nil).value?.description == expected)
+        }
     }
 
     @Test("A named zone states its offset at the instant and travels as the timezone extension")
@@ -241,6 +279,19 @@ struct HealthKitEffectiveTimeTests {
         let utc = try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: 1_787_148_600), zone: nil)
         #expect(utc.value?.description == "2026-08-19T14:10:00Z")
         #expect(utc.extension == nil)
+    }
+
+    /// The IG: the zone's name must agree with the offset at the instant, which is the rounded one.
+    @Test("An instant that rounds onto a DST transition states the offset the zone has from then on")
+    func offsetAtTheRoundedInstant() throws {
+        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let instants: [(TimeInterval, String)] = [
+            (1_772_963_999.9997, "2026-03-08T03:00:00-07:00"), (1_772_963_999.9994, "2026-03-08T01:59:59.999-08:00"),
+            (1_793_523_599.9997, "2026-11-01T01:00:00-08:00"), (1_793_523_599.9994, "2026-11-01T01:59:59.999-07:00")
+        ]
+        for (since1970, expected) in instants {
+            #expect(try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: since1970), zone: losAngeles).value?.description == expected)
+        }
     }
 
     @Test("Both occurrences of a repeated DST hour keep their own offset")
@@ -306,7 +357,9 @@ struct HealthKitEffectiveTimeTests {
 
     @Test("Mobile date-times read back to the millisecond they state over the seeded sweep and the edge list, also before the reform")
     func mobileRoundTrips() {
-        let milliseconds = { (instant: Date) in (instant.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven) }
+        // A read-back instant is within a binary64 rounding of the millisecond it states; the kernel states the exact
+        // instant's millisecond, rounded half to even.
+        let milliseconds = { (instant: Date) in Int64((instant.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)) }
         var generator = SeededGenerator(state: 0x4D32_5265_7665_7273)
         var mismatches: [String] = []
         for zone in Self.zones {
@@ -316,7 +369,7 @@ struct HealthKitEffectiveTimeTests {
                     continue
                 }
                 let read = HealthKitEffectiveTime.instant(of: stated)
-                if read.map(milliseconds) != milliseconds(date) {
+                if read.map(milliseconds) != Self.exactMilliseconds(date) {
                     mismatches.append("\(date.timeIntervalSince1970) \(zone?.identifier ?? "none"): \(stated) reads \(read.map { "\($0.timeIntervalSince1970)" } ?? "nothing")")
                 }
             }

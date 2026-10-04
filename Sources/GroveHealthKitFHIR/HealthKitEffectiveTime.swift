@@ -40,11 +40,11 @@ enum EffectiveRule: Hashable, Sendable {
 
 /// FHIR date-times for HealthKit instants, built from integer civil arithmetic instead of a `Calendar`.
 ///
-/// Mobile effective instants round to the millisecond, ties to even, counted from 1970 — never through
-/// ``ExchangeInstant``, whose milliseconds count from `Date`'s 2001 reference and so round other ties.
-/// They keep the source zone's offset at the unrounded instant, print `.mmm` untrimmed, and write a
-/// zero offset as `Z`. ECG timing instead keeps exact Decimal seconds (``exactDateTime(_:offset:zone:)``).
-/// Both refuse a zone offset no FHIR date-time states: one with seconds (a local mean time) or beyond ±14:00.
+/// Mobile effective instants round the exact instant to the nearest millisecond, ties to even, as the IG asks —
+/// never through ``ExchangeInstant``, which rounds the binary64 product of the seconds and 1000 instead. They state
+/// the offset the source zone has at that rounded instant, print `.mmm` untrimmed, and write a zero offset as `Z`.
+/// ECG timing instead keeps exact Decimal seconds (``exactDateTime(_:offset:zone:)``). Both refuse a zone offset
+/// no FHIR date-time states: one with seconds (a local mean time) or beyond ±14:00.
 ///
 /// Dates are proleptic Gregorian, as ISO 8601 and FHIR define them, also before the 1582 reform where
 /// Foundation's Gregorian calendar switches to Julian dates. A local year outside 0001 through 9999 has
@@ -66,6 +66,9 @@ enum HealthKitEffectiveTime {
 
     /// The widest UTC offset a FHIR date-time states, ±14:00.
     private static let maximumOffsetSeconds = 50_400
+
+    /// `Date` counts from 2001-01-01T00:00:00Z, this many whole milliseconds after 1970.
+    private static let referenceDateMilliseconds = Int64(Date.timeIntervalBetween1970AndReferenceDate) * 1_000
 
     /// An effective instant in the source's own zone, which also travels as the `timezone` extension,
     /// or in UTC when the source names none.
@@ -165,14 +168,15 @@ enum HealthKitEffectiveTime {
     }
 
     /// The Mobile lexeme `YYYY-MM-DDThh:mm:ss[.mmm](Z|±hh:mm)`, or `nil` when the instant has none:
-    /// non-finite, beyond Int64 milliseconds, an offset no FHIR date-time states, or a local year
-    /// outside 1…9999.
+    /// non-finite or without a millisecond count, an offset no FHIR date-time states, or a local year
+    /// outside 1…9999. Zone offsets change only on whole seconds, so the rounded instant's whole second
+    /// has the rounded instant's offset.
     private static func mobileLexeme(_ date: Date, zone: TimeZone?) -> String? {
-        guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)) else {
+        guard let milliseconds = milliseconds(date) else {
             return nil
         }
-        let offset = zone?.secondsFromGMT(for: date) ?? 0
         let (wholeSeconds, millisecond) = ExchangeInstant.floorDivide(milliseconds, by: 1_000)
+        let offset = zone?.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(wholeSeconds))) ?? 0
         guard isStatable(offset: offset), let civil = civilTime(seconds: wholeSeconds, offset: offset) else {
             return nil
         }
@@ -187,6 +191,27 @@ enum HealthKitEffectiveTime {
         }
         let magnitude = Int(offset.magnitude)
         return lexeme + (offset < 0 ? "-" : "+") + twoDigits(magnitude / 3_600) + ":" + twoDigits(magnitude % 3_600 / 60)
+    }
+
+    /// Milliseconds since 1970 of the exact instant `date` holds, rounded to the nearest, ties to even; `nil` when
+    /// it is non-finite or 2^52 milliseconds or more from 2001, far beyond the statable years.
+    ///
+    /// `Date` holds binary64 seconds since 2001, which begins an even number of milliseconds after 1970, so the
+    /// exact count is those seconds times 1000 shifted by that even number, ties intact. The binary64 product
+    /// rounds once more and can land on a tie the exact count is beside (`713_073_860.2815` since 2001 holds
+    /// `….28149998…` seconds, whose product is `….5`): the product's rounding error, exact by a fused
+    /// multiply-add, breaks such a tie. A product that is no tie rounds as the exact count does, since every
+    /// half below 2^52 is a binary64 value.
+    private static func milliseconds(_ date: Date) -> Int64? {
+        let seconds = date.timeIntervalSinceReferenceDate
+        let product = seconds * 1_000
+        guard product.magnitude < 0x1p52 else {
+            return nil
+        }
+        let error = (-product).addingProduct(seconds, 1_000)
+        let isTie = (product - product.rounded(.towardZero)).magnitude == 0.5
+        let rule: FloatingPointRoundingRule = isTie && error != 0 ? (error > 0 ? .up : .down) : .toNearestOrEven
+        return Int64(product.rounded(rule)) + referenceDateMilliseconds
     }
 
     /// Whether a FHIR date-time states this UTC offset: whole minutes within ±14:00.
