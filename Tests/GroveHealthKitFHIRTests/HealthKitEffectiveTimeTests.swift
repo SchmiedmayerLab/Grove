@@ -15,6 +15,21 @@ import ModelsR4
 import Testing
 
 
+/// An ECG instant: its wall-clock fields to the minute, its exact seconds, and its offset from UTC in seconds.
+private struct ExactInstant: Equatable, CustomStringConvertible {
+    /// Year, month, day, hour and minute.
+    let fields: [Int]
+    /// The seconds, exact.
+    let second: Decimal
+    /// The offset from UTC.
+    let offset: Int
+
+    var description: String {
+        "\(fields) \(second)s \(offset)"
+    }
+}
+
+
 /// The civil-arithmetic effective-time kernel against Foundation's Gregorian calendar where that calendar is
 /// proleptic, its proleptic dates before the 1582 reform, and the behaviour each builder keeps.
 @Suite
@@ -75,8 +90,16 @@ struct HealthKitEffectiveTimeTests {
         return Date(timeIntervalSince1970: Double(milliseconds) / 1_000 + jitter)
     }
 
-    /// Foundation's `[year, month, day, hour, minute, second, offset]` for a whole UTC second at a fixed offset,
-    /// or none when the local time lies outside ``foundationWindow``.
+    /// An ECG voltage offset of up to 40 seconds: a whole number of them plus a fraction that completes an edge's
+    /// second (0.0005, 0.9995), a quarter or half second, or any microsecond.
+    private static func ecgOffset(_ generator: inout SeededGenerator) -> Decimal {
+        let microseconds = [0, 500, 250_000, 500_000, 999_500, Int.random(in: 0..<1_000_000, using: &generator)]
+        let fraction = microseconds[Int.random(in: microseconds.indices, using: &generator)]
+        return Decimal(Int.random(in: 0...40, using: &generator)) + Decimal(sign: .plus, exponent: -6, significand: Decimal(fraction))
+    }
+
+    /// Foundation's `[year, month, day, hour, minute, second]` for a whole UTC second at a fixed offset, or none when
+    /// the local time lies outside ``foundationWindow``.
     private static func foundationFields(seconds: Int64, offset: Int) -> [Int] {
         guard foundationWindow.contains(seconds + Int64(offset)), let zone = TimeZone(secondsFromGMT: offset) else {
             return []
@@ -87,54 +110,72 @@ struct HealthKitEffectiveTimeTests {
             [.year, .month, .day, .hour, .minute, .second],
             from: Date(timeIntervalSince1970: TimeInterval(seconds))
         )
-        return [parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second].compactMap(\.self) + [offset]
+        return [parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second].compactMap(\.self)
     }
 
-    /// The same fields of a built date-time, its seconds truncated to the whole second, or none without one.
-    private static func fields(_ dateTime: DateTime?) -> [Int] {
-        guard let dateTime, let time = dateTime.time, let zone = dateTime.timeZone else {
-            return []
-        }
-        // `NSDecimalNumber.intValue` misreads long mantissas, so the seconds are rounded as a Decimal first.
-        var second = time.second
-        var wholeSecond = Decimal()
-        NSDecimalRound(&wholeSecond, &second, 0, .down)
-        let date = dateTime.date
-        return [date.year, Int(date.month ?? 0), Int(date.day ?? 0), Int(time.hour), Int(time.minute)]
-            + [NSDecimalNumber(decimal: wholeSecond).intValue, zone.secondsFromGMT()]
-    }
-
-    /// `nil` when a Mobile instant whose local time Foundation can check has Foundation's fields; refusals, among
-    /// them offsets beyond the ±14 h a FHIR date-time states, and pre-reform dates are pinned separately.
-    private static func mobileMismatch(_ date: Date, zone: TimeZone?) -> String? {
+    /// The Mobile lexeme of `date` in `zone` that Foundation's fields state: the instant rounded to the millisecond,
+    /// ties to even, counted from 1970; the fields of its whole second at the zone's offset at the instant; `.mmm`
+    /// when a millisecond remains; the offset, `Z` for none. `nil` where Foundation cannot check the kernel: an
+    /// offset the kernel refuses (not whole minutes, or beyond the ±14 h a FHIR date-time states) or a local time
+    /// outside ``foundationWindow``; those refusals and the proleptic dates before the reform are pinned separately.
+    private static func foundationLexeme(_ date: Date, zone: TimeZone?) -> String? {
         let offset = zone?.secondsFromGMT(for: date) ?? 0
         guard let milliseconds = Int64(exactly: (date.timeIntervalSince1970 * 1_000).rounded(.toNearestOrEven)),
               offset.isMultiple(of: 60),
               abs(offset) <= 50_400 else {
             return nil
         }
-        let expected = foundationFields(seconds: ExchangeInstant.floorDivide(milliseconds, by: 1_000).quotient, offset: offset)
-        guard !expected.isEmpty else {
+        let millisecond = (milliseconds % 1_000 + 1_000) % 1_000
+        let fields = foundationFields(seconds: (milliseconds - millisecond) / 1_000, offset: offset)
+        guard fields.count == 6 else {
             return nil
         }
-        let actual = fields((try? HealthKitEffectiveTime.dateTime(date, zone: zone))?.value)
-        return actual == expected ? nil : "\(date.timeIntervalSince1970) \(zone?.identifier ?? "none"): \(actual) != \(expected)"
+        let wallClock = String(format: "%04ld-%02ld-%02ldT%02ld:%02ld:%02ld", arguments: fields.map { $0 as CVarArg })
+        let fraction = millisecond == 0 ? "" : String(format: ".%03lld", millisecond)
+        let hoursAndMinutes = String(format: "%02ld:%02ld", abs(offset) / 3_600, abs(offset) % 3_600 / 60)
+        return wallClock + fraction + (offset == 0 ? "Z" : (offset < 0 ? "-" : "+") + hoursAndMinutes)
     }
 
-    /// `nil` when an ECG instant a whole number of seconds after `date` has Foundation's fields at the zone's
-    /// fixed offset, wherever Foundation can check it.
-    private static func ecgMismatch(_ date: Date, offset: Int, zone: TimeZone) -> String? {
-        guard let since1970 = Int64(exactly: date.timeIntervalSince1970.rounded(.down)) else {
+    /// `date` plus `offset` as Foundation's fields state it: the exact sum of the decimal `date`'s shortest text
+    /// states and the offset, floored in Decimal to its whole second; the fields Foundation reads for that second at
+    /// the offset the zone has then, with the remainder added to the second. `nil` where Foundation cannot check it.
+    private static func foundationInstant(_ date: Date, offset: Decimal, zone: TimeZone) -> ExactInstant? {
+        let since1970 = date.timeIntervalSince1970
+        guard since1970.isFinite, var exact = Decimal(string: since1970.description, locale: Locale(identifier: "en_US_POSIX")) else {
             return nil
         }
-        let wholeSeconds = since1970 + Int64(offset)
-        let zoneOffset = zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(wholeSeconds)))
-        let expected = foundationFields(seconds: wholeSeconds, offset: zoneOffset)
-        guard !expected.isEmpty else {
+        exact += offset
+        var whole = Decimal()
+        NSDecimalRound(&whole, &exact, 0, .down)
+        guard let seconds = Int64(whole.description) else {
             return nil
         }
-        let actual = fields(try? HealthKitEffectiveTime.exactDateTime(date, offset: Decimal(offset), zone: zone))
-        return actual == expected ? nil : "\(date.timeIntervalSince1970)+\(offset) \(zone.identifier): \(actual) != \(expected)"
+        let zoneOffset = zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(seconds)))
+        let fields = foundationFields(seconds: seconds, offset: zoneOffset)
+        guard fields.count == 6 else {
+            return nil
+        }
+        return ExactInstant(fields: Array(fields.prefix(5)), second: Decimal(fields[5]) + (exact - whole), offset: zoneOffset)
+    }
+
+    /// `nil` when a Mobile instant whose local time Foundation can check prints the lexeme Foundation's fields state.
+    private static func mobileMismatch(_ date: Date, zone: TimeZone?) -> String? {
+        guard let expected = foundationLexeme(date, zone: zone) else {
+            return nil
+        }
+        let actual = (try? HealthKitEffectiveTime.dateTime(date, zone: zone))?.value?.description
+        return actual == expected ? nil : "\(date.timeIntervalSince1970) \(zone?.identifier ?? "none"): \(actual ?? "refused") != \(expected)"
+    }
+
+    /// `nil` when an ECG instant, `date` plus `offset`, has Foundation's fields and exact seconds at the zone's fixed
+    /// offset, wherever Foundation can check it.
+    private static func ecgMismatch(_ date: Date, offset: Decimal, zone: TimeZone) -> String? {
+        guard let expected = foundationInstant(date, offset: offset, zone: zone) else {
+            return nil
+        }
+        let actual = (try? HealthKitEffectiveTime.exactDateTime(date, offset: offset, zone: zone)).flatMap { ExactInstant($0) }
+        let stated = actual?.description ?? "refused"
+        return actual == expected ? nil : "\(date.timeIntervalSince1970)+\(offset) \(zone.identifier): \(stated) != \(expected)"
     }
 
     @Test("Every sweep zone resolves")
@@ -143,7 +184,7 @@ struct HealthKitEffectiveTimeTests {
         #expect(Self.namedZones.count == 12)
     }
 
-    @Test("Mobile instants have Foundation's fields over the seeded sweep and the edge list")
+    @Test("Mobile instants print the lexeme of Foundation's fields, their milliseconds and their offset over the seeded sweep and the edge list")
     func mobileSweep() {
         var generator = SeededGenerator(state: 0x4D32_4D6F_6269_6C65)
         var mismatches: [String] = []
@@ -158,14 +199,14 @@ struct HealthKitEffectiveTimeTests {
         #expect(mismatches.isEmpty, "\(mismatches.count) mismatches: \(mismatches.prefix(20))")
     }
 
-    @Test("ECG instants have Foundation's fields over the seeded sweep and the edge list")
+    @Test("ECG instants offset by fractional seconds have Foundation's fields and exact seconds over the seeded sweep and the edge list")
     func ecgSweep() {
         var generator = SeededGenerator(state: 0x4D32_4543_4721_2121)
         var mismatches: [String] = []
         for zone in Self.zones {
             for index in 0..<(Self.edges.count + Self.sweepCount) {
                 let date = index < Self.edges.count ? Self.edges[index] : Self.sweepInstant(&generator)
-                let offset = Int.random(in: 0...40, using: &generator)
+                let offset = Self.ecgOffset(&generator)
                 if let mismatch = autoreleasepool(invoking: { Self.ecgMismatch(date, offset: offset, zone: zone ?? .gmt) }) {
                     mismatches.append(mismatch)
                 }
@@ -269,6 +310,21 @@ struct HealthKitEffectiveTimeTests {
         #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
             try HealthKitEffectiveTime.exactDateTime(Date(timeIntervalSince1970: .nan), offset: 0, zone: losAngeles)
         }
+    }
+}
+
+
+extension ExactInstant {
+    /// The instant a built date-time states, or none without a time and an offset.
+    init?(_ dateTime: DateTime) {
+        guard let time = dateTime.time, let zone = dateTime.timeZone, let month = dateTime.date.month, let day = dateTime.date.day else {
+            return nil
+        }
+        self.init(
+            fields: [dateTime.date.year, Int(month), Int(day), Int(time.hour), Int(time.minute)],
+            second: time.second,
+            offset: zone.secondsFromGMT()
+        )
     }
 }
 
