@@ -11,15 +11,15 @@ import GroveFHIRContract
 
 
 /// A storage that fails on demand: from the n-th write of a transaction, or at commit after `body` returned.
-final class FaultyStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // The fault settings are guarded by `lock`.
+final class FaultyStorage: ExchangeProducer.Storage, @unchecked Sendable { // The fault settings are guarded by `lock`.
     struct Fault: Error, Equatable {}
 
-    private final class Faulting: ExchangeEventSequencer.Transaction {
-        let base: any ExchangeEventSequencer.Transaction
+    private final class Faulting: ExchangeProducer.Transaction {
+        let base: any ExchangeProducer.Transaction
         let failingWrite: Int?
         var writes = 0
 
-        init(base: any ExchangeEventSequencer.Transaction, failingWrite: Int?) {
+        init(base: any ExchangeProducer.Transaction, failingWrite: Int?) {
             self.base = base
             self.failingWrite = failingWrite
         }
@@ -45,7 +45,7 @@ final class FaultyStorage: ExchangeEventSequencer.Storage, @unchecked Sendable {
         }
     }
 
-    let base = ExchangeEventSequencer.InMemoryStorage()
+    let base = ExchangeProducer.InMemoryStorage()
     private let lock = NSLock()
     private var failingWrite: Int?
     private var failsAtCommit = false
@@ -68,7 +68,7 @@ final class FaultyStorage: ExchangeEventSequencer.Storage, @unchecked Sendable {
         failsAtCommit = fails
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         lock.lock()
         let (failingWrite, failsAtCommit) = (self.failingWrite, self.failsAtCommit)
         lock.unlock()

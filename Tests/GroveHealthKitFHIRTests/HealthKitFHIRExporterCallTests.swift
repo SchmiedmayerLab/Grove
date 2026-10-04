@@ -30,7 +30,7 @@ struct HealthKitFHIRExporterCallTests {
     @Test("An instant FHIR cannot state ends an export or retraction before the ledger is touched")
     func unstatableInstantEndsTheCall() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xC5))
         let afterYear9999 = Date(timeIntervalSince1970: 253_402_300_800)
         #expect(throws: ExchangeIdentityError.invalidInstant) {
@@ -44,11 +44,11 @@ struct HealthKitFHIRExporterCallTests {
 
     @Test("G2: under gatewayForOwnWrites a redelivery after an app update compares with the frozen build, byte for byte")
     func gatewayForOwnWritesComparesTheFrozenBuild() throws {
-        let sequencer = ExchangeEventSequencer.inMemory()
+        let storage = ExchangeProducer.InMemoryStorage()
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xD0), writer: GoldenFixtures.selfWriter(revisionVersion: "100"))
         // The app wrote the sample in build 100 and converts it there; the redelivery runs after an update to build 110.
         let exporters = try ["100", "110"].map { build in
-            try Fixtures.exporter(try Fixtures.producer(application: GoldenFixtures.selfConverter(version: "1.0", build: build), sequencer: sequencer)) {
+            try Fixtures.exporter(try Fixtures.producer(application: GoldenFixtures.selfConverter(version: "1.0", build: build), storage: storage)) {
                 $0.role = .gatewayForOwnWrites
             }
         }
@@ -67,7 +67,7 @@ struct HealthKitFHIRExporterCallTests {
     @Test("A retraction reserves every deletion in one transaction, and its release takes one more")
     func retractionTakesOneReserveTransaction() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let (exports, receipt) = try Fixtures.retract(exporter, [Fixtures.deletion(0xD1), Fixtures.deletion(0xD2), Fixtures.deletion(0xD3)])
         #expect(Set(exports.compactMap(\.sequence)) == ["1", "2", "3"])
         #expect(storage.take().transactions == 1)
@@ -78,7 +78,7 @@ struct HealthKitFHIRExporterCallTests {
     @Test("A retraction with nothing to retract reserves nothing, so its release owns nothing to forget and touches no ledger")
     func nothingToRetractForgetsNothing() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let deletion = HealthKitFHIRExporter.Deletion(
             uuid: GoldenFixtures.uuid(0xD4),
             sourceType: .bloodPressureSystolic,
@@ -98,10 +98,10 @@ struct HealthKitFHIRExporterCallTests {
     @Test("A released receipt dropped while another call holds the same event leaves the event to that call")
     func releasedReceiptDroppedKeepsTheOtherHold() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xD5))
         let key = try #require(ExchangeEventKey.active(sample))
-        var released: HealthKitFHIRExporter.Receipt? = try Fixtures.collect(exporter, samples: [sample]).receipt
+        var released: ExchangeProducer.Receipt? = try Fixtures.collect(exporter, samples: [sample]).receipt
         let (_, holding) = try Fixtures.collect(exporter, samples: [sample])
         released?.release()
         released = nil

@@ -15,9 +15,9 @@ import HealthKit
 
 
 /// Counts the ledger transactions and writes an exporter makes over an in-memory ledger.
-final class LedgerCountingStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // The counts are guarded by `lock`.
-    private struct Counting: ExchangeEventSequencer.Transaction {
-        let base: any ExchangeEventSequencer.Transaction
+final class LedgerCountingStorage: ExchangeProducer.Storage, @unchecked Sendable { // The counts are guarded by `lock`.
+    private struct Counting: ExchangeProducer.Transaction {
+        let base: any ExchangeProducer.Transaction
         let storage: LedgerCountingStorage
 
         func read(_ key: String) throws -> Data? {
@@ -39,7 +39,7 @@ final class LedgerCountingStorage: ExchangeEventSequencer.Storage, @unchecked Se
         }
     }
 
-    let base = ExchangeEventSequencer.InMemoryStorage()
+    let base = ExchangeProducer.InMemoryStorage()
     private let lock = NSLock()
     private var transactions = 0
     private var writes = 0
@@ -56,7 +56,7 @@ final class LedgerCountingStorage: ExchangeEventSequencer.Storage, @unchecked Se
         return (transactions, writes)
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         lock.lock()
         transactions += 1
         lock.unlock()
@@ -88,7 +88,8 @@ enum ExporterFixtures {
         application: ApplicationDevice = base.application,
         host: HostDevice = base.host,
         studies: [StudyEnrollment] = [],
-        sequencer: ExchangeEventSequencer
+        storage: any ExchangeProducer.Storage,
+        holds: HoldRegistry = .shared
     ) throws -> ExchangeProducer {
         try ExchangeProducer(
             identityScope: identityScope,
@@ -96,7 +97,7 @@ enum ExporterFixtures {
             application: application,
             host: host,
             studies: studies,
-            sequencer: sequencer
+            ledger: ExchangeProducer.Ledger(storage: storage, holds: holds)
         )
     }
 
@@ -112,10 +113,10 @@ enum ExporterFixtures {
     }
 
     static func exporter(
-        sequencer: ExchangeEventSequencer = .inMemory(),
+        storage: any ExchangeProducer.Storage = ExchangeProducer.InMemoryStorage(),
         _ configure: (inout HealthKitFHIRExporter.Options) -> Void = { _ in }
     ) throws -> HealthKitFHIRExporter {
-        try exporter(producer(sequencer: sequencer), configure)
+        try exporter(producer(storage: storage), configure)
     }
 
     /// Every export of one call, and its receipt.
@@ -123,7 +124,7 @@ enum ExporterFixtures {
         _ exporter: HealthKitFHIRExporter,
         _ records: [HealthKitFHIRExporter.Record],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
+    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
         let receipt = try exporter.export(records: records, at: instant) { exports.append($0) }
         return (exports, receipt)
@@ -133,7 +134,7 @@ enum ExporterFixtures {
         _ exporter: HealthKitFHIRExporter,
         samples: [HKSample],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
+    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         try collect(exporter, samples.map { .sample($0) }, at: instant)
     }
 
@@ -141,7 +142,7 @@ enum ExporterFixtures {
         _ exporter: HealthKitFHIRExporter,
         _ deletions: [HealthKitFHIRExporter.Deletion],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
+    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
         let receipt = try exporter.retract(deletions, at: instant) { exports.append($0) }
         return (exports, receipt)

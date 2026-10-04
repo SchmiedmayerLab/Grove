@@ -78,14 +78,14 @@ let application = try ApplicationDevice(bundle: .main)
 ```
 
 Build the producer and the exporter once per configuration, and rebuild both when the participant, the studies or the application change.
-`ledgerStorage` is your app's ledger, conforming to `ExchangeEventSequencer.Storage` (`GroveFHIRContract` documents the contract it must meet), and `installationToken` the token that names this HealthKit store.
+`ledgerStorage` is your app's ledger, conforming to `ExchangeProducer.Storage` (`GroveFHIRContract` documents the contract it must meet), and `installationToken` the token that names this HealthKit store.
 
 ```swift
 let producer = try ExchangeProducer(
     identityScope: identityScope,
     subject: .logical(participant),
     application: application,
-    sequencer: ExchangeEventSequencer(storage: ledgerStorage)
+    storage: ledgerStorage
 )
 let exporter = try HealthKitFHIRExporter(
     producer: producer,
@@ -217,7 +217,6 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 ### Exporting
 
 - ``HealthKitFHIRExporter``
-- ``HealthKitFHIRExporter/Receipt``
 
 ### Conversion
 

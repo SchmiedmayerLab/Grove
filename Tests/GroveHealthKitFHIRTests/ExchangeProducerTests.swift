@@ -8,7 +8,7 @@
 
 import CryptoKit
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 import ModelsR4
 import Testing
 
@@ -107,7 +107,7 @@ struct ExchangeProducerTests {
             application: application,
             host: host ?? HostDevice(operatingSystemVersion: "20.1", name: "Host", manufacturer: "Example", modelNumber: "Phone1"),
             studies: studies,
-            sequencer: .inMemory()
+            storage: ExchangeProducer.InMemoryStorage()
         )
     }
 
@@ -118,21 +118,21 @@ struct ExchangeProducerTests {
         let application = try ApplicationDevice(name: "Grove Test", bundleIdentifier: "org.grovealliance.test", version: "1.0")
         let host = try HostDevice(operatingSystemVersion: "20.1")
         let studies = [try Self.enrollment(name: "a"), try Self.enrollment(name: "b")]
-        let sequencer = ExchangeEventSequencer.inMemory()
+        let storage = ExchangeProducer.InMemoryStorage()
         let producer = try ExchangeProducer(
             identityScope: scope,
             subject: subject,
             application: application,
             host: host,
             studies: studies,
-            sequencer: sequencer
+            storage: storage
         )
         #expect(producer.identityScope.systems == scope.systems)
         #expect(producer.subject == subject)
         #expect(producer.application == application)
         #expect(producer.host == host)
         #expect(producer.studies == studies)
-        #expect(producer.sequencer === sequencer)
+        #expect(producer.ledger.storage as? ExchangeProducer.InMemoryStorage === storage)
         #expect(producer.facts == ExchangeEventFacts(application: application, host: host, studies: studies))
     }
 
@@ -142,7 +142,7 @@ struct ExchangeProducerTests {
             identityScope: Self.scope(),
             subject: .logical(Self.identifier("https://study.example.org/fhir/participant", "p-1")),
             application: ApplicationDevice(name: "Grove Test", bundleIdentifier: "org.grovealliance.test", version: "1.0"),
-            sequencer: .inMemory()
+            storage: ExchangeProducer.InMemoryStorage()
         )
         #expect(producer.host.operatingSystemVersion == HostDevice.current().operatingSystemVersion)
         #expect(producer.host.sourceDeviceToken == HostDevice.current().sourceDeviceToken)

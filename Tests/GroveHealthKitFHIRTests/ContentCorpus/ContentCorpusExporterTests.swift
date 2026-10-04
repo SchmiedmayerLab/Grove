@@ -15,18 +15,18 @@ import HealthKit
 import Testing
 
 
-/// A sequencer ledger that starts where the corpus's events do: under the test context's producer instance, at
+/// A producer ledger that starts where the corpus's events do: under the test context's producer instance, at
 /// the corpus's sequence, so the exporter mints exactly the events the converter facade was handed.
 private enum CorpusLedger {
-    /// A sequencer over an in-memory ledger whose producer entry hands out `nextSequence` under `producerInstance`.
+    /// A ledger over in-memory storage whose producer entry hands out `nextSequence` under `producerInstance`.
     ///
     /// Every corpus ledger states the same producer instance, so their reservation handles are not unique across
-    /// ledgers; each sequencer therefore keeps its own hold registry instead of the process's shared one.
-    static func sequencer(producerInstance: UUID, nextSequence: UInt64) throws -> ExchangeEventSequencer {
-        let storage = ExchangeEventSequencer.InMemoryStorage()
+    /// ledgers; each ledger therefore keeps its own hold registry instead of the process's shared one.
+    static func ledger(producerInstance: UUID, nextSequence: UInt64) throws -> ExchangeProducer.Ledger {
+        let storage = ExchangeProducer.InMemoryStorage()
         let producer = try ProducerEntry(instance: producerInstance, next: nextSequence).encoded()
         try storage.transaction { try $0.write(producer, for: LedgerKey.producer) }
-        return ExchangeEventSequencer(storage: storage, holds: HoldRegistry())
+        return ExchangeProducer.Ledger(storage: storage, holds: HoldRegistry())
     }
 }
 
@@ -97,7 +97,7 @@ struct ContentCorpusExporterTests {
             application: base.application,
             host: base.host,
             studies: source.context == .linked ? [.test("study-a")] : [],
-            sequencer: CorpusLedger.sequencer(producerInstance: base.event.producerInstance, nextSequence: ContentCorpusRecorder.sequence)
+            ledger: CorpusLedger.ledger(producerInstance: base.event.producerInstance, nextSequence: ContentCorpusRecorder.sequence)
         )
         var options = HealthKitFHIRExporter.Options()
         if source.context == .linked {

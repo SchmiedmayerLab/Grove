@@ -57,24 +57,24 @@ enum LedgerFixtures {
         )
     }
 
-    /// A sequencer with its own hold registry, so a test sees only its own holds; a new registry over the
+    /// A ledger with its own hold registry, so a test sees only its own holds; a new registry over the
     /// same storage simulates a new process.
-    static func sequencer(_ storage: any ExchangeEventSequencer.Storage = ExchangeEventSequencer.InMemoryStorage()) -> ExchangeEventSequencer {
-        ExchangeEventSequencer(storage: storage, holds: HoldRegistry())
+    static func ledger(_ storage: any ExchangeProducer.Storage = ExchangeProducer.InMemoryStorage()) -> ExchangeProducer.Ledger {
+        ExchangeProducer.Ledger(storage: storage, holds: HoldRegistry())
     }
 
-    /// Whether a call through `sequencer`'s registry holds `handle` or is about to.
-    static func isHeld(_ handle: ExchangeEventReservation.Handle?, by sequencer: ExchangeEventSequencer) -> Bool {
-        handle.map { sequencer.holds.isHeld($0) } ?? false
+    /// Whether a call through `ledger`'s registry holds `handle` or is about to.
+    static func isHeld(_ handle: ExchangeEventReservation.Handle?, by ledger: ExchangeProducer.Ledger) -> Bool {
+        handle.map { ledger.holds.isHeld($0) } ?? false
     }
 
     /// The raw value stored under `key`.
-    static func stored(_ key: String, in storage: any ExchangeEventSequencer.Storage) throws -> Data? {
+    static func stored(_ key: String, in storage: any ExchangeProducer.Storage) throws -> Data? {
         try storage.transaction { try $0.read(key) }
     }
 
-    /// Writes raw entries, bypassing the sequencer.
-    static func seed(_ entries: [String: String], in storage: any ExchangeEventSequencer.Storage) throws {
+    /// Writes raw entries, bypassing the ledger.
+    static func seed(_ entries: [String: String], in storage: any ExchangeProducer.Storage) throws {
         try storage.transaction { transaction in
             for (key, value) in entries {
                 try transaction.write(Data(value.utf8), for: key)
@@ -83,7 +83,7 @@ enum LedgerFixtures {
     }
 
     /// Every stored key under `prefix`.
-    static func keys(_ prefix: String, in storage: any ExchangeEventSequencer.Storage) throws -> Set<String> {
+    static func keys(_ prefix: String, in storage: any ExchangeProducer.Storage) throws -> Set<String> {
         Set(try storage.transaction { try $0.keys(prefixedBy: prefix) })
     }
 }

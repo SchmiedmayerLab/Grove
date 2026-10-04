@@ -44,7 +44,7 @@ struct ExchangeEnvelopeFixTests {
             subject: base.subject,
             application: application,
             host: base.host,
-            sequencer: .inMemory()
+            storage: ExchangeProducer.InMemoryStorage()
         )
         var options = HealthKitFHIRExporter.Options()
         configure(&options)

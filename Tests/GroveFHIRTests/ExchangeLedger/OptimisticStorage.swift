@@ -14,8 +14,8 @@ import GroveFHIRContract
 /// A serializable storage whose transactions overlap, as an SQL engine's serializable isolation lets them: each
 /// attempt reads a snapshot and buffers its writes, and commits only if no transaction that committed after its
 /// snapshot wrote a key it read or listed; otherwise it runs `body` again. It meets C1 to C5 in one process.
-final class OptimisticStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // State is guarded by `lock`.
-    private final class Attempt: ExchangeEventSequencer.Transaction {
+final class OptimisticStorage: ExchangeProducer.Storage, @unchecked Sendable { // State is guarded by `lock`.
+    private final class Attempt: ExchangeProducer.Transaction {
         let snapshot: [String: Data]
         var writes: [String: Data?] = [:]
         var reads: Set<String> = []
@@ -79,7 +79,7 @@ final class OptimisticStorage: ExchangeEventSequencer.Storage, @unchecked Sendab
         gateNext = true
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         lock.lock()
         var gated = gateNext
         gateNext = false

@@ -34,7 +34,7 @@ struct ProducerEntry: Equatable {
     init(decoding value: Data) throws {
         let payload = try LedgerEntryCoding.decode(Payload.self, from: value, key: LedgerKey.producer)
         guard let instance = LedgerEntryCoding.instance(payload.instance), let next = LedgerEntryCoding.positiveInteger(payload.next) else {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: LedgerKey.producer)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: LedgerKey.producer)
         }
         self.init(instance: instance, next: next)
     }
@@ -92,7 +92,7 @@ struct EventEntry: Equatable {
               let sequence = LedgerEntryCoding.positiveInteger(payload.sequence),
               ExchangeInstant.statableMilliseconds.contains(payload.instant),
               ExchangeIdentity.isUnpaddedBase64URLDigest(payload.facts) else {
-            throw ExchangeEventSequencer.LedgerError.corruptEntry(key: key)
+            throw ExchangeProducer.LedgerError.corruptEntry(key: key)
         }
         self.init(
             instance: instance,
@@ -128,17 +128,17 @@ extension ExchangeEventReservation {
 }
 
 
-extension ExchangeEventSequencer {
+extension ExchangeProducer.Ledger {
     /// One `reserve` call inside its transaction: it reads only the entries of its own keys, the producer,
     /// and each distinct facts entry once, and writes only what it mints.
     struct ReserveCall {
-        private let transaction: any Transaction
+        private let transaction: any ExchangeProducer.Transaction
         private let current: PreparedFacts
         private let instantMilliseconds: Int64
         private var factsByDigest: [String: ExchangeEventFacts] = [:]
         private var currentFactsStored = false
 
-        init(transaction: any Transaction, current: PreparedFacts, instantMilliseconds: Int64) {
+        init(transaction: any ExchangeProducer.Transaction, current: PreparedFacts, instantMilliseconds: Int64) {
             self.transaction = transaction
             self.current = current
             self.instantMilliseconds = instantMilliseconds
@@ -154,7 +154,7 @@ extension ExchangeEventSequencer {
                 let event = try transaction.read(key).map { try EventEntry(decoding: $0, key: key) }
                 // A reservation at or above the counter of its own instance means the counter regressed.
                 if let event, event.instance == producer.instance, event.sequence >= producer.next {
-                    throw LedgerError.corruptEntry(key: key)
+                    throw ExchangeProducer.LedgerError.corruptEntry(key: key)
                 }
                 if let event, event.fingerprint == request.fingerprint {
                     reserved[request] = ExchangeEventReservation(key: request.key, entry: event, facts: try facts(event.factsDigest, of: key))
@@ -189,7 +189,7 @@ extension ExchangeEventSequencer {
             }
             let key = LedgerKey.facts(digest)
             guard let value = try transaction.read(key) else {
-                throw LedgerError.corruptEntry(key: eventKey)
+                throw ExchangeProducer.LedgerError.corruptEntry(key: eventKey)
             }
             let facts = try PreparedFacts.decode(value, key: key)
             factsByDigest[digest] = facts

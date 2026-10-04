@@ -14,11 +14,11 @@ import Testing
 
 /// Forwards to a storage and blocks the next transaction until signalled, before it starts, after it committed or after
 /// the storage discarded it, so a test can run another call in between.
-private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Sendable { // `gate` is guarded by `lock`.
+private final class GateStorage: ExchangeProducer.Storage, @unchecked Sendable { // `gate` is guarded by `lock`.
     enum Point {
         /// Before the transaction starts.
         case before
-        /// After the transaction committed, before it returns to the sequencer.
+        /// After the transaction committed, before it returns to the ledger.
         case afterCommit
         /// After the transaction's body ran in an attempt the storage then discarded; the transaction throws `Discarded`.
         case afterDiscard
@@ -27,7 +27,7 @@ private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Send
     /// What a transaction gated after its discard throws.
     struct Discarded: Error {}
 
-    let base: any ExchangeEventSequencer.Storage
+    let base: any ExchangeProducer.Storage
     /// Signalled when the gated transaction reaches its point.
     let entered = DispatchSemaphore(value: 0)
     /// Lets the gated transaction continue.
@@ -35,7 +35,7 @@ private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Send
     private let lock = NSLock()
     private var gateNext: Point?
 
-    init(base: any ExchangeEventSequencer.Storage = ExchangeEventSequencer.InMemoryStorage()) {
+    init(base: any ExchangeProducer.Storage = ExchangeProducer.InMemoryStorage()) {
         self.base = base
     }
 
@@ -47,7 +47,7 @@ private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Send
         gateNext = point
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         lock.lock()
         let gated = gateNext
         gateNext = nil
@@ -79,24 +79,24 @@ private final class GateStorage: ExchangeEventSequencer.Storage, @unchecked Send
 
 
 /// Another object in front of one storage, as an application may build per call.
-private final class StorageWrapper: ExchangeEventSequencer.Storage {
-    let base: any ExchangeEventSequencer.Storage
+private final class StorageWrapper: ExchangeProducer.Storage {
+    let base: any ExchangeProducer.Storage
 
-    init(_ base: any ExchangeEventSequencer.Storage) {
+    init(_ base: any ExchangeProducer.Storage) {
         self.base = base
     }
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         try base.transaction(body)
     }
 }
 
 
 /// A value in front of one storage, which has no object identity at all.
-private struct StorageValue: ExchangeEventSequencer.Storage {
-    let base: any ExchangeEventSequencer.Storage
+private struct StorageValue: ExchangeProducer.Storage {
+    let base: any ExchangeProducer.Storage
 
-    func transaction<R>(_ body: (any ExchangeEventSequencer.Transaction) throws -> R) throws -> R {
+    func transaction<R>(_ body: (any ExchangeProducer.Transaction) throws -> R) throws -> R {
         try base.transaction(body)
     }
 }
@@ -126,68 +126,68 @@ struct ExchangeEventHoldRaceTests {
     @Test("G9f: a reserve that commits between the last holder's end and its removal keeps the reservation")
     func reserveBeforeTheRemovalTransaction() throws {
         let storage = GateStorage()
-        let sequencer = Fixtures.sequencer(storage)
+        let ledger = Fixtures.ledger(storage)
         let request = Fixtures.request("race")
         let facts = try Fixtures.facts()
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         let handles = first.values.map(\.handle)
         let finished = DispatchSemaphore(value: 0)
         storage.gate()
         Thread {
-            try? sequencer.finish(handles, released: true, forgetting: [])
+            try? ledger.finish(handles, released: true, forgetting: [])
             finished.signal()
         }.start()
         // The last holder has ended its hold and waits to open its removal transaction; another call reserves now.
         storage.entered.wait()
-        let second = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let second = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         storage.proceed.signal()
         finished.wait()
         #expect(second == first)
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) != nil, "the second call still holds it")
-        let redelivery = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let redelivery = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         #expect(redelivery == first, "its redelivery is an exact retry")
-        try sequencer.finish(second.values.map(\.handle) + redelivery.values.map(\.handle), released: true, forgetting: [])
+        try ledger.finish(second.values.map(\.handle) + redelivery.values.map(\.handle), released: true, forgetting: [])
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil)
-        #expect(!Fixtures.isHeld(first[request]?.handle, by: sequencer))
+        #expect(!Fixtures.isHeld(first[request]?.handle, by: ledger))
     }
 
     @Test("G9f: a release whose transaction runs before a waiting reserve's removes the reservation; that reserve holds a new one")
     func releaseBeforeAWaitingReserve() throws {
         let storage = GateStorage()
-        let sequencer = Fixtures.sequencer(storage)
+        let ledger = Fixtures.ledger(storage)
         let request = Fixtures.request("race")
         let facts = try Fixtures.facts()
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         let box = ReservedBox()
         let reserved = DispatchSemaphore(value: 0)
         storage.gate()
         Thread {
-            box.reserved = (try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)) ?? [:]
+            box.reserved = (try? ledger.reserve([request], at: Fixtures.instant, facts: facts)) ?? [:]
             reserved.signal()
         }.start()
         // The second call waits to open its transaction, so it has seen nothing yet; the last holder releases now.
         storage.entered.wait()
-        try sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+        try ledger.finish(first.values.map(\.handle), released: true, forgetting: [])
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil)
         storage.proceed.signal()
         reserved.wait()
         let second = try #require(box.reserved[request])
         #expect(second.handle != first[request]?.handle, "the second call's transaction ran after the removal")
-        let redelivery = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let redelivery = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         #expect(redelivery == box.reserved, "the second call's redelivery is an exact retry of its own event")
     }
 
     /// The last holder releases through `holder` while a reserve through `reuser` has committed its reuse of the same
     /// reservation but not yet taken its hold; then the reusing call redelivers before it releases.
     private func releaseDuringAReuse(
-        holder: any ExchangeEventSequencer.Storage,
-        reuser: any ExchangeEventSequencer.Storage,
+        holder: any ExchangeProducer.Storage,
+        reuser: any ExchangeProducer.Storage,
         gate: GateStorage,
-        backing: any ExchangeEventSequencer.Storage
+        backing: any ExchangeProducer.Storage
     ) throws -> ReuseOutcome {
         let registry = HoldRegistry()
-        let holding = ExchangeEventSequencer(storage: holder, holds: registry)
-        let reusing = ExchangeEventSequencer(storage: reuser, holds: registry)
+        let holding = ExchangeProducer.Ledger(storage: holder, holds: registry)
+        let reusing = ExchangeProducer.Ledger(storage: reuser, holds: registry)
         let request = Fixtures.request("wrapped")
         let facts = try Fixtures.facts()
         let first = try holding.reserve([request], at: Fixtures.instant, facts: facts)
@@ -198,7 +198,7 @@ struct ExchangeEventHoldRaceTests {
             box.reserved = (try? reusing.reserve([request], at: Fixtures.instant, facts: facts)) ?? [:]
             reserved.signal()
         }.start()
-        // The reuse committed and returns to its sequencer, which has not taken its hold yet.
+        // The reuse committed and returns to its ledger, which has not taken its hold yet.
         gate.entered.wait()
         try holding.finish(first.values.map(\.handle), released: true, forgetting: [])
         let kept = try Fixtures.stored(LedgerKey.event(request.key), in: backing) != nil
@@ -210,10 +210,10 @@ struct ExchangeEventHoldRaceTests {
 
     @Test("G9f: a release keeps a reservation a call is about to hold through another object or value over one storage", arguments: [false, true])
     func releaseKeepsAReuseThroughAnotherFront(throughValues: Bool) throws {
-        let backing = ExchangeEventSequencer.InMemoryStorage()
+        let backing = ExchangeProducer.InMemoryStorage()
         let gate = GateStorage(base: backing)
-        let holder: any ExchangeEventSequencer.Storage = throughValues ? StorageValue(base: backing) : StorageWrapper(backing)
-        let reuser: any ExchangeEventSequencer.Storage = throughValues ? StorageValue(base: gate) : gate
+        let holder: any ExchangeProducer.Storage = throughValues ? StorageValue(base: backing) : StorageWrapper(backing)
+        let reuser: any ExchangeProducer.Storage = throughValues ? StorageValue(base: gate) : gate
         let outcome = try releaseDuringAReuse(holder: holder, reuser: reuser, gate: gate, backing: backing)
         #expect(outcome.reused != nil && outcome.reused == outcome.first, "the second call reused the reservation")
         #expect(outcome.kept, "the release removed a reservation the second call is about to hold")
@@ -243,15 +243,15 @@ struct ExchangeEventHoldRaceTests {
         let reserved = DispatchSemaphore(value: 0)
         other.gate(.afterCommit)
         Thread {
-            _ = try? ExchangeEventSequencer(storage: other, holds: registry).reserve([request], at: Fixtures.instant, facts: facts)
+            _ = try? ExchangeProducer.Ledger(storage: other, holds: registry).reserve([request], at: Fixtures.instant, facts: facts)
             reserved.signal()
         }.start()
         // Another ledger committed a reservation of the same key and is about to hold it while this one releases.
         other.entered.wait()
-        let storage = ExchangeEventSequencer.InMemoryStorage()
-        let sequencer = ExchangeEventSequencer(storage: storage, holds: registry)
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
-        try sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+        let storage = ExchangeProducer.InMemoryStorage()
+        let ledger = ExchangeProducer.Ledger(storage: storage, holds: registry)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
+        try ledger.finish(first.values.map(\.handle), released: true, forgetting: [])
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage) == nil)
         other.proceed.signal()
         reserved.wait()
@@ -260,25 +260,25 @@ struct ExchangeEventHoldRaceTests {
     @Test("G9f: over a storage whose transactions overlap, a release can remove a reservation a call just reused; a duplicate, never a reuse")
     func overlappingTransactionsDuplicateNeverReuse() throws {
         let storage = OptimisticStorage()
-        let sequencer = Fixtures.sequencer(storage)
+        let ledger = Fixtures.ledger(storage)
         let request = Fixtures.request("overlap")
         let facts = try Fixtures.facts()
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         let finished = DispatchSemaphore(value: 0)
         storage.gate()
         Thread {
-            try? sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+            try? ledger.finish(first.values.map(\.handle), released: true, forgetting: [])
             finished.signal()
         }.start()
         // The release found no holder and staged its removal; a reuse commits before the release validates.
         storage.entered.wait()
-        let second = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let second = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         storage.proceed.signal()
         finished.wait()
         let held = try #require(second[request])
         #expect(second == first, "the reuse committed first")
         // As the storage article states: the holder's redelivery takes a new sequence, never one handed out before.
-        let redelivery = try #require(try sequencer.reserve([request], at: Fixtures.instant, facts: facts)[request])
+        let redelivery = try #require(try ledger.reserve([request], at: Fixtures.instant, facts: facts)[request])
         #expect(redelivery.handle.instance == held.handle.instance)
         #expect(redelivery.handle.sequence > held.handle.sequence)
     }
@@ -288,21 +288,21 @@ struct ExchangeEventHoldRaceTests {
     @Test("G9d: a release racing a reuse keeps its mark; the reusing call's lapse removes the reservation", arguments: [false, true])
     func releaseRacingAReuseThenLapse(reuseHoldsBeforeRemoval: Bool) throws {
         let storage = GateStorage()
-        let sequencer = Fixtures.sequencer(storage)
+        let ledger = Fixtures.ledger(storage)
         let request = Fixtures.request("race")
         let facts = try Fixtures.facts()
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         let reused: [ExchangeEventRequest: ExchangeEventReservation]
         if reuseHoldsBeforeRemoval {
             // The last holder ended its hold and waits to open its removal transaction; another call reuses it now.
             let finished = DispatchSemaphore(value: 0)
             storage.gate()
             Thread {
-                try? sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+                try? ledger.finish(first.values.map(\.handle), released: true, forgetting: [])
                 finished.signal()
             }.start()
             storage.entered.wait()
-            reused = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+            reused = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
             storage.proceed.signal()
             finished.wait()
         } else {
@@ -311,11 +311,11 @@ struct ExchangeEventHoldRaceTests {
             let reserved = DispatchSemaphore(value: 0)
             storage.gate(.afterCommit)
             Thread {
-                box.reserved = (try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)) ?? [:]
+                box.reserved = (try? ledger.reserve([request], at: Fixtures.instant, facts: facts)) ?? [:]
                 reserved.signal()
             }.start()
             storage.entered.wait()
-            try sequencer.finish(first.values.map(\.handle), released: true, forgetting: [])
+            try ledger.finish(first.values.map(\.handle), released: true, forgetting: [])
             storage.proceed.signal()
             reserved.wait()
             reused = box.reserved
@@ -323,8 +323,8 @@ struct ExchangeEventHoldRaceTests {
         #expect(reused == first, "the second call reused the reservation")
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) != nil, "the second call still holds it")
         // The reusing call is dropped unreleased, as the loser of an anchor compare-exchange is; it is the last holder.
-        try sequencer.finish(reused.values.map(\.handle), released: false, forgetting: [])
-        #expect(!Fixtures.isHeld(first[request]?.handle, by: sequencer))
+        try ledger.finish(reused.values.map(\.handle), released: false, forgetting: [])
+        #expect(!Fixtures.isHeld(first[request]?.handle, by: ledger))
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil, "a holder released it; the last finisher removes it")
     }
 
@@ -333,27 +333,27 @@ struct ExchangeEventHoldRaceTests {
     @Test("G9d: a release handed over to a reserve whose attempt the storage discards ends with that reserve")
     func handOverToADiscardedReserveEnds() throws {
         let storage = GateStorage()
-        let sequencer = Fixtures.sequencer(storage)
+        let ledger = Fixtures.ledger(storage)
         let request = Fixtures.request("race")
         let facts = try Fixtures.facts()
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         let handle = try #require(first[request]?.handle)
         let failed = DispatchSemaphore(value: 0)
         storage.gate(.afterDiscard)
         Thread {
-            _ = try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+            _ = try? ledger.reserve([request], at: Fixtures.instant, facts: facts)
             failed.signal()
         }.start()
         storage.entered.wait()
-        try sequencer.finish([handle], released: true, forgetting: [])
+        try ledger.finish([handle], released: true, forgetting: [])
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) != nil, "a reserve noted it, so it stays")
         storage.proceed.signal()
         failed.wait()
-        #expect(!Fixtures.isHeld(handle, by: sequencer), "the hand-over ended with the discarded reserve")
+        #expect(!Fixtures.isHeld(handle, by: ledger), "the hand-over ended with the discarded reserve")
         // As after a failed release, the reservation stays until a later exact export releases it.
-        let again = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let again = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         #expect(again == first)
-        try sequencer.finish(again.values.map(\.handle), released: true, forgetting: [])
+        try ledger.finish(again.values.map(\.handle), released: true, forgetting: [])
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil)
     }
 
@@ -362,27 +362,27 @@ struct ExchangeEventHoldRaceTests {
     @Test("G9d: a handed-over release survives a discarded reserve while another reserve of the reservation is pending")
     func handOverSurvivesADiscardedReserveWhileAnotherIsPending() throws {
         let storage = GateStorage()
-        let sequencer = Fixtures.sequencer(storage)
+        let ledger = Fixtures.ledger(storage)
         let request = Fixtures.request("race")
         let facts = try Fixtures.facts()
-        let first = try sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+        let first = try ledger.reserve([request], at: Fixtures.instant, facts: facts)
         let handle = try #require(first[request]?.handle)
         // A reserve whose transaction committed the reuse and that has not yet taken its hold, noted by hand.
         let pending = HoldRegistry.Notes()
-        sequencer.holds.beginReserving([handle], in: pending)
+        ledger.holds.beginReserving([handle], in: pending)
         let failed = DispatchSemaphore(value: 0)
         storage.gate(.afterDiscard)
         Thread {
-            _ = try? sequencer.reserve([request], at: Fixtures.instant, facts: facts)
+            _ = try? ledger.reserve([request], at: Fixtures.instant, facts: facts)
             failed.signal()
         }.start()
         storage.entered.wait()
-        try sequencer.finish([handle], released: true, forgetting: [])
+        try ledger.finish([handle], released: true, forgetting: [])
         storage.proceed.signal()
         failed.wait()
-        sequencer.holds.endReserving(pending, acquiring: [handle])
-        try sequencer.finish([handle], released: false, forgetting: [])
+        ledger.holds.endReserving(pending, acquiring: [handle])
+        try ledger.finish([handle], released: false, forgetting: [])
         #expect(try Fixtures.stored(LedgerKey.event(request.key), in: storage.base) == nil, "the release mark survived")
-        #expect(!Fixtures.isHeld(handle, by: sequencer))
+        #expect(!Fixtures.isHeld(handle, by: ledger))
     }
 }

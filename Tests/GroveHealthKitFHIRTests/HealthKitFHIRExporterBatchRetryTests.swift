@@ -52,7 +52,7 @@ struct HealthKitFHIRExporterBatchRetryTests {
     @Test("An exact retry of two deletions of one record with different bounds in one call redelivers both events")
     func retryOfTwoBoundsInOneCallIsExact() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let deletions = [
             Fixtures.deletion(0xC0, deletedAfter: GoldenFixtures.sampleStart),
             Fixtures.deletion(0xC0, deletedAfter: nil),
@@ -76,7 +76,7 @@ struct HealthKitFHIRExporterBatchRetryTests {
     @Test("A call naming one ECG under two symptom sets refuses the later one, and its exact retry reuses every event")
     func retryOfTwoSymptomSetsInOneCallIsExact() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Fixtures.exporter(storage: storage)
         let one = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC3))
         let two = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC4), type: .fatigue)
         let inputs = [

@@ -25,14 +25,14 @@ struct HealthKitFHIRExporterTests {
 
     private static func exporter(
         _ configure: (inout HealthKitFHIRExporter.Options) -> Void = { _ in },
-        sequencer: ExchangeEventSequencer = .inMemory()
+        storage: any ExchangeProducer.Storage = ExchangeProducer.InMemoryStorage()
     ) throws -> HealthKitFHIRExporter {
         let producer = try ExchangeProducer(
             identityScope: base.identityScope,
             subject: base.subject,
             application: base.application,
             host: base.host,
-            sequencer: sequencer
+            storage: storage
         )
         var options = HealthKitFHIRExporter.Options()
         configure(&options)
@@ -67,7 +67,7 @@ struct HealthKitFHIRExporterTests {
         _ exporter: HealthKitFHIRExporter,
         _ samples: [HKSample],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: HealthKitFHIRExporter.Receipt) {
+    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
         let receipt = try exporter.export(samples, at: instant) { exports.append($0) }
         return (exports, receipt)
@@ -116,7 +116,7 @@ struct HealthKitFHIRExporterTests {
     @Test("An unconvertible record is refused in place, holds its reservation until the receipt is released, and the export continues")
     func refusalsDoNotEndTheExport() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Self.exporter(sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Self.exporter(storage: storage)
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
             sampleType: HKObjectType.electrocardiogramType(),
@@ -263,7 +263,7 @@ struct HealthKitFHIRExporterTests {
     @Test("Deletions of types without outputs touch no ledger; a skewed lower bound is dropped, Bundle.id follows the legacy policy")
     func retractionBoundsAndLedger() throws {
         let storage = LedgerCountingStorage()
-        let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, sequencer: ExchangeEventSequencer(storage: storage))
+        let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, storage: storage)
         let detectedAt = GoldenFixtures.conversionInstant
         var exports: [HealthKitFHIRExporter.Export] = []
         _ = try exporter.retract(
