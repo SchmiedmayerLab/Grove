@@ -107,9 +107,16 @@ enum ContentCorpusGrid {
         }
     }
 
-    /// The vectors of every category row: each raw value from -1 through 8, past the largest any table admits (7).
+    /// Sessions lasting no whole number of their contract's unit: mindfulness counted in minutes, handwashing in seconds.
+    static let fractionalSessions: [(HKCategoryTypeIdentifier, seconds: Double)] = [(.mindfulSession, 45), (.handwashingEvent, 12.345)]
+
+    /// The vectors of every category row: each raw value from -1 through 8, past the largest any table admits (7);
+    /// then the fractional sessions.
     static var categories: [ContentCorpusVector] {
-        rows(prefix: "HKCategoryTypeIdentifier").flatMap { row -> [ContentCorpusVector] in
+        let sessions = fractionalSessions.map { type, seconds in
+            convert("category/\(type.rawValue)/lasting-\(seconds)s", ContentCorpusSource(.category(type: type.rawValue, value: 0), end: start + seconds))
+        }
+        return rows(prefix: "HKCategoryTypeIdentifier").flatMap { row -> [ContentCorpusVector] in
             guard HKObjectType.categoryType(forIdentifier: HKCategoryTypeIdentifier(rawValue: row.sourceTypeIdentifier)) != nil else {
                 return []
             }
@@ -123,7 +130,7 @@ enum ContentCorpusGrid {
                     ContentCorpusSource(.category(type: row.sourceTypeIdentifier, value: raw), end: start + span(contract(row)), metadata: metadata)
                 )
             }
-        }
+        } + sessions
     }
 
     /// The vector converting `source`, under `id`.

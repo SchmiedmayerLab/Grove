@@ -15,6 +15,21 @@ import HealthKit
 
 /// ECG evidence, precedence and time edges, heartbeat series and workout routes.
 extension ContentCorpusGrid {
+    /// A fix at rest facing due north, every reading that can be unavailable exactly zero: a zero is a reading, so the
+    /// track writes it, unlike the negative values CoreLocation reports for an unavailable one.
+    static let restingFix = ContentCorpusLocation(
+        offset: 2,
+        latitude: 37.4276,
+        longitude: -122.1698,
+        altitude: 0,
+        horizontalAccuracy: 5,
+        verticalAccuracy: 0,
+        course: 0,
+        courseAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0
+    )
+
     /// The conformance fixtures' sinus-rhythm reading: four voltages 2 ms apart at 500 Hz, 72 bpm, no symptoms.
     static let electrocardiogramReading = ContentCorpusElectrocardiogram(
         classification: HKElectrocardiogram.Classification.sinusRhythm.rawValue,
@@ -95,6 +110,10 @@ extension ContentCorpusGrid {
             source.end = reversed ? start - 30 : source.end
             return source
         }
+        // Its voltages fall on 9999-12-31, its end into the year 10000.
+        var sourcePeriodInYear10000 = source(reading { $0.classification = 99 }, metadata: [HKMetadataKeyTimeZone: .string("UTC")])
+        sourcePeriodInYear10000.start = 253_402_300_770
+        sourcePeriodInYear10000.end = 253_402_300_800
         let missingLead = reading { $0.voltages[2].millivolts = nil }
         let nanVoltage = reading { $0.voltages[1].millivolts = .nan }
         let nonUniform = reading { $0.voltages[2].offset = 0.255 }
@@ -113,6 +132,7 @@ extension ContentCorpusGrid {
             ("symptom-validation-before-source-period", source(symptoms(present, [headache]), reversed: true)),
             ("symptoms-status-before-source-period", source(reading { $0.symptomsStatus = 99 }, reversed: true)),
             ("symptoms-status-before-classification", source(reading(reading { $0.symptomsStatus = 99 }) { $0.classification = 99 })),
+            ("source-period-before-classification", sourcePeriodInYear10000),
             ("classification-before-algorithm-version", source(reading { $0.classification = 99 }, metadata: versionThree)),
             ("algorithm-version-before-average-heart-rate", source(reading { $0.averageHeartRate = .nan }, metadata: versionThree))
         ]
@@ -147,7 +167,8 @@ extension ContentCorpusGrid {
     }
 
     /// Correlated symptoms: one, several sorted by type and UUID, refused types and duplicates, a status that
-    /// contradicts them, an invalid symptom value, a missing context, and what fails first beside them.
+    /// contradicts them, an invalid symptom value, a missing context, and what fails first beside them (each symptom
+    /// is checked for its type, then for its sample, before the next one).
     static var symptomRelationships: [(String, ContentCorpusElectrocardiogram)] {
         let present = HKElectrocardiogram.SymptomsStatus.present.rawValue
         let chest = HKCategoryTypeIdentifier.chestTightnessOrPain.rawValue
@@ -167,6 +188,8 @@ extension ContentCorpusGrid {
             ("symptoms/invalid-value", symptoms(present, [symptom(chest, 9, 0xE1)])),
             ("symptoms/context-missing", reading(symptoms(present, [symptom(chest, 2, 0xE1)])) { $0.symptomContexts = 0 }),
             ("precedence/symptoms-before-classification", reading(symptoms(present, [symptom(headache, 2, 0xE1)])) { $0.classification = 99 }),
+            ("precedence/duplicate-source-before-later-type", symptoms(present, [symptom(chest, 2, 0xE1), symptom(chest, 2, 0xE1), symptom(headache, 2, 0xE2)])),
+            ("precedence/type-before-duplicate-source", symptoms(present, [symptom(chest, 2, 0xE1), symptom(headache, 2, 0xE1)])),
             ("precedence/count-before-average-heart-rate", reading { reading in
                 reading.reportedCount = 3
                 reading.averageHeartRate = .nan
@@ -268,11 +291,13 @@ extension ContentCorpusGrid {
             series("row", heartbeats), series("empty", []), series("single", [heartbeats[0]]),
             series("fractional", [ContentCorpusBeat(offset: 0.1 + 0.2, gap: false), ContentCorpusBeat(offset: 1e-7, gap: true)]),
             series("late", [ContentCorpusBeat(offset: 86_400.5, gap: false)]),
+            series("sub-millisecond", [ContentCorpusBeat(offset: 0.853515625, gap: false)]),
             series("zone-invalid", heartbeats, metadata: [HKMetadataKeyTimeZone: .string("Not/A-Time-Zone")]),
             convert("heartbeat-series/linked", linkedSeries),
             convert("heartbeat-series/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.heartbeat().identifier, sampleClass: "HKHeartbeatSeriesSample"))),
             route("row", routeLocations), route("omitted", routeLocations, disclosed: false), route("empty", []),
             route("unavailable-readings", unavailable),
+            route("zero-readings", [routeLocations[0], restingFix]),
             convert("workout-route/linked", linkedRoute),
             convert("workout-route/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.workoutRoute().identifier, sampleClass: "HKWorkoutRoute")))
         ]

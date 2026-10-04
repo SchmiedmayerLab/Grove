@@ -55,6 +55,7 @@ extension ContentCorpusGrid {
             pressure("systolic-negative", [ContentCorpusMember(type: systolic, value: -1), pair()[1]]),
             pressure("systolic-huge", [ContentCorpusMember(type: systolic, value: 1e21), pair()[1]]),
             pressure("systolic-fractional", [ContentCorpusMember(type: systolic, value: 120.5), pair()[1]]),
+            pressure("systolic-hundredths", [ContentCorpusMember(type: systolic, value: 121.37), pair()[1]]),
             pressure("diastolic-zero", [pair()[0], ContentCorpusMember(type: diastolic, value: 0)]),
             pressure("member-zone-differs", pair(systolic: kolkata)),
             pressure("member-zones-agree-correlation-none", pair(systolic: kolkata, diastolic: kolkata), metadata: [:]),
