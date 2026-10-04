@@ -10,7 +10,7 @@
 #
 -->
 
-Let the instrument declare its measurements, then project the pair into an exchange bundle.
+Let the instrument declare its measurements, then export the pair as an exchange bundle.
 
 ## Overview
 
@@ -44,30 +44,33 @@ The item's code selects the Grove measurement contract, and the contract then ju
 A marked item or panel the participant left unanswered states no reading and extracts nothing, even when the instrument declares it `required`: a disabled required item is legitimately absent, and enforcing required answers is the pair validator's job, not extraction's.
 Nothing is inferred from answer shapes alone, so adding extraction to an instrument is a content change, not an app change.
 
-## Projecting the pair
+## Exporting the pair
 
-``QuestionnaireExchangeProjection/exchangeGraph(questionnaire:response:context:)`` mints the full exchange bundle: deterministic pseudonymous identities for the source record and every output, the Patient and carried response as resolvable entries, the writer's application and host device snapshots, and the transform Provenance.
+``QuestionnaireFHIRExporter`` exports each response with the instrument it answers as one exchange graph: deterministic pseudonymous identities for the source record and every output, the Patient and carried response as resolvable entries, the study context when the producer knows the participant's enrollments, the writer's application and host device snapshots, and the transform Provenance.
 Every extracted Observation takes the response's exact authored instant as both its effective and issued time, and states the manual-entry recording method.
-A received response supplies its writer facts through the writer-context extension it carries; a local projection states them via ``QuestionnaireExtractionContext/localWriter``:
+The writer facts come from the writer-context extension the response carries, which an app states with `QuestionnaireResponse.apply(writerContext:)` when the response is authored; a response without one refuses.
 
 ```swift
-let graph = try QuestionnaireExchangeProjection.exchangeGraph(
-    questionnaire: questionnaire,
-    response: response,
-    context: QuestionnaireExtractionContext(
-        patient: patient,
-        eventIdentifier: eventIdentifier,
-        identityScope: identityScope,
-        repositoryScope: repositoryScope,
-        conversionInstant: persistedConversionInstant
-    )
-)
+let exporter = QuestionnaireFHIRExporter(producer: producer, repositoryScope: repositoryScope)
+let receipt = try exporter.export([.init(questionnaire: questionnaire, response: response)]) { export in
+    switch export.outcome {
+    case .graph(let graph):
+        staged.append(graph)
+    case .refused(let refusal):
+        log(refusal)
+    }
+}
+// ... store the graphs ...
+receipt.release()
 ```
+
+The producer's ledger numbers the events: until the receipt is released, an exact redelivery restates each graph byte for byte, and another response under the same identifier, such as an amendment, is a new event.
 
 ## Consuming the bundle
 
 The graph is the exchange artifact: upload it, dedup on its identities, retract by them.
 A consumer can also read it back locally — `GroveHealthKitFHIR`'s sample projection turns each of the bundle's quantity Observations into the HealthKit sample it describes, using the minted source-output identity as the HealthKit sync identifier, so HealthKit dedup and exchange dedup ride the same identity.
-An app that only wants that local readback still projects the full graph and simply discards the bundle afterwards; the identities it minted stay deterministic, so nothing is lost by not keeping it.
+An app that only wants that local readback still exports the full graph, releases the receipt and discards the bundle afterwards; the identities it minted stay deterministic, so nothing is lost by not keeping it.
 
-Extraction refuses loudly — ``ObservationExtractionError`` names the item and the contradiction — so an instrument is validated by projecting it, the same way the conformance gates do.
+Extraction refuses loudly — ``ObservationExtractionError`` names the item and the contradiction — so an instrument is validated by exporting it, the same way the conformance gates do.
+A response refused for an identity or graph failure is reported the same way, and never ends the export of the others.

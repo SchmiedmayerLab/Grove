@@ -51,51 +51,18 @@ struct ObservationExtractionTests {
         return try JSONDecoder().decode(Resource.self, from: Data(contentsOf: url))
     }
 
+    /// The guide's event and deployment, as the projection seam takes them.
     private static func context() throws -> QuestionnaireExtractionContext {
-        let opaque = try OpaqueIdentitySystems(
-            sourceRecord: "https://study.example.org/fhir/NamingSystem/grove-source-record-v0",
-            sourceOutput: "https://study.example.org/fhir/NamingSystem/grove-source-output-v0",
-            writerRecord: "https://study.example.org/fhir/NamingSystem/grove-writer-record-v0",
-            providerRecord: "https://study.example.org/fhir/NamingSystem/grove-provider-record-v0",
-            providerOutput: "https://study.example.org/fhir/NamingSystem/grove-provider-output-v0",
-            sourceArtifact: "https://study.example.org/fhir/NamingSystem/grove-source-artifact-v0",
-            providerArtifact: "https://study.example.org/fhir/NamingSystem/grove-provider-artifact-v0",
-            sourceContext: "https://study.example.org/fhir/NamingSystem/grove-source-context-v0",
-            recordingDevice: "https://study.example.org/fhir/NamingSystem/grove-recording-device-v0",
-            deviceSnapshot: "https://study.example.org/fhir/NamingSystem/grove-device-snapshot-v0"
-        )
-        let systems = try DeploymentIdentifierSystems(
-            opaque: opaque,
-            event: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-            entryNode: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
-        )
-        let scope = try OpaqueIdentityScope.conformanceTesting(
-            systems: systems,
-            keyID: "test-key",
-            epoch: EventSequence(1)
-        )
-        let event = try ExchangeEventIdentifier(
-            system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-            producerInstance: try #require(UUID(uuidString: "6f9d1c4a-2b7e-4f18-9c33-5a1d0e7b2c48")),
-            sequence: EventSequence(1)
-        )
-        var patient = ModelsR4.Patient()
-        patient.id = "GroveQuestionnairePatientExample"
-        patient.identifier = [
-    Identifier(
-                system: FHIRPrimitive(FHIRURI(stringLiteral: "https://example.org/research/participant-id")),
-                value: "participant-001".asFHIRStringPrimitive()
-            )
-        ]
-        return QuestionnaireExtractionContext(
-            patient: patient,
-            eventIdentifier: event,
-            identityScope: scope,
-            repositoryScope: try BusinessIdentifier(
-                system: IdentifierSystem("https://study.example.org/fhir/NamingSystem/questionnaire-response"),
-                value: "default"
+        QuestionnaireExtractionContext(
+            patient: try QuestionnaireExportFixtures.patient,
+            eventIdentifier: try ExchangeEventIdentifier(
+                system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
+                producerInstance: QuestionnaireExportFixtures.producerInstance,
+                sequence: EventSequence(1)
             ),
-            conversionInstant: Date(timeIntervalSince1970: 1_787_931_125)
+            identityScope: try QuestionnaireExportFixtures.identityScope,
+            repositoryScope: try QuestionnaireExportFixtures.repositoryScope,
+            conversionInstant: QuestionnaireExportFixtures.instant
         )
     }
 
@@ -779,7 +746,7 @@ struct ObservationExtractionTests {
         }
     }
 
-    @Test("A response without writer context and no local writer does not project")
+    @Test("A response without writer context does not project")
     func missingWriterContextRefuses() throws {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
         response.extension = response.extension?.filter {
