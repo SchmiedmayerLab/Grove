@@ -467,6 +467,25 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(period.start == period.end)
     }
 
+    /// The catalog names every raw representation the logical `native-recording` output, with no fallback
+    /// (sensorkit-adapter.json, `raw.outputDiscriminator`), raw-only records included.
+    @Test("A raw-only record's sole output is the native-recording output")
+    func rawOnlyOutputIsTheNativeRecording() throws {
+        let record = try SensorKitRawRecord(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Self.start, duration: 1),
+            nativeRecording: try Self.native(format: .heartRateSamples)
+        )
+        let graph = try SensorKitExporterFixtures.graph(.raw(record))
+        #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
+            sourceRecordID: try Self.sourceID,
+            sourceToken: "SRSensor.heartRate",
+            structuredDiscriminator: nil,
+            includesNativeRecording: true
+        )))
+    }
+
     /// SensorKit names no gateway: the exporter converts as an assembler, so no Observation states
     /// observation-gatewayDevice and no graph carries a second application snapshot.
     @Test("A SensorKit graph names no gateway")

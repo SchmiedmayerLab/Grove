@@ -147,14 +147,22 @@ struct SensorKitFHIRExporterTests {
         #expect(try sequence(base, recordingDevice: .test(stableUnitToken: "watch-42", name: "Renamed Watch")) == "7")
         #expect(try sequence(base, recordingDevice: .test(stableUnitToken: "watch-43", name: "Example Watch")) == "8")
         #expect(try sequence(base, recordingDevice: nil) == "9")
-        let disclosing = try Fixtures.exporter(Fixtures.producer(storage: storage), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
-        #expect(try sequence(base, through: disclosing) == "10")
+        // Each setting changes alone against the step before it, so no other change masks it.
         let otherVisitSystem = try Fixtures.exporter(
             Fixtures.producer(storage: storage),
             visitLocationIdentifierSystem: "https://study.example.org/fhir/NamingSystem/other-visit-location"
         )
-        #expect(try sequence(base, through: otherVisitSystem) == "11")
-        #expect(try sequence(base, recordingDevice: nil) == "12", "the key keeps only its latest content's event")
+        #expect(try sequence(base, through: otherVisitSystem, recordingDevice: nil) == "10", "a setting the record's bytes do not show")
+        #expect(try sequence(base, recordingDevice: nil) == "11", "the key keeps only its latest content's event")
+        let disclosing = try Fixtures.exporter(Fixtures.producer(storage: storage), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
+        #expect(try sequence(base, through: disclosing, recordingDevice: nil) == "12")
+    }
+
+    @Test("One source-record identifier under two sensors names two records, each with its own event")
+    func sensorsKeepTheirOwnEvents() throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let (exports, _) = try Fixtures.collect(exporter, [Self.sleep(12), try Self.heartRate(12)])
+        #expect(Set(Self.sequences(exports)) == ["1", "2"])
     }
 
     @Test("The request's content parts name every stored property of the drafts, and its context every option")
@@ -192,6 +200,27 @@ struct SensorKitFHIRExporterTests {
             #expect(options.fingerprintParts.map(\.property) == stored.map(\.property))
             #expect(options.fingerprintParts.map(\.parts) == stored.map(\.parts))
         }
+    }
+
+    /// A reservation keeps the fingerprint it was made under, and every later export compares against it, across launches
+    /// and app updates: a build that derives the same request's fingerprint differently gives every pending reservation a
+    /// new sequence on redelivery, so the derivation, call parts and record parts alike, changes only on purpose, as
+    /// with an output revision.
+    @Test("A fixed record's request fingerprints to a known answer")
+    func requestFingerprintIsAKnownAnswer() throws {
+        try #require(ExchangeGraphAssembler.outputRevision == 1 && SensorKitConverter.outputRevision == 1, "a revision bump restates the answer")
+        let exporter = try Fixtures.exporter(Fixtures.producer(), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
+        let plan = SensorKitFHIRExporter.Plan(
+            try Self.wristTemperature(8),
+            content: SensorKitConverter.ContentContext(
+                sourceTimeZone: try Fixtures.timeZone,
+                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem
+            ),
+            recordingDevice: SensorKitConverter.recordingDevice(Fixtures.watch),
+            exporter: exporter
+        )
+        let request = try plan.content.get().request
+        #expect(request.fingerprint == "PNvoLV5fSCGtYfNmnKkauM15zWRYxnKfHBirLjcUDR8")
     }
 
     @Test("Every converter-clock instant states the reservation's millisecond, kept on a redelivery")
