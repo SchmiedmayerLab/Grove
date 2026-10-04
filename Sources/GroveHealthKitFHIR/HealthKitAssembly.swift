@@ -65,7 +65,7 @@ struct HealthKitAssembly: Sendable {
     static let outputRevision: UInt = 2
 
     static let adapter = ExchangeAdapterContract(
-        adapterID: "healthkit",
+        adapterID: HealthKitConverter.adapterID,
         provenanceProfile: HealthKitContract.conversionProvenanceProfile,
         applicationDeviceProfile: HealthKitContract.applicationDeviceProfile
     ) { application in
@@ -133,6 +133,9 @@ struct HealthKitAssembly: Sendable {
         outputs: [ExchangeOutputDraft],
         request: Request
     ) throws -> HealthKitConversion {
+        guard !outputs.isEmpty else {
+            throw ExchangeAssemblyError.noOutputs
+        }
         let source = HealthKitSourceRecord(uuid: sample.uuid, type: type)
         let facts = try SourceFacts(sample, options: request.options)
         var outputs = outputs

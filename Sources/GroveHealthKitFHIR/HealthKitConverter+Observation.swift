@@ -345,20 +345,6 @@ extension HealthKitConverter {
             ]))
         )
     }
-
-    static func applyManualRecordingMethod(to observation: inout Observation) {
-        observation.append(
-            extension: Extension(
-                url: Canonicals.recordingMethod,
-                value: .coding(Coding(
-                    code: "manual-entry",
-                    display: "Manual entry",
-                    system: Canonicals.recordingMethodCodeSystem
-                ))
-            ),
-            behaviour: .replace
-        )
-    }
 }
 
 #endif

@@ -256,8 +256,6 @@ extension HealthKitConversionError {
             self = .exchangeGraph(error)
         case .repositoryIDWithoutNode(let node) as ExchangeAssemblyError:
             self = .repositoryIDWithoutNode(node)
-        case ExchangeAssemblyError.writerInvalid:
-            self = .sourceApplicationInvalid
         default:
             self = .dependency(HealthKitDependencyFailure(underlying: error))
         }

@@ -198,8 +198,6 @@ package enum ExchangeAssemblyError: Error, Equatable, Sendable {
     case repositoryIDWithoutNode(ExchangeGraphNode)
     /// The draft states no output.
     case noOutputs
-    /// The source's application or host facts do not form a valid Device.
-    case writerInvalid
 }
 
 
