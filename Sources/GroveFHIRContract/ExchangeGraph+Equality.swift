@@ -9,7 +9,13 @@
 import Foundation
 
 
-/// A JSON document read without losing what the receiver compares: number lexemes stay text.
+/// A JSON document read without losing what the receiver compares: number lexemes stay text, and strings
+/// keep every Unicode scalar they were written with.
+///
+/// Equality is the exchange protocol's token equality (`exchange-protocol.json` `semanticComparison`), which the
+/// guide's reference comparator decides over code points: strings and member names compare scalar by scalar, so
+/// canonically equivalent spellings such as `U+00E9` and `e U+0301` are different content, and nothing is normalized.
+/// An object whose member names are canonically equivalent is refused as a duplicate, as `StrictJSONScanner` refuses it.
 indirect enum LosslessJSONValue: Equatable {
     case object([String: LosslessJSONValue])
     case array([LosslessJSONValue])
@@ -173,15 +179,21 @@ indirect enum LosslessJSONValue: Equatable {
             index += 1
             var scalars = String.UnicodeScalarView()
             var utf8Run: [UInt8] = []
+            // Decoded scalar by scalar: `String(bytes:encoding:)` would drop a leading U+FEFF as a byte order mark.
             func flushRun() throws(ParseError) {
-                guard !utf8Run.isEmpty else {
-                    return
+                var decoder = UTF8()
+                var iterator = utf8Run.makeIterator()
+                while true {
+                    switch decoder.decode(&iterator) {
+                    case .scalarValue(let scalar):
+                        scalars.append(scalar)
+                    case .emptyInput:
+                        utf8Run.removeAll()
+                        return
+                    case .error:
+                        throw ParseError()
+                    }
                 }
-                guard let text = String(bytes: utf8Run, encoding: .utf8) else {
-                    throw ParseError()
-                }
-                scalars.append(contentsOf: text.unicodeScalars)
-                utf8Run.removeAll()
             }
             while index < bytes.count {
                 let byte = bytes[index]
@@ -258,12 +270,40 @@ indirect enum LosslessJSONValue: Equatable {
 }
 
 
+extension LosslessJSONValue {
+    /// Token equality, with strings, lexemes and member names compared scalar by scalar.
+    static func == (lhs: LosslessJSONValue, rhs: LosslessJSONValue) -> Bool {
+        switch (lhs, rhs) {
+        case let (.object(lhs), .object(rhs)):
+            // A dictionary finds a member under any canonically equivalent name, so the name found is compared too.
+            lhs.count == rhs.count && lhs.allSatisfy { name, value in
+                guard let index = rhs.index(forKey: name) else {
+                    return false
+                }
+                return rhs[index].key.unicodeScalars.elementsEqual(name.unicodeScalars) && rhs[index].value == value
+            }
+        case let (.array(lhs), .array(rhs)):
+            lhs == rhs
+        case let (.string(lhs), .string(rhs)), let (.number(lhs), .number(rhs)):
+            lhs.unicodeScalars.elementsEqual(rhs.unicodeScalars)
+        case let (.boolean(lhs), .boolean(rhs)):
+            lhs == rhs
+        case (.null, .null):
+            true
+        default:
+            false
+        }
+    }
+}
+
+
 extension ExchangeGraph {
     /// Whether two graphs carry the same JSON tokens.
     ///
     /// Member order, whitespace and string escaping do not matter; a decimal lexeme is compared as
-    /// text, so `72` and `72.0` are different content. A retry that is equal under this comparison
-    /// is the exact retry the exchange protocol admits.
+    /// text, so `72` and `72.0` are different content, and strings compare scalar by scalar without
+    /// Unicode normalization. A retry that is equal under this comparison is the exact retry the
+    /// exchange protocol admits.
     public func isSemanticallyEqual(to other: ExchangeGraph) -> Bool {
         guard let lhs = try? LosslessJSONValue(parsing: json),
               let rhs = try? LosslessJSONValue(parsing: other.json) else {

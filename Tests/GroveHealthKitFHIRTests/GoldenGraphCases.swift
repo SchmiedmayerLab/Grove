@@ -181,6 +181,13 @@ extension GoldenCase {
                 sequence: sequence,
                 .applicationWriter
             )
+        },
+        // A name outside ASCII with a precomposed U+00E9: the comparison is scalar by scalar, so a decomposed
+        // spelling of the same name would be a different golden.
+        GoldenCase("writer-non-ascii-name", sequence: 30) { sequence in
+            var writer = GoldenFixtures.foreignWriter
+            writer.name = "Sant\u{E9} Journal"
+            return try GoldenFixtures.convert(attributedHeartRate(uuid: 30, writer: writer), sequence: sequence, .applicationWriter)
         }
     ]
 

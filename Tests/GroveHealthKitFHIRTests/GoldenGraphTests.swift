@@ -121,7 +121,8 @@ private enum TokenDiff {
                     return difference
                 }
             }
-            return nil
+            // Every value matched under a dictionary lookup, which finds canonically equivalent names alike.
+            return expected == actual ? nil : "\(path): a member name differs in its Unicode scalars"
         case let (.array(lhs), .array(rhs)):
             for (index, pair) in zip(lhs, rhs).enumerated() {
                 if let difference = firstDifference(expected: pair.0, actual: pair.1, at: "\(path)[\(index)]") {
@@ -138,7 +139,7 @@ private enum TokenDiff {
         switch value {
         case .object(let members): "object(\(members.count) members)"
         case .array(let elements): "array(\(elements.count))"
-        case .string(let text): "\"\(text)\""
+        case .string(let text): "\"" + text.unicodeScalars.map { $0.isASCII ? String($0) : "\\u{\(String($0.value, radix: 16))}" }.joined() + "\""
         case .number(let lexeme): lexeme
         case .boolean(let flag): "\(flag)"
         case .null: "null"
@@ -266,6 +267,28 @@ struct GoldenGraphTests {
         #expect(GoldenOutline(golden, warnings: []) == GoldenOutline(reordered, warnings: []))
         #expect(GoldenOutline(golden, warnings: []) != GoldenOutline(longer, warnings: []))
         #expect(GoldenOutline(golden, warnings: ["a"]) != GoldenOutline(golden, warnings: []))
+    }
+
+    /// Strings and member names compare scalar by scalar, as the guide's reference comparator does: a canonically
+    /// equivalent spelling and a leading U+FEFF are different content, while a `\u` escape is the scalar it names.
+    @Test
+    func tokensCompareUnicodeScalars() throws {
+        func tokens(_ json: String) throws -> LosslessJSONValue {
+            try LosslessJSONValue(parsing: Data(json.utf8))
+        }
+        let precomposed = try tokens(#"{"name":"Sant\#u{E9}"}"#)
+        let decomposed = try tokens(#"{"name":"Sante\#u{301}"}"#)
+        #expect(precomposed != decomposed)
+        #expect(TokenDiff.firstDifference(expected: precomposed, actual: decomposed) == #"$.name: golden "Sant\u{e9}", actual "Sante\u{301}""#)
+        #expect(try tokens(#"{"Sant\#u{E9}":1}"#) != tokens(#"{"Sante\#u{301}":1}"#))
+        #expect(
+            TokenDiff.firstDifference(expected: try tokens(#"{"Sant\#u{E9}":1}"#), actual: try tokens(#"{"Sante\#u{301}":1}"#))
+                == "$: a member name differs in its Unicode scalars"
+        )
+        let marked = try tokens(#"{"name":"\#u{FEFF}x"}"#)
+        #expect(try tokens(#"{"name":"x"}"#) != marked)
+        #expect(try tokens(#"{"name":"\uFEFFx"}"#) == marked)
+        #expect(try tokens(#"["\#u{FEFF}a","\n\#u{FEFF}b"]"#) == .array([.string("\u{FEFF}a"), .string("\n\u{FEFF}b")]))
     }
 }
 
