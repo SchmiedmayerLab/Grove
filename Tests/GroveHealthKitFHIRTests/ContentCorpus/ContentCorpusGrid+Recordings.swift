@@ -283,8 +283,8 @@ extension ContentCorpusGrid {
 
     /// Heartbeat series and workout routes: their payloads, empty series, every link, the plain sample entry point, and
     /// a route's disclosure and track checked before its source facts. A fix whose horizontal accuracy CoreLocation
-    /// reports negative (an invalid coordinate) still states it: the registry's column, unlike the optional readings,
-    /// cannot be empty.
+    /// reports negative (an invalid coordinate) refuses the route: the registry's column, unlike the optional
+    /// readings, cannot be empty, and no fix may be left out.
     static var recordings: [ContentCorpusVector] {
         func series(_ label: String, _ beats: [ContentCorpusBeat], metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {
             convert("heartbeat-series/\(label)", ContentCorpusSource(.heartbeatSeries(beats: beats), end: start + 2, metadata: metadata))
@@ -329,7 +329,9 @@ extension ContentCorpusGrid {
             convert("workout-route/linked", linkedRoute),
             convert("workout-route/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.workoutRoute().identifier, sampleClass: "HKWorkoutRoute"))),
             route("precedence/omission-before-sync", routeLocations, disclosed: false, metadata: brokenSync),
-            route("precedence/empty-before-sync", [], metadata: brokenSync)
+            route("precedence/empty-before-sync", [], metadata: brokenSync),
+            route("precedence/omission-before-invalid-coordinate", [routeLocations[0], invalidCoordinate], disclosed: false),
+            route("precedence/invalid-coordinate-before-sync", [routeLocations[0], invalidCoordinate], metadata: brokenSync)
         ]
     }
 

@@ -231,6 +231,25 @@ struct HealthKitRecordingDocumentTests {
         }
     }
 
+    /// CoreLocation marks a fix whose coordinate is invalid with a negative horizontal accuracy. The registry's row
+    /// states a position and its radius of uncertainty, which cannot be empty, for every fix, so the route cannot be
+    /// carried; an omitted route is never read.
+    @Test("An authorized route with an invalid coordinate fails closed")
+    func invalidCoordinateFailsClosed() throws {
+        let invalid = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 37.4276, longitude: -122.1698),
+            altitude: 0,
+            horizontalAccuracy: -1,
+            verticalAccuracy: -1,
+            timestamp: Self.seriesStart.addingTimeInterval(1)
+        )
+        let record = try Self.workoutRoute([Self.locations[0], invalid])
+        #expect(throws: HealthKitConversionError.invalidValue(.workoutRoute, .outsideDomain)) {
+            try ExporterFixtures.export(record, inputs(route: .authorized))
+        }
+        #expect(try ExporterFixtures.exports(record, inputs()).isEmpty)
+    }
+
     #if !os(watchOS)
     @Test("A CDA document is carried byte for byte under its own media type")
     func clinicalDocumentIsBytePreserved() throws {

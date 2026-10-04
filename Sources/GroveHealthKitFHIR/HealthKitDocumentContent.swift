@@ -78,13 +78,19 @@ struct DocumentPlan: Sendable {
     }
 
     /// A workout route's fixes in the plan's format, the registry's `location-track-samples` column schema, one row
-    /// per fix. A route without fixes is refused. The exporter's companion fingerprint digests exactly these bytes.
+    /// per fix. A route without fixes is refused. So is a route with a fix whose horizontal accuracy CoreLocation
+    /// reports negative, its marker for an invalid coordinate: every row states a WGS 84 position and its radius of
+    /// uncertainty, a column that cannot be empty, and no fix may be left out. The exporter's companion fingerprint
+    /// digests exactly these bytes.
     func locationTrack(_ locations: [CLLocation]) throws -> Data {
         guard !locations.isEmpty else {
             throw HealthKitConversionError.ValueFailure.emptyRecordingSeries
         }
         var writer = try RecordingCSVWriter(format: format)
         for fix in locations {
+            if fix.horizontalAccuracy < 0 {
+                throw HealthKitConversionError.ValueFailure.outsideDomain
+            }
             try writer.append([
                 .timestamp(fix.timestamp),
                 .number(fix.coordinate.latitude),
