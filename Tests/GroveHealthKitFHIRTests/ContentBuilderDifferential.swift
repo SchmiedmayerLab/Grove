@@ -91,17 +91,8 @@ enum ContentBuilderPair {
             return nil
         }
         switch plan.route {
-        case .observation(let observation):
-            let today = ContentBuilderOutcome {
-                guard let binding = HealthKitCatalog.binding(for: sample) else {
-                    throw HealthKitConverter.unconvertibleSampleError(for: plan.sourceType)
-                }
-                return try render(try HealthKitConverter.observation(for: sample, binding: binding))
-            }
-            let planned = ContentBuilderOutcome {
-                try render(try observation.observation(sample, metadata: HealthKitSampleMetadata(sample, rule: plan.metadata)))
-            }
-            return (today, planned)
+        case .observation:
+            return (ContentBuilderOutcome { try todaysObservation(sample) }, ContentBuilderOutcome { try plannedObservation(sample) })
         case .clinical(let document):
             #if os(watchOS)
             return nil
@@ -117,6 +108,28 @@ enum ContentBuilderPair {
     /// A resource's JSON tokens.
     static func render(_ resource: some Encodable) throws -> LosslessJSONValue {
         try LosslessJSONValue(parsing: JSONEncoder().encode(resource))
+    }
+
+    /// Today's Observation of `sample`, as today's sample entry point builds it.
+    private static func todaysObservation(_ sample: HKSample) throws -> LosslessJSONValue {
+        guard let type = HealthKitSourceType(sample) else {
+            throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
+        }
+        guard let binding = HealthKitCatalog.binding(for: sample) else {
+            throw HealthKitConverter.unconvertibleSampleError(for: type)
+        }
+        return try render(try HealthKitConverter.observation(for: sample, binding: binding))
+    }
+
+    /// The plans' Observation of `sample`, as the rewired sample entry point will build it.
+    private static func plannedObservation(_ sample: HKSample) throws -> LosslessJSONValue {
+        guard let plan = HealthKitContentPlan.plan(for: sample) else {
+            throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
+        }
+        guard case .observation(let observation) = plan.route else {
+            throw NoBuilder(type: plan.sourceType)
+        }
+        return try render(try observation.observation(sample, metadata: HealthKitSampleMetadata(sample, rule: plan.metadata)))
     }
 
     /// The document plan of a recording or clinical type.
@@ -142,11 +155,12 @@ enum ContentBuilderPair {
 
 extension ContentBuilderPair {
     /// Today's ECG outputs of `record`, as today's assembly composes them: the evidence, the waveform, the validated
-    /// symptoms, then the waveform Observation and the average heart rate.
+    /// symptoms, each symptom's Observation in that order, then the waveform Observation and the average heart rate.
     private static func todaysElectrocardiogram(_ record: HealthKitECGRecord) throws -> LosslessJSONValue {
         let source = try HealthKitConverter.ecgSourceEvidence(record.electrocardiogram)
         let waveform = try HealthKitConverter.validatedWaveform(for: record, source: source)
         let symptoms = try HealthKitConverter.validatedSymptomSamples(record.correlatedSymptoms, status: source.symptomsStatus)
+        let symptomObservations = try symptoms.map(todaysObservation)
         let input = HealthKitECGObservationInput(source: source, waveform: waveform, symptomOutputIdentifiers: try identifiers(of: symptoms))
         guard let output = HealthKitCatalog.primaryOutput(for: .electrocardiogram) else {
             throw NoBuilder(type: .electrocardiogram)
@@ -156,10 +170,11 @@ extension ContentBuilderPair {
         if let averageHeartRate = try HealthKitConverter.ecgAverageHeartRateChild(input: input) {
             drafts.append(averageHeartRate)
         }
-        return try render(symptoms, drafts: drafts)
+        return try render(symptoms, observations: symptomObservations, drafts: drafts)
     }
 
-    /// The plans' ECG outputs of `record`, as the rewired assembly will compose them.
+    /// The plans' ECG outputs of `record`, as the rewired assembly will compose them: the evidence, the validated
+    /// symptoms, each symptom's Observation, then the waveform and the average heart rate.
     private static func plannedElectrocardiogram(_ record: HealthKitECGRecord) throws -> LosslessJSONValue {
         let plan = HealthKitContentPlan[.electrocardiogram]
         guard case .electrocardiogram(let content) = plan.route else {
@@ -168,7 +183,9 @@ extension ContentBuilderPair {
         let ecg = record.electrocardiogram
         let evidence = try content.evidence(record, metadata: HealthKitSampleMetadata(ecg, rule: plan.metadata))
         let symptoms = try HealthKitECGContent.validatedSymptoms(record.correlatedSymptoms, status: ecg.symptomsStatus)
-        return try render(symptoms, drafts: try content.outputs(evidence, symptoms: try identifiers(of: symptoms)))
+        let symptomObservations = try symptoms.map(plannedObservation)
+        let drafts = try content.outputs(evidence, symptoms: try identifiers(of: symptoms))
+        return try render(symptoms, observations: symptomObservations, drafts: drafts)
     }
 
     /// The output identifiers the symptoms are referenced by: their own UUIDs, here.
@@ -178,10 +195,14 @@ extension ContentBuilderPair {
         }
     }
 
-    /// The validated symptoms' order and every draft as it enters the graph.
-    private static func render(_ symptoms: [HKCategorySample], drafts: [ExchangeOutputDraft]) throws -> LosslessJSONValue {
+    /// The validated symptoms in order, each with its Observation, and every draft as it enters the graph.
+    private static func render(
+        _ symptoms: [HKCategorySample],
+        observations: [LosslessJSONValue],
+        drafts: [ExchangeOutputDraft]
+    ) throws -> LosslessJSONValue {
         .object([
-            "symptoms": .array(symptoms.map { .string($0.uuid.uuidString) }),
+            "symptoms": .array(zip(symptoms, observations).map { .object(["uuid": .string($0.uuid.uuidString), "observation": $1]) }),
             "drafts": .array(try drafts.map(render(draft:)))
         ])
     }

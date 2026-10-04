@@ -302,9 +302,10 @@ extension ContentBuilderRandomRecords {
         source.end = source.start + (reversed ? -30 : 30)
     }
 
-    /// Symptoms as the status states them, or, as faults, an unknown status, a status contradicting them, a type the
-    /// ECG does not admit, or a stated sample again (under its own type or another). Each faulty symptom lands at a
-    /// random position, so which one is refused first pins the order the per-symptom checks run in.
+    /// Symptoms as the status states them, each of a severity its code states, or, as faults, an unknown status, a
+    /// status contradicting them, a severity no code states, a type the ECG does not admit, or a stated sample again
+    /// (under its own type or another). Each faulty symptom lands at a random position, so which one is refused first
+    /// pins the order the per-symptom checks run in; a symptom's severity is checked when it converts, after them all.
     private mutating func symptoms(of reading: inout ContentCorpusElectrocardiogram) {
         typealias Symptom = ContentCorpusElectrocardiogram.Symptom
         let admitted = [HKCategoryTypeIdentifier.chestTightnessOrPain, .fatigue, .dizziness].map(\.rawValue)
@@ -313,7 +314,7 @@ extension ContentBuilderRandomRecords {
         reading.symptomsStatus = fault(oneIn: 10) ? 99 : pick([0, 1, present, present])
         let stated = reading.symptomsStatus == present ? Int.random(in: 1...2, using: &generator) : 0
         var symptoms = (0..<stated).map { ordinal in
-            Symptom(type: pick(admitted), value: 2, ordinal: 0xE1 + UInt8(ordinal))
+            Symptom(type: pick(admitted), value: fault(oneIn: 10) ? pick([-1, 5, 9]) : pick(Array(0...4)), ordinal: 0xE1 + UInt8(ordinal))
         }
         var faulty: [Symptom] = []
         if fault(oneIn: 3) {

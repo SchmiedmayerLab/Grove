@@ -171,6 +171,25 @@ struct ContentBuilderDifferentialTests {
         }
         #expect(differences.isEmpty, "\(differences.count) Observations project differently: \(differences.prefix(5))")
     }
+
+    /// Today's assembly converts each correlated symptom as its own graph before it builds the ECG's outputs, so a
+    /// symptom value no code states is refused before an average heart rate no decimal states, by today's exporter
+    /// and by both builders.
+    @Test("An ECG's invalid symptom value is refused before its invalid average heart rate")
+    func symptomValuePrecedesAverageHeartRate() throws {
+        let chest = HKCategoryTypeIdentifier.chestTightnessOrPain.rawValue
+        let present = HKElectrocardiogram.SymptomsStatus.present.rawValue
+        let symptoms = ContentCorpusGrid.symptoms(present, [ContentCorpusElectrocardiogram.Symptom(type: chest, value: 9, ordinal: 0xE1)])
+        let source = ContentCorpusGrid.electrocardiogramSource(ContentCorpusGrid.reading(symptoms) { $0.averageHeartRate = .nan })
+        guard case .refused(let error) = try ContentCorpusRecorder.outcome(of: source) else {
+            Issue.record("today's exporter converts the ECG")
+            return
+        }
+        #expect(error == .invalidValue(.electrocardiogram, .unsupportedValue(9)))
+        let outcomes = try #require(try ContentBuilderPair.outcomes(of: source))
+        #expect(outcomes.today == .threw(String(reflecting: HealthKitValueFailure.unsupportedValue(9))))
+        #expect(outcomes.planned == outcomes.today)
+    }
 }
 
 
