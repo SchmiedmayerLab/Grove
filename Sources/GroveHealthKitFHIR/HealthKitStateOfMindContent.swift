@@ -17,7 +17,7 @@ import ModelsR4
 ///
 /// The value is the valence. The components are the kind, then the valence classification, then the labels and the
 /// associations, each sorted by code with repeats kept; a value the tables do not name is dropped, and no coding
-/// states a display.
+/// states a display. Every code is one its component's contract admits.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitStateOfMindContent: Sendable {
     /// A coded component, with the code it sorts by.
@@ -132,7 +132,8 @@ struct HealthKitStateOfMindContent: Sendable {
         associations = try Self.components("association", Self.associationCodes, of: contract)
     }
 
-    /// The component of each value of one coded axis, in the result CodeSystem of the contract's component `id`.
+    /// The component of each value of one coded axis, in the result CodeSystem of the contract's component `id`,
+    /// which must admit every code.
     private static func components<Value: Hashable>(
         _ id: String,
         _ codes: KeyValuePairs<Value, String>,
@@ -143,8 +144,9 @@ struct HealthKitStateOfMindContent: Sendable {
             throw HealthKitContentDefect("states no coded component \(id)")
         }
         let code = CodeableConcept(coding: [Coding(component.code, system: component.system)])
-        let coded = codes.map { value, result in
-            let concept = CodeableConcept(coding: [Coding(result, system: system)])
+        let admitted = component.resultCodes.map(\.code)
+        let coded = try codes.map { value, result throws(HealthKitContentDefect) in
+            let concept = CodeableConcept(coding: [try Coding(result, system: system, admittedBy: admitted)])
             return (value, Coded(code: result, component: ObservationComponent(code: code, value: .codeableConcept(concept))))
         }
         return Dictionary(coded) { first, _ in first }

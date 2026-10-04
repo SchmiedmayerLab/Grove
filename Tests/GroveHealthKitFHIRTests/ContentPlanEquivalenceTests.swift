@@ -68,6 +68,10 @@ struct ContentPlanEquivalenceTests {
             case .clinical(let document):
                 #expect(clinical.contains(type) && binding == nil, "\(type.rawValue)")
                 #expect(plan.outputs.map(\.artifactFormatCode) == [document.format.rawValue])
+                #if os(watchOS)
+                let today = HealthKitConverter.unconvertibleSampleError(for: type)
+                Issue.record("\(type.rawValue) converts on watchOS, where today refuses it with \(today)")
+                #endif
             case .refused(let refusal):
                 #expect(binding == nil, "\(type.rawValue) has a binding today")
                 #expect(refusal == HealthKitConverter.unconvertibleSampleError(for: type), "\(type.rawValue)")

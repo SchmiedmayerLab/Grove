@@ -54,12 +54,17 @@ enum ContentPlanSamples {
         }
     }
 
-    /// A sample of an Observation plan's type; a category sample states `raw`. `nil` for another route.
-    static func sample(_ plan: HealthKitContentPlan, raw: Int = HKCategoryValue.notApplicable.rawValue) throws -> HKSample? {
+    /// A sample of an Observation plan's type stating `metadata` beside what the type requires; a category sample
+    /// states `raw`. `nil` for another route.
+    static func sample(
+        _ plan: HealthKitContentPlan,
+        raw: Int = HKCategoryValue.notApplicable.rawValue,
+        metadata: [String: any Sendable] = [:]
+    ) throws -> HKSample? {
         guard case .observation(let observation) = plan.route else {
             return nil
         }
-        let facts = facts(metadata: requiredMetadata(plan.sourceType))
+        let facts = facts(metadata: requiredMetadata(plan.sourceType).merging(metadata) { _, stated in stated })
         let identifier = plan.sourceType.rawValue
         switch observation.value {
         case let .quantity(template, read):
@@ -106,18 +111,37 @@ enum ContentPlanSamples {
 
 
 extension ContentPlanEquivalenceTests {
-    @Test("Every Observation plan's skeleton and quantity are what today's builder states")
+    /// Every metadata key an Observation component reads, each at a value its component admits: every type's sample
+    /// states all of them, so a plan states a metadata component exactly where today's builder does.
+    private static let componentMetadata: [String: any Sendable] = [
+        HKMetadataKeyHeartRateMotionContext: HKHeartRateMotionContext.active.rawValue,
+        HKMetadataKeyInsulinDeliveryReason: HKInsulinDeliveryReason.bolus.rawValue,
+        HKMetadataKeyMenstrualCycleStart: false
+    ]
+
+    @Test("Every Observation plan's skeleton, quantity and metadata component are what today's builder states")
     func skeletonsAreTodays() throws {
+        let componentCodes = HealthKitContentPlan.all.compactMap { plan -> CodeableConcept? in
+            guard case .observation(let observation) = plan.route else {
+                return nil
+            }
+            return observation.metadataComponent?.code
+        }
         var unconverted: [HealthKitSourceType] = []
         for plan in HealthKitContentPlan.all {
             guard case .observation(let observation) = plan.route,
                   let binding = HealthKitCatalog.binding(forSourceTypeIdentifier: plan.sourceType.rawValue) else {
                 continue
             }
-            guard let today = try Self.firstConversion(plan, binding: binding) else {
+            guard let conversion = try Self.firstConversion(plan, binding: binding) else {
                 unconverted.append(plan.sourceType)
                 continue
             }
+            let (sample, today) = conversion
+            let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
+            let planned = try observation.metadataComponent.flatMap { try $0.component(metadata) }
+            let stated = today.component?.filter { componentCodes.contains($0.code) } ?? []
+            #expect(stated == [planned].compactMap(\.self), "\(plan.sourceType.rawValue) states another metadata component")
             let skeleton = observation.skeleton
             let type = plan.sourceType.rawValue
             #expect(today.code == skeleton.code, "\(type)")
@@ -208,14 +232,15 @@ extension ContentPlanEquivalenceTests {
 
 
 extension ContentPlanEquivalenceTests {
-    /// Today's Observation of the plan's first sample that converts: a category type tries every raw value up to 200.
-    private static func firstConversion(_ plan: HealthKitContentPlan, binding: HealthKitFHIRBinding) throws -> Observation? {
+    /// The plan's first sample that today converts, stating every component's metadata key, and today's Observation
+    /// of it: a category type tries every raw value up to 200.
+    private static func firstConversion(_ plan: HealthKitContentPlan, binding: HealthKitFHIRBinding) throws -> (HKSample, Observation)? {
         for raw in 0...200 {
-            guard let sample = try ContentPlanSamples.sample(plan, raw: raw) else {
+            guard let sample = try ContentPlanSamples.sample(plan, raw: raw, metadata: componentMetadata) else {
                 return nil
             }
             if let observation = try? HealthKitConverter.observation(for: sample, binding: binding) {
-                return observation
+                return (sample, observation)
             }
         }
         return nil

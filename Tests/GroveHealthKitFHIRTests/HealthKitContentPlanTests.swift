@@ -16,17 +16,21 @@ import Testing
 
 
 /// The compiled content plans' permanent invariants (oracle O6): the compile defects are the known set, every type
-/// has one plan, the rule table is total, and every unit the plans read measures what it reads.
+/// has one plan, the rule table is total, every document row converts to its document on every platform that has
+/// it, exactly the known types state a metadata component, and every unit the plans read measures what it reads.
 @Suite
 struct HealthKitContentPlanTests {
     /// The walking-steadiness notification values, whose codes the contract does not admit: today's mapping states
     /// the guide's value and occurrence as one code.
-    private static let knownDefects = [
+    static let knownDefects = [
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 1 reports as initial-low, which the contract does not admit",
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 2 reports as initial-very-low, which the contract does not admit",
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 3 reports as repeat-low, which the contract does not admit",
         "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent: value 4 reports as repeat-very-low, which the contract does not admit"
     ]
+
+    /// The profiles a recording or clinical-record document claims.
+    private static let documentProfiles = [Profile.healthkitRecordingDocument, Profile.healthkitClinicalRecordDocument]
 
     @Test("The compiler reconciles every rule with its contract except the known walking-steadiness values")
     func compileDefectsAreTheKnownSet() {
@@ -51,24 +55,27 @@ struct HealthKitContentPlanTests {
         #expect(HealthKitContentPlan.plan(for: heartRate) === HealthKitContentPlan[.heartRate])
     }
 
-    @Test("Every rule names a distinct type; supported rows convert unless declared not yet; documents mint documents")
+    @Test("Every rule names a distinct type; supported rows convert unless declared not yet; refusals keep today's order")
     func ruleTableIsTotal() throws {
         let listed = HealthKitContentRules.groups.flatMap(\.types)
         #expect(listed.count == Set(listed).count, "a type is listed under two rules")
+        let rows = Dictionary(uniqueKeysWithValues: HealthKitContract.rows.map { ($0.sourceTypeIdentifier, $0) })
         var unconverted: Set<HealthKitSourceType> = []
         for plan in HealthKitContentPlan.all {
             let type = plan.sourceType
-            let status = plan.entry.implementationStatus
-            guard case .refused(let refusal) = plan.route else {
-                #expect(!plan.outputs.isEmpty, "\(type.rawValue) converts but mints no outputs")
-                #expect(status != .intentionallyUnsupported, "\(type.rawValue) is intentionally unsupported but converts")
-                if status == .platformExclusive {
-                    #expect(plan.outputs.map(\.output.resourceType) == [.documentReference], "\(type.rawValue) mints \(plan.outputs)")
-                }
+            let row = try #require(rows[type.rawValue])
+            guard Self.documentProfiles.allSatisfy({ !row.profiles.contains($0) }) else {
+                Self.expectDocument(plan)
                 continue
             }
-            #expect(plan.outputs.isEmpty || Self.keepsOutputsWhenRefused(plan), "\(type.rawValue) is refused but mints outputs")
-            switch status {
+            guard case .refused(let refusal) = plan.route else {
+                #expect(!plan.outputs.isEmpty, "\(type.rawValue) converts but mints no outputs")
+                #expect(row.implementationStatus == .supported, "\(type.rawValue) is \(row.implementationStatus) but converts")
+                #expect(!plan.outputs.contains { $0.output.resourceType == .documentReference }, "\(type.rawValue)")
+                continue
+            }
+            #expect(plan.outputs.isEmpty, "\(type.rawValue) is refused but mints outputs")
+            switch row.implementationStatus {
             case .supported:
                 unconverted.insert(type)
                 #expect(refusal == .unsupportedSourceType(type))
@@ -77,11 +84,26 @@ struct HealthKitContentPlanTests {
             case .intentionallyUnsupported:
                 let expected: HealthKitConversionError = [.bloodPressureSystolic, .bloodPressureDiastolic].contains(type)
                     ? .componentRequiresCorrelation(type)
-                    : .intentionallyUnsupported(type, reason: plan.entry.requirement ?? "")
+                    : .intentionallyUnsupported(type, reason: row.requirement ?? "")
                 #expect(refusal == expected)
             }
         }
         #expect(unconverted == HealthKitContentRules.notYetConvertible)
+    }
+
+    @Test("Exactly heart rate, insulin delivery and menstrual flow state a metadata component, each read its own way")
+    func metadataComponentsAreTheKnownSet() {
+        var readings: [HealthKitSourceType: String] = [:]
+        for plan in HealthKitContentPlan.all {
+            if case .observation(let observation) = plan.route, let rule = observation.metadataComponent {
+                readings[plan.sourceType] = "\(rule.field.key) \(rule.reading)"
+            }
+        }
+        #expect(readings == [
+            .heartRate: "\(HKMetadataKeyHeartRateMotionContext) optionalInteger",
+            .insulinDelivery: "\(HKMetadataKeyInsulinDeliveryReason) requiredInteger",
+            .menstrualFlow: "\(HKMetadataKeyMenstrualCycleStart) requiredBoolean"
+        ])
     }
 
     @Test("Every unit a plan reads measures the quantity it reads, and every UCUM code the rules bind is read")
@@ -122,13 +144,30 @@ struct HealthKitContentPlanTests {
 
 
 extension HealthKitContentPlanTests {
-    /// Whether a refused plan is a clinical type on watchOS, which keeps its output so a retraction can name it.
-    private static func keepsOutputsWhenRefused(_ plan: HealthKitContentPlan) -> Bool {
-        #if os(watchOS)
-        plan.outputs.map(\.output.role) == [HealthKitContentRules.clinicalRecordRole]
-        #else
-        false
-        #endif
+    /// Checks the plan of a row claiming a document profile: it mints its one document and converts to it, except a
+    /// clinical record on watchOS, which has none: refused as platform exclusive, yet keeping its slot for retraction.
+    private static func expectDocument(_ plan: HealthKitContentPlan) {
+        let type = plan.sourceType.rawValue
+        #expect(plan.outputs.map(\.output.resourceType) == [.documentReference], "\(type) mints \(plan.outputs)")
+        let role = plan.outputs.first?.output.role
+        switch plan.route {
+        case .recording:
+            #expect(role == HealthKitContentRules.nativeRecordingRole, "\(type)")
+        case .clinical:
+            #expect(role == HealthKitContentRules.clinicalRecordRole, "\(type)")
+            #if os(watchOS)
+            Issue.record("watchOS has no clinical records, yet \(type) converts to one")
+            #endif
+        case .refused(let refusal):
+            #if os(watchOS)
+            #expect(refusal == .platformExclusiveSourceType(plan.sourceType), "\(type)")
+            #expect(role == HealthKitContentRules.clinicalRecordRole, "\(type)")
+            #else
+            Issue.record("\(type) claims a document profile, yet is refused with \(refusal)")
+            #endif
+        default:
+            Issue.record("\(type) claims a document profile, yet converts through \(plan.route)")
+        }
     }
 
     /// The UCUM codes a workout's statistics are read in, each checked against every quantity type it reads.

@@ -40,10 +40,18 @@ struct HealthKitContentCompiler {
 
     /// Every generated measurement contract by id, the first catalog winning, and body-mass index, which no catalog
     /// lists: a row's contract is its first measurement's.
-    private static let contracts: [String: MeasurementContract] = Dictionary(
+    static let generatedContracts: [String: MeasurementContract] = Dictionary(
         (MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex]).map { ($0.id, $0) }
     ) { first, _ in first }
 
+    /// The profiles of a recording or clinical-record document: a row claiming one converts through a document rule.
+    private static let documentProfiles: Set<FHIRPrimitive<Canonical>> = [
+        Profile.healthkitRecordingDocument,
+        Profile.healthkitClinicalRecordDocument
+    ]
+
+    /// The contracts rows are compiled against, by measurement id.
+    private let contracts: [String: MeasurementContract]
     /// Every listed source type's rule.
     private let rules: [HealthKitSourceType: HealthKitContentRules.Rule]
     /// The source types listed under more than one rule.
@@ -51,19 +59,24 @@ struct HealthKitContentCompiler {
     /// Every defect so far.
     private var defects: [String] = []
 
-    /// A compiler of the hand-written rules.
-    private init() {
-        let listed = HealthKitContentRules.groups.flatMap { group in
+    /// A compiler of `groups` against `contracts`.
+    private init(groups: [HealthKitContentRules.RuleGroup], contracts: [String: MeasurementContract]) {
+        let listed = groups.flatMap { group in
             group.types.map { (type: $0, rule: group.rule) }
         }
         rules = Dictionary(listed.map { ($0.type, $0.rule) }) { first, _ in first }
         let counts = Dictionary(listed.map { ($0.type, 1) }, uniquingKeysWith: +)
         listedTwice = Set(counts.filter { $0.value > 1 }.keys)
+        self.contracts = contracts
     }
 
-    /// Every inventory row's plan, in row order.
-    static func compile() -> Compilation {
-        var compiler = HealthKitContentCompiler()
+    /// Every inventory row's plan, in row order, compiled from `groups` against `contracts`: by default the adapter's
+    /// own rules and the generated contracts, which a test replaces to reach each defect.
+    static func compile(
+        groups: [HealthKitContentRules.RuleGroup] = HealthKitContentRules.groups,
+        contracts: [String: MeasurementContract] = generatedContracts
+    ) -> Compilation {
+        var compiler = HealthKitContentCompiler(groups: groups, contracts: contracts)
         // The generator emits the source types from the inventory rows, one per row.
         let plans = HealthKitContract.rows.compactMap { row in
             HealthKitSourceType(rawValue: row.sourceTypeIdentifier).map { compiler.plan(row, type: $0) }
@@ -102,12 +115,16 @@ struct HealthKitContentCompiler {
         }
     }
 
-    /// The contract of a row: its first measurement's.
-    private static func contract(of row: HealthKitContractRow) throws(HealthKitContentDefect) -> MeasurementContract {
-        guard let id = row.measurementIDs.first, let contract = contracts[id] else {
-            throw HealthKitContentDefect("names no generated measurement contract")
+    /// Why a row without a rule is a defect, or `nil` when the inventory refuses it by design: a supported row converts
+    /// unless declared not yet convertible, and a row claiming a document profile converts to that document.
+    private static func missingRule(_ row: HealthKitContractRow, type: HealthKitSourceType) -> String? {
+        if row.implementationStatus == .supported, !HealthKitContentRules.notYetConvertible.contains(type) {
+            return "supported, but has no rule and is not declared not yet convertible"
         }
-        return contract
+        if !documentProfiles.isDisjoint(with: row.profiles) {
+            return "claims a document profile, but has no rule"
+        }
+        return nil
     }
 
     /// The direct profiles of a measurement's Observation: a single-profile measurement claims its own, every other
@@ -145,12 +162,20 @@ struct HealthKitContentCompiler {
         return HealthKitContentPlan(type, entry: entry, route: route, outputs: outputs)
     }
 
+    /// The contract of a row: its first measurement's.
+    private func contract(of row: HealthKitContractRow) throws(HealthKitContentDefect) -> MeasurementContract {
+        guard let id = row.measurementIDs.first, let contract = contracts[id] else {
+            throw HealthKitContentDefect("names no generated measurement contract")
+        }
+        return contract
+    }
+
     /// The plan of one inventory row: under its listed rule, else under the rule its row implies, else refused.
     private mutating func plan(_ row: HealthKitContractRow, type: HealthKitSourceType) -> HealthKitContentPlan {
         let entry = Self.entry(row)
         guard let rule = rules[type] ?? HealthKitContentRules.impliedRule(of: type, status: row.implementationStatus) else {
-            if row.implementationStatus == .supported, !HealthKitContentRules.notYetConvertible.contains(type) {
-                defects.append("\(type.rawValue): supported, but has no rule and is not declared not yet convertible")
+            if let missing = Self.missingRule(row, type: type) {
+                defects.append("\(type.rawValue): \(missing)")
             }
             return HealthKitContentPlan(type, entry: entry, route: .refused(Self.refusal(of: type, row: row)))
         }
@@ -174,7 +199,7 @@ struct HealthKitContentCompiler {
     ) throws(HealthKitContentDefect) -> HealthKitContentPlan {
         switch rule {
         case .observation(let rule):
-            let contract = try Self.contract(of: row)
+            let contract = try contract(of: row)
             let (observation, unitBinding) = try self.observation(rule, contract: contract, type: type)
             let outputs = [HealthKitOutputSlot.primary(role: contract.id)]
             return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, unitBinding: unitBinding)

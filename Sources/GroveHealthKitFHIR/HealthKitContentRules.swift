@@ -302,4 +302,15 @@ extension [ResultCodeContract] {
     }
 }
 
+
+extension Coding {
+    /// A coding of `code` in `system`, which the contract must admit: a code `admitted` does not list is a defect.
+    init(_ code: String, system: String, admittedBy admitted: [String]) throws(HealthKitContentDefect) {
+        guard admitted.contains(code) else {
+            throw HealthKitContentDefect("admits no code \(code) in \(system)")
+        }
+        self.init(code, system: system)
+    }
+}
+
 #endif

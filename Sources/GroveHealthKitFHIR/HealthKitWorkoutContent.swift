@@ -101,19 +101,19 @@ struct HealthKitWorkoutContent: Sendable {
     /// The statistics, in the order the session reports them.
     let statistics: [Statistic]
 
-    /// The content of the workout contract.
+    /// The content of the workout contract, whose activity vocabulary must admit every shared code the table states.
     init(_ contract: MeasurementContract) throws(HealthKitContentDefect) {
         guard let system = contract.resultCodeSystem else {
             throw HealthKitContentDefect("states no activity CodeSystem")
         }
         var activities: [UInt: Activity] = [:]
         for row in Self.activityTable {
-            let shared = Coding(row.shared, system: system)
+            let shared = try Coding(row.shared, system: system, admittedBy: contract.allowedValues)
             let platform = Coding(row.name, system: Canonicals.healthKitWorkoutActivity)
             activities[row.raw] = Activity(value: CodeableConcept(coding: [shared, platform]), distance: row.distance)
         }
         self.activities = activities
-        let other = Coding("other", system: system)
+        let other = try Coding("other", system: system, admittedBy: contract.allowedValues)
         otherActivity = Activity(value: CodeableConcept(coding: [other]), distance: .distanceWalkingRunning)
         activeDuration = try contract.quantityComponent("active-duration").template
         statistics = try Self.statisticReadings.map { id, read throws(HealthKitContentDefect) in
