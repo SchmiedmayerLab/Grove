@@ -14,9 +14,9 @@ public import Foundation
 public import ModelsR4
 
 
-/// Canonical root of the grove-fhir package closure used to generate these constants.
-public enum ContractVersion {
-    public static let canonicalRoot = "https://grovealliance.org/fhir"
+extension Canonicals {
+    /// Canonical root of the grove-fhir package closure used to generate these constants.
+    public static let root = "https://grovealliance.org/fhir"
 }
 
 
@@ -317,7 +317,7 @@ public enum Profile {
 
 
 /// Effective datatype fixed by a shared mobile measurement profile.
-public enum MeasurementEffective: String, Sendable {
+package enum MeasurementEffective: String, Sendable {
     case dateTime
     case period = "Period"
     case dateTimeOrPeriod = "dateTime-or-Period"
@@ -325,9 +325,9 @@ public enum MeasurementEffective: String, Sendable {
 
 
 /// One quantity or component constraint from the generated measurement catalog.
-public struct QuantityBoundary: Hashable, Sendable {
-    public let value: Decimal
-    public let inclusive: Bool
+package struct QuantityBoundary: Hashable, Sendable {
+    package let value: Decimal
+    package let inclusive: Bool
 
     init(value lexical: String, inclusive: Bool) {
         guard let value = Decimal(
@@ -343,12 +343,12 @@ public struct QuantityBoundary: Hashable, Sendable {
 
 
 /// Closed numeric domain declared by one quantity contract.
-public struct QuantityValueDomain: Hashable, Sendable {
-    public let minimum: QuantityBoundary
-    public let maximum: QuantityBoundary?
-    public let integerOnly: Bool
+package struct QuantityValueDomain: Hashable, Sendable {
+    package let minimum: QuantityBoundary
+    package let maximum: QuantityBoundary?
+    package let integerOnly: Bool
 
-    public func contains(_ value: Decimal) -> Bool {
+    package func contains(_ value: Decimal) -> Bool {
         var source = value
         var integer = Decimal()
         NSDecimalRound(&integer, &source, 0, .plain)
@@ -368,13 +368,13 @@ public struct QuantityValueDomain: Hashable, Sendable {
 
 
 /// One quantity or component constraint from the generated measurement catalog.
-public struct QuantityContract: Hashable, Sendable {
-    public let system: String
-    public let code: String
-    public let unit: String
-    public let valueDomain: QuantityValueDomain?
+package struct QuantityContract: Hashable, Sendable {
+    package let system: String
+    package let code: String
+    package let unit: String
+    package let valueDomain: QuantityValueDomain?
 
-    public init(
+    package init(
         system: String,
         code: String,
         unit: String,
@@ -389,12 +389,12 @@ public struct QuantityContract: Hashable, Sendable {
 
 
 /// One fixed measurement code from the generated measurement catalog.
-public struct CodingContract: Hashable, Sendable {
-    public let system: String
-    public let code: String
-    public let display: String?
+package struct CodingContract: Hashable, Sendable {
+    package let system: String
+    package let code: String
+    package let display: String?
 
-    public init(system: String, code: String, display: String? = nil) {
+    package init(system: String, code: String, display: String? = nil) {
         self.system = system
         self.code = code
         self.display = display
@@ -403,52 +403,52 @@ public struct CodingContract: Hashable, Sendable {
 
 
 /// One fixed component constraint from a shared measurement profile.
-public struct ComponentContract: Hashable, Sendable {
-    public let id: String
-    public let system: String
-    public let code: String
-    public let quantity: QuantityContract?
-    public let resultCodeSystem: String?
-    public let resultCodes: [ResultCodeContract]
+package struct ComponentContract: Hashable, Sendable {
+    package let id: String
+    package let system: String
+    package let code: String
+    package let quantity: QuantityContract?
+    package let resultCodeSystem: String?
+    package let resultCodes: [ResultCodeContract]
 }
 
 
 /// One fixed aggregation-method coding asserted by a windowed measurement profile.
-public struct MethodContract: Hashable, Sendable {
-    public let code: String
-    public let display: String
+package struct MethodContract: Hashable, Sendable {
+    package let code: String
+    package let display: String
 }
 
 
 /// One admitted coded result from a measurement's closed result value set.
-public struct ResultCodeContract: Hashable, Sendable {
-    public let code: String
-    public let display: String
+package struct ResultCodeContract: Hashable, Sendable {
+    package let code: String
+    package let display: String
 }
 
 
 /// One generated shared mobile measurement contract.
-public struct MeasurementContract: Sendable {
-    public let id: String
-    public let profile: FHIRPrimitive<Canonical>
-    public let code: CodingContract
-    public let requiredCodings: [CodingContract]
-    public let quantity: QuantityContract?
-    public let components: [ComponentContract]
-    public let resultCodeSystem: String?
-    public let allowedValues: [String]
-    public let resultCodes: [ResultCodeContract]
-    public let method: MethodContract?
-    public let methodChoice: [String]
-    public let effective: MeasurementEffective
+package struct MeasurementContract: Sendable {
+    package let id: String
+    package let profile: FHIRPrimitive<Canonical>
+    package let code: CodingContract
+    package let requiredCodings: [CodingContract]
+    package let quantity: QuantityContract?
+    package let components: [ComponentContract]
+    package let resultCodeSystem: String?
+    package let allowedValues: [String]
+    package let resultCodes: [ResultCodeContract]
+    package let method: MethodContract?
+    package let methodChoice: [String]
+    package let effective: MeasurementEffective
     /// The Observation category the catalog fixes for the measurement, if it fixes one.
     package let category: CodingContract?
 }
 
 
 /// Machine-generated source of truth for the shared mobile measurement matrix.
-public enum MeasurementCatalog {
-    public static let activeEnergy = MeasurementContract(
+package enum MeasurementCatalog {
+    package static let activeEnergy = MeasurementContract(
         id: "active-energy",
         profile: Profile.groveMobileActiveEnergy,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "active-energy-burned", display: "Active energy burned"),
@@ -464,7 +464,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let basalBodyTemperature = MeasurementContract(
+    package static let basalBodyTemperature = MeasurementContract(
         id: "basal-body-temperature",
         profile: Profile.groveMobileBasalBodyTemperature,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "basal-body-temperature", display: "Basal body temperature"),
@@ -480,7 +480,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let basalEnergy = MeasurementContract(
+    package static let basalEnergy = MeasurementContract(
         id: "basal-energy",
         profile: Profile.groveMobileBasalEnergy,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "basal-energy-burned", display: "Basal energy burned"),
@@ -496,7 +496,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let bloodGlucoseUnspecifiedSpecimen = MeasurementContract(
+    package static let bloodGlucoseUnspecifiedSpecimen = MeasurementContract(
         id: "blood-glucose-unspecified-specimen",
         profile: Profile.groveMobileBloodGlucoseUnspecifiedSpecimen,
         code: CodingContract(system: "http://loinc.org", code: "2339-0", display: "Glucose [Mass/volume] in Blood"),
@@ -512,7 +512,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let bloodPressure = MeasurementContract(
+    package static let bloodPressure = MeasurementContract(
         id: "blood-pressure",
         profile: Profile.groveMobileBloodPressure,
         code: CodingContract(system: "http://loinc.org", code: "85354-9"),
@@ -531,7 +531,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let bodyFatPercentage = MeasurementContract(
+    package static let bodyFatPercentage = MeasurementContract(
         id: "body-fat-percentage",
         profile: Profile.groveMobileBodyFatPercentage,
         code: CodingContract(system: "http://loinc.org", code: "41982-0", display: "Percentage of body fat Measured"),
@@ -547,7 +547,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let bodyHeight = MeasurementContract(
+    package static let bodyHeight = MeasurementContract(
         id: "body-height",
         profile: Profile.groveMobileBodyHeight,
         code: CodingContract(system: "http://loinc.org", code: "8302-2"),
@@ -563,7 +563,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let bodyTemperature = MeasurementContract(
+    package static let bodyTemperature = MeasurementContract(
         id: "body-temperature",
         profile: Profile.groveMobileBodyTemperature,
         code: CodingContract(system: "http://loinc.org", code: "8310-5"),
@@ -579,7 +579,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let bodyWaterMass = MeasurementContract(
+    package static let bodyWaterMass = MeasurementContract(
         id: "body-water-mass",
         profile: Profile.groveMobileBodyWaterMass,
         code: CodingContract(system: "http://loinc.org", code: "101683-1", display: "Body water mass"),
@@ -595,7 +595,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let bodyWeight = MeasurementContract(
+    package static let bodyWeight = MeasurementContract(
         id: "body-weight",
         profile: Profile.groveMobileBodyWeight,
         code: CodingContract(system: "http://loinc.org", code: "29463-7"),
@@ -611,7 +611,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let boneMass = MeasurementContract(
+    package static let boneMass = MeasurementContract(
         id: "bone-mass",
         profile: Profile.groveMobileBoneMass,
         code: CodingContract(system: "http://loinc.org", code: "101685-6", display: "Body bone mass"),
@@ -627,7 +627,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let cervicalMucusQuality = MeasurementContract(
+    package static let cervicalMucusQuality = MeasurementContract(
         id: "cervical-mucus-quality",
         profile: Profile.groveMobileCervicalMucusQuality,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cervical-mucus-quality", display: "Cervical mucus quality"),
@@ -653,7 +653,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let cyclingCadence = MeasurementContract(
+    package static let cyclingCadence = MeasurementContract(
         id: "cycling-cadence",
         profile: Profile.groveMobileCyclingCadence,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "cycling-cadence", display: "Cycling cadence"),
@@ -669,7 +669,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let deepSleepDuration = MeasurementContract(
+    package static let deepSleepDuration = MeasurementContract(
         id: "deep-sleep-duration",
         profile: Profile.groveMobileDeepSleepDuration,
         code: CodingContract(system: "http://loinc.org", code: "93831-6", display: "Deep sleep duration"),
@@ -685,7 +685,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryBiotin = MeasurementContract(
+    package static let dietaryBiotin = MeasurementContract(
         id: "dietary-biotin",
         profile: Profile.groveMobileDietaryBiotin,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-biotin", display: "Dietary biotin"),
@@ -701,7 +701,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryCaffeine = MeasurementContract(
+    package static let dietaryCaffeine = MeasurementContract(
         id: "dietary-caffeine",
         profile: Profile.groveMobileDietaryCaffeine,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-caffeine", display: "Dietary caffeine"),
@@ -717,7 +717,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryCalcium = MeasurementContract(
+    package static let dietaryCalcium = MeasurementContract(
         id: "dietary-calcium",
         profile: Profile.groveMobileDietaryCalcium,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-calcium", display: "Dietary calcium"),
@@ -733,7 +733,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryCarbohydrates = MeasurementContract(
+    package static let dietaryCarbohydrates = MeasurementContract(
         id: "dietary-carbohydrates",
         profile: Profile.groveMobileDietaryCarbohydrates,
         code: CodingContract(system: "http://loinc.org", code: "9060-5", display: "Carbohydrate intake Measured"),
@@ -749,7 +749,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryChloride = MeasurementContract(
+    package static let dietaryChloride = MeasurementContract(
         id: "dietary-chloride",
         profile: Profile.groveMobileDietaryChloride,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-chloride", display: "Dietary chloride"),
@@ -765,7 +765,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryCholesterol = MeasurementContract(
+    package static let dietaryCholesterol = MeasurementContract(
         id: "dietary-cholesterol",
         profile: Profile.groveMobileDietaryCholesterol,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-cholesterol", display: "Dietary cholesterol"),
@@ -781,7 +781,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryChromium = MeasurementContract(
+    package static let dietaryChromium = MeasurementContract(
         id: "dietary-chromium",
         profile: Profile.groveMobileDietaryChromium,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-chromium", display: "Dietary chromium"),
@@ -797,7 +797,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryCopper = MeasurementContract(
+    package static let dietaryCopper = MeasurementContract(
         id: "dietary-copper",
         profile: Profile.groveMobileDietaryCopper,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-copper", display: "Dietary copper"),
@@ -813,7 +813,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryEnergy = MeasurementContract(
+    package static let dietaryEnergy = MeasurementContract(
         id: "dietary-energy",
         profile: Profile.groveMobileDietaryEnergy,
         code: CodingContract(system: "http://loinc.org", code: "9052-2", display: "Calorie intake total"),
@@ -829,7 +829,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryFatMonounsaturated = MeasurementContract(
+    package static let dietaryFatMonounsaturated = MeasurementContract(
         id: "dietary-fat-monounsaturated",
         profile: Profile.groveMobileDietaryFatMonounsaturated,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fat-monounsaturated", display: "Dietary monounsaturated fat"),
@@ -845,7 +845,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryFatPolyunsaturated = MeasurementContract(
+    package static let dietaryFatPolyunsaturated = MeasurementContract(
         id: "dietary-fat-polyunsaturated",
         profile: Profile.groveMobileDietaryFatPolyunsaturated,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fat-polyunsaturated", display: "Dietary polyunsaturated fat"),
@@ -861,7 +861,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryFatSaturated = MeasurementContract(
+    package static let dietaryFatSaturated = MeasurementContract(
         id: "dietary-fat-saturated",
         profile: Profile.groveMobileDietaryFatSaturated,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fat-saturated", display: "Dietary saturated fat"),
@@ -877,7 +877,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryFatTotal = MeasurementContract(
+    package static let dietaryFatTotal = MeasurementContract(
         id: "dietary-fat-total",
         profile: Profile.groveMobileDietaryFatTotal,
         code: CodingContract(system: "http://loinc.org", code: "9067-0", display: "Fat intake Measured"),
@@ -893,7 +893,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryFiber = MeasurementContract(
+    package static let dietaryFiber = MeasurementContract(
         id: "dietary-fiber",
         profile: Profile.groveMobileDietaryFiber,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-fiber", display: "Dietary fiber"),
@@ -909,7 +909,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryFolate = MeasurementContract(
+    package static let dietaryFolate = MeasurementContract(
         id: "dietary-folate",
         profile: Profile.groveMobileDietaryFolate,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-folate", display: "Dietary folate"),
@@ -925,7 +925,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryIodine = MeasurementContract(
+    package static let dietaryIodine = MeasurementContract(
         id: "dietary-iodine",
         profile: Profile.groveMobileDietaryIodine,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-iodine", display: "Dietary iodine"),
@@ -941,7 +941,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryIron = MeasurementContract(
+    package static let dietaryIron = MeasurementContract(
         id: "dietary-iron",
         profile: Profile.groveMobileDietaryIron,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-iron", display: "Dietary iron"),
@@ -957,7 +957,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryMagnesium = MeasurementContract(
+    package static let dietaryMagnesium = MeasurementContract(
         id: "dietary-magnesium",
         profile: Profile.groveMobileDietaryMagnesium,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-magnesium", display: "Dietary magnesium"),
@@ -973,7 +973,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryManganese = MeasurementContract(
+    package static let dietaryManganese = MeasurementContract(
         id: "dietary-manganese",
         profile: Profile.groveMobileDietaryManganese,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-manganese", display: "Dietary manganese"),
@@ -989,7 +989,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryMolybdenum = MeasurementContract(
+    package static let dietaryMolybdenum = MeasurementContract(
         id: "dietary-molybdenum",
         profile: Profile.groveMobileDietaryMolybdenum,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-molybdenum", display: "Dietary molybdenum"),
@@ -1005,7 +1005,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryNiacin = MeasurementContract(
+    package static let dietaryNiacin = MeasurementContract(
         id: "dietary-niacin",
         profile: Profile.groveMobileDietaryNiacin,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-niacin", display: "Dietary niacin"),
@@ -1021,7 +1021,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryPantothenicAcid = MeasurementContract(
+    package static let dietaryPantothenicAcid = MeasurementContract(
         id: "dietary-pantothenic-acid",
         profile: Profile.groveMobileDietaryPantothenicAcid,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-pantothenic-acid", display: "Dietary pantothenic acid"),
@@ -1037,7 +1037,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryPhosphorus = MeasurementContract(
+    package static let dietaryPhosphorus = MeasurementContract(
         id: "dietary-phosphorus",
         profile: Profile.groveMobileDietaryPhosphorus,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-phosphorus", display: "Dietary phosphorus"),
@@ -1053,7 +1053,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryPotassium = MeasurementContract(
+    package static let dietaryPotassium = MeasurementContract(
         id: "dietary-potassium",
         profile: Profile.groveMobileDietaryPotassium,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-potassium", display: "Dietary potassium"),
@@ -1069,7 +1069,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryProtein = MeasurementContract(
+    package static let dietaryProtein = MeasurementContract(
         id: "dietary-protein",
         profile: Profile.groveMobileDietaryProtein,
         code: CodingContract(system: "http://loinc.org", code: "9080-3", display: "Protein intake Measured"),
@@ -1085,7 +1085,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryRiboflavin = MeasurementContract(
+    package static let dietaryRiboflavin = MeasurementContract(
         id: "dietary-riboflavin",
         profile: Profile.groveMobileDietaryRiboflavin,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-riboflavin", display: "Dietary riboflavin"),
@@ -1101,7 +1101,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietarySelenium = MeasurementContract(
+    package static let dietarySelenium = MeasurementContract(
         id: "dietary-selenium",
         profile: Profile.groveMobileDietarySelenium,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-selenium", display: "Dietary selenium"),
@@ -1117,7 +1117,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietarySodium = MeasurementContract(
+    package static let dietarySodium = MeasurementContract(
         id: "dietary-sodium",
         profile: Profile.groveMobileDietarySodium,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-sodium", display: "Dietary sodium"),
@@ -1133,7 +1133,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietarySugar = MeasurementContract(
+    package static let dietarySugar = MeasurementContract(
         id: "dietary-sugar",
         profile: Profile.groveMobileDietarySugar,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-sugar", display: "Dietary sugar"),
@@ -1149,7 +1149,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryThiamin = MeasurementContract(
+    package static let dietaryThiamin = MeasurementContract(
         id: "dietary-thiamin",
         profile: Profile.groveMobileDietaryThiamin,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-thiamin", display: "Dietary thiamin"),
@@ -1165,7 +1165,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminA = MeasurementContract(
+    package static let dietaryVitaminA = MeasurementContract(
         id: "dietary-vitamin-a",
         profile: Profile.groveMobileDietaryVitaminA,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-a", display: "Dietary vitamin A"),
@@ -1181,7 +1181,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminB12 = MeasurementContract(
+    package static let dietaryVitaminB12 = MeasurementContract(
         id: "dietary-vitamin-b12",
         profile: Profile.groveMobileDietaryVitaminB12,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-b12", display: "Dietary vitamin B12"),
@@ -1197,7 +1197,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminB6 = MeasurementContract(
+    package static let dietaryVitaminB6 = MeasurementContract(
         id: "dietary-vitamin-b6",
         profile: Profile.groveMobileDietaryVitaminB6,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-b6", display: "Dietary vitamin B6"),
@@ -1213,7 +1213,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminC = MeasurementContract(
+    package static let dietaryVitaminC = MeasurementContract(
         id: "dietary-vitamin-c",
         profile: Profile.groveMobileDietaryVitaminC,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-c", display: "Dietary vitamin C"),
@@ -1229,7 +1229,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminD = MeasurementContract(
+    package static let dietaryVitaminD = MeasurementContract(
         id: "dietary-vitamin-d",
         profile: Profile.groveMobileDietaryVitaminD,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-d", display: "Dietary vitamin D"),
@@ -1245,7 +1245,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminE = MeasurementContract(
+    package static let dietaryVitaminE = MeasurementContract(
         id: "dietary-vitamin-e",
         profile: Profile.groveMobileDietaryVitaminE,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-e", display: "Dietary vitamin E"),
@@ -1261,7 +1261,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryVitaminK = MeasurementContract(
+    package static let dietaryVitaminK = MeasurementContract(
         id: "dietary-vitamin-k",
         profile: Profile.groveMobileDietaryVitaminK,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-vitamin-k", display: "Dietary vitamin K"),
@@ -1277,7 +1277,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let dietaryZinc = MeasurementContract(
+    package static let dietaryZinc = MeasurementContract(
         id: "dietary-zinc",
         profile: Profile.groveMobileDietaryZinc,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "dietary-zinc", display: "Dietary zinc"),
@@ -1293,7 +1293,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let distance = MeasurementContract(
+    package static let distance = MeasurementContract(
         id: "distance",
         profile: Profile.groveMobileDistance,
         code: CodingContract(system: "http://loinc.org", code: "103208-5"),
@@ -1309,7 +1309,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let electrodermalActivity = MeasurementContract(
+    package static let electrodermalActivity = MeasurementContract(
         id: "electrodermal-activity",
         profile: Profile.groveMobileElectrodermalActivity,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "electrodermal-activity", display: "Electrodermal activity"),
@@ -1325,7 +1325,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let flightsClimbed = MeasurementContract(
+    package static let flightsClimbed = MeasurementContract(
         id: "flights-climbed",
         profile: Profile.groveMobileFlightsClimbed,
         code: CodingContract(system: "http://loinc.org", code: "100304-5", display: "Flights climbed [#] Reporting Period"),
@@ -1341,7 +1341,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let fluidIntake = MeasurementContract(
+    package static let fluidIntake = MeasurementContract(
         id: "fluid-intake",
         profile: Profile.groveMobileFluidIntake,
         code: CodingContract(system: "http://loinc.org", code: "8985-4", display: "Fluid intake Measured"),
@@ -1357,7 +1357,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let heartRate = MeasurementContract(
+    package static let heartRate = MeasurementContract(
         id: "heart-rate",
         profile: Profile.groveMobileHeartRate,
         code: CodingContract(system: "http://loinc.org", code: "8867-4"),
@@ -1373,7 +1373,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let heartRateVariabilityRmssd = MeasurementContract(
+    package static let heartRateVariabilityRmssd = MeasurementContract(
         id: "heart-rate-variability-rmssd",
         profile: Profile.groveMobileHeartRateVariabilityRmssd,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "heart-rate-variability-rmssd", display: "Heart rate variability RMSSD"),
@@ -1389,7 +1389,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let heartRateVariabilitySdnn = MeasurementContract(
+    package static let heartRateVariabilitySdnn = MeasurementContract(
         id: "heart-rate-variability-sdnn",
         profile: Profile.groveMobileHeartRateVariabilitySdnn,
         code: CodingContract(system: "http://loinc.org", code: "112429-6", display: "Heart rate variability SDNN [Time]"),
@@ -1405,7 +1405,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let intermenstrualBleeding = MeasurementContract(
+    package static let intermenstrualBleeding = MeasurementContract(
         id: "intermenstrual-bleeding",
         profile: Profile.groveMobileIntermenstrualBleeding,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "intermenstrual-bleeding", display: "Intermenstrual bleeding"),
@@ -1423,7 +1423,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let leanBodyMass = MeasurementContract(
+    package static let leanBodyMass = MeasurementContract(
         id: "lean-body-mass",
         profile: Profile.groveMobileLeanBodyMass,
         code: CodingContract(system: "http://loinc.org", code: "91557-9", display: "Lean body weight"),
@@ -1439,7 +1439,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let lightSleepDuration = MeasurementContract(
+    package static let lightSleepDuration = MeasurementContract(
         id: "light-sleep-duration",
         profile: Profile.groveMobileLightSleepDuration,
         code: CodingContract(system: "http://loinc.org", code: "93830-8", display: "Light sleep duration"),
@@ -1455,7 +1455,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let menstruationFlow = MeasurementContract(
+    package static let menstruationFlow = MeasurementContract(
         id: "menstruation-flow",
         profile: Profile.groveMobileMenstruationFlow,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "menstruation-flow", display: "Menstruation flow"),
@@ -1479,7 +1479,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let mindfulnessSession = MeasurementContract(
+    package static let mindfulnessSession = MeasurementContract(
         id: "mindfulness-session",
         profile: Profile.groveMobileMindfulnessSession,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "mindfulness-session-duration", display: "Mindfulness session duration"),
@@ -1495,7 +1495,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let ovulationTestResult = MeasurementContract(
+    package static let ovulationTestResult = MeasurementContract(
         id: "ovulation-test-result",
         profile: Profile.groveMobileOvulationTestResult,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "ovulation-test-result", display: "Ovulation test result"),
@@ -1516,7 +1516,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let oxygenSaturation = MeasurementContract(
+    package static let oxygenSaturation = MeasurementContract(
         id: "oxygen-saturation",
         profile: Profile.groveMobileOxygenSaturation,
         code: CodingContract(system: "http://loinc.org", code: "2708-6"),
@@ -1532,7 +1532,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let oxygenSaturationDailyAverage = MeasurementContract(
+    package static let oxygenSaturationDailyAverage = MeasurementContract(
         id: "oxygen-saturation-daily-average",
         profile: Profile.groveMobileOxygenSaturationDailyAverage,
         code: CodingContract(system: "http://loinc.org", code: "103209-3", display: "Mean oxygen saturation"),
@@ -1548,7 +1548,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let power = MeasurementContract(
+    package static let power = MeasurementContract(
         id: "power",
         profile: Profile.groveMobilePower,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "power", display: "Power"),
@@ -1564,7 +1564,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let remSleepDuration = MeasurementContract(
+    package static let remSleepDuration = MeasurementContract(
         id: "rem-sleep-duration",
         profile: Profile.groveMobileRemSleepDuration,
         code: CodingContract(system: "http://loinc.org", code: "93829-0", display: "REM sleep duration"),
@@ -1580,7 +1580,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let respiratoryRate = MeasurementContract(
+    package static let respiratoryRate = MeasurementContract(
         id: "respiratory-rate",
         profile: Profile.groveMobileRespiratoryRate,
         code: CodingContract(system: "http://loinc.org", code: "9279-1"),
@@ -1596,7 +1596,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let respiratoryRateAverage = MeasurementContract(
+    package static let respiratoryRateAverage = MeasurementContract(
         id: "respiratory-rate-average",
         profile: Profile.groveMobileRespiratoryRateAverage,
         code: CodingContract(system: "http://loinc.org", code: "103217-6", display: "Mean respiratory rate"),
@@ -1612,7 +1612,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let restingHeartRate = MeasurementContract(
+    package static let restingHeartRate = MeasurementContract(
         id: "resting-heart-rate",
         profile: Profile.groveMobileRestingHeartRate,
         code: CodingContract(system: "http://loinc.org", code: "40443-4", display: "Heart rate --resting"),
@@ -1630,7 +1630,7 @@ public enum MeasurementCatalog {
         category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", code: "vital-signs", display: "Vital Signs")
     )
 
-    public static let sexualActivity = MeasurementContract(
+    package static let sexualActivity = MeasurementContract(
         id: "sexual-activity",
         profile: Profile.groveMobileSexualActivity,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sexual-activity", display: "Sexual activity"),
@@ -1650,7 +1650,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let skinTemperature = MeasurementContract(
+    package static let skinTemperature = MeasurementContract(
         id: "skin-temperature",
         profile: Profile.groveMobileSkinTemperature,
         code: CodingContract(system: "http://loinc.org", code: "61008-9", display: "Body surface temperature"),
@@ -1666,7 +1666,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let sleepAwakeDuration = MeasurementContract(
+    package static let sleepAwakeDuration = MeasurementContract(
         id: "sleep-awake-duration",
         profile: Profile.groveMobileSleepAwakeDuration,
         code: CodingContract(system: "http://loinc.org", code: "93828-2", display: "Nighttime awakening duration"),
@@ -1682,7 +1682,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let sleepDuration = MeasurementContract(
+    package static let sleepDuration = MeasurementContract(
         id: "sleep-duration",
         profile: Profile.groveMobileSleepDuration,
         code: CodingContract(system: "http://loinc.org", code: "93832-4"),
@@ -1698,7 +1698,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let sleepHeartRate = MeasurementContract(
+    package static let sleepHeartRate = MeasurementContract(
         id: "sleep-heart-rate",
         profile: Profile.groveMobileSleepHeartRate,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sleep-heart-rate", display: "Sleep heart rate"),
@@ -1714,7 +1714,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let sleepStage = MeasurementContract(
+    package static let sleepStage = MeasurementContract(
         id: "sleep-stage",
         profile: Profile.groveMobileSleepStage,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "sleep-stage", display: "Sleep stage"),
@@ -1730,7 +1730,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let speed = MeasurementContract(
+    package static let speed = MeasurementContract(
         id: "speed",
         profile: Profile.groveMobileSpeed,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "speed", display: "Speed"),
@@ -1746,7 +1746,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let stepCount = MeasurementContract(
+    package static let stepCount = MeasurementContract(
         id: "step-count",
         profile: Profile.groveMobileStepCount,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "step-count-total", display: "Step count total"),
@@ -1762,7 +1762,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let vo2Max = MeasurementContract(
+    package static let vo2Max = MeasurementContract(
         id: "vo2-max",
         profile: Profile.groveMobileVo2Max,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "vo2-max", display: "VO2 max"),
@@ -1778,7 +1778,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let wheelchairPushCount = MeasurementContract(
+    package static let wheelchairPushCount = MeasurementContract(
         id: "wheelchair-push-count",
         profile: Profile.groveMobileWheelchairPushCount,
         code: CodingContract(system: "http://loinc.org", code: "96502-0", display: "Number of wheelchair pushes per time period"),
@@ -1794,7 +1794,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let workout = MeasurementContract(
+    package static let workout = MeasurementContract(
         id: "workout",
         profile: Profile.groveMobileWorkout,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "workout", display: "Workout session"),
@@ -1823,7 +1823,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let workoutSegment = MeasurementContract(
+    package static let workoutSegment = MeasurementContract(
         id: "workout-segment",
         profile: Profile.groveMobileWorkoutSegment,
         code: CodingContract(system: "https://grovealliance.org/fhir/mobile/CodeSystem/grove-mobile-measurement", code: "workout-segment", display: "Workout segment"),
@@ -1845,7 +1845,7 @@ public enum MeasurementCatalog {
         category: nil
     )
 
-    public static let all: [MeasurementContract] = [
+    package static let all: [MeasurementContract] = [
         activeEnergy,
         basalBodyTemperature,
         basalEnergy,
@@ -1935,8 +1935,8 @@ public enum MeasurementCatalog {
 
 
 /// Machine-generated HealthKit-exclusive measurement contracts owned by the HealthKit adapter.
-public enum HealthKitMeasurementCatalog {
-    public static let appleExerciseTime = MeasurementContract(
+package enum HealthKitMeasurementCatalog {
+    package static let appleExerciseTime = MeasurementContract(
         id: "apple-exercise-time",
         profile: Profile.healthkitAppleExerciseTime,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-exercise-time", display: "Apple exercise time"),
@@ -1952,7 +1952,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let appleMoveTime = MeasurementContract(
+    package static let appleMoveTime = MeasurementContract(
         id: "apple-move-time",
         profile: Profile.healthkitAppleMoveTime,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-move-time", display: "Apple move time"),
@@ -1968,7 +1968,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let appleStandHour = MeasurementContract(
+    package static let appleStandHour = MeasurementContract(
         id: "apple-stand-hour",
         profile: Profile.healthkitAppleStandHour,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-stand-hour", display: "Apple stand hour"),
@@ -1987,7 +1987,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let appleStandTime = MeasurementContract(
+    package static let appleStandTime = MeasurementContract(
         id: "apple-stand-time",
         profile: Profile.healthkitAppleStandTime,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "apple-stand-time", display: "Apple stand time"),
@@ -2003,7 +2003,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let atrialFibrillationBurden = MeasurementContract(
+    package static let atrialFibrillationBurden = MeasurementContract(
         id: "atrial-fibrillation-burden",
         profile: Profile.healthkitAtrialFibrillationBurden,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "atrial-fibrillation-burden", display: "Atrial fibrillation burden"),
@@ -2019,7 +2019,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let audiogramPanel = MeasurementContract(
+    package static let audiogramPanel = MeasurementContract(
         id: "audiogram-panel",
         profile: Profile.healthkitAudiogramPanel,
         code: CodingContract(system: "http://loinc.org", code: "89015-2", display: "Pure tone air conduction threshold audiometry panel"),
@@ -2058,7 +2058,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let biologicalSex = MeasurementContract(
+    package static let biologicalSex = MeasurementContract(
         id: "biological-sex",
         profile: Profile.healthkitBiologicalSex,
         code: CodingContract(system: "http://loinc.org", code: "46098-0", display: "Sex"),
@@ -2078,7 +2078,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let bladderIncontinence = MeasurementContract(
+    package static let bladderIncontinence = MeasurementContract(
         id: "bladder-incontinence",
         profile: Profile.healthkitBladderIncontinence,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bladder-incontinence", display: "Bladder incontinence"),
@@ -2094,7 +2094,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let bleedingAfterPregnancy = MeasurementContract(
+    package static let bleedingAfterPregnancy = MeasurementContract(
         id: "bleeding-after-pregnancy",
         profile: Profile.healthkitBleedingAfterPregnancy,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bleeding-after-pregnancy", display: "Bleeding after pregnancy"),
@@ -2116,7 +2116,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let bleedingDuringPregnancy = MeasurementContract(
+    package static let bleedingDuringPregnancy = MeasurementContract(
         id: "bleeding-during-pregnancy",
         profile: Profile.healthkitBleedingDuringPregnancy,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bleeding-during-pregnancy", display: "Bleeding during pregnancy"),
@@ -2138,7 +2138,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let bloodAlcoholContent = MeasurementContract(
+    package static let bloodAlcoholContent = MeasurementContract(
         id: "blood-alcohol-content",
         profile: Profile.healthkitBloodAlcoholContent,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "blood-alcohol-content", display: "Blood alcohol content"),
@@ -2154,7 +2154,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let bloodType = MeasurementContract(
+    package static let bloodType = MeasurementContract(
         id: "blood-type",
         profile: Profile.healthkitBloodType,
         code: CodingContract(system: "http://loinc.org", code: "882-1", display: "ABO and Rh group [Type] in Blood"),
@@ -2179,7 +2179,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let contraceptiveUse = MeasurementContract(
+    package static let contraceptiveUse = MeasurementContract(
         id: "contraceptive-use",
         profile: Profile.healthkitContraceptiveUse,
         code: CodingContract(system: "http://loinc.org", code: "8659-5", display: "Birth control method - Reported"),
@@ -2203,7 +2203,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let cyclingFunctionalThresholdPower = MeasurementContract(
+    package static let cyclingFunctionalThresholdPower = MeasurementContract(
         id: "cycling-functional-threshold-power",
         profile: Profile.healthkitCyclingFunctionalThresholdPower,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "cycling-functional-threshold-power", display: "Cycling functional threshold power"),
@@ -2219,7 +2219,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let dateOfBirth = MeasurementContract(
+    package static let dateOfBirth = MeasurementContract(
         id: "date-of-birth",
         profile: Profile.healthkitDateOfBirth,
         code: CodingContract(system: "http://loinc.org", code: "21112-8", display: "Birth date"),
@@ -2235,7 +2235,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let environmentalAudioExposure = MeasurementContract(
+    package static let environmentalAudioExposure = MeasurementContract(
         id: "environmental-audio-exposure",
         profile: Profile.healthkitEnvironmentalAudioExposure,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "environmental-audio-exposure", display: "Environmental audio exposure"),
@@ -2251,7 +2251,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let environmentalAudioExposureNotification = MeasurementContract(
+    package static let environmentalAudioExposureNotification = MeasurementContract(
         id: "environmental-audio-exposure-notification",
         profile: Profile.healthkitEnvironmentalAudioExposureNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "environmental-audio-exposure-notification", display: "Environmental Audio Exposure Notification"),
@@ -2269,7 +2269,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let environmentalSoundReduction = MeasurementContract(
+    package static let environmentalSoundReduction = MeasurementContract(
         id: "environmental-sound-reduction",
         profile: Profile.healthkitEnvironmentalSoundReduction,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "environmental-sound-reduction", display: "Environmental sound reduction"),
@@ -2285,7 +2285,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let fitzpatrickSkinType = MeasurementContract(
+    package static let fitzpatrickSkinType = MeasurementContract(
         id: "fitzpatrick-skin-type",
         profile: Profile.healthkitFitzpatrickSkinType,
         code: CodingContract(system: "http://loinc.org", code: "66555-4", display: "Skin type [Fitzpatrick Classification Scale]"),
@@ -2308,7 +2308,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let foodCorrelation = MeasurementContract(
+    package static let foodCorrelation = MeasurementContract(
         id: "food-correlation",
         profile: Profile.healthkitFoodCorrelation,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "food-correlation", display: "Food correlation"),
@@ -2324,7 +2324,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let forcedExpiratoryVolume1 = MeasurementContract(
+    package static let forcedExpiratoryVolume1 = MeasurementContract(
         id: "forced-expiratory-volume-1",
         profile: Profile.healthkitForcedExpiratoryVolume1,
         code: CodingContract(system: "http://loinc.org", code: "20150-9", display: "FEV1"),
@@ -2340,7 +2340,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let forcedVitalCapacity = MeasurementContract(
+    package static let forcedVitalCapacity = MeasurementContract(
         id: "forced-vital-capacity",
         profile: Profile.healthkitForcedVitalCapacity,
         code: CodingContract(system: "http://loinc.org", code: "19868-9", display: "Forced vital capacity [Volume] Respiratory system by Spirometry"),
@@ -2356,7 +2356,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let gad7Assessment = MeasurementContract(
+    package static let gad7Assessment = MeasurementContract(
         id: "gad7-assessment",
         profile: Profile.healthkitGad7Assessment,
         code: CodingContract(system: "http://loinc.org", code: "70274-6", display: "Generalized anxiety disorder 7 item (GAD-7) total score [Reported.PHQ]"),
@@ -2372,7 +2372,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let handwashingSession = MeasurementContract(
+    package static let handwashingSession = MeasurementContract(
         id: "handwashing-session",
         profile: Profile.healthkitHandwashingSession,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "handwashing-session", display: "Handwashing session"),
@@ -2388,7 +2388,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let headphoneAudioExposure = MeasurementContract(
+    package static let headphoneAudioExposure = MeasurementContract(
         id: "headphone-audio-exposure",
         profile: Profile.healthkitHeadphoneAudioExposure,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "headphone-audio-exposure", display: "Headphone audio exposure"),
@@ -2404,7 +2404,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let headphoneAudioExposureNotification = MeasurementContract(
+    package static let headphoneAudioExposureNotification = MeasurementContract(
         id: "headphone-audio-exposure-notification",
         profile: Profile.healthkitHeadphoneAudioExposureNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "headphone-audio-exposure-notification", display: "Headphone Audio Exposure Notification"),
@@ -2422,7 +2422,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let heartRateRecoveryOneMinute = MeasurementContract(
+    package static let heartRateRecoveryOneMinute = MeasurementContract(
         id: "heart-rate-recovery-one-minute",
         profile: Profile.healthkitHeartRateRecoveryOneMinute,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "heart-rate-recovery-one-minute", display: "Heart rate recovery one minute"),
@@ -2438,7 +2438,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let highHeartRateNotification = MeasurementContract(
+    package static let highHeartRateNotification = MeasurementContract(
         id: "high-heart-rate-notification",
         profile: Profile.healthkitHighHeartRateNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "high-heart-rate-notification", display: "High Heart Rate Notification"),
@@ -2458,7 +2458,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let hypertensionNotification = MeasurementContract(
+    package static let hypertensionNotification = MeasurementContract(
         id: "hypertension-notification",
         profile: Profile.healthkitHypertensionNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "hypertension-notification", display: "Hypertension Notification"),
@@ -2476,7 +2476,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let infrequentMenstrualCycles = MeasurementContract(
+    package static let infrequentMenstrualCycles = MeasurementContract(
         id: "infrequent-menstrual-cycles",
         profile: Profile.healthkitInfrequentMenstrualCycles,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "infrequent-menstrual-cycles", display: "Infrequent menstrual cycles"),
@@ -2495,7 +2495,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let inhalerUsage = MeasurementContract(
+    package static let inhalerUsage = MeasurementContract(
         id: "inhaler-usage",
         profile: Profile.healthkitInhalerUsage,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "inhaler-usage", display: "Inhaler usage"),
@@ -2511,7 +2511,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let insulinDelivery = MeasurementContract(
+    package static let insulinDelivery = MeasurementContract(
         id: "insulin-delivery",
         profile: Profile.healthkitInsulinDelivery,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "insulin-delivery", display: "Insulin delivery"),
@@ -2527,7 +2527,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let irregularHeartRhythmNotification = MeasurementContract(
+    package static let irregularHeartRhythmNotification = MeasurementContract(
         id: "irregular-heart-rhythm-notification",
         profile: Profile.healthkitIrregularHeartRhythmNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "irregular-heart-rhythm-notification", display: "Irregular Heart Rhythm Notification"),
@@ -2545,7 +2545,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let irregularMenstrualCycles = MeasurementContract(
+    package static let irregularMenstrualCycles = MeasurementContract(
         id: "irregular-menstrual-cycles",
         profile: Profile.healthkitIrregularMenstrualCycles,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "irregular-menstrual-cycles", display: "Irregular menstrual cycles"),
@@ -2564,7 +2564,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let lactationStatus = MeasurementContract(
+    package static let lactationStatus = MeasurementContract(
         id: "lactation-status",
         profile: Profile.healthkitLactationStatus,
         code: CodingContract(system: "http://loinc.org", code: "63895-7", display: "Breastfeeding status"),
@@ -2582,7 +2582,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let lowCardioFitnessNotification = MeasurementContract(
+    package static let lowCardioFitnessNotification = MeasurementContract(
         id: "low-cardio-fitness-notification",
         profile: Profile.healthkitLowCardioFitnessNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "low-cardio-fitness-notification", display: "Low Cardio Fitness Notification"),
@@ -2602,7 +2602,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let lowHeartRateNotification = MeasurementContract(
+    package static let lowHeartRateNotification = MeasurementContract(
         id: "low-heart-rate-notification",
         profile: Profile.healthkitLowHeartRateNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "low-heart-rate-notification", display: "Low Heart Rate Notification"),
@@ -2622,7 +2622,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let numberOfAlcoholicBeverages = MeasurementContract(
+    package static let numberOfAlcoholicBeverages = MeasurementContract(
         id: "number-of-alcoholic-beverages",
         profile: Profile.healthkitNumberOfAlcoholicBeverages,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "number-of-alcoholic-beverages", display: "Number of alcoholic beverages"),
@@ -2638,7 +2638,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let numberOfTimesFallen = MeasurementContract(
+    package static let numberOfTimesFallen = MeasurementContract(
         id: "number-of-times-fallen",
         profile: Profile.healthkitNumberOfTimesFallen,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "number-of-times-fallen", display: "Number of times fallen"),
@@ -2654,7 +2654,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let peakExpiratoryFlowRate = MeasurementContract(
+    package static let peakExpiratoryFlowRate = MeasurementContract(
         id: "peak-expiratory-flow-rate",
         profile: Profile.healthkitPeakExpiratoryFlowRate,
         code: CodingContract(system: "http://loinc.org", code: "33452-4", display: "Maximum expiratory gas flow Respiratory system airway"),
@@ -2670,7 +2670,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let peripheralPerfusionIndex = MeasurementContract(
+    package static let peripheralPerfusionIndex = MeasurementContract(
         id: "peripheral-perfusion-index",
         profile: Profile.healthkitPeripheralPerfusionIndex,
         code: CodingContract(system: "http://loinc.org", code: "61006-3", display: "Perfusion index Tissue by Pulse oximetry"),
@@ -2686,7 +2686,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let persistentIntermenstrualBleeding = MeasurementContract(
+    package static let persistentIntermenstrualBleeding = MeasurementContract(
         id: "persistent-intermenstrual-bleeding",
         profile: Profile.healthkitPersistentIntermenstrualBleeding,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "persistent-intermenstrual-bleeding", display: "Persistent intermenstrual bleeding"),
@@ -2705,7 +2705,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let phq9Assessment = MeasurementContract(
+    package static let phq9Assessment = MeasurementContract(
         id: "phq9-assessment",
         profile: Profile.healthkitPhq9Assessment,
         code: CodingContract(system: "http://loinc.org", code: "44261-6", display: "Patient Health Questionnaire 9 item (PHQ-9) total score [Reported]"),
@@ -2721,7 +2721,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let physicalEffort = MeasurementContract(
+    package static let physicalEffort = MeasurementContract(
         id: "physical-effort",
         profile: Profile.healthkitPhysicalEffort,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "physical-effort", display: "Physical effort"),
@@ -2737,7 +2737,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let pregnancyStatus = MeasurementContract(
+    package static let pregnancyStatus = MeasurementContract(
         id: "pregnancy-status",
         profile: Profile.healthkitPregnancyStatus,
         code: CodingContract(system: "http://loinc.org", code: "82810-3", display: "Pregnancy status"),
@@ -2755,7 +2755,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let pregnancyTestResult = MeasurementContract(
+    package static let pregnancyTestResult = MeasurementContract(
         id: "pregnancy-test-result",
         profile: Profile.healthkitPregnancyTestResult,
         code: CodingContract(system: "http://loinc.org", code: "2106-3", display: "Choriogonadotropin [Presence] in Urine"),
@@ -2775,7 +2775,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let progesteroneTestResult = MeasurementContract(
+    package static let progesteroneTestResult = MeasurementContract(
         id: "progesterone-test-result",
         profile: Profile.healthkitProgesteroneTestResult,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "progesterone-test-result", display: "Progesterone (PdG) test result"),
@@ -2795,7 +2795,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let prolongedMenstrualPeriods = MeasurementContract(
+    package static let prolongedMenstrualPeriods = MeasurementContract(
         id: "prolonged-menstrual-periods",
         profile: Profile.healthkitProlongedMenstrualPeriods,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "prolonged-menstrual-periods", display: "Prolonged menstrual periods"),
@@ -2814,7 +2814,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let runningGroundContactTime = MeasurementContract(
+    package static let runningGroundContactTime = MeasurementContract(
         id: "running-ground-contact-time",
         profile: Profile.healthkitRunningGroundContactTime,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "running-ground-contact-time", display: "Running ground contact time"),
@@ -2830,7 +2830,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let runningStrideLength = MeasurementContract(
+    package static let runningStrideLength = MeasurementContract(
         id: "running-stride-length",
         profile: Profile.healthkitRunningStrideLength,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "running-stride-length", display: "Running stride length"),
@@ -2846,7 +2846,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let runningVerticalOscillation = MeasurementContract(
+    package static let runningVerticalOscillation = MeasurementContract(
         id: "running-vertical-oscillation",
         profile: Profile.healthkitRunningVerticalOscillation,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "running-vertical-oscillation", display: "Running vertical oscillation"),
@@ -2862,7 +2862,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let sixMinuteWalkTestDistance = MeasurementContract(
+    package static let sixMinuteWalkTestDistance = MeasurementContract(
         id: "six-minute-walk-test-distance",
         profile: Profile.healthkitSixMinuteWalkTestDistance,
         code: CodingContract(system: "http://loinc.org", code: "64098-7", display: "Six minute walk test"),
@@ -2878,7 +2878,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let sleepApneaNotification = MeasurementContract(
+    package static let sleepApneaNotification = MeasurementContract(
         id: "sleep-apnea-notification",
         profile: Profile.healthkitSleepApneaNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "sleep-apnea-notification", display: "Sleep Apnea Notification"),
@@ -2896,7 +2896,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let sleepingBreathingDisturbances = MeasurementContract(
+    package static let sleepingBreathingDisturbances = MeasurementContract(
         id: "sleeping-breathing-disturbances",
         profile: Profile.healthkitSleepingBreathingDisturbances,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "sleeping-breathing-disturbances", display: "Sleeping breathing disturbances"),
@@ -2912,7 +2912,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let stairAscentSpeed = MeasurementContract(
+    package static let stairAscentSpeed = MeasurementContract(
         id: "stair-ascent-speed",
         profile: Profile.healthkitStairAscentSpeed,
         code: CodingContract(system: "http://loinc.org", code: "112431-2", display: "Stair ascent speed [Velocity]"),
@@ -2928,7 +2928,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let stairDescentSpeed = MeasurementContract(
+    package static let stairDescentSpeed = MeasurementContract(
         id: "stair-descent-speed",
         profile: Profile.healthkitStairDescentSpeed,
         code: CodingContract(system: "http://loinc.org", code: "112430-4", display: "Stair descent speed [Velocity]"),
@@ -2944,7 +2944,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let stateOfMind = MeasurementContract(
+    package static let stateOfMind = MeasurementContract(
         id: "state-of-mind",
         profile: Profile.healthkitStateOfMind,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "state-of-mind", display: "State of mind"),
@@ -2965,7 +2965,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let swimmingStrokeCount = MeasurementContract(
+    package static let swimmingStrokeCount = MeasurementContract(
         id: "swimming-stroke-count",
         profile: Profile.healthkitSwimmingStrokeCount,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "swimming-stroke-count", display: "Swimming stroke count"),
@@ -2981,7 +2981,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomAbdominalCramps = MeasurementContract(
+    package static let symptomAbdominalCramps = MeasurementContract(
         id: "symptom-abdominal-cramps",
         profile: Profile.healthkitSymptomAbdominalCramps,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-abdominal-cramps", display: "Abdominal cramps"),
@@ -2997,7 +2997,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomAcne = MeasurementContract(
+    package static let symptomAcne = MeasurementContract(
         id: "symptom-acne",
         profile: Profile.healthkitSymptomAcne,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-acne", display: "Acne"),
@@ -3013,7 +3013,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomAppetiteChanges = MeasurementContract(
+    package static let symptomAppetiteChanges = MeasurementContract(
         id: "symptom-appetite-changes",
         profile: Profile.healthkitSymptomAppetiteChanges,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-appetite-changes", display: "Appetite changes"),
@@ -3034,7 +3034,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomBloating = MeasurementContract(
+    package static let symptomBloating = MeasurementContract(
         id: "symptom-bloating",
         profile: Profile.healthkitSymptomBloating,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-bloating", display: "Bloating"),
@@ -3050,7 +3050,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomBreastPain = MeasurementContract(
+    package static let symptomBreastPain = MeasurementContract(
         id: "symptom-breast-pain",
         profile: Profile.healthkitSymptomBreastPain,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-breast-pain", display: "Breast pain"),
@@ -3066,7 +3066,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomChestTightnessOrPain = MeasurementContract(
+    package static let symptomChestTightnessOrPain = MeasurementContract(
         id: "symptom-chest-tightness-or-pain",
         profile: Profile.healthkitSymptomChestTightnessOrPain,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-chest-tightness-or-pain", display: "Chest tightness or pain"),
@@ -3082,7 +3082,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomChills = MeasurementContract(
+    package static let symptomChills = MeasurementContract(
         id: "symptom-chills",
         profile: Profile.healthkitSymptomChills,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-chills", display: "Chills"),
@@ -3098,7 +3098,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomConstipation = MeasurementContract(
+    package static let symptomConstipation = MeasurementContract(
         id: "symptom-constipation",
         profile: Profile.healthkitSymptomConstipation,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-constipation", display: "Constipation"),
@@ -3114,7 +3114,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomCoughing = MeasurementContract(
+    package static let symptomCoughing = MeasurementContract(
         id: "symptom-coughing",
         profile: Profile.healthkitSymptomCoughing,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-coughing", display: "Coughing"),
@@ -3130,7 +3130,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomDiarrhea = MeasurementContract(
+    package static let symptomDiarrhea = MeasurementContract(
         id: "symptom-diarrhea",
         profile: Profile.healthkitSymptomDiarrhea,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-diarrhea", display: "Diarrhea"),
@@ -3146,7 +3146,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomDizziness = MeasurementContract(
+    package static let symptomDizziness = MeasurementContract(
         id: "symptom-dizziness",
         profile: Profile.healthkitSymptomDizziness,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-dizziness", display: "Dizziness"),
@@ -3162,7 +3162,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomDrySkin = MeasurementContract(
+    package static let symptomDrySkin = MeasurementContract(
         id: "symptom-dry-skin",
         profile: Profile.healthkitSymptomDrySkin,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-dry-skin", display: "Dry skin"),
@@ -3178,7 +3178,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomFainting = MeasurementContract(
+    package static let symptomFainting = MeasurementContract(
         id: "symptom-fainting",
         profile: Profile.healthkitSymptomFainting,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-fainting", display: "Fainting"),
@@ -3194,7 +3194,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomFatigue = MeasurementContract(
+    package static let symptomFatigue = MeasurementContract(
         id: "symptom-fatigue",
         profile: Profile.healthkitSymptomFatigue,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-fatigue", display: "Fatigue"),
@@ -3210,7 +3210,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomFever = MeasurementContract(
+    package static let symptomFever = MeasurementContract(
         id: "symptom-fever",
         profile: Profile.healthkitSymptomFever,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-fever", display: "Fever"),
@@ -3226,7 +3226,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomGeneralizedBodyAche = MeasurementContract(
+    package static let symptomGeneralizedBodyAche = MeasurementContract(
         id: "symptom-generalized-body-ache",
         profile: Profile.healthkitSymptomGeneralizedBodyAche,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-generalized-body-ache", display: "Generalized body ache"),
@@ -3242,7 +3242,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomHairLoss = MeasurementContract(
+    package static let symptomHairLoss = MeasurementContract(
         id: "symptom-hair-loss",
         profile: Profile.healthkitSymptomHairLoss,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-hair-loss", display: "Hair loss"),
@@ -3258,7 +3258,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomHeadache = MeasurementContract(
+    package static let symptomHeadache = MeasurementContract(
         id: "symptom-headache",
         profile: Profile.healthkitSymptomHeadache,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-headache", display: "Headache"),
@@ -3274,7 +3274,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomHeartburn = MeasurementContract(
+    package static let symptomHeartburn = MeasurementContract(
         id: "symptom-heartburn",
         profile: Profile.healthkitSymptomHeartburn,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-heartburn", display: "Heartburn"),
@@ -3290,7 +3290,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomHotFlashes = MeasurementContract(
+    package static let symptomHotFlashes = MeasurementContract(
         id: "symptom-hot-flashes",
         profile: Profile.healthkitSymptomHotFlashes,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-hot-flashes", display: "Hot flashes"),
@@ -3306,7 +3306,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomLossOfSmell = MeasurementContract(
+    package static let symptomLossOfSmell = MeasurementContract(
         id: "symptom-loss-of-smell",
         profile: Profile.healthkitSymptomLossOfSmell,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-loss-of-smell", display: "Loss of smell"),
@@ -3322,7 +3322,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomLossOfTaste = MeasurementContract(
+    package static let symptomLossOfTaste = MeasurementContract(
         id: "symptom-loss-of-taste",
         profile: Profile.healthkitSymptomLossOfTaste,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-loss-of-taste", display: "Loss of taste"),
@@ -3338,7 +3338,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomLowerBackPain = MeasurementContract(
+    package static let symptomLowerBackPain = MeasurementContract(
         id: "symptom-lower-back-pain",
         profile: Profile.healthkitSymptomLowerBackPain,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-lower-back-pain", display: "Lower back pain"),
@@ -3354,7 +3354,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomMemoryLapse = MeasurementContract(
+    package static let symptomMemoryLapse = MeasurementContract(
         id: "symptom-memory-lapse",
         profile: Profile.healthkitSymptomMemoryLapse,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-memory-lapse", display: "Memory lapse"),
@@ -3370,7 +3370,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomMoodChanges = MeasurementContract(
+    package static let symptomMoodChanges = MeasurementContract(
         id: "symptom-mood-changes",
         profile: Profile.healthkitSymptomMoodChanges,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-mood-changes", display: "Mood changes"),
@@ -3386,7 +3386,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomNausea = MeasurementContract(
+    package static let symptomNausea = MeasurementContract(
         id: "symptom-nausea",
         profile: Profile.healthkitSymptomNausea,
         code: CodingContract(system: "http://loinc.org", code: "81660-3", display: "Nausea [Presence]"),
@@ -3402,7 +3402,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomNightSweats = MeasurementContract(
+    package static let symptomNightSweats = MeasurementContract(
         id: "symptom-night-sweats",
         profile: Profile.healthkitSymptomNightSweats,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-night-sweats", display: "Night sweats"),
@@ -3418,7 +3418,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomPelvicPain = MeasurementContract(
+    package static let symptomPelvicPain = MeasurementContract(
         id: "symptom-pelvic-pain",
         profile: Profile.healthkitSymptomPelvicPain,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-pelvic-pain", display: "Pelvic pain"),
@@ -3434,7 +3434,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomRapidPoundingOrFlutteringHeartbeat = MeasurementContract(
+    package static let symptomRapidPoundingOrFlutteringHeartbeat = MeasurementContract(
         id: "symptom-rapid-pounding-or-fluttering-heartbeat",
         profile: Profile.healthkitSymptomRapidPoundingOrFlutteringHeartbeat,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-rapid-pounding-or-fluttering-heartbeat", display: "Rapid, pounding, or fluttering heartbeat"),
@@ -3450,7 +3450,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomRunnyNose = MeasurementContract(
+    package static let symptomRunnyNose = MeasurementContract(
         id: "symptom-runny-nose",
         profile: Profile.healthkitSymptomRunnyNose,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-runny-nose", display: "Runny nose"),
@@ -3466,7 +3466,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomShortnessOfBreath = MeasurementContract(
+    package static let symptomShortnessOfBreath = MeasurementContract(
         id: "symptom-shortness-of-breath",
         profile: Profile.healthkitSymptomShortnessOfBreath,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-shortness-of-breath", display: "Shortness of breath"),
@@ -3482,7 +3482,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomSinusCongestion = MeasurementContract(
+    package static let symptomSinusCongestion = MeasurementContract(
         id: "symptom-sinus-congestion",
         profile: Profile.healthkitSymptomSinusCongestion,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-sinus-congestion", display: "Sinus congestion"),
@@ -3498,7 +3498,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomSkippedHeartbeat = MeasurementContract(
+    package static let symptomSkippedHeartbeat = MeasurementContract(
         id: "symptom-skipped-heartbeat",
         profile: Profile.healthkitSymptomSkippedHeartbeat,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-skipped-heartbeat", display: "Skipped heartbeat"),
@@ -3514,7 +3514,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomSleepChanges = MeasurementContract(
+    package static let symptomSleepChanges = MeasurementContract(
         id: "symptom-sleep-changes",
         profile: Profile.healthkitSymptomSleepChanges,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-sleep-changes", display: "Sleep changes"),
@@ -3530,7 +3530,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomSoreThroat = MeasurementContract(
+    package static let symptomSoreThroat = MeasurementContract(
         id: "symptom-sore-throat",
         profile: Profile.healthkitSymptomSoreThroat,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-sore-throat", display: "Sore throat"),
@@ -3546,7 +3546,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomVomiting = MeasurementContract(
+    package static let symptomVomiting = MeasurementContract(
         id: "symptom-vomiting",
         profile: Profile.healthkitSymptomVomiting,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-vomiting", display: "Vomiting"),
@@ -3562,7 +3562,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let symptomWheezing = MeasurementContract(
+    package static let symptomWheezing = MeasurementContract(
         id: "symptom-wheezing",
         profile: Profile.healthkitSymptomWheezing,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "symptom-wheezing", display: "Wheezing"),
@@ -3578,7 +3578,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let timeInDaylight = MeasurementContract(
+    package static let timeInDaylight = MeasurementContract(
         id: "time-in-daylight",
         profile: Profile.healthkitTimeInDaylight,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "time-in-daylight", display: "Time in daylight"),
@@ -3594,7 +3594,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let toothbrushingSession = MeasurementContract(
+    package static let toothbrushingSession = MeasurementContract(
         id: "toothbrushing-session",
         profile: Profile.healthkitToothbrushingSession,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "toothbrushing-session", display: "Toothbrushing session"),
@@ -3610,7 +3610,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let underwaterDepth = MeasurementContract(
+    package static let underwaterDepth = MeasurementContract(
         id: "underwater-depth",
         profile: Profile.healthkitUnderwaterDepth,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "underwater-depth", display: "Underwater depth"),
@@ -3626,7 +3626,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let uvExposure = MeasurementContract(
+    package static let uvExposure = MeasurementContract(
         id: "uv-exposure",
         profile: Profile.healthkitUvExposure,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "uv-exposure", display: "UV exposure"),
@@ -3642,7 +3642,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let vaginalDryness = MeasurementContract(
+    package static let vaginalDryness = MeasurementContract(
         id: "vaginal-dryness",
         profile: Profile.healthkitVaginalDryness,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "vaginal-dryness", display: "Vaginal dryness"),
@@ -3658,7 +3658,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let waistCircumference = MeasurementContract(
+    package static let waistCircumference = MeasurementContract(
         id: "waist-circumference",
         profile: Profile.healthkitWaistCircumference,
         code: CodingContract(system: "http://loinc.org", code: "8280-0", display: "Waist Circumference at umbilicus by Tape measure"),
@@ -3674,7 +3674,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingAsymmetry = MeasurementContract(
+    package static let walkingAsymmetry = MeasurementContract(
         id: "walking-asymmetry",
         profile: Profile.healthkitWalkingAsymmetry,
         code: CodingContract(system: "http://loinc.org", code: "112432-0", display: "Walking asymmetry"),
@@ -3690,7 +3690,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingDoubleSupport = MeasurementContract(
+    package static let walkingDoubleSupport = MeasurementContract(
         id: "walking-double-support",
         profile: Profile.healthkitWalkingDoubleSupport,
         code: CodingContract(system: "http://loinc.org", code: "112434-6", display: "Walking double support [Percentile]"),
@@ -3706,7 +3706,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingHeartRateAverage = MeasurementContract(
+    package static let walkingHeartRateAverage = MeasurementContract(
         id: "walking-heart-rate-average",
         profile: Profile.healthkitWalkingHeartRateAverage,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-heart-rate-average", display: "Walking heart rate average"),
@@ -3722,7 +3722,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingSpeed = MeasurementContract(
+    package static let walkingSpeed = MeasurementContract(
         id: "walking-speed",
         profile: Profile.healthkitWalkingSpeed,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-speed", display: "Walking speed"),
@@ -3738,7 +3738,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingSteadiness = MeasurementContract(
+    package static let walkingSteadiness = MeasurementContract(
         id: "walking-steadiness",
         profile: Profile.healthkitWalkingSteadiness,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-steadiness", display: "Walking steadiness"),
@@ -3754,7 +3754,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingSteadinessNotification = MeasurementContract(
+    package static let walkingSteadinessNotification = MeasurementContract(
         id: "walking-steadiness-notification",
         profile: Profile.healthkitWalkingSteadinessNotification,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-steadiness-notification", display: "Walking Steadiness Notification"),
@@ -3775,7 +3775,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let walkingStepLength = MeasurementContract(
+    package static let walkingStepLength = MeasurementContract(
         id: "walking-step-length",
         profile: Profile.healthkitWalkingStepLength,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "walking-step-length", display: "Walking step length"),
@@ -3791,7 +3791,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let waterTemperature = MeasurementContract(
+    package static let waterTemperature = MeasurementContract(
         id: "water-temperature",
         profile: Profile.healthkitWaterTemperature,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "water-temperature", display: "Water temperature"),
@@ -3807,7 +3807,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let wheelchairUse = MeasurementContract(
+    package static let wheelchairUse = MeasurementContract(
         id: "wheelchair-use",
         profile: Profile.healthkitWheelchairUse,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "wheelchair-use", display: "Wheelchair use"),
@@ -3826,7 +3826,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let workoutEffortScore = MeasurementContract(
+    package static let workoutEffortScore = MeasurementContract(
         id: "workout-effort-score",
         profile: Profile.healthkitWorkoutEffortScore,
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "workout-effort-score", display: "Workout effort score"),
@@ -3842,7 +3842,7 @@ public enum HealthKitMeasurementCatalog {
         category: nil
     )
 
-    public static let all: [MeasurementContract] = [
+    package static let all: [MeasurementContract] = [
         appleExerciseTime,
         appleMoveTime,
         appleStandHour,
@@ -3967,44 +3967,37 @@ public enum HealthKitImplementationStatus: String, CaseIterable, Sendable {
 
 
 /// One generated row in the authoritative HealthKit adapter inventory.
-public struct HealthKitContractRow: Sendable {
-    public let sourceTypeIdentifier: String
-    public let title: String
-    public let measurementIDs: [String]
-    public let profiles: [FHIRPrimitive<Canonical>]
-    public let implementationStatus: HealthKitImplementationStatus
-    public let requirement: String?
+package struct HealthKitContractRow: Sendable {
+    package let sourceTypeIdentifier: String
+    package let title: String
+    package let measurementIDs: [String]
+    package let profiles: [FHIRPrimitive<Canonical>]
+    package let implementationStatus: HealthKitImplementationStatus
+    package let requirement: String?
 }
 
 
 /// Machine-generated HealthKit producer contract and complete source inventory.
-public enum HealthKitContract {
-    public static let catalogVersion = "0.6.0"
-    public static let sourceTypeCodeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-source-type"
-    public static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
-    public static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = Profile.healthkitConversionProvenance
-    public static let applicationDeviceProfile: FHIRPrimitive<Canonical> = Profile.healthkitApplicationDevice
-    public static let appleBundleIdentifierSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id"
-    public static let appleBundleIdentifierTypeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
-    public static let appleBundleIdentifierTypeCode = "apple-bundle-id"
-    public static let clinicalRecordProfile: FHIRPrimitive<Canonical> = Profile.healthkitClinicalRecordDocument
-    public static let clinicalFHIRPayloadFormatCode = "fhir-resource"
-    public static let admittedClinicalFHIRReleaseCodes: Set<String> = [
+package enum HealthKitContract {
+    package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+    package static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = Profile.healthkitConversionProvenance
+    package static let applicationDeviceProfile: FHIRPrimitive<Canonical> = Profile.healthkitApplicationDevice
+    package static let appleBundleIdentifierSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id"
+    package static let appleBundleIdentifierTypeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
+    package static let appleBundleIdentifierTypeCode = "apple-bundle-id"
+    package static let clinicalRecordProfile: FHIRPrimitive<Canonical> = Profile.healthkitClinicalRecordDocument
+    package static let clinicalFHIRPayloadFormatCode = "fhir-resource"
+    package static let admittedClinicalFHIRReleaseCodes: Set<String> = [
         "dstu2",
         "r4",
     ]
-    public static let clinicalFHIRContentTypeByRelease: [String: String] = [
+    package static let clinicalFHIRContentTypeByRelease: [String: String] = [
         "dstu2": "application/fhir+json; fhirVersion=1.0",
         "r4": "application/fhir+json; fhirVersion=4.0",
     ]
-    public static let electrocardiogramSourceTypeIdentifier = "HKDataTypeIdentifierElectrocardiogram"
-    public static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let electrocardiogramProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.groveSensorEcgObservation,
         Profile.healthkitEcgObservation,
-    ]
-    public static let bodyMassIndexProfiles: [FHIRPrimitive<Canonical>] = [
-        "http://hl7.org/fhir/StructureDefinition/bmi",
-        Profile.healthkitObservation,
     ]
 
     /// Body-mass index, which HealthKit claims through the standard R4 BMI profile, generated from
@@ -4025,7 +4018,7 @@ public enum HealthKitContract {
         category: nil
     )
 
-    public static let rows: [HealthKitContractRow] = [
+    package static let rows: [HealthKitContractRow] = [
         HealthKitContractRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierAbdominalCramps",
             title: "Abdominal Cramps",
@@ -5775,24 +5768,24 @@ public enum HealthKitContract {
 
 
 /// One closed direct `meta.profile` mode and the Grove identifier roles it requires.
-public struct DirectProfileClaim: Sendable {
-    public let profiles: [FHIRPrimitive<Canonical>]
-    public let requiredIdentifierRoles: [String]
+package struct DirectProfileClaim: Sendable {
+    package let profiles: [FHIRPrimitive<Canonical>]
+    package let requiredIdentifierRoles: [String]
 }
 
 
 /// The catalog-fixed quantity semantics selected by one direct measurement profile.
-public struct FixedMeasurementQuantityClaim: Hashable, Sendable {
-    public let measurementID: String
-    public let quantity: QuantityContract
+package struct FixedMeasurementQuantityClaim: Hashable, Sendable {
+    package let measurementID: String
+    package let quantity: QuantityContract
 }
 
 
 /// Exact direct profile-claim rules generated from profile-claims.json.
-public enum ProfileClaims {
-    public static let observationAdapterCardinality = 2
+package enum ProfileClaims {
+    package static let observationAdapterCardinality = 2
 
-    public static let observationAdapterProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let observationAdapterProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.healthkitObservation,
         Profile.healthkitEcgObservation,
         Profile.healthkitEcgAverageHeartRateObservation,
@@ -5804,7 +5797,7 @@ public enum ProfileClaims {
         Profile.sensorkitEcgObservation,
     ]
 
-    public static let forbiddenExplicitProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let forbiddenExplicitProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.groveMobileObservation,
         "http://hl7.org/fhir/StructureDefinition/bp",
         "http://hl7.org/fhir/StructureDefinition/bodyheight",
@@ -5816,7 +5809,7 @@ public enum ProfileClaims {
     ]
 
     /// Exact one-profile claims for active output types that have no shared mobile shape.
-    public static let adapterOnlyOutputProfiles: [String: FHIRPrimitive<Canonical>] = [
+    package static let adapterOnlyOutputProfiles: [String: FHIRPrimitive<Canonical>] = [
         "MedicationAdministration": Profile.healthkitMedicationDoseEvent,
         "MedicationStatement": Profile.healthkitUserAnnotatedMedication,
         "Specimen": Profile.healthConnectSpecimen,
@@ -5824,7 +5817,7 @@ public enum ProfileClaims {
     ]
 
     /// Every catalog semantic profile that may participate in shared-plus-adapter mode.
-    public static let sharedObservationProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let sharedObservationProfiles: [FHIRPrimitive<Canonical>] = [
         "http://hl7.org/fhir/StructureDefinition/bmi",
         Profile.googleHealthDailyRestingHeartRate,
         Profile.healthConnectBasalMetabolicRate,
@@ -6052,7 +6045,7 @@ public enum ProfileClaims {
     ]
 
     /// Provider-owned semantic profile to its one required provider envelope.
-    public static let providerOwnedSemanticAdapters: [String: FHIRPrimitive<Canonical>] = [
+    package static let providerOwnedSemanticAdapters: [String: FHIRPrimitive<Canonical>] = [
         "https://grovealliance.org/fhir/google-health/StructureDefinition/google-health-daily-resting-heart-rate": Profile.googleHealthObservation,
         "https://grovealliance.org/fhir/oura/StructureDefinition/oura-cardiovascular-age": Profile.ouraObservation,
         "https://grovealliance.org/fhir/oura/StructureDefinition/oura-readiness-score": Profile.ouraObservation,
@@ -6073,7 +6066,7 @@ public enum ProfileClaims {
     ]
 
     /// Adapter-owned Observation profiles whose complete direct claim is one profile.
-    public static let singleObservationProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let singleObservationProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.healthConnectCapillaryBloodGlucose,
         Profile.healthConnectInterstitialGlucose,
         Profile.healthConnectSerumPlasmaGlucose,
@@ -6202,7 +6195,7 @@ public enum ProfileClaims {
     ]
 
     /// Multi-profile Observation modes that cannot be expressed as shared-plus-adapter.
-    public static let exactObservationProfileModes: [[FHIRPrimitive<Canonical>]] = [
+    package static let exactObservationProfileModes: [[FHIRPrimitive<Canonical>]] = [
         [
             Profile.groveSensorEcgObservation,
             Profile.sensorkitEcgObservation,
@@ -6210,7 +6203,7 @@ public enum ProfileClaims {
     ]
 
     /// Every exact active recording or clinical DocumentReference direct-profile mode.
-    public static let documentProfileModes: [DirectProfileClaim] = [
+    package static let documentProfileModes: [DirectProfileClaim] = [
         DirectProfileClaim(
             profiles: [
                 Profile.groveSensorRecordingDocument,
@@ -6247,7 +6240,7 @@ public enum ProfileClaims {
     ]
 
     /// Every exact active Device direct-profile and typed-identifier mode.
-    public static let deviceProfileModes: [DirectProfileClaim] = [
+    package static let deviceProfileModes: [DirectProfileClaim] = [
         DirectProfileClaim(
             profiles: [
                 Profile.groveRecordingDevice,
@@ -6275,7 +6268,7 @@ public enum ProfileClaims {
     ]
 
     /// The sole direct-profile mode for active QuestionnaireResponse support nodes.
-    public static let questionnaireResponseProfileModes: [DirectProfileClaim] = [
+    package static let questionnaireResponseProfileModes: [DirectProfileClaim] = [
         DirectProfileClaim(
             profiles: [
                 Profile.groveQuestionnaireResponse,
@@ -6285,7 +6278,7 @@ public enum ProfileClaims {
     ]
 
     /// The complete one-profile modes for active conversion Provenance.
-    public static let activeProvenanceProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let activeProvenanceProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.groveMobileConversionProvenance,
         Profile.healthkitConversionProvenance,
         Profile.healthConnectConversionProvenance,
@@ -6294,12 +6287,12 @@ public enum ProfileClaims {
     ]
 
     /// The sole direct-profile mode for retraction Provenance.
-    public static let retractionProvenanceProfiles: [FHIRPrimitive<Canonical>] = [
+    package static let retractionProvenanceProfiles: [FHIRPrimitive<Canonical>] = [
         Profile.groveMobileRetractionProvenance,
     ]
 
     /// Adapter Provenance profile to every adapter output profile it may assert.
-    public static let adapterProvenanceTargetProfiles: [String: [FHIRPrimitive<Canonical>]] = [
+    package static let adapterProvenanceTargetProfiles: [String: [FHIRPrimitive<Canonical>]] = [
         "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-conversion-provenance": [
             Profile.healthkitAppleExerciseTime,
             Profile.healthkitAppleMoveTime,
@@ -6453,7 +6446,7 @@ public enum ProfileClaims {
     ]
 
     /// Fixed system/code/domain semantics keyed by every quantity-bearing profile.
-    public static let fixedMeasurementQuantities: [String: FixedMeasurementQuantityClaim] = [
+    package static let fixedMeasurementQuantities: [String: FixedMeasurementQuantityClaim] = [
         "https://grovealliance.org/fhir/google-health/StructureDefinition/google-health-daily-resting-heart-rate": FixedMeasurementQuantityClaim(measurementID: "resting-heart-rate-daily-average", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute", valueDomain: nil)),
         "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-basal-metabolic-rate": FixedMeasurementQuantityClaim(measurementID: "basal-metabolic-rate", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kcal/d", unit: "kcal/day", valueDomain: nil)),
         "https://grovealliance.org/fhir/health-connect/StructureDefinition/health-connect-dietary-energy-from-fat": FixedMeasurementQuantityClaim(measurementID: "dietary-energy-from-fat", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal", valueDomain: nil)),
@@ -6599,7 +6592,7 @@ public enum ProfileClaims {
     ]
 
     /// The only allowed direct claim shape for an adapter-produced measurement.
-    public static func observation(
+    package static func observation(
         sharedMeasurement: FHIRPrimitive<Canonical>,
         adapter: FHIRPrimitive<Canonical>
     ) -> [FHIRPrimitive<Canonical>] {
@@ -6888,7 +6881,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
 
 
 /// The entry-node roles of a bundled study context, generated from exchange-protocol.json.
-public enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {
+package enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {
     case patient = "patient"
     case researchStudy = "research-study"
     case researchSubject = "research-subject"
@@ -6946,16 +6939,15 @@ extension OpaqueIdentityKind {
 
 
 /// Frozen exchange-graph values generated from exchange-protocol.json.
-public enum ExchangeContract {
-    public static let entryIdentifierExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key"
-    public static let fullURLNamespace = "43df4575-bff7-5a57-9a80-2472cd2b0623"
-    public static let opaqueIdentitySystemForm = "<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"
-    public static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"
-    public static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"
-    public static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"
-    public static let equalityFormattingVector = "reformatted-retry"
-    public static let equalityDecimalLexemeVector = "lexeme-retry"
-    public static let activeOutputResourceTypes: Set<String> = [
+package enum ExchangeContract {
+    package static let fullURLNamespace = "43df4575-bff7-5a57-9a80-2472cd2b0623"
+    package static let opaqueIdentitySystemForm = "<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"
+    package static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"
+    package static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"
+    package static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"
+    package static let equalityFormattingVector = "reformatted-retry"
+    package static let equalityDecimalLexemeVector = "lexeme-retry"
+    package static let activeOutputResourceTypes: Set<String> = [
         "Observation",
         "DocumentReference",
         "Specimen",
@@ -6963,7 +6955,7 @@ public enum ExchangeContract {
         "MedicationAdministration",
         "MedicationStatement",
     ]
-    public static let activeSupportingResourceTypes: Set<String> = [
+    package static let activeSupportingResourceTypes: Set<String> = [
         "Patient",
         "Device",
         "ResearchStudy",
@@ -6971,6 +6963,5 @@ public enum ExchangeContract {
         "PlanDefinition",
         "QuestionnaireResponse",
     ]
-    public static let activeLifecycleResourceType = "Provenance"
-    public static let containedResourcesAllowed = false
+    package static let activeLifecycleResourceType = "Provenance"
 }

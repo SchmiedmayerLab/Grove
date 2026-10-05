@@ -352,7 +352,7 @@ extension ExchangeGraph {
         }
         let contentType = content.attachment.contentType?.value?.string
         guard format.version == nil,
-              format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem,
+              format.system?.value?.url.absoluteString == RegisteredRecordingFormat.codeSystem,
               let code = format.code?.value?.string,
               let registered = RegisteredRecordingFormat(rawValue: code),
               contentType.map({ registered.registeredContentTypes.contains($0) }) ?? true else {

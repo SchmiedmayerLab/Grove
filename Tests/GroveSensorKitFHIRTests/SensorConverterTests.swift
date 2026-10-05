@@ -203,7 +203,7 @@ struct SensorFHIRConverterTests {
         #expect(attachment.size?.value?.integer == 2)
         #expect(attachment.hash != nil)
         let format = try #require(document.content.first?.format)
-        #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
+        #expect(format.system?.value?.url.absoluteString == RegisteredRecordingFormat.codeSystem)
         #expect(format.code?.value?.string == "native-recording")
         #expect(format.version == nil)
         #expect(conversion.provenance.meta?.profile == [

@@ -278,7 +278,7 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(method.code?.value?.string == "guided")
         #expect(method.display?.value?.string == "Guided")
         let format = try #require(document.content.first?.format)
-        #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
+        #expect(format.system?.value?.url.absoluteString == RegisteredRecordingFormat.codeSystem)
         #expect(format.code?.value?.string == "native-recording")
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(try graph.provenance.target.count == 2)

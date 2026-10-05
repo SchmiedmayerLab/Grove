@@ -255,14 +255,6 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
         raise ValueError("the recording-format registry declares no formats")
 
     lines = [HEADER.rstrip(), ""]
-    lines.extend([
-        "/// Generated canonical constants for the Grove recording-format registry.",
-        "public enum RecordingFormatContract {",
-        f"    public static let recordingFormatCodeSystem = {swift_string(sensor_canonical + '/CodeSystem/grove-recording-format')}",
-        "}",
-        "",
-        "",
-    ])
     lines.append("/// A payload format published by the Grove recording-format registry.")
     lines.append("///")
     lines.append("/// The whole registry is projected, not only the formats one adapter admits, so the type")
@@ -271,7 +263,13 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
     lines.append("public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable {")
     for value in sorted(formats):
         lines.append(f"    case {swift_format_case(value)} = {swift_string(value)}")
-    lines.extend(["", "    /// The media types the registry admits for this format."])
+    lines.extend([
+        "",
+        "    /// The CodeSystem every registered format's code belongs to.",
+        f"    package static let codeSystem = {swift_string(sensor_canonical + '/CodeSystem/grove-recording-format')}",
+        "",
+        "    /// The media types the registry admits for this format.",
+    ])
     lines.append("    ///")
     lines.append("    /// Most formats admit one exact media type. A release-neutral format can admit several")
     lines.append("    /// versioned representations of the same payload grammar.")

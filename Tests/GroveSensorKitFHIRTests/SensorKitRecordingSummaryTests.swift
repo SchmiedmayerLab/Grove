@@ -105,7 +105,7 @@ struct GroveSensorKitRecordingSummaryTests {
         #expect(Self.componentCounts(observation) == ["sample-count": 1, "batch-count": 1])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         let format = try #require(document.content.first?.format)
-        #expect(format.system?.value?.url.absoluteString == RecordingFormatContract.recordingFormatCodeSystem)
+        #expect(format.system?.value?.url.absoluteString == RegisteredRecordingFormat.codeSystem)
         #expect(format.code?.value?.string == "triaxial-acceleration-samples")
         #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
