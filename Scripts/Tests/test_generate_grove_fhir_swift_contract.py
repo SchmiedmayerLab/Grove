@@ -732,6 +732,20 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         # A quantity contract carries the catalog's canonical unit display.
         self.assertIn("unit:", generated)
 
+    def test_rejects_an_active_entry_policy_it_does_not_enforce(self):
+        cases = [
+            ("containedResourcesAllowed", True, "must prohibit contained resources"),
+            ("otherResourceTypesAllowed", True, "must close its active entry resource types"),
+            ("supportingResourcesMustBeConnected", False, "supporting resources must be connected"),
+        ]
+        for field, value, message in cases:
+            catalogs = self.catalogs()
+            catalogs["exchange-protocol.json"]["lifecycle"]["active"]["entryResourcePolicy"][field] = value
+
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, message):
+                    self.generate(catalogs)
+
     def test_rejects_unsorted_healthkit_inventory(self):
         catalogs = self.catalogs()
         catalogs["healthkit-adapter.json"]["rows"].reverse()
