@@ -238,8 +238,6 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 - ``HealthKitHeartbeatSeriesRecord``
 - ``HealthKitHeartbeat``
 - ``HealthKitWorkoutRouteRecord``
-- ``HealthKitClinicalRecord``
-- ``HealthKitClinicalAttachment``
 
 ### Disclosure policies
 
