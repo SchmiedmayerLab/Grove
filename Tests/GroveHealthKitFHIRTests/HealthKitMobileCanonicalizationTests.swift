@@ -129,13 +129,11 @@ struct HealthKitFHIRMobileCanonicalizationTests {
         #expect(mismatches.isEmpty, "\(mismatches.count) fractions: \(mismatches.prefix(10))")
     }
 
-    @Test("Percent passes a non-finite fraction through, and the template refuses it as any non-finite value")
+    @Test("Percent states a non-finite fraction as NaN, and the template refuses it as any non-finite value")
     func percentOfNonFiniteFraction() throws {
-        #expect(QuantityRead.percent(ofFraction: .nan).isNaN)
-        #expect(QuantityRead.percent(ofFraction: .infinity) == .infinity)
-        #expect(QuantityRead.percent(ofFraction: -.infinity) == -.infinity)
         let template = QuantityTemplate(try #require(MeasurementCatalog.oxygenSaturation.quantity))
         for fraction in [Double.nan, .infinity, -.infinity] {
+            #expect(QuantityRead.percent(ofFraction: fraction).isNaN)
             #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
                 try template.quantity(QuantityRead.percent(ofFraction: fraction))
             }
