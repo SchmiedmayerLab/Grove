@@ -1580,6 +1580,9 @@ var targets: [Target] = [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: testTargetExcludes("GroveSensorKitFHIRTests"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),

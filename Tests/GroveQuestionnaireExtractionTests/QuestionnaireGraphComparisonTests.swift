@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import CryptoKit
 import Foundation
 import GroveFHIRContract
 @testable import GroveQuestionnaireExtraction
@@ -41,6 +42,17 @@ struct QuestionnaireGraphComparisonTests {
         var testDescription: String { name }
     }
 
+    /// One case's wire bytes, their SHA-256 (base64url without padding), and the output revisions they last changed
+    /// under.
+    struct Revision: Sendable, CustomTestStringConvertible {
+        let name: String
+        let digest: String
+        let assembler: UInt
+        let questionnaire: UInt
+
+        var testDescription: String { name }
+    }
+
     static let cases = [
         // The guide's whole-second instant states the same bytes as before.
         Case(name: "guide", instant: 1_787_931_125, recorded: "2026-08-28T15:32:05Z", occurred: "2026-08-28T08:32:05-07:00"),
@@ -59,6 +71,19 @@ struct QuestionnaireGraphComparisonTests {
         ),
         // Authored in UTC by a writer with a host and no build; the fraction rounds away.
         Case(name: "utc", instant: 1_787_931_125.0004, recorded: "2026-08-28T15:32:05Z", occurred: "2026-08-28T15:32:05Z")
+    ]
+
+    /// Ties the bytes above to the output revisions the exporter's context fingerprint states.
+    ///
+    /// An exact redelivery is byte-identical only while the projection emits the same bytes for equal inputs, so any
+    /// change to a case's `ExchangeGraph.json`, whether through the baseline or the approved changes, fails here until
+    /// its row is updated, and the updated row must carry the bumped `ExchangeGraphAssembler.outputRevision` or
+    /// `QuestionnaireExchangeProjection.outputRevision` when an output changed, which review checks in the diff.
+    static let revisions = [
+        Revision(name: "fractional", digest: "VQp5RruS7F5tWOE9aAzW3ekOrSLWms_Riz0Rgbe4LcY", assembler: 1, questionnaire: 1),
+        Revision(name: "guide", digest: "xeDuynS1-jIdoAvYrsC-XkLYCx-xtpNamXzQjnJZGSA", assembler: 1, questionnaire: 1),
+        Revision(name: "positive-offset", digest: "DNKXJaEUmirKNv8kom-DOykm02plWm-x_FhcmbD-KAw", assembler: 1, questionnaire: 1),
+        Revision(name: "utc", digest: "Cbmq9hnxZ109PJuV2HnYzpkEY9UwFs5nd_ipOrINoVA", assembler: 1, questionnaire: 1)
     ]
 
     private static func record(for name: String) throws -> QuestionnaireFHIRExporter.Record {
@@ -137,16 +162,31 @@ struct QuestionnaireGraphComparisonTests {
         return version
     }
 
-    @Test("The exporter's graph is the baseline with only the approved changes", arguments: Self.cases)
-    func matchesTheBaselineUpToTheApprovedChanges(_ testCase: Case) throws {
+    /// The exporter's graph of `testCase`, under the baseline's event.
+    private static func graph(_ testCase: Case) throws -> ExchangeGraph {
         let exporter = try Fixtures.exporter(Fixtures.producer(pinning: Fixtures.producerInstance))
         let (exports, _) = try Fixtures.collect(
             exporter,
             [try Self.record(for: testCase.name)],
             at: Date(timeIntervalSince1970: testCase.instant)
         )
-        let graph = try #require(exports.first?.graph)
+        return try #require(exports.first?.graph)
+    }
+
+    @Test("The exporter's graph is the baseline with only the approved changes", arguments: Self.cases)
+    func matchesTheBaselineUpToTheApprovedChanges(_ testCase: Case) throws {
+        let graph = try Self.graph(testCase)
         let expected = try Self.applyingApprovedChanges(to: Self.baseline(testCase.name), testCase)
         #expect(try Self.canonical(JSONSerialization.jsonObject(with: graph.json)) == Self.canonical(expected))
+    }
+
+    @Test("Each case's bytes match its row, whose revisions the code has reached", arguments: Self.revisions)
+    func bytesMatchTheirRevision(_ row: Revision) throws {
+        #expect(Set(Self.revisions.map(\.name)) == Set(Self.cases.map(\.name)))
+        let testCase = try #require(Self.cases.first { $0.name == row.name })
+        let digest = Data(SHA256.hash(data: try Self.graph(testCase).json)).base64URLEncodedStringWithoutPadding
+        #expect(digest == row.digest, "\(row.name) changed to \(digest): update its row, with the bumped output revision if an output changed")
+        #expect(row.assembler <= ExchangeGraphAssembler.outputRevision)
+        #expect(row.questionnaire <= QuestionnaireExchangeProjection.outputRevision)
     }
 }
