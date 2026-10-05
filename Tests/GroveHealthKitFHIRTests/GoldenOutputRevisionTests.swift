@@ -15,8 +15,8 @@ import Foundation
 import Testing
 
 
-/// One checked-in golden file, its SHA-256 (base64url without padding), and the output revisions it was last
-/// changed under.
+/// One checked-in golden file or the content corpus, its SHA-256 (base64url without padding), and the output
+/// revisions an output it pins last changed under.
 struct GoldenRevision: Sendable, CustomTestStringConvertible {
     let name: String
     let digest: String
@@ -37,11 +37,13 @@ struct GoldenRevision: Sendable, CustomTestStringConvertible {
 /// Guards the output revisions the context fingerprint states.
 ///
 /// An exact redelivery is byte-identical only while the converter emits the same bytes for the same inputs, so
-/// any change that alters a golden must bump `ExchangeGraphAssembler.outputRevision` or
-/// `HealthKitAssembly.outputRevision`. This table pins every golden file's digest: a changed golden fails here
-/// until its row is updated, and the updated row must carry the bumped revision, which review checks in the
-/// diff. A row never names a revision the code has not reached. A new golden adds a row without a bump, and so does a
-/// golden whose case changed its inputs while the output for equal inputs stayed the same.
+/// any change that alters a golden or a content-corpus output must bump `ExchangeGraphAssembler.outputRevision` or
+/// `HealthKitAssembly.outputRevision`. This table pins every golden file's digest, and ``contentCorpus`` the
+/// corpus's: a changed file fails here until its row is updated, and the updated row must carry the bumped revision
+/// when an output changed, which review checks in the diff. A row never names a revision the code has not reached.
+/// A new golden adds a row without a bump, and so does a golden whose case changed its inputs while the output for
+/// equal inputs stayed the same; a corpus that only gains vectors, or renders equal outputs another way, updates its
+/// digest without a bump.
 @Suite
 struct GoldenOutputRevisionTests {
     static let table: [GoldenRevision] = [
@@ -105,6 +107,18 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("writer-without-version", digest: "6cAe98cV6GLI-79ir2LvcG0yd9lT0aHnoz60tvoiW_A", assembler: 1, healthKit: 1)
     ]
 
+    /// The content corpus pins the content layer's output, refusals included, for every vector, so a changed output
+    /// bumps a revision as a changed golden does, even where no golden changes.
+    static let contentCorpus = GoldenRevision("content-corpus", digest: "yB8GRhF4dhT6BY9HGfOC4xvLigbOsPAu9xFB7cki0R0", assembler: 1, healthKit: 10)
+
+    /// Expects `data` to hash to `row`'s digest, and `row` to name revisions the code has reached.
+    private static func expect(_ row: GoldenRevision, matches data: Data) {
+        let digest = Data(SHA256.hash(data: data)).base64URLEncodedStringWithoutPadding
+        #expect(digest == row.digest, "\(row.name) changed: update its row, with the bumped output revision if an output changed")
+        #expect(row.assembler <= ExchangeGraphAssembler.outputRevision)
+        #expect(row.healthKit <= HealthKitAssembly.outputRevision)
+    }
+
     @Test("G17: every golden file has a row, and every row names an existing golden")
     func everyGoldenHasARow() {
         let rows = Set(Self.table.map(\.name))
@@ -120,10 +134,12 @@ struct GoldenOutputRevisionTests {
         guard !GoldenCase.unavailableHere.contains(row.name) else {
             return
         }
-        let digest = Data(SHA256.hash(data: try GoldenStore.data(named: row.name))).base64URLEncodedStringWithoutPadding
-        #expect(digest == row.digest, "\(row.name) changed: update its row with the bumped output revision")
-        #expect(row.assembler <= ExchangeGraphAssembler.outputRevision)
-        #expect(row.healthKit <= HealthKitAssembly.outputRevision)
+        Self.expect(row, matches: try GoldenStore.data(named: row.name))
+    }
+
+    @Test("G17: the content corpus's bytes match its row, whose revisions the code has reached")
+    func contentCorpusMatchesItsRevision() throws {
+        Self.expect(Self.contentCorpus, matches: try ContentCorpusStore.checkedIn())
     }
 }
 
