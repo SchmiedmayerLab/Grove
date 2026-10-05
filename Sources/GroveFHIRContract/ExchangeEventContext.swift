@@ -50,11 +50,12 @@ public enum ExchangeGraphNode: Hashable, Sendable {
 /// the identity scope that mints its opaque identities, and the converting application and host.
 ///
 /// Callers persist the event identity and identity-scope inputs with the event and reuse them for
-/// an exact retry. Grove never reads the clock; ``conversionInstant`` is the caller's.
+/// an exact retry. The `host` and `conversionInstant` defaults read the current host and the clock, so pass both
+/// explicitly when you rebuild a persisted event.
 ///
 /// A candidate for removal: the exporters number their events through an ``ExchangeProducer`` instead, and only
-/// the caller-managed source-neutral sensor converter, itself a removal candidate, still takes it (beside
-/// ``RetractionEvent``, which an exporter builds from its reservation).
+/// the caller-managed source-neutral sensor converter, itself a removal candidate, still takes it (beside the
+/// package retraction builder, which the HealthKit exporter feeds from its reservation).
 public struct ExchangeEventContext: Sendable {
     public let subject: Subject
     public let event: ExchangeEventIdentifier

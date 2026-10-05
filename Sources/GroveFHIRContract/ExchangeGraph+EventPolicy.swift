@@ -429,7 +429,7 @@ extension ExchangeGraph {
         }
         guard provenances.count == 1,
               let provenance = provenances.first,
-              provenance.meta?.profile?.contains(GroveLifecycleContract.retractionProvenanceProfile) == true,
+              provenance.meta?.profile?.contains(Profile.groveMobileRetractionProvenance) == true,
               hasRequiredTimes(provenance),
               let assembler = exactAssembler(in: provenance),
               retractionAssemblerIsDevice(assembler, entries: entries) else {
@@ -452,7 +452,7 @@ extension ExchangeGraph {
 
     private static func validatedRetractionTarget(
         _ target: Reference
-    ) throws(ExchangeGraphError) -> RetractionTarget {
+    ) throws(ExchangeGraphError) -> RetractionEvent.Target {
         guard target.reference == nil,
               let type = target.type?.value?.url.absoluteString,
               let resourceType = ResourceType(rawValue: type),
@@ -467,7 +467,7 @@ extension ExchangeGraph {
         guard roles.count == 1,
               case .code(let roleCode)? = roles.first?.value,
               let rawRole = roleCode.value?.string,
-              let role = RetractionTargetRole(rawValue: rawRole) else {
+              let role = RetractionEvent.Target.Role(rawValue: rawRole) else {
             throw .ruleViolation(.mobileRetractionTargetRole)
         }
         let natives = target.extension?.filter { $0.url == Canonicals.retractionTargetNativeIdentifier } ?? []
@@ -487,7 +487,7 @@ extension ExchangeGraph {
             nativeRecordIdentifier = identifier
         }
         do {
-            return try RetractionTarget(
+            return try RetractionEvent.Target(
                 identifier: businessIdentifier,
                 resourceType: resourceType,
                 role: role,

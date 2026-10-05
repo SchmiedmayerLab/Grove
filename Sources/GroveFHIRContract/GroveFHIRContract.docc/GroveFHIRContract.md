@@ -133,9 +133,9 @@ A ``RepositoryID`` per ``ExchangeGraphNode`` gives a graph node the logical id y
 
 A retry is exact when ``ExchangeGraph/isSemanticallyEqual(to:)`` says so: member order, whitespace and escaping do not matter, but `72` and `72.0` are different content.
 
-A ``RetractionEvent`` takes back earlier outputs by typed identity; each ``RetractionTarget`` names the identity, the resource type and its ``RetractionTargetRole``.
-A target carries the record's ``RetractionTarget/nativeRecordIdentifier`` only where the governed-source-identifier policy authorizes it, and the event renders it beside the target without ever addressing the target by it.
-Its ``RetractionOccurrence`` is the deletion or detection instant, or bounds on the deletion when the source states no time.
+An exporter's retraction graph takes back earlier outputs by typed identity: each Provenance target names the identity, the resource type and its role (the ``Canonicals/retractionTargetRole`` extension).
+A target carries the record's native record identifier (the ``Canonicals/retractionTargetNativeIdentifier`` extension) only where the governed-source-identifier policy authorizes it, and never addresses the target by it.
+`Provenance.occurred` is the deletion or detection instant, or bounds on the deletion when the source states no time.
 
 Every refusal and every warning is one ``ProducerDiagnostic`` whose code is a registered ``ExchangeGraphRule``.
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter's output against the grove-fhir corpora and the official validator.
@@ -157,7 +157,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Study enrollment | ``StudyEnrollment`` |
 | Application, host and recording device | ``ApplicationDevice``, ``HostDevice``, ``RecordingDevice`` |
 | Writer | ``ExchangeGraphNode/writer`` and ``ExchangeGraphNode/writerHost``, chosen by the adapter's writer option, for HealthKit `HealthKitFHIRExporter.WriterPolicy` |
-| Retraction event and target | ``RetractionEvent``, ``RetractionTarget``, ``RetractionTargetRole`` |
+| Retraction event and target | an ``ExchangeGraph`` of kind ``ExchangeGraph/Kind/retraction``, whose Provenance targets carry the ``Canonicals/retractionTargetRole`` extension |
 | Governed source identifier | ``GovernedSourceIdentifierDisclosurePolicy`` |
 | Producer diagnostic | ``ProducerDiagnostic`` with its ``ExchangeGraphRule`` |
 
@@ -198,14 +198,9 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 ### The graph
 
 - ``ExchangeGraph``
-- ``ExchangeGraphKind``
 - ``ExchangeGraphRule``
 - ``ProducerDiagnostic``
 - ``ExchangeGraphError``
-- ``RetractionEvent``
-- ``RetractionTarget``
-- ``RetractionTargetRole``
-- ``RetractionOccurrence``
 
 ### Disclosure
 

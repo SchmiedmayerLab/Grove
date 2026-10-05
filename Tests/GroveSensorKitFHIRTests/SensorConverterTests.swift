@@ -207,7 +207,7 @@ struct SensorFHIRConverterTests {
         #expect(format.code?.value?.string == "native-recording")
         #expect(format.version == nil)
         #expect(conversion.provenance.meta?.profile == [
-            GroveLifecycleContract.conversionProvenanceProfile
+            Profile.groveMobileConversionProvenance
         ])
         #expect(conversion.graphIdentifiers.provenance.role == .entryNode)
         #expect(conversion.bundle.entry?.count == 5)

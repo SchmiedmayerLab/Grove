@@ -80,7 +80,7 @@ extension HealthKitFHIRExporter {
             facts: reservation.facts,
             repositoryIDs: try legacyRepositoryIDs(for: deletion.uuid)
         )
-        let occurred = RetractionOccurrence.period(start: deletion.clampedDeletedAfter, end: deletion.detectedAt)
+        let occurred = RetractionEvent.Occurrence.period(start: deletion.clampedDeletedAfter, end: deletion.detectedAt)
         return try assembly.retraction(of: deletion.uuid, type: deletion.sourceType, request: request, occurred: occurred).graph
     }
 }

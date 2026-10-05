@@ -101,7 +101,7 @@ struct ProducerDefaultsTests {
             nativeRecordID: "record-1"
         )
         let output = try record.output(role: "primary", discriminator: "0")
-        let target = try RetractionTarget(identifier: output, resourceType: .observation, role: .primaryOutput)
+        let target = try RetractionEvent.Target(identifier: output, resourceType: .observation, role: .primaryOutput)
         #expect(target.nativeRecordIdentifier == nil)
     }
 }
@@ -446,8 +446,8 @@ struct ProducerSurfaceTests {
         // The exporter drops a lower bound later than the detection; the retraction event itself refuses an inverted
         // period.
         let base = ExchangeEventContext.test()
-        let target = try RetractionTarget(identifier: targets[0], resourceType: .observation, role: .primaryOutput)
-        #expect(throws: RetractionEventError.invalidOccurrencePeriod) {
+        let target = try RetractionEvent.Target(identifier: targets[0], resourceType: .observation, role: .primaryOutput)
+        #expect(throws: RetractionEvent.ValidationError.invalidOccurrencePeriod) {
             try RetractionEvent(
                 targets: [target],
                 context: base,
@@ -719,7 +719,7 @@ struct ProducerContractVectorTests {
     @Test("The study-attribution source event is a complete bundled study context")
     func studyAttributionSourceEvent() throws {
         let path = groveFHIRRoot.appendingPathComponent("Conformance/corpora/study-attribution/source-event.json")
-        _ = try ExchangeGraph(kind: .active, jsonData: Data(contentsOf: path))
+        _ = try ExchangeGraph(validating: Data(contentsOf: path), kind: .active)
     }
 
     @Test("Receiver-lifecycle retries are compared over lossless JSON tokens")
@@ -733,11 +733,11 @@ struct ProducerContractVectorTests {
         }
         let corpus = groveFHIRRoot.appendingPathComponent(ExchangeContract.equalityVectorCorpus, isDirectory: true)
         let events = try JSONDecoder().decode(Events.self, from: Data(contentsOf: corpus.appendingPathComponent("events.json"))).events
-        func graph(_ name: String, kind: ExchangeGraphKind = .active) throws -> ExchangeGraph {
+        func graph(_ name: String, kind: ExchangeGraph.Kind = .active) throws -> ExchangeGraph {
             guard let event = events[name] else {
                 throw MissingEvent(name: name)
             }
-            return try ExchangeGraph(kind: kind, jsonData: Data(contentsOf: corpus.appendingPathComponent(event.path)))
+            return try ExchangeGraph(validating: Data(contentsOf: corpus.appendingPathComponent(event.path)), kind: kind)
         }
         let original = try graph("original")
         let reformatted = try graph(ExchangeContract.equalityFormattingVector)

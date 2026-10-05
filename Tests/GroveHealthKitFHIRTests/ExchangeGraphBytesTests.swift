@@ -136,26 +136,13 @@ struct ExchangeGraphBytesTests {
         #expect(try !tokens("{}").isKept(as: tokens(#"{"value":72}"#)))
     }
 
-    @Test("The earlier spelling forwards to the validating initializer")
-    func earlierSpellingForwards() throws {
-        let graph = try #require(GoldenCase.all.first).output().graph
-        let viaEarlierSpelling = try ExchangeGraph(kind: graph.kind, jsonData: graph.json)
-        let viaValidating = try ExchangeGraph(validating: graph.json, kind: graph.kind)
-        #expect(viaEarlierSpelling.json == viaValidating.json)
-        #expect(viaEarlierSpelling.event == viaValidating.event)
-        #expect(viaEarlierSpelling.kind == viaValidating.kind)
-    }
-
-    @Test("The validating initializer rejects what the earlier spelling rejects")
+    @Test("The validating initializer rejects bytes that are not strict JSON, and another kind")
     func validatingRejectsNonStrictJSON() throws {
         let graph = try #require(GoldenCase.all.first).output().graph
         var corrupted = graph.json
         corrupted.append(contentsOf: Array("}".utf8))
         #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
             try ExchangeGraph(validating: corrupted, kind: graph.kind)
-        }
-        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
-            try ExchangeGraph(kind: graph.kind, jsonData: corrupted)
         }
         #expect(throws: ExchangeGraphError.self) {
             try ExchangeGraph(validating: graph.json, kind: graph.kind == .active ? .retraction : .active)
@@ -169,15 +156,6 @@ struct ExchangeGraphBytesTests {
         #expect(graph.event.value == graph.bundle.identifier?.value?.value?.string)
         #expect(graph.event.system.rawValue == graph.bundle.identifier?.system?.value?.url.absoluteString)
         #expect(graph.event.value.hasPrefix("e0:"))
-    }
-
-    @Test("The kind keeps its earlier top-level spelling")
-    func kindKeepsEarlierSpelling() {
-        let active: ExchangeGraphKind = .active
-        let retraction: ExchangeGraph.Kind = .retraction
-        #expect(active == ExchangeGraph.Kind.active)
-        #expect(retraction == ExchangeGraphKind.retraction)
-        #expect(active != retraction)
     }
 }
 

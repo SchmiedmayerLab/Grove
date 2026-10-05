@@ -486,17 +486,17 @@ extension GroveFHIRExchangeIdentityTests {
         )
         let output = try record.output(role: "native-recording", discriminator: "single")
         let artifact = try record.artifact(formatCode: "beat-interval-series", partIndex: 0)
-        let target = try RetractionTarget(
+        let target = try RetractionEvent.Target(
             identifier: output,
             resourceType: .documentReference,
             role: .sourceArtifact
         )
         #expect(target.identifier == output)
-        #expect(throws: RetractionTargetError.identifierRoleMismatch(
+        #expect(throws: RetractionEvent.Target.ValidationError.identifierRoleMismatch(
             targetRole: .sourceArtifact,
             identifierRole: .sourceArtifact
         )) {
-            try RetractionTarget(
+            try RetractionEvent.Target(
                 identifier: artifact,
                 resourceType: .documentReference,
                 role: .sourceArtifact

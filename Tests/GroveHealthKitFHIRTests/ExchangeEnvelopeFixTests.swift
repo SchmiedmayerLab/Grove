@@ -179,7 +179,7 @@ struct ExchangeEnvelopeFixTests {
             repositoryScope: Self.base.repositoryScope,
             nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()
         )
-        let target = try RetractionTarget(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
+        let target = try RetractionEvent.Target(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
         let exact = try RetractionEvent(
             targets: [target],
             context: .test(conversionInstant: Self.subMillisecondInputs.instant),
@@ -209,20 +209,20 @@ struct ExchangeEnvelopeFixTests {
             repositoryScope: Self.base.repositoryScope,
             nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()
         )
-        let target = try RetractionTarget(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
-        func retraction(_ occurred: RetractionOccurrence, recordedAt: Date = GoldenFixtures.conversionInstant) throws {
+        let target = try RetractionEvent.Target(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
+        func retraction(_ occurred: RetractionEvent.Occurrence, recordedAt: Date = GoldenFixtures.conversionInstant) throws {
             _ = try RetractionEvent(targets: [target], context: .test(conversionInstant: recordedAt), sourceRecord: record.identifier, occurred: occurred)
         }
         let yearTenThousand = Date(timeIntervalSince1970: 253_402_300_800)
-        let unstatable: [RetractionOccurrence] = [
+        let unstatable: [RetractionEvent.Occurrence] = [
             .instant(.distantPast), .instant(yearTenThousand), .period(start: nil, end: .distantPast), .period(start: nil, end: yearTenThousand)
         ]
         for occurred in unstatable {
-            #expect(throws: RetractionEventError.invalidInstant, "occurred \(occurred)") {
+            #expect(throws: RetractionEvent.ValidationError.invalidInstant, "occurred \(occurred)") {
                 try retraction(occurred)
             }
         }
-        #expect(throws: RetractionEventError.invalidInstant, "recorded before year 1") {
+        #expect(throws: RetractionEvent.ValidationError.invalidInstant, "recorded before year 1") {
             try retraction(.instant(GoldenFixtures.conversionInstant), recordedAt: .distantPast)
         }
         try retraction(.period(start: .distantPast, end: GoldenFixtures.conversionInstant))

@@ -146,7 +146,7 @@ let receipt = try disclosing.export(records, sourceTimeZone: batchTimeZone, reco
 
 A record that cannot be converted is reported as ``SensorKitFHIRExporter/Export/Outcome/refused(_:)`` and the export continues; its ``SensorKitConversionError/diagnostic`` is one registered producer rule.
 
-A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so, and earlier outputs are taken back by identity with a `RetractionEvent`.
+A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
 
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapter's output against the grove-fhir corpora and the official validator.
 
@@ -242,7 +242,6 @@ Its `sourceTimeZone` gives every effective bound the source's own offset; withou
 | Study enrollment | `StudyEnrollment` |
 | Application, host and recording device | `ApplicationDevice`, `HostDevice`, `RecordingDevice` |
 | Writer | the converting application, which SensorKit records as the assembler |
-| Retraction event and target | `RetractionEvent`, `RetractionTarget` |
 | Governed source identifier | `GovernedSourceIdentifierDisclosurePolicy` on ``SensorKitFHIRExporter/Options/nativeIdentifier`` |
 | Producer diagnostic | `ProducerDiagnostic` from ``SensorKitConversionError/diagnostic`` |
 

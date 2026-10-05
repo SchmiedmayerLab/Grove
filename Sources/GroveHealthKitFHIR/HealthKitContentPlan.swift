@@ -26,7 +26,7 @@ struct HealthKitOutputSlot: Sendable {
     /// The resource type the output is.
     let resourceType: ResourceType
     /// How a retraction names the output.
-    let retractionRole: RetractionTargetRole
+    let retractionRole: RetractionEvent.Target.Role
     /// The envelope statements the output carries.
     let links: ExchangeOutputDraft.Links
     /// Whether the output states the primary under `derivedFrom`.

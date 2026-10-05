@@ -84,28 +84,28 @@ struct ExchangeGraphCorpusTests {
     }
 
     @Test("Serialized shared fixtures preserve their event identity", arguments: [
-        ("exchange-bundle.json", ExchangeGraphKind.active),
-        ("retraction-bundle.json", ExchangeGraphKind.retraction)
+        ("exchange-bundle.json", ExchangeGraph.Kind.active),
+        ("retraction-bundle.json", ExchangeGraph.Kind.retraction)
     ])
-    func acceptsSerializedSharedFixtures(name: String, kind: ExchangeGraphKind) throws {
+    func acceptsSerializedSharedFixtures(name: String, kind: ExchangeGraph.Kind) throws {
         let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
-        let parsed = try ExchangeGraph(kind: kind, jsonData: bytes)
+        let parsed = try ExchangeGraph(validating: bytes, kind: kind)
         let expected = try graph(named: name, kind: kind)
         #expect(parsed.eventIdentifier == expected.eventIdentifier)
         #expect(parsed.bundle == expected.bundle)
     }
 
     @Test("An otherwise valid graph cannot hide a duplicated JSON member", arguments: [
-        ("exchange-bundle.json", ExchangeGraphKind.active),
-        ("retraction-bundle.json", ExchangeGraphKind.retraction)
+        ("exchange-bundle.json", ExchangeGraph.Kind.active),
+        ("retraction-bundle.json", ExchangeGraph.Kind.retraction)
     ])
-    func rejectsDuplicateMemberInValidGraph(name: String, kind: ExchangeGraphKind) throws {
+    func rejectsDuplicateMemberInValidGraph(name: String, kind: ExchangeGraph.Kind) throws {
         let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
         var json = String(decoding: bytes, as: UTF8.self)
         let root = try #require(json.firstIndex(of: "{"))
         json.insert(contentsOf: #""resourceType":"Bundle","#, at: json.index(after: root))
         #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
-            try ExchangeGraph(kind: kind, jsonData: Data(json.utf8))
+            try ExchangeGraph(validating: Data(json.utf8), kind: kind)
         }
     }
 
@@ -221,10 +221,10 @@ struct ExchangeGraphCorpusTests {
             )
             let mutated = try applying(operations, to: baseObject)
             let mutatedData = try JSONSerialization.data(withJSONObject: mutated)
-            let kind: ExchangeGraphKind = testCase.base == "mobile-retraction" ? .retraction : .active
+            let kind: ExchangeGraph.Kind = testCase.base == "mobile-retraction" ? .retraction : .active
 
             do {
-                _ = try ExchangeGraph(kind: kind, jsonData: mutatedData)
+                _ = try ExchangeGraph(validating: mutatedData, kind: kind)
                 Issue.record("Corpus mutation \(testCase.id) was accepted")
             } catch {
                 #expect(
@@ -677,10 +677,7 @@ struct ExchangeGraphCorpusTests {
         entries[2]["resource"] = output
         raw["entry"] = entries
 
-        _ = try ExchangeGraph(
-            kind: .active,
-            jsonData: JSONSerialization.data(withJSONObject: raw)
-        )
+        _ = try ExchangeGraph(validating: JSONSerialization.data(withJSONObject: raw), kind: .active)
 
         quantity["value"] = 1.5
         output["valueQuantity"] = quantity
@@ -688,10 +685,7 @@ struct ExchangeGraphCorpusTests {
         raw["entry"] = entries
         let fractionalData = try JSONSerialization.data(withJSONObject: raw)
         do {
-            _ = try ExchangeGraph(
-                kind: .active,
-                jsonData: fractionalData
-            )
+            _ = try ExchangeGraph(validating: fractionalData, kind: .active)
             Issue.record("Fractional step count was accepted")
         } catch {
             #expect(error.diagnostic.code == ExchangeGraphRule.mobileOutputQuantityValueDomain.rawValue)
@@ -750,11 +744,11 @@ struct ExchangeGraphCorpusTests {
     }
 
     @Test("The retraction builder carries its source-record entity and known time bounds", arguments: [
-        RetractionOccurrence.instant(Date(timeIntervalSince1970: 1_787_299_200)),
+        RetractionEvent.Occurrence.instant(Date(timeIntervalSince1970: 1_787_299_200)),
         .period(start: nil, end: Date(timeIntervalSince1970: 1_787_299_200)),
         .period(start: Date(timeIntervalSince1970: 1_787_295_600), end: Date(timeIntervalSince1970: 1_787_299_200))
     ])
-    func retractionBuilderCarriesSourceEntity(occurred: RetractionOccurrence) throws {
+    func retractionBuilderCarriesSourceEntity(occurred: RetractionEvent.Occurrence) throws {
         let fixture = try bundle(named: "retraction-bundle.json")
         guard case .provenance(let fixtureProvenance)? = fixture.entry?.first?.resource else {
             Issue.record("Fixture lifecycle resource is not Provenance")
@@ -766,7 +760,7 @@ struct ExchangeGraphCorpusTests {
         let fixtureTarget = try #require(fixtureProvenance.target.first)
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
-        let target = try RetractionTarget(
+        let target = try RetractionEvent.Target(
             identifier: RoledIdentifier(#require(fixtureTarget.identifier)),
             resourceType: resourceType,
             role: .primaryOutput
@@ -794,7 +788,7 @@ struct ExchangeGraphCorpusTests {
         case .period:
             #expect(provenance.occurred == .period(Period(end: end, start: FHIRPrimitive(try DateTime("2026-08-21T07:00:00Z")))))
         }
-        _ = try ExchangeGraph(kind: .retraction, jsonData: JSONEncoder().encode(graph.bundle))
+        _ = try ExchangeGraph(validating: JSONEncoder().encode(graph.bundle), kind: .retraction)
     }
 
     @Test("A retraction period cannot start after it ends")
@@ -804,7 +798,7 @@ struct ExchangeGraphCorpusTests {
             Issue.record("Fixture lifecycle resource is not Provenance")
             return
         }
-        let target = try RetractionTarget(
+        let target = try RetractionEvent.Target(
             identifier: RoledIdentifier(#require(fixtureProvenance.target.first?.identifier)),
             resourceType: .observation,
             role: .primaryOutput
@@ -812,7 +806,7 @@ struct ExchangeGraphCorpusTests {
         let context = try retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
         let sourceRecord = try RoledIdentifier(#require(fixtureProvenance.entity?.first?.what.identifier))
         let end = Date(timeIntervalSince1970: 1_787_299_200)
-        #expect(throws: RetractionEventError.invalidOccurrencePeriod) {
+        #expect(throws: RetractionEvent.ValidationError.invalidOccurrencePeriod) {
             try RetractionEvent(
                 targets: [target],
                 context: context,
@@ -838,7 +832,7 @@ struct ExchangeGraphCorpusTests {
         let resourceType = try #require(ResourceType(rawValue: targetType))
         let context = try retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
         func retraction(nativeRecordIdentifier: BusinessIdentifier) throws -> ExchangeGraph {
-            let target = try RetractionTarget(
+            let target = try RetractionEvent.Target(
                 identifier: targetIdentifier,
                 resourceType: resourceType,
                 role: .primaryOutput,
@@ -871,7 +865,7 @@ struct ExchangeGraphCorpusTests {
         #expect(identifier == nativeRecordIdentifier.fhirIdentifier)
 
         // The opaque Grove identity is never restated as the clear native one.
-        #expect(throws: RetractionEventError.reservedIdentifierSystem) {
+        #expect(throws: RetractionEvent.ValidationError.reservedIdentifierSystem) {
             try retraction(nativeRecordIdentifier: BusinessIdentifier(
                 system: context.identityScope.systems.sourceRecord,
                 value: nativeRecordIdentifier.value
@@ -918,11 +912,11 @@ struct ExchangeGraphCorpusTests {
         )
     }
 
-    private func graph(named name: String, kind: ExchangeGraphKind) throws -> ExchangeGraph {
+    private func graph(named name: String, kind: ExchangeGraph.Kind) throws -> ExchangeGraph {
         try validate(bundle(named: name), kind: kind)
     }
 
-    private func validate(_ bundle: ModelsR4.Bundle, kind: ExchangeGraphKind) throws -> ExchangeGraph {
+    private func validate(_ bundle: ModelsR4.Bundle, kind: ExchangeGraph.Kind) throws -> ExchangeGraph {
         let identifier = try BusinessIdentifier(#require(bundle.identifier))
         return try ExchangeGraph(
             kind: kind,

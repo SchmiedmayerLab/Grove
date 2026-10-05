@@ -154,7 +154,7 @@ struct ExchangeGraphValidationDocumentTests {
                 let before = Self.liveHeapBytes()
                 for _ in 0..<iterations {
                     _ = try ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp)
-                    _ = try ExchangeGraph(kind: .active, jsonData: stored)
+                    _ = try ExchangeGraph(validating: stored, kind: .active)
                 }
                 return Self.liveHeapBytes() - before
             }
