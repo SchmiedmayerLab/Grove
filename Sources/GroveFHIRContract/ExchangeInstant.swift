@@ -140,8 +140,10 @@ package enum ExchangeInstant {
     }
 
     /// A proleptic Gregorian date to days since 1970-01-01 (Howard Hinnant's `days_from_civil`), the inverse of
-    /// ``civilDate(fromDays:)``. A field past its range carries over as a calendar's would: day 0 is the previous
-    /// month's last day, February 31 a day in March, and month 0 the previous year's December.
+    /// ``civilDate(fromDays:)`` for any year. It takes any day but only the months 0 through 12 that `FHIRDate` admits,
+    /// and a field past its range carries over as a calendar's would: day 0 is the previous month's last day, February
+    /// 31 a day in March, and month 0 the previous year's December. The month term is not periodic: month 15 would not
+    /// land on the next year's March.
     package static func days(fromYear year: Int64, month: Int64, day: Int64) -> Int64 {
         let shiftedYear = month <= 2 ? year - 1 : year
         let era = (shiftedYear >= 0 ? shiftedYear : shiftedYear - 399) / 400

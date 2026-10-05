@@ -316,7 +316,9 @@ struct HealthKitEffectiveTimeTests {
         #expect(mismatches.isEmpty, "\(mismatches.count) mismatches: \(mismatches.prefix(20))")
     }
 
-    @Test("ECG date-times read back to their instant to binary64 precision, also before the reform")
+    /// A 512 Hz voltage sample lies 1/512 s (0.001953125 s) after its predecessor, so ECG seconds carry fractions finer
+    /// than a millisecond.
+    @Test("ECG date-times read back to their instant within one unit in the last place, sub-millisecond seconds included")
     func ecgRoundTrips() throws {
         func stated(_ since1970: TimeInterval, plus offset: Decimal, in zone: TimeZone = .gmt) throws -> DateTime {
             try HealthKitEffectiveTime.exactDateTime(Date(timeIntervalSince1970: since1970), offset: offset, zone: zone)
@@ -325,14 +327,29 @@ struct HealthKitEffectiveTimeTests {
         let indiaStandardTime = try #require(TimeZone(secondsFromGMT: 19_800))
         let instants: [(DateTime, TimeInterval)] = [
             (try stated(1_793_525_400, plus: 0.25, in: losAngeles), 1_793_525_400.25),
+            (try stated(1_787_005_800, plus: 0.001_953_125, in: losAngeles), 1_787_005_800.001_953_125),
             (try stated(-12_219_292_801, plus: 0.25), -12_219_292_800.75),
             (try stated(-14_831_769_600, plus: 1.5, in: indiaStandardTime), -14_831_769_598.5),
+            (try stated(-14_831_769_600, plus: 0.000_976_562_5, in: indiaStandardTime), -14_831_769_599.999_023_437_5),
             (try stated(-62_135_596_800, plus: 0.004), -62_135_596_799.996),
             (try stated(253_402_300_799, plus: 0.999), 253_402_300_799.999)
         ]
         for (dateTime, since1970) in instants {
             let read = try #require(HealthKitEffectiveTime.instant(of: dateTime))
-            #expect(abs(read.timeIntervalSince1970 - since1970) < 0.000_1, "\(dateTime)")
+            #expect(abs(read.timeIntervalSince1970 - since1970) <= since1970.ulp, "\(dateTime)")
+        }
+    }
+
+    /// Foundation's calendar is proleptic from 1582-10-15 on, so there FHIRModels' `asNSDate()` checks every bit.
+    @Test("From the reform on, a date-time reads exactly as asNSDate() does, fractions finer than a millisecond included")
+    func readsAsFoundationAfterTheReform() throws {
+        let lexemes = [
+            "2026-08-17T22:30:00.2514Z", "2026-08-17T22:30:00.001953125Z", "2026-08-17T15:30:00.000001-07:00",
+            "1582-10-15T00:00:00.0001Z", "9999-12-31T23:59:59.999999+05:45", "2026-08-17T22:30:59.9995+14:00"
+        ]
+        for lexeme in lexemes {
+            let dateTime = try DateTime(lexeme)
+            #expect(HealthKitEffectiveTime.instant(of: dateTime) == (try dateTime.asNSDate()), "\(lexeme)")
         }
     }
 
@@ -356,16 +373,21 @@ struct HealthKitEffectiveTimeTests {
     }
 
     /// Only a date-time built in memory names a zone; Foundation's calendar is proleptic here, so it checks the policy.
-    @Test("A named zone reads a repeated wall-clock time as its first occurrence and a skipped one at the earlier offset")
+    /// The offset a day earlier is the old one, so each transition day is pinned again after its change.
+    @Test("A named zone reads a repeated time as its first occurrence, a skipped one at the earlier offset, and a later one at the new offset")
     func namedZonesFollowFoundationAtTransitions() throws {
         func halfPast(_ hour: UInt8, on day: FHIRDate, in identifier: String) throws -> DateTime {
             DateTime(date: day, time: FHIRTime(hour: hour, minute: 30, second: 0), timezone: try #require(TimeZone(identifier: identifier)))
         }
         let pinned: [(DateTime, TimeInterval)] = [
             (try halfPast(1, on: FHIRDate(year: 2026, month: 11, day: 1), in: "America/Los_Angeles"), 1_793_521_800),
+            (try halfPast(12, on: FHIRDate(year: 2026, month: 11, day: 1), in: "America/Los_Angeles"), 1_793_565_000),
             (try halfPast(2, on: FHIRDate(year: 2026, month: 3, day: 8), in: "America/Los_Angeles"), 1_772_965_800),
+            (try halfPast(12, on: FHIRDate(year: 2026, month: 3, day: 8), in: "America/Los_Angeles"), 1_772_998_200),
             (try halfPast(2, on: FHIRDate(year: 2026, month: 10, day: 25), in: "Europe/Amsterdam"), 1_792_888_200),
-            (try halfPast(2, on: FHIRDate(year: 2026, month: 3, day: 29), in: "Europe/Amsterdam"), 1_774_747_800)
+            (try halfPast(12, on: FHIRDate(year: 2026, month: 10, day: 25), in: "Europe/Amsterdam"), 1_792_927_800),
+            (try halfPast(2, on: FHIRDate(year: 2026, month: 3, day: 29), in: "Europe/Amsterdam"), 1_774_747_800),
+            (try halfPast(4, on: FHIRDate(year: 2026, month: 3, day: 29), in: "Europe/Amsterdam"), 1_774_751_400)
         ]
         for (dateTime, since1970) in pinned {
             #expect(HealthKitEffectiveTime.instant(of: dateTime)?.timeIntervalSince1970 == since1970, "\(dateTime)")

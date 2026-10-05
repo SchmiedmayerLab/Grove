@@ -166,10 +166,11 @@ struct ExchangeInstantTests {
         #expect(ExchangeInstant.utcLexeme(named) == "2026-10-03T10:30:00.251Z")
     }
 
-    @Test("Days from a civil date invert the civil date of every day from 0001 through 9999")
+    /// The 400-year era from -0400-03-01 through 0000-02-29 counts -1, which the inverse must floor, not truncate, to.
+    @Test("Days from a civil date invert the civil date of every day from year -400 through 9999")
     func daysFromCivilDatesInvertCivilDates() {
         var mismatches: [Int64] = []
-        for days in Int64(-719_162)...2_932_896 {
+        for days in Int64(-865_625)...2_932_896 {
             let civil = ExchangeInstant.civilDate(fromDays: days)
             if ExchangeInstant.days(fromYear: civil.year, month: civil.month, day: civil.day) != days {
                 mismatches.append(days)
@@ -177,13 +178,15 @@ struct ExchangeInstantTests {
         }
         #expect(mismatches.isEmpty, "\(mismatches.count) days do not round-trip: \(mismatches.prefix(10))")
         #expect(ExchangeInstant.days(fromYear: 1970, month: 1, day: 1) == 0)
+        #expect(ExchangeInstant.days(fromYear: -400, month: 1, day: 1) == -865_625)
+        #expect(ExchangeInstant.days(fromYear: 0, month: 1, day: 1) == -719_528)
         #expect(ExchangeInstant.days(fromYear: 1, month: 1, day: 1) == -719_162)
         #expect(ExchangeInstant.days(fromYear: 1582, month: 10, day: 15) == -141_427)
         #expect(ExchangeInstant.days(fromYear: 1582, month: 10, day: 4) == -141_438)
         #expect(ExchangeInstant.days(fromYear: 9999, month: 12, day: 31) == 2_932_896)
     }
 
-    @Test("A day or month past its range carries over as a calendar's does")
+    @Test("A day past its month, or month 0, carries over as a calendar's does")
     func daysFromCivilDatesCarryOver() {
         #expect(ExchangeInstant.days(fromYear: 2026, month: 2, day: 31) == ExchangeInstant.days(fromYear: 2026, month: 3, day: 3))
         #expect(ExchangeInstant.days(fromYear: 2024, month: 2, day: 31) == ExchangeInstant.days(fromYear: 2024, month: 3, day: 2))
