@@ -24,6 +24,32 @@ struct GroveSensorKitBridgeTests {
         }
     }
 
+    @Test("Every sensor the catalog lists resolves to its own entry")
+    @available(iOS 18, *)
+    func everyCatalogedSensorResolvesToItsEntry() {
+        let sensors: [SRSensor] = [
+            .accelerometer, .acousticSettings, .ambientLightSensor, .ambientPressure, .deviceUsageReport, .electrocardiogram,
+            .faceMetrics, .heartRate, .keyboardMetrics, .mediaEvents, .messagesUsageReport, .odometer, .onWristState,
+            .pedometerData, .phoneUsageReport, .photoplethysmogram, .rotationRate, .siriSpeechMetrics, .sleepSessions,
+            .telephonySpeechMetrics, .visits, .wristTemperature
+        ]
+        let tokens = sensors.compactMap(SensorKitCatalog.sourceToken(for:))
+        #expect(tokens.count == sensors.count)
+        #expect(Set(tokens) == Set(SensorKitCatalog.current.entries.map(\.sourceToken)))
+        // The sensors with a record case that once resolved to no token.
+        let named: [(SRSensor, String)] = [
+            (.rotationRate, "SRSensor.rotationRate"),
+            (.keyboardMetrics, "SRSensor.keyboardMetrics"),
+            (.messagesUsageReport, "SRSensor.messagesUsageReport"),
+            (.phoneUsageReport, "SRSensor.phoneUsageReport"),
+            (.sleepSessions, "SRSensor.sleepSessions")
+        ]
+        for (sensor, token) in named {
+            #expect(SensorKitCatalog.sourceToken(for: sensor) == token)
+            #expect(SensorKitCatalog.current.entry(sourceToken: token) != nil)
+        }
+    }
+
     @Test
     @available(iOS 18, *)
     func alreadyFetchedOnWristValueMapsWithoutAQuery() throws {

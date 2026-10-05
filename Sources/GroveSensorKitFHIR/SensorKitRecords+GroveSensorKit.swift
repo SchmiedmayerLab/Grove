@@ -15,22 +15,44 @@ public import SensorKit
 
 @available(iOS 18, *)
 extension SensorKitCatalog {
-    /// The authoritative catalog token for a SensorKit source supported by Grove's FHIR adapter.
-    public static func sourceToken(for sensor: SRSensor) -> String? { // swiftlint:disable:this cyclomatic_complexity
-        switch sensor {
-        case .heartRate: "SRSensor.heartRate"
-        case .accelerometer: "SRSensor.accelerometer"
-        case .ambientLightSensor: "SRSensor.ambientLightSensor"
-        case .ambientPressure: "SRSensor.ambientPressure"
-        case .pedometerData: "SRSensor.pedometerData"
-        case .wristTemperature: "SRSensor.wristTemperature"
-        case .visits: "SRSensor.visits"
-        case .onWristState: "SRSensor.onWristState"
-        case .deviceUsageReport: "SRSensor.deviceUsageReport"
-        case .electrocardiogram: "SRSensor.electrocardiogram"
-        case .photoplethysmogram: "SRSensor.photoplethysmogram"
-        default: nil
+    /// Every SensorKit sensor the catalog lists, by the token its entry names; a sensor this SDK introduced after
+    /// iOS 18 joins when the system has it.
+    private static var catalogedSensors: [SRSensor: String] {
+        var sensors: [SRSensor: String] = [
+            .accelerometer: "SRSensor.accelerometer",
+            .ambientLightSensor: "SRSensor.ambientLightSensor",
+            .ambientPressure: "SRSensor.ambientPressure",
+            .deviceUsageReport: "SRSensor.deviceUsageReport",
+            .electrocardiogram: "SRSensor.electrocardiogram",
+            .faceMetrics: "SRSensor.faceMetrics",
+            .heartRate: "SRSensor.heartRate",
+            .keyboardMetrics: "SRSensor.keyboardMetrics",
+            .mediaEvents: "SRSensor.mediaEvents",
+            .messagesUsageReport: "SRSensor.messagesUsageReport",
+            .odometer: "SRSensor.odometer",
+            .onWristState: "SRSensor.onWristState",
+            .pedometerData: "SRSensor.pedometerData",
+            .phoneUsageReport: "SRSensor.phoneUsageReport",
+            .photoplethysmogram: "SRSensor.photoplethysmogram",
+            .rotationRate: "SRSensor.rotationRate",
+            .siriSpeechMetrics: "SRSensor.siriSpeechMetrics",
+            .telephonySpeechMetrics: "SRSensor.telephonySpeechMetrics",
+            .visits: "SRSensor.visits",
+            .wristTemperature: "SRSensor.wristTemperature"
+        ]
+        if #available(iOS 26, *) {
+            sensors[.acousticSettings] = "SRSensor.acousticSettings"
+            sensors[.sleepSessions] = "SRSensor.sleepSessions"
         }
+        return sensors
+    }
+
+    /// The authoritative catalog token naming `sensor`, or `nil` for a sensor the catalog does not list.
+    ///
+    /// The catalog lists every SensorKit stream the guide classifies, whatever its status; the entry for the token
+    /// says whether Grove converts the stream (see ``SensorKitCatalogEntry/status``).
+    public static func sourceToken(for sensor: SRSensor) -> String? {
+        catalogedSensors[sensor]
     }
 
     /// Resolves a Grove SensorKit source directly from Grove's typed sensor facade.
