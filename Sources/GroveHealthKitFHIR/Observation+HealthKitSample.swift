@@ -150,7 +150,8 @@ enum HealthKitSampleProjection {
 
     /// The instant and metadata the observation states: its effective instant (in the proleptic Gregorian calendar, as
     /// the converter states it) and zone, manual entry, and the sync identifier and version a re-projected reading
-    /// replaces its earlier sample by.
+    /// replaces its earlier sample by. An instant from `Date.distantFuture` (4001-01-01T00:00:00Z) on refuses:
+    /// `HKSample` raises an uncatchable exception for an end there.
     private static func envelope(
         of observation: ModelsR4.Observation,
         measurementID: String,
@@ -158,7 +159,8 @@ enum HealthKitSampleProjection {
     ) throws(HealthKitSampleProjectionError) -> SampleEnvelope {
         guard case .dateTime(let effective)? = observation.effective,
               let dateTime = effective.value,
-              let date = HealthKitEffectiveTime.instant(of: dateTime) else {
+              let date = HealthKitEffectiveTime.instant(of: dateTime),
+              date < .distantFuture else {
             throw HealthKitSampleProjectionError.effectiveMissing(id: measurementID)
         }
         var metadata: [String: Any] = [:]
@@ -240,7 +242,9 @@ extension Observation {
     /// A measurement read by several HealthKit types, or by none, refuses rather than guessing.
     ///
     /// The effective instant is read in the proleptic Gregorian calendar the converter states it in,
-    /// so a reading from before the 1582 calendar reform lands on its own instant.
+    /// so a reading from before the 1582 calendar reform lands on its own instant. An instant
+    /// HealthKit cannot hold, from 4001-01-01T00:00:00Z (`Date.distantFuture`) on, refuses with
+    /// ``HealthKitSampleProjectionError/effectiveMissing(id:)``.
     ///
     /// A manual-entry recording method becomes `HKMetadataKeyWasUserEntered`, the effective
     /// instant's zone `HKMetadataKeyTimeZone`, and the minted source-output identity

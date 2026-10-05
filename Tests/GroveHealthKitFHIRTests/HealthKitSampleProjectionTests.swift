@@ -90,6 +90,25 @@ struct HealthKitSampleProjectionTests {
         #expect(projected.conversions.map(\.startDate) == [start])
     }
 
+    /// `HKSample` raises an uncatchable exception for an end at or after `Date.distantFuture`, 4001-01-01T00:00:00Z.
+    @Test("An effective instant HealthKit cannot hold refuses instead of aborting the process")
+    func instantPastHealthKitRefuses() throws {
+        func observation(at lexeme: String) throws -> ModelsR4.Observation {
+            var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
+            observation.effective = .dateTime(FHIRPrimitive(try DateTime(lexeme)))
+            return observation
+        }
+        for lexeme in ["4000-12-31T23:59:59.999Z", "4001-01-01T00:30:00+01:00"] {
+            #expect(try observation(at: lexeme).healthKitSample().endDate == (try DateTime(lexeme).asNSDate()), "\(lexeme)")
+        }
+        for lexeme in ["4001-01-01T00:00:00Z", "4000-12-31T23:30:00-01:00", "9999-12-31T23:59:59Z"] {
+            let refused = try observation(at: lexeme)
+            #expect(throws: HealthKitSampleProjectionError.effectiveMissing(id: "body-weight"), "\(lexeme)") {
+                try refused.healthKitSample()
+            }
+        }
+    }
+
     @Test("A sync identifier makes re-projection replace, and an amendment outrank the original")
     func syncIdentityFollowsTheObservation() throws {
         var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
