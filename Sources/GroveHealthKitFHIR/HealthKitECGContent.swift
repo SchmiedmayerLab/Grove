@@ -17,7 +17,7 @@ import ModelsR4
 /// The parts of an ECG's two Observations that every ECG shares, compiled once from the generated ECG claim, and the
 /// builders that complete them from one ECG record.
 ///
-/// A record converts in three steps: ``evidence(_:metadata:)`` reads and validates the record,
+/// A record converts in three steps: ``evidence(_:voltages:metadata:)`` reads and validates the record,
 /// ``validatedSymptoms(_:status:)`` checks its symptoms (the assembly then converts each symptom as a graph of its
 /// own), and ``outputs(_:symptoms:)`` builds the waveform and its average heart rate. Each check is its own statement,
 /// so a record with several faults is refused for the first one checked, in this order: the zone; the lead's voltages,
@@ -138,14 +138,18 @@ struct HealthKitECGContent: Sendable {
         return symptoms.sorted { order($0) < order($1) }
     }
 
-    /// What `record` states, read once and validated: the zone its metadata names (else UTC), then its voltages in the
-    /// claim's unit, then the algorithm version the same metadata states.
-    func evidence(_ record: HealthKitECGRecord, metadata: HealthKitSampleMetadata) throws -> Evidence {
+    /// What `ecg` and its `voltages` state, read once and validated: the zone its metadata names (else UTC), then its
+    /// voltages in the claim's unit, then the algorithm version the same metadata states.
+    func evidence(
+        _ ecg: HKElectrocardiogram,
+        voltages: [HKElectrocardiogram.VoltageMeasurement],
+        metadata: HealthKitSampleMetadata
+    ) throws -> Evidence {
         let zone = try metadata.timeZone() ?? .utc
         return Evidence(
-            electrocardiogram: record.electrocardiogram,
+            electrocardiogram: ecg,
             zone: zone,
-            waveform: try Waveform(record, unit: voltageUnit),
+            waveform: try Waveform(ecg, voltages: voltages, unit: voltageUnit),
             algorithmVersion: (metadata.values[HKMetadataKeyAppleECGAlgorithmVersion] as? NSNumber)?.intValue,
             metadata: metadata
         )
@@ -246,19 +250,22 @@ extension HealthKitECGContent.Evidence {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitECGContent.Waveform {
-    /// The waveform of `record`'s voltages, read in `unit`: each states the claim's lead, they are exactly as many as
+    /// The waveform of `ecg`'s `measurements`, read in `unit`: each states the claim's lead, they are exactly as many as
     /// the ECG reports and at least two, their offsets rise by one exact uniform period that agrees with the ECG's
     /// sampling frequency, and each voltage is finite.
-    init(_ record: HealthKitECGRecord, unit: HKUnit) throws(HealthKitConversionError) {
-        let voltages = try record.voltageMeasurements.enumerated().map { index, measurement throws(HealthKitConversionError) in
+    init(
+        _ ecg: HKElectrocardiogram,
+        voltages measurements: [HKElectrocardiogram.VoltageMeasurement],
+        unit: HKUnit
+    ) throws(HealthKitConversionError) {
+        let voltages = try measurements.enumerated().map { index, measurement throws(HealthKitConversionError) in
             guard let voltage = measurement.quantity(for: HealthKitElectrocardiogramClaim.sourceLead) else {
                 throw .ecgEvidence(.missingLeadVoltage(index: index))
             }
             return voltage.doubleValue(for: unit)
         }
-        let ecg = record.electrocardiogram
         try Self.requireCount(ecg.numberOfVoltageMeasurements, supplied: voltages.count)
-        let offsets = try Self.offsets(record.voltageMeasurements)
+        let offsets = try Self.offsets(measurements)
         let period = try Self.period(offsets)
         try Self.requireFrequency(ecg.samplingFrequency?.doubleValue(for: .hertz()), period: period)
         let data = try voltages.enumerated().map { index, voltage throws(HealthKitConversionError) in

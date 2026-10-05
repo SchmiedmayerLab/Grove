@@ -33,7 +33,7 @@ enum ContentCorpusInvariants {
                 repositoryScope: base.repositoryScope,
                 nativeRecordID: exported.source.uuid.uuidString.lowercased()
             )
-            let cataloged = try HealthKitCatalog.outputs(for: type).map { output in
+            let cataloged = try HealthKitContentPlan[type].outputs.map { output in
                 try record.output(role: output.role, discriminator: output.discriminator)
             }
             let emitted = [exported.identifiers.primaryOutput] + exported.identifiers.childOutputs
@@ -80,7 +80,7 @@ struct ContentInvariantTests {
         ContentCorpusGrid.rows(prefix: "HKQuantityTypeIdentifier").compactMap { row in
             guard row.implementationStatus == .supported,
                   let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier),
-                  !HealthKitCatalog.outputs(for: type).isEmpty,
+                  !HealthKitContentPlan[type].outputs.isEmpty,
                   let code = row.measurementIDs.first.flatMap({ contracts[$0] })?.quantity?.code,
                   let unit = HealthKitCatalog.unit(forUCUMCode: code) else {
                 return nil
@@ -95,7 +95,7 @@ struct ContentInvariantTests {
         var documents: Set<String> = []
         for row in HealthKitContract.rows {
             let type = try #require(HealthKitSourceType(rawValue: row.sourceTypeIdentifier))
-            let outputs = HealthKitCatalog.outputs(for: type)
+            let outputs = HealthKitContentPlan[type].outputs
             switch row.implementationStatus {
             case .supported where outputs.isEmpty:
                 unconverted.insert(row.sourceTypeIdentifier)

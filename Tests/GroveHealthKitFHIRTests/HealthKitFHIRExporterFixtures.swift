@@ -15,6 +15,11 @@ import HealthKit
 import Testing
 
 
+/// An ECG and its voltages, as ``HealthKitFHIRExporter/Record/electrocardiogram(_:voltages:symptoms:)`` carries them
+/// beside the symptoms each test chooses.
+typealias ECGRecording = (electrocardiogram: HKElectrocardiogram, voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement])
+
+
 /// Counts the ledger transactions and writes an exporter makes over an in-memory ledger.
 final class LedgerCountingStorage: ExchangeProducer.Storage, @unchecked Sendable { // The counts are guarded by `lock`.
     private struct Counting: ExchangeProducer.Transaction {
@@ -204,7 +209,7 @@ enum ExporterFixtures {
     }
 
     /// `record`'s ECG and voltages with `symptoms`, whatever symptoms status the ECG states.
-    static func electrocardiogram(_ record: HealthKitECGRecord, symptoms: [HKCategorySample]) -> HealthKitFHIRExporter.Record {
+    static func electrocardiogram(_ record: ECGRecording, symptoms: [HKCategorySample]) -> HealthKitFHIRExporter.Record {
         .electrocardiogram(record.electrocardiogram, voltages: record.voltageMeasurements, symptoms: symptoms)
     }
 

@@ -8,6 +8,7 @@
 
 #if canImport(HealthKit)
 
+import CoreLocation
 import Foundation
 import GroveFHIRContract
 import HealthKit
@@ -21,18 +22,21 @@ extension HealthKitContentPlan {
     /// An ECG record's evidence under this plan, read once and validated: its zone, voltages and algorithm version,
     /// beside the sample's metadata, bridged once for the graph. It is the first step of an ECG's conversion; the
     /// exporter takes it when it plans the record, as the record's fingerprint covers the voltages.
-    func ecgEvidence(_ record: HealthKitECGRecord) throws -> HealthKitECGContent.Evidence {
+    func ecgEvidence(
+        _ ecg: HKElectrocardiogram,
+        voltages: [HKElectrocardiogram.VoltageMeasurement]
+    ) throws -> HealthKitECGContent.Evidence {
         guard case .electrocardiogram(let content) = route else {
             throw refusal
         }
-        return try content.evidence(record, metadata: HealthKitSampleMetadata(record.electrocardiogram, rule: metadata))
+        return try content.evidence(ecg, voltages: voltages, metadata: HealthKitSampleMetadata(ecg, rule: metadata))
     }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
-    /// Converts an ECG whose evidence is read and validated (``HealthKitContentPlan/ecgEvidence(_:)``) and every
+    /// Converts an ECG whose evidence is read and validated (``HealthKitContentPlan/ecgEvidence(_:voltages:)``) and every
     /// correlated symptom as independently exchangeable source events, each symptom under the request keyed by its
     /// sample's UUID: the symptoms are validated first, each converting as its own graph, then the waveform and its
     /// average heart rate are built.
@@ -91,25 +95,27 @@ extension HealthKitContentPlan {
 extension HealthKitAssembly {
     /// Converts a heartbeat series into the recording document that carries its beats.
     func convertHeartbeatSeries(
-        _ record: HealthKitHeartbeatSeriesRecord,
+        _ series: HKHeartbeatSeriesSample,
+        beats: [HealthKitFHIRExporter.Record.Heartbeat],
         plan: HealthKitContentPlan = HealthKitContentPlan[.heartbeatSeries],
         request: Request
     ) throws -> [Conversion] {
-        try documentGraph(for: record.series, plan: plan, document: try plan.recordingDocument().document(record), request: request)
+        try documentGraph(for: series, plan: plan, document: try plan.recordingDocument().document(series, beats: beats), request: request)
     }
 
     /// Converts a workout route into the recording document that carries its track, or into nothing while
     /// ``HealthKitFHIRExporter/Options/route`` is `.omit`: omitting the route drops an addition rather than rejecting
     /// anything.
     func convertWorkoutRoute(
-        _ record: HealthKitWorkoutRouteRecord,
+        _ route: HKWorkoutRoute,
+        locations: [CLLocation],
         plan: HealthKitContentPlan = HealthKitContentPlan[.workoutRoute],
         request: Request
     ) throws -> [Conversion] {
         guard options.route == .authorized else {
             return []
         }
-        return try documentGraph(for: record.route, plan: plan, document: try plan.recordingDocument().document(record), request: request)
+        return try documentGraph(for: route, plan: plan, document: try plan.recordingDocument().document(locations: locations), request: request)
     }
 
     /// The document carrying a clinical record's provider-issued FHIR resource or a CDA document's bytes, exactly as

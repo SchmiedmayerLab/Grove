@@ -101,15 +101,15 @@ struct DocumentPlan: Sendable {
         return writer.data()
     }
 
-    /// The document of a heartbeat series, carrying its beat intervals.
-    func document(_ record: HealthKitHeartbeatSeriesRecord) throws -> DocumentReference {
-        let payload = try beatIntervals(seriesStart: record.series.startDate, heartbeats: record.heartbeats)
+    /// The document of a heartbeat series, carrying the intervals of its `beats`.
+    func document(_ series: HKHeartbeatSeriesSample, beats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> DocumentReference {
+        let payload = try beatIntervals(seriesStart: series.startDate, heartbeats: beats)
         return try document(payload, title: title, contentType: format.registeredContentType)
     }
 
-    /// The document of a workout route, carrying its location track.
-    func document(_ record: HealthKitWorkoutRouteRecord) throws -> DocumentReference {
-        try document(try locationTrack(record.locations), title: title, contentType: format.registeredContentType)
+    /// The document of a workout route, carrying the track of its `locations`.
+    func document(locations: [CLLocation]) throws -> DocumentReference {
+        try document(try locationTrack(locations), title: title, contentType: format.registeredContentType)
     }
 
     /// The document carrying `payload` under `title`, with its SHA-1 hash and size.

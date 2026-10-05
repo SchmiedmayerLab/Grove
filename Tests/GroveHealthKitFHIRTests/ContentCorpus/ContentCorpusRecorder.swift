@@ -55,14 +55,11 @@ enum ContentCorpusRecorder {
         let record: HealthKitFHIRExporter.Record
         switch source.record {
         case .electrocardiogram(let reading):
-            let ecg = try ContentCorpusSamples.electrocardiogram(source, reading: reading)
-            record = .electrocardiogram(ecg.electrocardiogram, voltages: ecg.voltageMeasurements, symptoms: ecg.correlatedSymptoms)
+            record = try ContentCorpusSamples.electrocardiogram(source, reading: reading)
         case .heartbeatSeries(let beats):
-            let series = try ContentCorpusSamples.heartbeatSeries(source, beats: beats)
-            record = .heartbeatSeries(series.series, beats: series.heartbeats)
+            record = try ContentCorpusSamples.heartbeatSeries(source, beats: beats)
         case .workoutRoute(let locations, _):
-            let route = try ContentCorpusSamples.workoutRoute(source, locations: locations)
-            record = .workoutRoute(route.route, locations: route.locations)
+            record = try ContentCorpusSamples.workoutRoute(source, locations: locations)
         default:
             record = .sample(try ContentCorpusSamples.sample(source))
         }

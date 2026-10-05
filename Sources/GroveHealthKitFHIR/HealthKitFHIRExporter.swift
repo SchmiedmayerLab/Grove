@@ -162,7 +162,11 @@ extension HealthKitFHIRExporter {
         init(_ record: Record, exporter: HealthKitFHIRExporter) {
             let sample = record.sample
             let content = HealthKitContentPlan.plan(for: sample)
-            let evidence = content.flatMap { content in record.electrocardiogram.flatMap { try? content.ecgEvidence($0) } }
+            let evidence: HealthKitECGContent.Evidence? = if let content, case let .electrocardiogram(ecg, voltages, _) = record {
+                try? content.ecgEvidence(ecg, voltages: voltages)
+            } else {
+                nil
+            }
             let primary = content.map { content in
                 Self.event(for: sample, key: .active(type: content.sourceType, uuid: sample.uuid), exporter: exporter) {
                     record.companionParts(content: content, evidence: evidence)
@@ -245,7 +249,7 @@ extension HealthKitFHIRExporter {
             return try assembly.convert(sample, plan: content, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             // An ECG whose evidence did not validate when it was planned is refused now, for the same reason.
-            let evidence = try plan.evidence ?? content.ecgEvidence(HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages))
+            let evidence = try plan.evidence ?? content.ecgEvidence(ecg, voltages: voltages)
             return try assembly.convertECG(
                 evidence,
                 symptoms: symptoms,
@@ -254,10 +258,9 @@ extension HealthKitFHIRExporter {
                 symptomRequests: symptomRequests(plan, reserved: reserved)
             )
         case let .heartbeatSeries(series, beats):
-            let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: beats)
-            return try assembly.convertHeartbeatSeries(record, plan: content, request: request)
+            return try assembly.convertHeartbeatSeries(series, beats: beats, plan: content, request: request)
         case let .workoutRoute(route, locations):
-            return try assembly.convertWorkoutRoute(HealthKitWorkoutRouteRecord(route: route, locations: locations), plan: content, request: request)
+            return try assembly.convertWorkoutRoute(route, locations: locations, plan: content, request: request)
         }
     }
 
@@ -318,14 +321,6 @@ extension HealthKitFHIRExporter.Record {
             return []
         }
         return symptoms
-    }
-
-    /// An ECG record's ECG and voltages; its symptoms convert as events of their own.
-    var electrocardiogram: HealthKitECGRecord? {
-        guard case let .electrocardiogram(ecg, voltages, _) = self else {
-            return nil
-        }
-        return HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages)
     }
 }
 

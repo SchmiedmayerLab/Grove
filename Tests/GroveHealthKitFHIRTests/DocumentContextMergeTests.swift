@@ -22,13 +22,13 @@ import Testing
 struct DocumentContextMergeTests {
     private static let enrollments = [StudyEnrollment.test("a"), StudyEnrollment.test("b")]
 
-    private static func record() throws -> HealthKitHeartbeatSeriesRecord {
+    private static func record() throws -> (series: HKHeartbeatSeriesSample, heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) {
         let series = try StoredSampleFixtures.seriesSample(
             HKHeartbeatSeriesSample.self,
             sampleType: HKSeriesType.heartbeat(),
             facts: GoldenCase.seriesFacts(uuid: 0xE1, duration: 2)
         )
-        return HealthKitHeartbeatSeriesRecord(series: series, heartbeats: [
+        return (series, [
             HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
             HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false)
         ])
@@ -61,7 +61,7 @@ struct DocumentContextMergeTests {
     func documentContextKeepsTheAdaptersStatements() throws {
         let record = try Self.record()
         let plan = HealthKitContentPlan[.heartbeatSeries]
-        var document = try plan.recordingDocument().document(record)
+        var document = try plan.recordingDocument().document(record.series, beats: record.heartbeats)
         let period = Period(
             end: FHIRPrimitive(try ExchangeInstant.fhirDateTime(record.series.endDate)),
             start: FHIRPrimitive(try ExchangeInstant.fhirDateTime(record.series.startDate))
