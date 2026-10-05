@@ -766,12 +766,7 @@ struct ExchangeGraphCorpusTests {
             role: .primaryOutput
         )
         let event = try ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier)))
-        let graph = try RetractionEvent(
-            targets: [target],
-            context: retractionContext(event: event),
-            sourceRecord: sourceRecord,
-            occurred: occurred
-        ).graph
+        let graph = try retractionEvent(event).retraction(of: sourceRecord, targets: [target], occurred: occurred).graph
         guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
             Issue.record("Builder did not emit Provenance")
             return
@@ -803,16 +798,11 @@ struct ExchangeGraphCorpusTests {
             resourceType: .observation,
             role: .primaryOutput
         )
-        let context = try retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
+        let event = try retractionEvent(ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
         let sourceRecord = try RoledIdentifier(#require(fixtureProvenance.entity?.first?.what.identifier))
         let end = Date(timeIntervalSince1970: 1_787_299_200)
         #expect(throws: RetractionEvent.ValidationError.invalidOccurrencePeriod) {
-            try RetractionEvent(
-                targets: [target],
-                context: context,
-                sourceRecord: sourceRecord,
-                occurred: .period(start: end.addingTimeInterval(1), end: end)
-            )
+            try event.retraction(of: sourceRecord, targets: [target], occurred: .period(start: end.addingTimeInterval(1), end: end))
         }
     }
 
@@ -830,7 +820,7 @@ struct ExchangeGraphCorpusTests {
         let targetIdentifier = try RoledIdentifier(#require(fixtureTarget.identifier))
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
-        let context = try retractionContext(event: ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
+        let event = try retractionEvent(ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
         func retraction(nativeRecordIdentifier: BusinessIdentifier) throws -> ExchangeGraph {
             let target = try RetractionEvent.Target(
                 identifier: targetIdentifier,
@@ -838,12 +828,7 @@ struct ExchangeGraphCorpusTests {
                 role: .primaryOutput,
                 nativeRecordIdentifier: nativeRecordIdentifier
             )
-            return try RetractionEvent(
-                targets: [target],
-                context: context,
-                sourceRecord: sourceRecord,
-                occurred: .instant(Date(timeIntervalSince1970: 1_787_299_200))
-            ).graph
+            return try event.retraction(of: sourceRecord, targets: [target], occurred: .instant(Date(timeIntervalSince1970: 1_787_299_200))).graph
         }
 
         let nativeRecordIdentifier = try BusinessIdentifier(
@@ -867,7 +852,7 @@ struct ExchangeGraphCorpusTests {
         // The opaque Grove identity is never restated as the clear native one.
         #expect(throws: RetractionEvent.ValidationError.reservedIdentifierSystem) {
             try retraction(nativeRecordIdentifier: BusinessIdentifier(
-                system: context.identityScope.systems.sourceRecord,
+                system: event.identityScope.systems.sourceRecord,
                 value: nativeRecordIdentifier.value
             ))
         }
@@ -899,9 +884,9 @@ struct ExchangeGraphCorpusTests {
     }
 
     /// The fixture's event under the test deployment's scope, recorded one second after the deletion.
-    private func retractionContext(event: ExchangeEventIdentifier) -> ExchangeEventContext {
-        let base = ExchangeEventContext.test()
-        return ExchangeEventContext(
+    private func retractionEvent(_ event: ExchangeEventIdentifier) -> TestEvent {
+        let base = TestEvent.test()
+        return TestEvent(
             subject: base.subject,
             event: event,
             identityScope: base.identityScope,

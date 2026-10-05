@@ -218,22 +218,6 @@ extension HealthKitAssembly {
         }
         return version == build && revision.source.bundleIdentifier == application.bundleIdentifier
     }
-
-    /// The event context a retraction is minted from, under the request's facts.
-    func eventContext(for request: Request) -> ExchangeEventContext {
-        ExchangeEventContext(
-            subject: scope.subject,
-            event: request.event,
-            identityScope: scope.identityScope,
-            repositoryScope: scope.repositoryScope,
-            application: request.facts.application,
-            host: request.facts.host,
-            conversionInstant: request.instant,
-            converterRole: request.converterRole,
-            studies: request.facts.studies,
-            repositoryIDs: request.bundleID.map { [.bundle: $0] } ?? [:]
-        )
-    }
 }
 
 #endif

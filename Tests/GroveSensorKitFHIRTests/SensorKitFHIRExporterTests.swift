@@ -282,6 +282,21 @@ struct SensorKitFHIRExporterTests {
         #expect(SensorKitConversionError(conversionFailure: ExchangeGraphError.missingTimestamp) == .exchangeGraph(.missingTimestamp))
         #expect(SensorKitConversionError(conversionFailure: Unmodelled()) == .unexpectedConversionFailure(String(reflecting: Unmodelled.self)))
     }
+
+    @Test("An identity fault reports its own registry code")
+    func identityFaultsKeepTheirCodes() {
+        let faults = [
+            ExchangeIdentityError.emptyComponent("source-record.native-record-id"),
+            .nonCanonicalPartIndex("source-artifact.part-index"),
+            .invalidEventIdentifier("e0:x")
+        ]
+        for fault in faults {
+            #expect(SensorKitConversionError.exchangeIdentity(fault).diagnostic == fault.diagnostic)
+        }
+        #expect(faults.map(\.diagnostic.code) == [
+            "mobile-input.required-metadata-missing", "mobile-input.unclassified", "mobile-exchange.event-identity"
+        ])
+    }
 }
 
 

@@ -27,8 +27,8 @@ struct StudyContextTests {
     private static let sample = HKQuantitySample(
         type: HKQuantityType(.heartRate),
         quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
-        start: ExchangeEventContext.testInstant,
-        end: ExchangeEventContext.testInstant,
+        start: TestEvent.testInstant,
+        end: TestEvent.testInstant,
         metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"]
     )
 

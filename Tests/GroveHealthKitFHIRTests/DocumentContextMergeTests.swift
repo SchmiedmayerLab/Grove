@@ -69,7 +69,7 @@ struct DocumentContextMergeTests {
         let adapterReference = Reference(display: "The adapter's own related output".asFHIRStringPrimitive())
         document.context = DocumentReferenceContext(period: period, related: [adapterReference])
         // No exporter input states a document context of its own, so the assembly is handed one directly.
-        let base = ExchangeEventContext.test()
+        let base = TestEvent.test()
         let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
             adapter: HealthKitAssembly.adapter,
             identityScope: base.identityScope,

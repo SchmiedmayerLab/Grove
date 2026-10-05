@@ -114,7 +114,7 @@ private struct ScenarioRun {
     func export(_ samples: [HKSample]) throws -> [HealthKitFHIRExporter.Export] {
         var exports: [HealthKitFHIRExporter.Export] = []
         exports.reserveCapacity(samples.count)
-        _ = try scope.exporter(style: scenario.style).export(samples, at: ExchangeEventContext.testInstant) { exports.append($0) }
+        _ = try scope.exporter(style: scenario.style).export(samples, at: TestEvent.testInstant) { exports.append($0) }
         return exports
     }
 }
@@ -427,7 +427,7 @@ struct ConversionThroughputBenchmark {
         )
         func export() throws -> [HealthKitFHIRExporter.Export] {
             var exports: [HealthKitFHIRExporter.Export] = []
-            _ = try scope.exporter(style: .deployment).export(samples, at: ExchangeEventContext.testInstant) { exports.append($0) }
+            _ = try scope.exporter(style: .deployment).export(samples, at: TestEvent.testInstant) { exports.append($0) }
             return exports
         }
         let graphs = try export().compactMap(\.graph)
@@ -463,7 +463,7 @@ struct ConversionThroughputBenchmark {
                 DispatchQueue.concurrentPerform(iterations: threads) { thread in
                     let share = stride(from: thread, to: count, by: threads).map { samples[$0] }
                     do {
-                        _ = try scope.exporter(style: .deployment).export(share, at: ExchangeEventContext.testInstant) { export in
+                        _ = try scope.exporter(style: .deployment).export(share, at: TestEvent.testInstant) { export in
                             if export.graph == nil {
                                 failures.increment()
                             }

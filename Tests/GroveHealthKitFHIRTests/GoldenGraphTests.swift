@@ -105,7 +105,7 @@ struct GoldenGraphTests {
             GoldenOutline(expected, warnings: outline.warnings) == outline,
             "\(goldenCase.name): outlines.json does not describe the checked-in golden"
         )
-        let scope = ExchangeEventContext.test()
+        let scope = TestEvent.test()
         let mismatches = try output.reportMismatches(identityScope: scope.identityScope, repositoryScope: scope.repositoryScope)
         #expect(mismatches.isEmpty, "\(goldenCase.name) reports what its graph does not carry: \(mismatches)")
         if let difference = TokenDiff.firstDifference(expected: expected, actual: actual) {
@@ -208,7 +208,7 @@ struct GoldenGraphTests {
             inputs
         )
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        let context = ExchangeEventContext.test()
+        let context = TestEvent.test()
         let child = try context.identityScope
             .sourceRecord(
                 adapterID: HealthKitAssembly.adapter.adapterID,

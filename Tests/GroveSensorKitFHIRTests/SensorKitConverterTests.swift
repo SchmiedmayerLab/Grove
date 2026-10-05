@@ -125,16 +125,11 @@ struct GroveSensorKitFHIRConverterTests {
         let zone = try #require(TimeZone(identifier: zoneName))
         let start = try #require(ISO8601DateFormatter().date(from: startText))
         let end = try #require(ISO8601DateFormatter().date(from: endText))
-        let periods = try [
-            SensorKitConverter.period(start: start, end: end, timeZone: zone),
-            SensorConverter.period(start: start, end: end, sourceTimeZone: zone)
-        ]
-        for period in periods {
-            let decoded = try JSONDecoder().decode(Period.self, from: JSONEncoder().encode(period))
-            #expect(try #require(decoded.start?.value).asNSDate() == start)
-            #expect(try #require(decoded.end?.value).asNSDate() == end)
-            #expect(decoded.end?.value?.description == endLexical)
-        }
+        let period = try SensorKitConverter.period(start: start, end: end, timeZone: zone)
+        let decoded = try JSONDecoder().decode(Period.self, from: JSONEncoder().encode(period))
+        #expect(try #require(decoded.start?.value).asNSDate() == start)
+        #expect(try #require(decoded.end?.value).asNSDate() == end)
+        #expect(decoded.end?.value?.description == endLexical)
         #expect(try SensorKitConverter.exactDateTime(end, timeZone: zone).asNSDate() == end)
     }
 

@@ -163,10 +163,14 @@ extension HealthKitAssembly {
         let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
         do throws(RetractionEvent.ValidationError) {
             return try RetractionEvent(
-                targets: targets,
-                context: eventContext(for: request),
+                event: request.event,
+                instant: request.instant,
+                identityScope: scope.identityScope,
+                application: request.facts.application,
                 sourceRecord: sourceRecord.identifier,
-                occurred: occurred
+                targets: targets,
+                occurred: occurred,
+                bundleID: request.bundleID
             )
         } catch {
             throw HealthKitConversionError(error)

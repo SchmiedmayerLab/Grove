@@ -128,6 +128,7 @@ Every disclosure policy defaults to omission.
 ``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)`` discloses the clear native record identifier under a system you own; each adapter's exporter options state the rest, such as HealthKit's workout route.
 
 The exporters assign no resource id, apart from the HealthKit exporter's opt-in transitional legacy `Bundle.id`.
+A ``RepositoryID`` is a logical id your repository already assigned, which `GroveQuestionnaireFHIR` states on a Questionnaire or QuestionnaireResponse it builds when you pass one.
 
 A retry is exact when ``ExchangeGraph/isSemanticallyEqual(to:)`` says so: member order, whitespace and escaping do not matter, but `72` and `72.0` are different content.
 
@@ -139,14 +140,6 @@ Every refusal and every warning is one ``ProducerDiagnostic`` whose code is a re
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter's output against the grove-fhir corpora and the official validator.
 
 > Tip: Keep one identity scope per key epoch, and keep the epoch in the systems, so an old graph stays verifiable after a rotation.
-
-### Caller-managed conversion (candidates for removal)
-
-``ExchangeEventContext`` is an event you number yourself, for the source-neutral sensor converter in `GroveSensorKitFHIR`, the one converter that still takes it; both are candidates for removal.
-It does not use the ledger: persist the producer instance once, durably advance the next sequence before you emit, and never reuse a sequence for different content.
-It freezes nothing, so pass the host and the conversion instant explicitly when you replay a persisted event.
-Its ``ConverterRole`` states how the converting application relates to the measurement; ``ConverterRole/gatewayApplication(_:)`` names a distinct application that mediated it, which travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`.
-A ``RepositoryID`` per ``ExchangeGraphNode`` gives a node of the graph the logical id your repository assigned, and nothing else in the graph changes.
 
 ## Glossary
 
@@ -203,14 +196,8 @@ A ``RepositoryID`` per ``ExchangeGraphNode`` gives a node of the graph the logic
 - ``ProducerDiagnostic``
 - ``ExchangeGraphError``
 - ``ConversionBatch``
+- ``RepositoryID``
 
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
-
-### Caller-managed conversion (candidates for removal)
-
-- ``ExchangeEventContext``
-- ``ConverterRole``
-- ``ExchangeGraphNode``
-- ``RepositoryID``

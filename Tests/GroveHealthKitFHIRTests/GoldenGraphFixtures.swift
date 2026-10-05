@@ -74,7 +74,7 @@ struct GoldenCase: Sendable, CustomTestStringConvertible {
 /// or the host, so two runs on two machines mint the same identities and the same bytes.
 enum GoldenFixtures {
     /// 2026-08-17T23:30:00Z, in whole seconds: the conversion instant of every case.
-    static let conversionInstant = ExchangeEventContext.testInstant
+    static let conversionInstant = TestEvent.testInstant
     /// 2026-08-17T22:30:00Z (15:30 in Los Angeles): when every sample starts.
     static let sampleStart = Date(timeIntervalSince1970: 1_787_005_800)
     static let timeZone = "America/Los_Angeles"

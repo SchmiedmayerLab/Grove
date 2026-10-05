@@ -20,7 +20,7 @@ import Testing
 /// within a call is byte-identical to the one it delivers for the same record alone under the same event.
 @Suite(.serialized)
 struct HealthKitFHIRExporterTests {
-    private static let base = ExchangeEventContext.test()
+    private static let base = TestEvent.test()
 
     private static func exporter(
         _ configure: (inout HealthKitFHIRExporter.Options) -> Void = { _ in },

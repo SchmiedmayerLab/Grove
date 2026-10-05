@@ -7,7 +7,6 @@
 //
 
 package import Foundation
-package import ModelsR4
 
 
 extension TimeZone {
@@ -18,20 +17,4 @@ extension TimeZone {
         }
         return utc
     }()
-}
-
-
-extension Instant {
-    /// A converter clock instant in UTC, so a retry after the host's time zone changed yields the same bytes.
-    package init(utc date: Date) throws {
-        try self.init(date: date, timeZone: .utc)
-    }
-}
-
-
-extension DateTime {
-    /// A converter clock instant in UTC, so a retry after the host's time zone changed yields the same bytes.
-    package init(utc date: Date) throws {
-        try self.init(date: date, timeZone: .utc)
-    }
 }

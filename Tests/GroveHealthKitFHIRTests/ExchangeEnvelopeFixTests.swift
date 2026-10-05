@@ -33,7 +33,7 @@ struct SameBuildCase: CustomTestStringConvertible, Sendable {
 
 @Suite
 struct ExchangeEnvelopeFixTests {
-    private static let base = ExchangeEventContext.test()
+    private static let base = TestEvent.test()
 
     /// The default inputs at an instant with sub-millisecond digits.
     private static var subMillisecondInputs: ExportInputs {
@@ -180,10 +180,9 @@ struct ExchangeEnvelopeFixTests {
             nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()
         )
         let target = try RetractionEvent.Target(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
-        let exact = try RetractionEvent(
+        let exact = try TestEvent.test(conversionInstant: Self.subMillisecondInputs.instant).retraction(
+            of: record.identifier,
             targets: [target],
-            context: .test(conversionInstant: Self.subMillisecondInputs.instant),
-            sourceRecord: record.identifier,
             occurred: .instant(Date(timeIntervalSince1970: 1_787_009_400.2516))
         )
         let exactProvenance = try #require(exact.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
@@ -211,7 +210,7 @@ struct ExchangeEnvelopeFixTests {
         )
         let target = try RetractionEvent.Target(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
         func retraction(_ occurred: RetractionEvent.Occurrence, recordedAt: Date = GoldenFixtures.conversionInstant) throws {
-            _ = try RetractionEvent(targets: [target], context: .test(conversionInstant: recordedAt), sourceRecord: record.identifier, occurred: occurred)
+            _ = try TestEvent.test(conversionInstant: recordedAt).retraction(of: record.identifier, targets: [target], occurred: occurred)
         }
         let yearTenThousand = Date(timeIntervalSince1970: 253_402_300_800)
         let unstatable: [RetractionEvent.Occurrence] = [
