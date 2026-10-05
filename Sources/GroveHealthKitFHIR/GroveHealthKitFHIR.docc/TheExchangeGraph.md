@@ -79,7 +79,8 @@ A serial number or UDI remains omitted unless ``HealthKitFHIRExporter/Options/ud
 ## The study context
 
 A `StudyEnrollment` among the producer's studies becomes three entry-node entries: the `ResearchStudy`, the `PlanDefinition` it instantiates at the exact canonical URL and version, and the `ResearchSubject` that enrolls the subject.
-Every output references the study through the `workflow-researchStudy` extension.
+Every Observation output references the study through the `workflow-researchStudy` extension.
+A recording or clinical document names its studies in `DocumentReference.context.related` instead.
 A `Subject.bundled` adds the `Patient` entry under the same entry-node scheme.
 
 ## The provenance

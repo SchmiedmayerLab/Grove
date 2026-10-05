@@ -14,11 +14,6 @@ public import Crypto
 import Foundation
 
 
-/// The deployment-owned, key-epoch-specific scope that mints every opaque identity.
-///
-/// The systems are deliberately supplied by the deployment. Grove publishes no global namespace,
-/// because the same clear source identity must not be linkable across unrelated studies.
-/// Debug output prints the key id and epoch only; the key never leaves the scope.
 /// The closed domain-separation token fed to the Grove HMAC preimage.
 package enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
     case sourceRecord = "source-record"
@@ -39,6 +34,11 @@ package enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
 }
 
 
+/// The deployment-owned, key-epoch-specific scope that mints every opaque identity.
+///
+/// The systems are deliberately supplied by the deployment. Grove publishes no global namespace,
+/// because the same clear source identity must not be linkable across unrelated studies.
+/// Debug output prints the key id and epoch only; the key never leaves the scope.
 @DebugDescription
 public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     private static let publishedConformanceKey = SymmetricKey(data: Data((0...31).map(UInt8.init)))
