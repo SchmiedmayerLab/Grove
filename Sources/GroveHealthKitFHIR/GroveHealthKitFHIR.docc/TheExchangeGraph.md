@@ -65,7 +65,9 @@ That clear value identifies an application product, never an installation, host,
 The converting application always uses this shape; the writer of an `HKSourceRevision` uses it only when the caller classifies the source as an application through ``HealthKitFHIRExporter/WriterPolicy``.
 That writer snapshot and the host it ran on are the graph's `writer` and `writerHost` nodes, and the writer is the author agent of the Provenance's source-record entity.
 HealthKit does not say whether a source is an application or a device, so a source the caller has not classified states no writer and the Provenance names no author; Grove never infers the classification from the bundle identifier, the source name or the product type.
-A writer snapshot the graph already states, such as the application that runs the exporter, is that one entry rather than a second one.
+The writer is an application snapshot of its own, minted from its bundle identifier and the source revision's `HKSourceRevision.version`, which the HealthKit guide requires in its version, while the converting application's snapshot states its marketing version and build.
+So even a sample the running application wrote carries the writer beside the converter as a second application Device; the guide allows either form.
+Only snapshots with identical tokens are one entry: the writer's host is the converter's host entry when the model and operating-system version match, and the writer is the converter's entry only when the converter states no build and its version equals the revision's.
 
 A recording Device carries two identities.
 `recording-device` is the stable HMAC identity for the physical unit ``HealthKitFHIRExporter/RecordingDevicePolicy`` names.

@@ -55,7 +55,7 @@ The ledger lives in your app's `ExchangeProducer.Storage`; `GroveFHIRContract` d
 ### The repository scope
 
 Two HealthKit stores must never collide: the store on one phone and the store on another can hold the same UUID.
-The repository scope is one `BusinessIdentifier` that names this installation's HealthKit store, and it enters every opaque identity.
+The repository scope is one `BusinessIdentifier` that names this installation's HealthKit store, and it enters every source-record and output identity.
 Use a system your deployment owns and a token you persist once per installation, such as a UUID minted on first launch.
 
 ### The application
@@ -95,11 +95,12 @@ let exporter = try HealthKitFHIRExporter(
 The exporter states the application that wrote a sample only for sources you classify: HealthKit does not say whether a source is an application or a device, so by default no writer is stated.
 Pass the bundle identifiers you know to be applications as `options.writer = .applications(...)`, or classify each source with `.classify`; see ``HealthKitFHIRExporter/WriterPolicy``.
 
-Export a batch and store each graph's bytes verbatim.
+Export each batch an anchored query delivered and store each graph's bytes verbatim.
+Every input is a ``HealthKitFHIRExporter/Record``: most samples export as ``HealthKitFHIRExporter/Record/sample(_:)``, and an ECG, a heartbeat series and a workout route need the companion data HealthKit keeps outside the sample (see <doc:#Beyond-the-minimum>).
 Release the receipt only once the stored graphs and the HealthKit anchor are durably committed; until then an exact redelivery reproduces the same events, byte for byte.
 
 ```swift
-let receipt = try exporter.export(samples) { export in
+let receipt = try exporter.export(records: samples.map { .sample($0) }) { export in
     if let graph = export.graph {
         try stage(graph.json)
     }
@@ -108,6 +109,11 @@ try commitAnchor()
 receipt.release()
 ```
 
+`receive` is called once per graph or refusal, as soon as it is ready: once for most records, once plus once per registered symptom for an ECG, and never for a workout route while `route` is `.omit`, which emits nothing and is not a refusal.
+After the release, exporting a sample again mints a new event for the same identities, so feed the exporter from anchored queries, which deliver each sample once, not from overlapping date windows.
+`export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG passed that way is refused after its event is reserved, and a heartbeat series or a workout route is refused outright.
+A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
+
 What to persist, and why:
 
 | Value | Why |
@@ -115,6 +121,7 @@ What to persist, and why:
 | The ledger storage | It numbers every event and freezes what each one states until the receipt is released. Never restore it from a backup or copy it to another installation. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
 | The installation token | It is the repository scope of every identity this store mints. |
+| Each deletion's `deletedAfter` and `detectedAt`, until its retraction's receipt is released | They key the retraction event; a retry that recomputes them mints a second one. |
 
 > Important: Never change the key or the epoch without deriving new systems.
 > It breaks the promise that one identifier means one thing.
@@ -148,6 +155,7 @@ Heartbeat series, workout route, clinical record and CDA graphs state no gateway
 
 Some samples keep what their graph needs outside the sample, and HealthKit makes you query it separately.
 Pass them as a ``HealthKitFHIRExporter/Record`` with that companion data: an `HKElectrocardiogram` with its voltages and correlated symptoms, each symptom an event of its own; an `HKHeartbeatSeriesSample` with its ``HealthKitFHIRExporter/Record/Heartbeat``s; an `HKWorkoutRoute` with its locations.
+A symptom exported with its ECG has the event key and identities it has when a category query exports it as a plain sample, so exporting it both ways before either receipt is released restates one event; once released, the second export is a second event for the same identities, which a receiver deduplicates. Export each symptom one way, such as with its ECG, to avoid that.
 A clinical record and a CDA document carry their bytes in the sample, so they export as ``HealthKitFHIRExporter/Record/sample(_:)``.
 
 ```swift
@@ -170,7 +178,8 @@ An omission an option chose, such as `recordingDevice` `.omit`, is never a warni
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
 A deleted sample is taken back with ``HealthKitFHIRExporter/retract(_:at:receive:)``.
 It needs only the deleted object's UUID and the sample type it was reported for; the source record and every output it retracts are recomputed, so nothing from the sample's export has to be kept.
-HealthKit reports a deletion without its time, so a ``HealthKitFHIRExporter/Deletion`` bounds it by the `deletedAfter` the deletion handler received and the time it was reported.
+HealthKit reports a deletion without its time, so a ``HealthKitFHIRExporter/Deletion`` bounds it: after ``HealthKitFHIRExporter/Deletion/deletedAfter``, the instant the query that produced the previous anchor was issued, which GroveHealthKit's `HealthKitConstraint.handleDeletedObjects(_:ofType:deletedAfter:)` passes, and no later than ``HealthKitFHIRExporter/Deletion/detectedAt``, when the deletion was reported.
+With a raw `HKAnchoredObjectQuery`, persist the instant you issue each query beside the anchor it returns, and pass it as `deletedAfter` for the deletions the next query reports.
 `sampleType` is the `HKSampleType` the anchored query that reported the deletion ran for.
 
 ```swift
