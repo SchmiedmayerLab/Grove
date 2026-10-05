@@ -179,7 +179,7 @@ package struct ExchangeOutputDraft: Sendable {
 package struct ExchangeRecordingDeviceDraft: Sendable {
     package let device: RecordingDevice
     /// The Device body the adapter prepared from its own source facts (name, model, versions, UDI);
-    /// the assembler adds identity and repository id.
+    /// the assembler adds its identities.
     package var resource: Device
 
     package init(device: RecordingDevice, resource: Device) {
@@ -207,8 +207,6 @@ package struct ExchangeWriterDraft: Sendable {
 
 /// Why a draft could not become a graph.
 package enum ExchangeAssemblyError: Error, Equatable, Sendable {
-    /// A repository id names a node the graph does not carry.
-    case repositoryIDWithoutNode(ExchangeGraphNode)
     /// The draft states no output.
     case noOutputs
 }
@@ -232,7 +230,9 @@ package struct ExchangeGraphDraft: Sendable {
     package var recordingDevice: ExchangeRecordingDeviceDraft?
     package var writer: ExchangeWriterDraft?
     package var converterRole: ConverterRole
-    package var repositoryIDs: [ExchangeGraphNode: RepositoryID]
+    /// The logical id the Bundle states; only HealthKit's transitional legacy `Bundle.id` names one, and no other node
+    /// carries a repository id.
+    package var bundleID: RepositoryID?
 
     package init(
         event: ExchangeEventIdentifier,
@@ -242,7 +242,7 @@ package struct ExchangeGraphDraft: Sendable {
         recordingDevice: ExchangeRecordingDeviceDraft? = nil,
         writer: ExchangeWriterDraft? = nil,
         converterRole: ConverterRole = .assembler,
-        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
+        bundleID: RepositoryID? = nil
     ) {
         self.event = event
         self.instant = instant
@@ -251,6 +251,6 @@ package struct ExchangeGraphDraft: Sendable {
         self.recordingDevice = recordingDevice
         self.writer = writer
         self.converterRole = converterRole
-        self.repositoryIDs = repositoryIDs
+        self.bundleID = bundleID
     }
 }

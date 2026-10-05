@@ -28,7 +28,8 @@ struct HealthKitAssembly: Sendable {
         /// The application, host and studies the event states, as its reservation froze them.
         let facts: ExchangeEventFacts
         let converterRole: ConverterRole
-        let repositoryIDs: [ExchangeGraphNode: RepositoryID]
+        /// The transitional legacy `Bundle.id` ``HealthKitFHIRExporter/Options/legacyBundleID`` asks for.
+        let bundleID: RepositoryID?
         /// What the writer and recording-device policies answered for the sample before its event was reserved; a
         /// retraction states no sample's origin and resolves nothing.
         let policies: HealthKitFHIRExporter.ResolvedPolicies
@@ -38,14 +39,14 @@ struct HealthKitAssembly: Sendable {
             instant: Date,
             facts: ExchangeEventFacts,
             converterRole: ConverterRole = .assembler,
-            repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:],
+            bundleID: RepositoryID? = nil,
             policies: HealthKitFHIRExporter.ResolvedPolicies = .unresolved
         ) {
             self.event = event
             self.instant = instant
             self.facts = facts
             self.converterRole = converterRole
-            self.repositoryIDs = repositoryIDs
+            self.bundleID = bundleID
             self.policies = policies
         }
     }
@@ -160,7 +161,7 @@ struct HealthKitAssembly: Sendable {
             recordingDevice: facts.recordingDevice,
             writer: facts.writer,
             converterRole: request.converterRole,
-            repositoryIDs: request.repositoryIDs
+            bundleID: request.bundleID
         )
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts)).assemble(draft)
         return Conversion(
@@ -218,7 +219,7 @@ extension HealthKitAssembly {
             conversionInstant: request.instant,
             converterRole: request.converterRole,
             studies: request.facts.studies,
-            repositoryIDs: request.repositoryIDs
+            repositoryIDs: request.bundleID.map { [.bundle: $0] } ?? [:]
         )
     }
 }

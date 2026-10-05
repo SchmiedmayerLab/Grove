@@ -91,7 +91,7 @@ package struct ExchangeGraphAssembler: Sendable {
             nodeRole: "conversion-provenance",
             ordinal: 0
         )
-        var provenance = try Self.conversionProvenance(
+        let provenance = try Self.conversionProvenance(
             of: draft.sourceRecord,
             targetURLs: outputs.map(\.url),
             assemblerURL: devices.converter.applicationURL,
@@ -100,7 +100,6 @@ package struct ExchangeGraphAssembler: Sendable {
             profile: envelope.adapter.provenanceProfile,
             at: draft.instant
         )
-        provenance.id = draft.repositoryIDs[.provenance]?.primitive
 
         var entries = try outputs.map { try BundleEntry(identifier: $0.identity, resource: $0.resource.proxy) }
         entries.append(contentsOf: studyContext.allEntries)
@@ -133,7 +132,7 @@ package struct ExchangeGraphAssembler: Sendable {
             timestamp: FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant)),
             type: FHIRPrimitive(.collection)
         )
-        bundle.id = draft.repositoryIDs[.bundle]?.primitive
+        bundle.id = draft.bundleID?.primitive
         return try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
     }
 }
@@ -151,7 +150,7 @@ extension ExchangeGraphAssembler {
     private func decoratedOutputs(of draft: ExchangeGraphDraft, surroundings: Surroundings) throws -> [DecoratedOutput] {
         var outputs: [DecoratedOutput] = []
         for (index, output) in draft.outputs.enumerated() {
-            outputs.append(try decorate(output, isPrimary: index == 0, draft: draft, surroundings: surroundings))
+            outputs.append(try decorate(output, draft: draft, surroundings: surroundings))
         }
         let primaryURL = outputs[0].url
         for (index, output) in draft.outputs.enumerated() where output.derivedFromPrimary && index > 0 {
@@ -165,7 +164,6 @@ extension ExchangeGraphAssembler {
 
     private func decorate(
         _ output: ExchangeOutputDraft,
-        isPrimary: Bool,
         draft: ExchangeGraphDraft,
         surroundings: Surroundings
     ) throws -> DecoratedOutput {
@@ -180,11 +178,9 @@ extension ExchangeGraphAssembler {
         if let writerRecord {
             identifiers.append(writerRecord.identity.fhirIdentifier)
         }
-        let repositoryID = isPrimary ? draft.repositoryIDs[.primaryOutput]?.primitive : nil
         let resource: ExchangeOutputDraft.Resource
         switch output.resource {
         case .observation(var observation):
-            observation.id = repositoryID
             observation.identifier = identifiers
             decorate(&observation, links: output.links, wasUserEntered: output.wasUserEntered, surroundings: surroundings)
             if let writerRecord {
@@ -196,7 +192,6 @@ extension ExchangeGraphAssembler {
             output.trailingExtensions.forEach { observation.extension.append($0) }
             resource = .observation(observation)
         case .document(var document):
-            document.id = repositoryID
             document.identifier = identifiers
             document.date = FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant))
             decorate(&document, links: output.links, surroundings: surroundings)

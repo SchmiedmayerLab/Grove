@@ -293,17 +293,18 @@ extension HealthKitFHIRExporter {
             facts: reservation.facts,
             // The gateway role compares the sample's revision with the build the event froze.
             converterRole: options.role.converterRole(for: sample.sourceRevision, application: reservation.facts.application),
-            repositoryIDs: try legacyRepositoryIDs(for: sample.uuid),
+            bundleID: try bundleID(for: sample.uuid),
             policies: policies
         )
     }
 
-    func legacyRepositoryIDs(for uuid: UUID) throws -> [ExchangeGraphNode: RepositoryID] {
+    /// The `Bundle.id` of the record with `uuid` under ``Options/legacyBundleID``.
+    func bundleID(for uuid: UUID) throws -> RepositoryID? {
         switch options.legacyBundleID {
         case .none:
-            [:]
+            nil
         default:
-            [.bundle: try RepositoryID(uuid.uuidString)]
+            try RepositoryID(uuid.uuidString)
         }
     }
 }
