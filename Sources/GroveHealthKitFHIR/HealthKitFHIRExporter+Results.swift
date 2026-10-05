@@ -19,7 +19,8 @@ extension HealthKitFHIRExporter {
     /// One input of ``export(records:at:receive:)``: a sample, plus the companion data HealthKit keeps
     /// outside the sample for the kinds that need it. The exporter never queries HealthKit itself.
     public enum Record: Sendable {
-        /// Any sample; an `HKElectrocardiogram` passed here is refused because its voltages are missing.
+        /// Any sample; an `HKElectrocardiogram`, `HKHeartbeatSeriesSample` or `HKWorkoutRoute` passed here reserves
+        /// its event and is then refused, as its companion data is missing.
         case sample(HKSample)
         /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes an
         /// event of its own.

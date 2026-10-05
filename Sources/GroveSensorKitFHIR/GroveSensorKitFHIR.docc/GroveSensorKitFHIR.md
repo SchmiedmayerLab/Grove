@@ -20,9 +20,9 @@ Convert already-fetched SensorKit records into deterministic, conformant FHIR R4
 
 A SensorKit record, such as one batch of rotation-rate samples from a watch, becomes one immutable, self-describing FHIR Bundle called the exchange graph.
 FHIR is the health-data interchange standard; a Bundle is its container for a set of resources, and an Observation or a DocumentReference is the resource that holds one measurement or one recording.
-Any receiver can deduplicate, correct and retract an exchange graph without knowing that it came from SensorKit.
+Any receiver can deduplicate and correct an exchange graph without knowing that it came from SensorKit.
 Grove adds what plain FHIR lacks: stable identities that never leak the native record id, provenance saying which application assembled the graph on which device, and optional study context.
-The receiver gets a graph it can store, compare byte for byte on a retry, and take back by identity.
+The receiver gets a graph it can store and compare byte for byte on a retry; SensorKit records cannot be taken back yet (<doc:#Publish-an-anchored-batch> says why).
 
 ``SensorKitFHIRExporter`` consumes typed records you already fetched; it never queries SensorKit.
 If you already know the pieces, jump to <doc:#Beyond-the-minimum>.
@@ -169,7 +169,7 @@ Two guards keep one name meaning one content:
 - **The exporter's fingerprint, before the release.** Until the receipt is released, the ledger restates a reserved record only for the same content; other content under a reserved id becomes a new event, never a restated one.
 
 Failing a batch means throwing before `acknowledge()`: the anchor stays, the batch is reissued after a restart under the same coordinate and ids, and the reservations it made stay for that redelivery.
-A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.resetQueryAnchors(for:)`, which fetches the range again under new coordinates, so new ids.
+A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
 
 A tabular batch, with `retryLog` standing for your app's durable store of each batch's digests and time zone, and `stageSidecar` for your upload of the bytes:
 
