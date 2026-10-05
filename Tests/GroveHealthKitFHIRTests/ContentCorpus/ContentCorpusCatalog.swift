@@ -54,7 +54,7 @@ enum ContentCorpusCatalog {
             "measurements": .array(entry.measurements.map { measurement in
                 .object(["id": .string(measurement.id), "profiles": .array(measurement.profiles.map { .string(canonicalText($0)) })])
             }),
-            "outputs": .array(HealthKitCatalog.outputs(for: sourceType).map { output in
+            "outputs": .array(HealthKitContentPlan[sourceType].outputs.map { output in
                 .object([
                     "role": .string(output.role),
                     "discriminator": .string(output.discriminator),

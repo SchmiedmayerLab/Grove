@@ -156,17 +156,17 @@ extension GoldenCase {
         return try GoldenOutput(ExporterGolden.single(retractions))
     }
 
-    /// An ECG record of the corpus's reading under Apple's second algorithm version, recorded by the watch and written
-    /// by the foreign application: sinus rhythm unless `classification` says otherwise, in the goldens' zone unless
-    /// `timeZoned` is false, stating `averageHeartRate` (by default the reading's), its symptoms present exactly when it
-    /// has any.
+    /// An ECG of the corpus's reading under Apple's second algorithm version, with its voltages, recorded by the watch
+    /// and written by the foreign application: sinus rhythm unless `classification` says otherwise, in the goldens' zone
+    /// unless `timeZoned` is false, stating `averageHeartRate` (by default the reading's), and stating its symptoms
+    /// present exactly when `symptoms` has any.
     static func electrocardiogramRecord(
         uuid ordinal: UInt8,
         symptoms: [HKCategorySample],
         classification: HKElectrocardiogram.Classification = .sinusRhythm,
         averageHeartRate: Double? = ContentCorpusGrid.electrocardiogramReading.averageHeartRate,
         timeZoned: Bool = true
-    ) throws -> HealthKitECGRecord {
+    ) throws -> ECGRecording {
         let reading = ContentCorpusGrid.electrocardiogramReading
         var facts = seriesFacts(uuid: ordinal, duration: 30)
         facts.metadata = (timeZoned ? GoldenFixtures.timeZoneMetadata : [:]).merging([
@@ -182,7 +182,7 @@ extension GoldenCase {
         let voltages = try reading.voltages.map { voltage in
             try StoredSampleFixtures.voltageMeasurement(offset: voltage.offset, millivolts: voltage.millivolts)
         }
-        return HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages, correlatedSymptoms: symptoms)
+        return (ecg, voltages)
     }
 
     /// A symptom recorded by the watch and written by the foreign application; by default mild chest tightness.

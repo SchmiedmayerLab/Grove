@@ -177,7 +177,7 @@ struct GoldenGraphTests {
     /// F1: a workout's retraction names exactly the outputs its addition emitted, recomputed from its type and UUID.
     @Test
     func workoutRetractionIsExact() throws {
-        #expect(HealthKitCatalog.outputs(for: .workout).map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
+        #expect(HealthKitContentPlan[.workout].outputs.map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA2))
         var inputs = ExportInputs()
         inputs.sequence = 202

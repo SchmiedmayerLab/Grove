@@ -50,7 +50,7 @@ struct HealthKitECGContentTests {
         samplingFrequencyHertz: Double?,
         points: [VoltagePoint],
         metadata: [String: any Sendable] = [:]
-    ) throws -> HealthKitECGRecord {
+    ) throws -> ECGRecording {
         let start = GoldenFixtures.sampleStart
         let facts = StoredSampleFixtures.SampleFacts(
             uuid: GoldenFixtures.uuid(0xC0),
@@ -67,9 +67,9 @@ struct HealthKitECGContentTests {
             averageHeartRate: nil,
             samplingFrequency: samplingFrequencyHertz.map { HKQuantity(unit: .hertz(), doubleValue: $0) }
         )
-        return HealthKitECGRecord(
-            electrocardiogram: try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
-            voltageMeasurements: try points.map { try StoredSampleFixtures.voltageMeasurement(offset: $0.offset, millivolts: $0.millivolts) }
+        return (
+            try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
+            try points.map { try StoredSampleFixtures.voltageMeasurement(offset: $0.offset, millivolts: $0.millivolts) }
         )
     }
 
@@ -81,7 +81,7 @@ struct HealthKitECGContentTests {
         points: [VoltagePoint]
     ) throws -> HealthKitECGContent.Waveform {
         let record = try record(reportedCount: reportedCount, samplingFrequencyHertz: samplingFrequencyHertz, points: points)
-        return try HealthKitECGContent.Waveform(record, unit: .voltUnit(with: .milli))
+        return try HealthKitECGContent.Waveform(record.electrocardiogram, voltages: record.voltageMeasurements, unit: .voltUnit(with: .milli))
     }
 
     @Test
@@ -128,14 +128,15 @@ struct HealthKitECGContentTests {
             HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
         ]
         let stated = try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints, metadata: metadata)
-        let evidence = try plan.ecgEvidence(stated)
+        let evidence = try plan.ecgEvidence(stated.electrocardiogram, voltages: stated.voltageMeasurements)
         #expect(evidence.electrocardiogram === stated.electrocardiogram)
         #expect(evidence.zone.identifier == GoldenFixtures.timeZone)
         #expect(evidence.algorithmVersion == HKAppleECGAlgorithmVersion.version2.rawValue)
         #expect(evidence.waveform.data == "0 1 -2 3")
-        let bare = try plan.ecgEvidence(try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints))
-        #expect(bare.zone.secondsFromGMT(for: GoldenFixtures.sampleStart) == 0)
-        #expect(bare.algorithmVersion == nil)
+        let bare = try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints)
+        let bareEvidence = try plan.ecgEvidence(bare.electrocardiogram, voltages: bare.voltageMeasurements)
+        #expect(bareEvidence.zone.secondsFromGMT(for: GoldenFixtures.sampleStart) == 0)
+        #expect(bareEvidence.algorithmVersion == nil)
     }
 
     /// Every HealthKit classification states its code of the guide's closed code system

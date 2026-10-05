@@ -62,17 +62,6 @@ public enum HealthKitCatalog {
         units[binding.ucumCode] = units[binding.ucumCode] ?? binding.unit
     }
 
-    /// Every output a conversion mints for one source type, in the order the graph emits them; a retraction of the
-    /// type names exactly these.
-    ///
-    /// One exception: an ECG's average-heart-rate child is listed whether or not the ECG stated an average, so the
-    /// retraction of an ECG without one also names a child that was never emitted. A deletion cannot tell the two
-    /// apart, and the pinned guide has no source-record retraction scope yet (an IG gap; a draft exists); a receiver
-    /// resolves the extra target to nothing.
-    static func outputs(for type: HealthKitSourceType) -> [HealthKitOutputSlot] {
-        HealthKitContentPlan[type].outputs
-    }
-
     /// The HealthKit unit a UCUM code names, or `nil` when this adapter binds no measurement to it.
     ///
     /// There is deliberately no inverse. A HealthKit unit does not determine a UCUM code: every

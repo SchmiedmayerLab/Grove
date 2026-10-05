@@ -18,7 +18,7 @@ import HealthKit
 /// series with its beats, and a workout route with its fixes.
 extension ContentCorpusSamples {
     /// The ECG record the record entry point takes; each symptom spans the ECG's interval in the default zone.
-    static func electrocardiogram(_ source: ContentCorpusSource, reading: ContentCorpusElectrocardiogram) throws -> HealthKitECGRecord {
+    static func electrocardiogram(_ source: ContentCorpusSource, reading: ContentCorpusElectrocardiogram) throws -> HealthKitFHIRExporter.Record {
         let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
         let ecg = try StoredSampleFixtures.electrocardiogram(
             facts: facts(source),
@@ -34,12 +34,12 @@ extension ContentCorpusSamples {
         symptomSource.device = nil
         symptomSource.writer = .unattributed
         symptomSource.metadata = [HKMetadataKeyTimeZone: .string(GoldenFixtures.timeZone)]
-        return HealthKitECGRecord(
-            electrocardiogram: ecg,
-            voltageMeasurements: try reading.voltages.map { voltage in
+        return .electrocardiogram(
+            ecg,
+            voltages: try reading.voltages.map { voltage in
                 try StoredSampleFixtures.voltageMeasurement(offset: voltage.offset, millivolts: voltage.millivolts)
             },
-            correlatedSymptoms: try reading.symptoms.map { symptom in
+            symptoms: try reading.symptoms.map { symptom in
                 try StoredSampleFixtures.categorySample(
                     try categoryType(symptom.type),
                     value: symptom.value,
@@ -50,18 +50,18 @@ extension ContentCorpusSamples {
     }
 
     /// The heartbeat series record the record entry point takes.
-    static func heartbeatSeries(_ source: ContentCorpusSource, beats: [ContentCorpusBeat]) throws -> HealthKitHeartbeatSeriesRecord {
-        HealthKitHeartbeatSeriesRecord(
-            series: try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts(source)),
-            heartbeats: beats.map(\.heartbeat)
+    static func heartbeatSeries(_ source: ContentCorpusSource, beats: [ContentCorpusBeat]) throws -> HealthKitFHIRExporter.Record {
+        .heartbeatSeries(
+            try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts(source)),
+            beats: beats.map(\.heartbeat)
         )
     }
 
     /// The workout route record the record entry point takes.
-    static func workoutRoute(_ source: ContentCorpusSource, locations: [ContentCorpusLocation]) throws -> HealthKitWorkoutRouteRecord {
+    static func workoutRoute(_ source: ContentCorpusSource, locations: [ContentCorpusLocation]) throws -> HealthKitFHIRExporter.Record {
         let start = Date(timeIntervalSince1970: source.start)
-        return HealthKitWorkoutRouteRecord(
-            route: try StoredSampleFixtures.seriesSample(HKWorkoutRoute.self, sampleType: HKSeriesType.workoutRoute(), facts: facts(source)),
+        return .workoutRoute(
+            try StoredSampleFixtures.seriesSample(HKWorkoutRoute.self, sampleType: HKSeriesType.workoutRoute(), facts: facts(source)),
             locations: locations.map { $0.location(after: start) }
         )
     }
