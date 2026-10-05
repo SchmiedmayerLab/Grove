@@ -18,18 +18,16 @@ struct GroveFHIRExchangeIdentityTests {
         get throws {
             try OpaqueIdentityScope.conformanceTesting(
                 systems: DeploymentIdentifierSystems(
-                    opaque: OpaqueIdentitySystems(
-                        sourceRecord: "https://study.example.org/fhir/NamingSystem/source-record-test-key-1",
-                        sourceOutput: "https://study.example.org/fhir/NamingSystem/source-output-test-key-1",
-                        writerRecord: "https://study.example.org/fhir/NamingSystem/writer-record-test-key-1",
-                        providerRecord: "https://study.example.org/fhir/NamingSystem/provider-record-test-key-1",
-                        providerOutput: "https://study.example.org/fhir/NamingSystem/provider-output-test-key-1",
-                        sourceArtifact: "https://study.example.org/fhir/NamingSystem/source-artifact-test-key-1",
-                        providerArtifact: "https://study.example.org/fhir/NamingSystem/provider-artifact-test-key-1",
-                        sourceContext: "https://study.example.org/fhir/NamingSystem/source-context-test-key-1",
-                        recordingDevice: "https://study.example.org/fhir/NamingSystem/recording-device-test-key-1",
-                        deviceSnapshot: "https://study.example.org/fhir/NamingSystem/device-snapshot-test-key-1"
-                    ),
+                    sourceRecord: "https://study.example.org/fhir/NamingSystem/source-record-test-key-1",
+                    sourceOutput: "https://study.example.org/fhir/NamingSystem/source-output-test-key-1",
+                    writerRecord: "https://study.example.org/fhir/NamingSystem/writer-record-test-key-1",
+                    providerRecord: "https://study.example.org/fhir/NamingSystem/provider-record-test-key-1",
+                    providerOutput: "https://study.example.org/fhir/NamingSystem/provider-output-test-key-1",
+                    sourceArtifact: "https://study.example.org/fhir/NamingSystem/source-artifact-test-key-1",
+                    providerArtifact: "https://study.example.org/fhir/NamingSystem/provider-artifact-test-key-1",
+                    sourceContext: "https://study.example.org/fhir/NamingSystem/source-context-test-key-1",
+                    recordingDevice: "https://study.example.org/fhir/NamingSystem/recording-device-test-key-1",
+                    deviceSnapshot: "https://study.example.org/fhir/NamingSystem/device-snapshot-test-key-1",
                     event: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
                     entryNode: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
                 ),
@@ -104,7 +102,7 @@ struct GroveFHIRExchangeIdentityTests {
             nativeRecordID: "native-record-002"
         )
         #expect(String(reflecting: source) == "SourceRecordIdentity(identifier: \(source.identifier.value))")
-        #expect(String(reflecting: provider) == "ProviderRecordIdentity(identifier: \(provider.identifier.value))")
+        #expect(String(reflecting: provider) == "SourceRecordIdentity(identifier: \(provider.identifier.value))")
     }
 
     @Test("Matches complete-pair provider, writer, and recording-device vectors")
@@ -224,8 +222,8 @@ extension GroveFHIRExchangeIdentityTests {
             sequence: EventSequence(1)
         )
         expectEmptySourceComponents(repository: repository)
-        #expect(Set(GroveProviderCode.allCases.map(\.rawValue)) == ["google-health-api", "oura", "withings"])
-        for providerCode in GroveProviderCode.allCases.map(\.rawValue) {
+        #expect(Set(OpaqueIdentityScope.ProviderCode.allCases.map(\.rawValue)) == ["google-health-api", "oura", "withings"])
+        for providerCode in OpaqueIdentityScope.ProviderCode.allCases.map(\.rawValue) {
             expectProviderKindRequired(providerCode, repository: repository)
         }
         try expectEmptyDerivedComponents(

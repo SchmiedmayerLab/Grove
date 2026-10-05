@@ -15,12 +15,12 @@ import Foundation
 
 
 /// The deterministic, event-scoped `n0:` key of an entry whose resource has no business identifier.
-public struct EntryNodeKey: Hashable, Sendable {
-    public let identifier: RoledIdentifier
-    public let nodeRole: String
-    public let ordinal: CanonicalNonnegativeDecimal
+package struct EntryNodeKey: Hashable, Sendable {
+    package let identifier: RoledIdentifier
+    package let nodeRole: String
+    package let ordinal: CanonicalNonnegativeDecimal
 
-    public init(
+    package init(
         system: IdentifierSystem,
         event: ExchangeEventIdentifier,
         nodeRole: String,

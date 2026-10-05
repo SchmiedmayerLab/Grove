@@ -25,7 +25,7 @@ enum QuestionnaireExportFixtures {
 
     static var identityScope: OpaqueIdentityScope {
         get throws {
-            let opaque = try OpaqueIdentitySystems(
+            let systems = try DeploymentIdentifierSystems(
                 sourceRecord: "https://study.example.org/fhir/NamingSystem/grove-source-record-v0",
                 sourceOutput: "https://study.example.org/fhir/NamingSystem/grove-source-output-v0",
                 writerRecord: "https://study.example.org/fhir/NamingSystem/grove-writer-record-v0",
@@ -35,10 +35,7 @@ enum QuestionnaireExportFixtures {
                 providerArtifact: "https://study.example.org/fhir/NamingSystem/grove-provider-artifact-v0",
                 sourceContext: "https://study.example.org/fhir/NamingSystem/grove-source-context-v0",
                 recordingDevice: "https://study.example.org/fhir/NamingSystem/grove-recording-device-v0",
-                deviceSnapshot: "https://study.example.org/fhir/NamingSystem/grove-device-snapshot-v0"
-            )
-            let systems = try DeploymentIdentifierSystems(
-                opaque: opaque,
+                deviceSnapshot: "https://study.example.org/fhir/NamingSystem/grove-device-snapshot-v0",
                 event: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
                 entryNode: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
             )

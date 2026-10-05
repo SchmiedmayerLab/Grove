@@ -60,11 +60,11 @@ struct HealthKitFHIRExporterFingerprintTests {
             ("gateway build", { $0.role = .gatewayApplication(.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1")) }),
             ("nativeIdentifier", { $0.nativeIdentifier = .authorized(system: system) }),
             ("nativeIdentifier system", { $0.nativeIdentifier = .authorized(system: "https://study.example.org/fhir/NamingSystem/other") }),
-            ("type", { $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierType(system: typeSystem, code: "store")) }),
-            ("type system", { $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierType(system: otherSystem, code: "store")) }),
-            ("type code", { $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierType(system: typeSystem, code: "record")) }),
+            ("type", { $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "store")) }),
+            ("type system", { $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: otherSystem, code: "store")) }),
+            ("type code", { $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "record")) }),
             ("type display", {
-                $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierType(system: typeSystem, code: "store", display: "Store"))
+                $0.nativeIdentifier = .authorized(system: system, type: try? GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "store", display: "Store"))
             }),
             ("udi", { $0.udi = .authorized })
         ]

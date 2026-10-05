@@ -10,19 +10,19 @@
 ///
 /// The exchange protocol deliberately does not impose a machine-integer upper bound. This value
 /// therefore retains the validated decimal text instead of parsing it through `UInt64`.
-public struct CanonicalNonnegativeDecimal: Hashable, Sendable, CustomStringConvertible {
-    public let rawValue: String
+package struct CanonicalNonnegativeDecimal: Hashable, Sendable, CustomStringConvertible {
+    package let rawValue: String
 
-    public var description: String { rawValue }
+    package var description: String { rawValue }
 
-    public init(_ rawValue: String) throws(ExchangeIdentityError) {
+    package init(_ rawValue: String) throws(ExchangeIdentityError) {
         guard Self.isCanonical(rawValue) else {
             throw .invalidNonnegativeDecimal(rawValue)
         }
         self.rawValue = rawValue
     }
 
-    public init(_ value: UInt64) {
+    package init(_ value: UInt64) {
         self.rawValue = String(value)
     }
 

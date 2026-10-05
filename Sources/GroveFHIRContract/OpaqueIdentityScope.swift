@@ -19,6 +19,26 @@ import Foundation
 /// The systems are deliberately supplied by the deployment. Grove publishes no global namespace,
 /// because the same clear source identity must not be linkable across unrelated studies.
 /// Debug output prints the key id and epoch only; the key never leaves the scope.
+/// The closed domain-separation token fed to the Grove HMAC preimage.
+package enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
+    case sourceRecord = "source-record"
+    case sourceOutput = "source-output"
+    case writerRecord = "writer-record"
+    case providerRecord = "provider-record"
+    case providerOutput = "provider-output"
+    case sourceArtifact = "source-artifact"
+    case providerArtifact = "provider-artifact"
+    case sourceContext = "source-context"
+    case recordingDevice = "recording-device"
+    case deviceSnapshot = "device-snapshot"
+
+    /// The frozen number of typed fields in this identity kind's protocol preimage.
+    package var componentCount: Int {
+        componentNames.count
+    }
+}
+
+
 @DebugDescription
 public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     private static let publishedConformanceKey = SymmetricKey(data: Data((0...31).map(UInt8.init)))
@@ -159,13 +179,13 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         let input = try Data(lengthFramedUTF8: ["org.grovealliance.fhir.identity.v0", kind.rawValue] + components)
         let digest = Data(HMAC<SHA256>.authenticationCode(for: input, using: key)).base64URLEncodedStringWithoutPadding
         return RoledIdentifier(
-            identifier: BusinessIdentifier(system: systems.opaque[kind], nonemptyValue: "v0:\(keyID):\(epoch.rawValue):\(digest)"),
+            identifier: BusinessIdentifier(system: systems[kind], nonemptyValue: "v0:\(keyID):\(epoch.rawValue):\(digest)"),
             role: kind.identifierRole
         )
     }
 
     private func validateGenericAdapterID(_ value: String) throws(ExchangeIdentityError) {
-        guard GroveProviderCode(rawValue: value) == nil else {
+        guard ProviderCode(rawValue: value) == nil else {
             throw .providerKindRequired(value)
         }
     }
@@ -179,5 +199,25 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
               value.utf8.allSatisfy({ (0x61...0x7A).contains($0) || (0x30...0x39).contains($0) || $0 == 0x2D }) else {
             throw .invalidCodeToken(field: field, value: value)
         }
+    }
+}
+
+
+extension OpaqueIdentityScope {
+    /// The providers admitted by the Grove identity protocol.
+    ///
+    /// Provider-owned records use a provider identity kind. Rejecting these values from generic
+    /// `source-*` constructors prevents two names for the same provider preimage.
+    package enum ProviderCode: String, CaseIterable, Hashable, Sendable {
+        case googleHealthAPI = "google-health-api"
+        case oura
+        case withings
+    }
+
+    /// The closed resource-kind role used by an immutable event-time Device snapshot.
+    package enum DeviceRole: String, CaseIterable, Hashable, Sendable {
+        case application
+        case host
+        case recordingDevice = "recording-device"
     }
 }

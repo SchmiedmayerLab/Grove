@@ -28,13 +28,13 @@ struct OpaqueIdentityScopeRootTests {
         #expect(scope.keyID == "key-1")
         #expect(scope.epoch == EventSequence(3))
         #expect(scope.systems.event.rawValue == "https://study.example.org/fhir/NamingSystem/grove-event-v0")
-        #expect(scope.systems.opaque.sourceRecord.rawValue == "https://study.example.org/fhir/NamingSystem/grove-source-record-v0/key-1/3")
+        #expect(scope.systems.sourceRecord.rawValue == "https://study.example.org/fhir/NamingSystem/grove-source-record-v0/key-1/3")
         let repository = try BusinessIdentifier(system: IdentifierSystem("https://study.example.org/fhir/repository"), value: "primary")
         let minted = try scope.sourceRecord(adapterID: "healthkit", sourceType: "heart-rate", repositoryScope: repository, nativeRecordID: "abc")
         let expected = try twoStep.sourceRecord(adapterID: "healthkit", sourceType: "heart-rate", repositoryScope: repository, nativeRecordID: "abc")
         #expect(minted.identifier == expected.identifier)
         #expect(minted.identifier.identifier.value.hasPrefix("v0:key-1:3:"))
-        #expect(minted.identifier.identifier.system == systems.opaque.sourceRecord)
+        #expect(minted.identifier.identifier.system == systems.sourceRecord)
         #expect(scope.debugDescription == "OpaqueIdentityScope(keyID: key-1, epoch: 3)")
     }
 
@@ -181,7 +181,7 @@ struct ExchangeProducerTests {
     @Test("A subject numbered in a deployment identity system is refused")
     func reservedSubjectSystemIsRefused() throws {
         let systems = try Self.scope().systems
-        for system in systems.opaque.all + [systems.event, systems.entryNode] {
+        for system in systems.all {
             let subject = Subject.logical(try BusinessIdentifier(system: system, value: "p-1"))
             #expect(throws: ExchangeProducer.ConfigurationError.reservedSubjectIdentifierSystem(system)) {
                 try Self.producer(subject: subject)
@@ -199,8 +199,8 @@ struct ExchangeProducerTests {
         #expect(throws: ExchangeProducer.ConfigurationError.reservedStudyIdentifierSystem(systems.event)) {
             try Self.producer(studies: [Self.enrollment(study: reservedStudy)])
         }
-        let reservedEnrollment = try BusinessIdentifier(system: systems.opaque.sourceRecord, value: "enrollment")
-        #expect(throws: ExchangeProducer.ConfigurationError.reservedStudyIdentifierSystem(systems.opaque.sourceRecord)) {
+        let reservedEnrollment = try BusinessIdentifier(system: systems.sourceRecord, value: "enrollment")
+        #expect(throws: ExchangeProducer.ConfigurationError.reservedStudyIdentifierSystem(systems.sourceRecord)) {
             try Self.producer(studies: [Self.enrollment(name: "a"), Self.enrollment(enrollment: reservedEnrollment, name: "b")])
         }
     }

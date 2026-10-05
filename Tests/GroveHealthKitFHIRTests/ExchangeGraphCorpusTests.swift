@@ -873,7 +873,7 @@ struct ExchangeGraphCorpusTests {
         // The opaque Grove identity is never restated as the clear native one.
         #expect(throws: RetractionEventError.reservedIdentifierSystem) {
             try retraction(nativeRecordIdentifier: BusinessIdentifier(
-                system: context.identityScope.systems.opaque.sourceRecord,
+                system: context.identityScope.systems.sourceRecord,
                 value: nativeRecordIdentifier.value
             ))
         }

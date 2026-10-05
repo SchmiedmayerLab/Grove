@@ -295,7 +295,7 @@ struct ProducerSurfaceTests {
 
     @Test("A writer snapshot the converter already states is that entry, and its host goes with it")
     func writerSharingAConverterSnapshot() throws {
-        func device(_ token: String, role: DeviceSnapshotRole) throws -> IdentifiedDevice {
+        func device(_ token: String, role: OpaqueIdentityScope.DeviceRole) throws -> IdentifiedDevice {
             let context = ExchangeEventContext.test()
             let identity = try context.identityScope.deviceSnapshot(event: context.event, role: role, sourceDeviceToken: token)
             return IdentifiedDevice(resource: Device(), identity: identity)
@@ -418,7 +418,7 @@ struct ProducerSurfaceTests {
 
         // A native identifier system the deployment's identity scope reserves is refused when the exporter is configured.
         var reserved = ExportInputs()
-        let reservedSystem = reserved.base.identityScope.systems.opaque.sourceOutput
+        let reservedSystem = reserved.base.identityScope.systems.sourceOutput
         reserved.options.nativeIdentifier = .authorized(system: reservedSystem)
         #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierSystem(reservedSystem)) {
             try ExporterFixtures.exporter(reserved)
@@ -549,9 +549,9 @@ struct ProducerContractVectorTests {
                 nativeRecordID: components[4]
             )
         }
-        func providerRecord() throws -> ProviderRecordIdentity {
+        func providerRecord() throws -> SourceRecordIdentity {
             try scope.providerRecord(
-                providerCode: #require(GroveProviderCode(rawValue: components[0]), "\(components[0])"),
+                providerCode: #require(OpaqueIdentityScope.ProviderCode(rawValue: components[0]), "\(components[0])"),
                 sourceType: components[1],
                 providerScope: identifier(components[2], components[3]),
                 nativeRecordID: components[4]
@@ -591,7 +591,7 @@ struct ProducerContractVectorTests {
         case .deviceSnapshot:
             return try scope.deviceSnapshot(
                 event: ExchangeEventIdentifier(identifier(components[0], components[1])),
-                role: #require(DeviceSnapshotRole(rawValue: components[2]), "\(components[2])"),
+                role: #require(OpaqueIdentityScope.DeviceRole(rawValue: components[2]), "\(components[2])"),
                 sourceDeviceToken: components[3]
             )
         }
@@ -605,7 +605,7 @@ struct ProducerContractVectorTests {
         #expect(vectors.identitySystems.count == OpaqueIdentityKind.allCases.count)
         for vector in vectors.identitySystems {
             let kind = try #require(OpaqueIdentityKind(rawValue: vector.identityKind))
-            #expect(derived.opaque[kind].rawValue == vector.system, "\(vector.identityKind)")
+            #expect(derived[kind].rawValue == vector.system, "\(vector.identityKind)")
         }
         #expect(derived.event.rawValue == vectors.event.system)
         #expect(derived.entryNode.rawValue == vectors.entryNode.system)
@@ -623,7 +623,7 @@ struct ProducerContractVectorTests {
             let kind = try #require(OpaqueIdentityKind(rawValue: vector.identityKind), "\(vector.id)")
             let identity = try Self.identity(scope, kind: kind, components: vector.components)
             #expect(identity.value == vector.value, "\(vector.id)")
-            #expect(identity.system == scope.systems.opaque[kind], "\(vector.id)")
+            #expect(identity.system == scope.systems[kind], "\(vector.id)")
         }
     }
 
@@ -650,7 +650,7 @@ struct ProducerContractVectorTests {
                 system: IdentifierSystem(vector.components[0]),
                 value: vector.components[1]
             ))
-            let role = try #require(DeviceSnapshotRole(rawValue: vector.components[2]))
+            let role = try #require(OpaqueIdentityScope.DeviceRole(rawValue: vector.components[2]))
             #expect(try scope.deviceSnapshot(event: event, role: role, sourceDeviceToken: token).value == vector.value, "\(id)")
         }
     }

@@ -29,6 +29,28 @@ struct LedgerFingerprintTests {
         try DeploymentIdentifierSystems.derived(root: root, keyID: keyID, epoch: EventSequence(1))
     }
 
+    /// `opaque`'s ten opaque systems with `event` and `entryNode`.
+    private static func systems(
+        opaque: DeploymentIdentifierSystems,
+        event: IdentifierSystem,
+        entryNode: IdentifierSystem
+    ) throws -> DeploymentIdentifierSystems {
+        try DeploymentIdentifierSystems(
+            sourceRecord: opaque.sourceRecord,
+            sourceOutput: opaque.sourceOutput,
+            writerRecord: opaque.writerRecord,
+            providerRecord: opaque.providerRecord,
+            providerOutput: opaque.providerOutput,
+            sourceArtifact: opaque.sourceArtifact,
+            providerArtifact: opaque.providerArtifact,
+            sourceContext: opaque.sourceContext,
+            recordingDevice: opaque.recordingDevice,
+            deviceSnapshot: opaque.deviceSnapshot,
+            event: event,
+            entryNode: entryNode
+        )
+    }
+
     private static func scope(
         systems: DeploymentIdentifierSystems,
         keyID: String = "test",
@@ -47,21 +69,13 @@ struct LedgerFingerprintTests {
             ("key id", try Self.scope(systems: systems, keyID: "other")),
             ("epoch", try Self.scope(systems: systems, epoch: 2)),
             ("key", try Self.scope(systems: systems, key: SymmetricKey(data: Data(repeating: 7, count: 32)))),
-            ("opaque systems", try Self.scope(systems: try DeploymentIdentifierSystems(
-                opaque: try Self.systems(keyID: "other").opaque,
+            ("opaque systems", try Self.scope(systems: try Self.systems(
+                opaque: try Self.systems(keyID: "other"),
                 event: systems.event,
                 entryNode: systems.entryNode
             ))),
-            ("event system", try Self.scope(systems: try DeploymentIdentifierSystems(
-                opaque: systems.opaque,
-                event: otherRoot.event,
-                entryNode: systems.entryNode
-            ))),
-            ("entry-node system", try Self.scope(systems: try DeploymentIdentifierSystems(
-                opaque: systems.opaque,
-                event: systems.event,
-                entryNode: otherRoot.entryNode
-            )))
+            ("event system", try Self.scope(systems: try Self.systems(opaque: systems, event: otherRoot.event, entryNode: systems.entryNode))),
+            ("entry-node system", try Self.scope(systems: try Self.systems(opaque: systems, event: systems.event, entryNode: otherRoot.entryNode)))
         ]
         let fingerprints = scopes.map { name, scope in (name, scope.ledgerFingerprint) }
         for (index, (name, fingerprint)) in fingerprints.enumerated() {

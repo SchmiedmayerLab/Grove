@@ -76,7 +76,7 @@ extension HealthKitAssembly {
 
     private func validatedSymptomOutputIdentifiers(_ conversions: [Conversion]) throws -> [RoledIdentifier] {
         let outputs = conversions.map(\.identifiers.primaryOutput)
-        let expectedSystem = scope.identityScope.systems.opaque.sourceOutput
+        let expectedSystem = scope.identityScope.systems.sourceOutput
         guard outputs.allSatisfy({ $0.role == .sourceOutput && $0.identifier.system == expectedSystem }) else {
             throw HealthKitConversionError.ecgEvidence(.invalidSymptomOutputIdentity)
         }

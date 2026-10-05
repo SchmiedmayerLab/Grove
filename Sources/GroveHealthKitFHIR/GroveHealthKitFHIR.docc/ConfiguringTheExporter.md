@@ -97,7 +97,7 @@ Never restore the ledger from a backup or copy it to another installation: two i
 ## Configuring opaque identities
 
 `OpaqueIdentityScope` owns the HMAC key id, positive epoch, key material, and a distinct deployment-owned identifier system for each closed identity kind.
-`DeploymentIdentifierSystems.derived(root:keyID:epoch:)` derives all twelve systems in the protocol's recommended form from one deployment root; a rotated key uses a new key id or epoch and with them new opaque systems.
+`OpaqueIdentityScope(root:keyID:epoch:key:)` derives all twelve systems in the protocol's recommended form from one deployment root (`DeploymentIdentifierSystems.derived(root:keyID:epoch:)` alone, when you hold the systems apart from the key); a rotated key uses a new key id or epoch and with them new opaque systems.
 Never reuse one system across kinds or deployments.
 The scope rejects a short key, the published conformance key, a malformed URI, a repeated system, a wrong component count, or an empty core field.
 

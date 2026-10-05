@@ -613,7 +613,7 @@ struct HealthKitFHIRConverterTests {
     func nativeHealthKitUUIDDisclosureIsExplicitTypedAndPrimaryOnly() throws {
         let sample = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
         let nativeSystem = IdentifierSystem("https://study.example/fhir/identifier/healthkit-object")
-        let nativeType = try GovernedSourceIdentifierType(
+        let nativeType = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
             system: IdentifierSystem("https://study.example/fhir/CodeSystem/native-identifier-type"),
             code: "healthkit-object-uuid",
             display: "HealthKit object UUID"
@@ -643,8 +643,8 @@ struct HealthKitFHIRConverterTests {
 
     @Test
     func nativeIdentifierTypeCannotMasqueradeAsGroveGraphRole() throws {
-        #expect(throws: GovernedSourceIdentifierType.ConfigurationError.groveGraphRoleSystem) {
-            try GovernedSourceIdentifierType(
+        #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.groveGraphRoleSystem) {
+            try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
                 system: IdentifierSystem(try #require(
                     Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
                 )),
@@ -658,15 +658,15 @@ struct HealthKitFHIRConverterTests {
         let system: IdentifierSystem =
             "https://study.example/fhir/CodeSystem/native-identifier-type"
         for invalid in [" source-id", "source-id ", "source  id", "source\tid", "source\nid", "source\u{0000}id"] {
-            #expect(throws: GovernedSourceIdentifierType.ConfigurationError.invalidCodeLexicalForm) {
-                try GovernedSourceIdentifierType(system: system, code: invalid)
+            #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.invalidCodeLexicalForm) {
+                try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: system, code: invalid)
             }
         }
-        #expect(throws: GovernedSourceIdentifierType.ConfigurationError.emptyCode) {
-            try GovernedSourceIdentifierType(system: system, code: "")
+        #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.emptyCode) {
+            try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: system, code: "")
         }
-        #expect(throws: GovernedSourceIdentifierType.ConfigurationError.blankDisplay) {
-            try GovernedSourceIdentifierType(system: system, code: "source-id", display: " \n ")
+        #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.blankDisplay) {
+            try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: system, code: "source-id", display: " \n ")
         }
     }
 
@@ -674,7 +674,7 @@ struct HealthKitFHIRConverterTests {
     func nativeIdentifierSystemCannotReuseOpaqueGraphNamespace() throws {
         var disclosureInputs = inputs
         disclosureInputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/native-collision"
-        let identitySystems = disclosureInputs.base.identityScope.systems.opaque
+        let identitySystems = disclosureInputs.base.identityScope.systems
         for collidingNativeSystem in [
             identitySystems.sourceRecord,
             identitySystems.providerOutput,
