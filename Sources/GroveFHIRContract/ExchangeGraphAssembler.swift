@@ -148,10 +148,7 @@ extension ExchangeGraphAssembler {
 
     /// Every output with its identities and links applied; a derived child names the primary it derives from.
     private func decoratedOutputs(of draft: ExchangeGraphDraft, surroundings: Surroundings) throws -> [DecoratedOutput] {
-        var outputs: [DecoratedOutput] = []
-        for (index, output) in draft.outputs.enumerated() {
-            outputs.append(try decorate(output, draft: draft, surroundings: surroundings))
-        }
+        var outputs = try draft.outputs.map { try decorate($0, draft: draft, surroundings: surroundings) }
         let primaryURL = outputs[0].url
         for (index, output) in draft.outputs.enumerated() where output.derivedFromPrimary && index > 0 {
             if case .observation(var observation) = outputs[index].resource {

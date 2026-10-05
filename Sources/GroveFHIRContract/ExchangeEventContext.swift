@@ -29,8 +29,8 @@ public enum ConverterRole: Hashable, Sendable {
 
 /// The graph nodes a repository may have assigned a logical id to.
 ///
-/// Public only for the caller-managed converters that take an ``ExchangeEventContext`` and the errors they report;
-/// a candidate for package access once they are gone.
+/// Public only for the caller-managed converters that take an ``ExchangeEventContext``; a candidate for package
+/// access once they are gone.
 public enum ExchangeGraphNode: Hashable, Sendable {
     case bundle
     case primaryOutput
