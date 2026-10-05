@@ -16,6 +16,14 @@ import HealthKit
 import ModelsR4
 
 
+/// Why a workout route cannot be carried, for a reason no registered input rule names (a route states no measurement
+/// and the location-track columns no value domain), so the conversion reports it as `mobile-input.unclassified`.
+enum WorkoutRouteFailure: Error {
+    /// CoreLocation marks a fix's coordinate invalid with a negative horizontal accuracy.
+    case invalidCoordinate
+}
+
+
 /// The parts of a source type's recording or clinical document that every document of the type shares, and the
 /// builders that carry one record's bytes in it.
 ///
@@ -89,7 +97,7 @@ struct DocumentPlan: Sendable {
         var writer = try RecordingCSVWriter(format: format)
         for fix in locations {
             if fix.horizontalAccuracy < 0 {
-                throw HealthKitConversionError.ValueFailure.outsideDomain
+                throw WorkoutRouteFailure.invalidCoordinate
             }
             try writer.append([
                 .timestamp(fix.timestamp),

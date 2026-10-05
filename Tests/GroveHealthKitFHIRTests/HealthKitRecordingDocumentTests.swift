@@ -231,22 +231,25 @@ struct HealthKitRecordingDocumentTests {
         }
     }
 
-    /// CoreLocation marks a fix whose coordinate is invalid with a negative horizontal accuracy. The registry's row
-    /// states a position and its radius of uncertainty, which cannot be empty, for every fix, so the route cannot be
-    /// carried; an omitted route is never read.
+    /// CoreLocation marks a fix whose coordinate is invalid with a negative horizontal accuracy, wherever the fix falls
+    /// and whatever its altitude reports. The registry's row states a position and its radius of uncertainty, which
+    /// cannot be empty, for every fix, so the route cannot be carried; no registered input rule names that reason, so
+    /// it is reported unclassified. An omitted route is never read.
     @Test("An authorized route with an invalid coordinate fails closed")
     func invalidCoordinateFailsClosed() throws {
         let invalid = CLLocation(
-            coordinate: CLLocationCoordinate2D(latitude: 37.4276, longitude: -122.1698),
-            altitude: 0,
+            coordinate: CLLocationCoordinate2D(latitude: 37.4275, longitude: -122.1697),
+            altitude: 30.5,
             horizontalAccuracy: -1,
-            verticalAccuracy: -1,
-            timestamp: Self.seriesStart.addingTimeInterval(1)
+            verticalAccuracy: 3,
+            timestamp: Self.seriesStart
         )
-        let record = try Self.workoutRoute([Self.locations[0], invalid])
-        #expect(throws: HealthKitConversionError.invalidValue(.workoutRoute, .outsideDomain)) {
+        let record = try Self.workoutRoute([invalid, Self.locations[1]])
+        let refusal = try #require(throws: HealthKitConversionError.self) {
             try ExporterFixtures.export(record, inputs(route: .authorized))
         }
+        #expect(refusal == HealthKitConversionError(conversionFailure: WorkoutRouteFailure.invalidCoordinate, source: .workoutRoute))
+        #expect(refusal.diagnostic == ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: "Bundle"))
         #expect(try ExporterFixtures.exports(record, inputs()).isEmpty)
     }
 
