@@ -48,12 +48,8 @@ extension HealthKitAssembly {
         }
         let ecg = evidence.electrocardiogram
         let companions = try symptomConversions(symptoms, status: ecg.symptomsStatus, symptomRequests: symptomRequests)
-        let outputs = try content.outputs(evidence, symptoms: try validatedSymptomOutputIdentifiers(companions))
+        let outputs = try content.outputs(evidence, symptoms: companions.map(\.identifiers.primaryOutput))
         let primary = try graph(for: ecg, type: plan.sourceType, metadata: evidence.metadata, outputs: outputs, request: request)
-        let events = [primary.identifiers.event] + companions.map(\.identifiers.event)
-        guard Set(events).count == events.count else {
-            throw HealthKitConversionError.ecgEvidence(.duplicateSymptomEventIdentity)
-        }
         return [primary] + companions
     }
 
@@ -72,18 +68,6 @@ extension HealthKitAssembly {
             }
             return try convert(symptom, request: request)
         }
-    }
-
-    private func validatedSymptomOutputIdentifiers(_ conversions: [Conversion]) throws -> [RoledIdentifier] {
-        let outputs = conversions.map(\.identifiers.primaryOutput)
-        let expectedSystem = scope.identityScope.systems.sourceOutput
-        guard outputs.allSatisfy({ $0.role == .sourceOutput && $0.identifier.system == expectedSystem }) else {
-            throw HealthKitConversionError.ecgEvidence(.invalidSymptomOutputIdentity)
-        }
-        guard Set(outputs).count == outputs.count else {
-            throw HealthKitConversionError.ecgEvidence(.duplicateSymptomOutputIdentity)
-        }
-        return outputs
     }
 }
 
