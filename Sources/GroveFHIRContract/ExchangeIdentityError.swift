@@ -24,8 +24,6 @@ public enum ExchangeIdentityError: Error, Equatable, Sendable {
     case invalidDeploymentRoot(String)
     case keyTooShort(actualBytes: Int)
     case publishedConformanceKeyProhibited
-    /// Two of the deployment's identity systems are the same system.
-    case reusedIdentifierSystem
     case invalidIdentifierRole(String)
     case duplicateIdentifierRole
     case identifierSystemRoleMismatch(

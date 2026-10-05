@@ -36,8 +36,9 @@ package enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
 
 /// The deployment-owned, key-epoch-specific scope that mints every opaque identity.
 ///
-/// The systems are deliberately supplied by the deployment. Grove publishes no global namespace,
-/// because the same clear source identity must not be linkable across unrelated studies.
+/// The systems derive from the deployment's own root (``DeploymentIdentifierSystems/derived(root:keyID:epoch:)``).
+/// Grove publishes no global namespace, because the same clear source identity must not be linkable across unrelated
+/// studies.
 /// Debug output prints the key id and epoch only; the key never leaves the scope.
 @DebugDescription
 public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {

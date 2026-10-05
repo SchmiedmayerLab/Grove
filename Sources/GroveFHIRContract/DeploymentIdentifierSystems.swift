@@ -33,7 +33,8 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         OpaqueIdentityKind.allCases.map { self[$0] } + [event, entryNode]
     }
 
-    /// Twelve distinct systems; a system named twice is refused.
+    /// Twelve systems as stated. ``derived(root:keyID:epoch:)``, the only public way to form them, yields twelve
+    /// distinct systems by construction; a test that states its own keeps them distinct.
     package init(
         sourceRecord: IdentifierSystem,
         sourceOutput: IdentifierSystem,
@@ -47,7 +48,7 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         deviceSnapshot: IdentifierSystem,
         event: IdentifierSystem,
         entryNode: IdentifierSystem
-    ) throws(ExchangeIdentityError) {
+    ) {
         self.sourceRecord = sourceRecord
         self.sourceOutput = sourceOutput
         self.writerRecord = writerRecord
@@ -60,12 +61,10 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         self.deviceSnapshot = deviceSnapshot
         self.event = event
         self.entryNode = entryNode
-        guard Set(all).count == all.count else {
-            throw .reusedIdentifierSystem
-        }
     }
 
-    /// The systems in the exchange protocol's recommended form under one deployment root.
+    /// The systems in the exchange protocol's recommended form under one deployment root: twelve distinct forms, so
+    /// twelve distinct systems.
     ///
     /// A rotated key uses a new key id or epoch, and with them new opaque systems; the event and
     /// entry-node systems stay with the root.
@@ -87,25 +86,20 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
             return try IdentifierSystem(text)
         }
         let form = ExchangeContract.opaqueIdentitySystemForm
-        do {
-            return try Self(
-                sourceRecord: try system(form, kind: .sourceRecord),
-                sourceOutput: try system(form, kind: .sourceOutput),
-                writerRecord: try system(form, kind: .writerRecord),
-                providerRecord: try system(form, kind: .providerRecord),
-                providerOutput: try system(form, kind: .providerOutput),
-                sourceArtifact: try system(form, kind: .sourceArtifact),
-                providerArtifact: try system(form, kind: .providerArtifact),
-                sourceContext: try system(form, kind: .sourceContext),
-                recordingDevice: try system(form, kind: .recordingDevice),
-                deviceSnapshot: try system(form, kind: .deviceSnapshot),
-                event: try system(ExchangeContract.eventIdentifierSystemForm),
-                entryNode: try system(ExchangeContract.entryNodeIdentifierSystemForm)
-            )
-        } catch .reusedIdentifierSystem {
-            // Twelve distinct forms under one root cannot share a system.
-            throw .invalidIdentifierSystem(deploymentRoot)
-        }
+        return Self(
+            sourceRecord: try system(form, kind: .sourceRecord),
+            sourceOutput: try system(form, kind: .sourceOutput),
+            writerRecord: try system(form, kind: .writerRecord),
+            providerRecord: try system(form, kind: .providerRecord),
+            providerOutput: try system(form, kind: .providerOutput),
+            sourceArtifact: try system(form, kind: .sourceArtifact),
+            providerArtifact: try system(form, kind: .providerArtifact),
+            sourceContext: try system(form, kind: .sourceContext),
+            recordingDevice: try system(form, kind: .recordingDevice),
+            deviceSnapshot: try system(form, kind: .deviceSnapshot),
+            event: try system(ExchangeContract.eventIdentifierSystemForm),
+            entryNode: try system(ExchangeContract.entryNodeIdentifierSystemForm)
+        )
     }
 
     /// The system of one opaque identity kind.

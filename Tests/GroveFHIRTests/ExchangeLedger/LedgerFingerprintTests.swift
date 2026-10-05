@@ -34,8 +34,8 @@ struct LedgerFingerprintTests {
         opaque: DeploymentIdentifierSystems,
         event: IdentifierSystem,
         entryNode: IdentifierSystem
-    ) throws -> DeploymentIdentifierSystems {
-        try DeploymentIdentifierSystems(
+    ) -> DeploymentIdentifierSystems {
+        DeploymentIdentifierSystems(
             sourceRecord: opaque.sourceRecord,
             sourceOutput: opaque.sourceOutput,
             writerRecord: opaque.writerRecord,
@@ -69,13 +69,13 @@ struct LedgerFingerprintTests {
             ("key id", try Self.scope(systems: systems, keyID: "other")),
             ("epoch", try Self.scope(systems: systems, epoch: 2)),
             ("key", try Self.scope(systems: systems, key: SymmetricKey(data: Data(repeating: 7, count: 32)))),
-            ("opaque systems", try Self.scope(systems: try Self.systems(
+            ("opaque systems", try Self.scope(systems: Self.systems(
                 opaque: try Self.systems(keyID: "other"),
                 event: systems.event,
                 entryNode: systems.entryNode
             ))),
-            ("event system", try Self.scope(systems: try Self.systems(opaque: systems, event: otherRoot.event, entryNode: systems.entryNode))),
-            ("entry-node system", try Self.scope(systems: try Self.systems(opaque: systems, event: systems.event, entryNode: otherRoot.entryNode)))
+            ("event system", try Self.scope(systems: Self.systems(opaque: systems, event: otherRoot.event, entryNode: systems.entryNode))),
+            ("entry-node system", try Self.scope(systems: Self.systems(opaque: systems, event: systems.event, entryNode: otherRoot.entryNode)))
         ]
         let fingerprints = scopes.map { name, scope in (name, scope.ledgerFingerprint) }
         for (index, (name, fingerprint)) in fingerprints.enumerated() {

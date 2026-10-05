@@ -98,8 +98,8 @@ Never restore the ledger from a backup or copy it to another installation: two i
 
 `OpaqueIdentityScope` owns the HMAC key id, positive epoch, key material, and a distinct deployment-owned identifier system for each closed identity kind.
 `OpaqueIdentityScope(root:keyID:epoch:key:)` derives all twelve systems in the protocol's recommended form from one deployment root (`DeploymentIdentifierSystems.derived(root:keyID:epoch:)` alone, when you hold the systems apart from the key); a rotated key uses a new key id or epoch and with them new opaque systems.
-Never reuse one system across kinds or deployments.
-The scope rejects a short key, the published conformance key, a malformed URI, a repeated system, a wrong component count, or an empty core field.
+Never share a deployment root, and with it its systems, across deployments.
+The scope rejects a short key, the published conformance key, a malformed URI, a wrong component count, or an empty core field.
 
 Source UUIDs, bundle identifiers, device tokens, and source-revision linkage stay in the framed HMAC preimage rather than clear global Grove NamingSystems.
 Every output carries typed `source-record` and `source-output` identifiers; recording documents additionally carry `source-artifact`.
