@@ -182,14 +182,13 @@ extension QuantityRead {
     /// The fraction's shortest round-trip text is parsed back with its exponent raised by two: one correctly rounded
     /// conversion of the exact decimal product, so 0.282 becomes 28.2 rather than the 28.199999999999996 that
     /// `fraction * 100` yields. The quantity template then states the result as its own shortest round-trip decimal,
-    /// which never has more significant digits than the fraction's text. A non-finite fraction is returned unchanged,
-    /// so the template refuses it as it refuses any other non-finite value.
+    /// which never has more significant digits than the fraction's text. A non-finite fraction yields NaN, which the
+    /// template refuses as it refuses any other non-finite value; a finite fraction's text always parses.
     static func percent(ofFraction fraction: Double) -> Double {
-        guard fraction.isFinite else {
-            return fraction
+        guard fraction.isFinite, let scaled = Double(String(groveFHIRPlainDecimal: fraction) + "e2") else {
+            return .nan
         }
-        // Plain decimal text always parses, so the fallback is unreachable; it fails closed in the template.
-        return Double(String(groveFHIRPlainDecimal: fraction) + "e2") ?? .nan
+        return scaled
     }
 
     /// The value read from `sample`: a quantity in its unit or as a count, a fraction in percent, or a score.
