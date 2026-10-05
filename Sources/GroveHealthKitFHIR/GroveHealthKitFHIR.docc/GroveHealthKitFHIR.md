@@ -111,7 +111,7 @@ receipt.release()
 
 `receive` is called once per graph or refusal, as soon as it is ready: once for most records, once plus once per registered symptom for an ECG, and never for a workout route while `route` is `.omit`, which emits nothing and is not a refusal.
 After the release, exporting a sample again mints a new event for the same identities, so feed the exporter from anchored queries, which deliver each sample once, not from overlapping date windows.
-`export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG passed that way is refused after its event is reserved, and a heartbeat series or a workout route is refused outright.
+`export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way reserves its event and is then refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
 A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
 
 What to persist, and why:
