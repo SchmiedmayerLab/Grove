@@ -77,15 +77,35 @@ extension HealthKitFHIRExporter {
             /// The record was refused; nothing was emitted and the export continued. Refusals are
             /// deterministic, so an exact redelivery refuses identically.
             case refused(HealthKitConversionError)
-            /// A deletion that names no output this exporter can have emitted: a source type without outputs, or a
-            /// workout route while ``Options/route`` is `.omit`. No event is reserved for it.
-            case nothingToRetract
         }
 
         public let source: Source
         public let outcome: Outcome
         /// What the record carried that its graph does not; each is a registered omission rule.
         public let warnings: [ProducerDiagnostic]
+
+        /// The graph, when one was produced.
+        public var graph: ExchangeGraph? {
+            if case .graph(let graph) = outcome { graph } else { nil }
+        }
+    }
+
+    /// What one ``Deletion`` produced: a retraction graph, or the reason it produced none.
+    public struct Retraction: Sendable {
+        public enum Outcome: Sendable {
+            /// The validated retraction graph; store or upload `ExchangeGraph.json` verbatim.
+            case graph(ExchangeGraph)
+            /// The deletion was refused; nothing was emitted and the retraction continued. Refusals are
+            /// deterministic, so an exact redelivery refuses identically.
+            case refused(HealthKitConversionError)
+            /// The deletion names no output this exporter can have emitted: a source type without outputs, or a
+            /// workout route while ``Options/route`` is `.omit`. No event is reserved for it.
+            case nothingToRetract
+        }
+
+        /// The deletion, as it was passed in.
+        public let deletion: Deletion
+        public let outcome: Outcome
 
         /// The graph, when one was produced.
         public var graph: ExchangeGraph? {

@@ -192,10 +192,10 @@ enum ExporterFixtures {
         _ exporter: HealthKitFHIRExporter,
         _ deletions: [HealthKitFHIRExporter.Deletion],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
-        var exports: [HealthKitFHIRExporter.Export] = []
-        let receipt = try exporter.retract(deletions, at: instant) { exports.append($0) }
-        return (exports, receipt)
+    ) throws -> (retractions: [HealthKitFHIRExporter.Retraction], receipt: ExchangeProducer.Receipt) {
+        var retractions: [HealthKitFHIRExporter.Retraction] = []
+        let receipt = try exporter.retract(deletions, at: instant) { retractions.append($0) }
+        return (retractions, receipt)
     }
 
     /// The goldens' ECG record with its correlated symptoms, which it states present exactly when there are any.
@@ -272,12 +272,12 @@ extension ExporterFixtures {
     /// thrown as the exporter reported it.
     static func retraction(_ deletion: HealthKitFHIRExporter.Deletion, _ inputs: ExportInputs = ExportInputs()) throws -> ExchangeGraph {
         let (exporter, _) = try exporter(inputs)
-        var exports: [HealthKitFHIRExporter.Export] = []
-        _ = try exporter.retract([deletion], at: inputs.instant) { exports.append($0) }
-        guard let export = exports.first else {
+        var retractions: [HealthKitFHIRExporter.Retraction] = []
+        _ = try exporter.retract([deletion], at: inputs.instant) { retractions.append($0) }
+        guard let retraction = retractions.first else {
             throw ExportFixtureError.nothingExported
         }
-        switch export.outcome {
+        switch retraction.outcome {
         case .graph(let graph):
             return graph
         case .refused(let error):
@@ -303,7 +303,7 @@ extension ExporterFixtures {
     static func standalone(_ deletion: HealthKitFHIRExporter.Deletion, as event: ExchangeEventIdentifier?) throws -> ExchangeGraph? {
         let (exporter, storage) = try exporter(ExportInputs())
         try handOut(try #require(event), from: storage)
-        return try retract(exporter, [deletion], at: deletion.detectedAt).exports.first?.graph
+        return try retract(exporter, [deletion], at: deletion.detectedAt).retractions.first?.graph
     }
 
     /// Makes the ledger behind `storage` hand out `sequence` next under the test context's producer instance.
@@ -321,6 +321,19 @@ extension ExporterFixtures {
 
 
 extension HealthKitFHIRExporter.Export {
+    /// The graph's event identifier.
+    var event: ExchangeEventIdentifier? {
+        graph?.eventIdentifier
+    }
+
+    /// The graph's event sequence.
+    var sequence: String? {
+        graph?.eventIdentifier.sequence.rawValue
+    }
+}
+
+
+extension HealthKitFHIRExporter.Retraction {
     /// The graph's event identifier.
     var event: ExchangeEventIdentifier? {
         graph?.eventIdentifier

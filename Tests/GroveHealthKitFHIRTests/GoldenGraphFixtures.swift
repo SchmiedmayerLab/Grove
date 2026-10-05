@@ -34,6 +34,16 @@ struct GoldenOutput: Sendable {
         renderedWarnings = export.warnings.map { "\($0.code)@\($0.location)" }
         source = export.source
     }
+
+    /// What one retraction delivered, which states no warning; a retraction without a graph throws.
+    init(_ retraction: HealthKitFHIRExporter.Retraction) throws {
+        guard let graph = retraction.graph else {
+            throw GoldenCaseError.notExported(String(describing: retraction.outcome))
+        }
+        self.graph = graph
+        renderedWarnings = []
+        source = HealthKitFHIRExporter.Export.Source(uuid: retraction.deletion.uuid, typeIdentifier: retraction.deletion.sourceType.rawValue)
+    }
 }
 
 

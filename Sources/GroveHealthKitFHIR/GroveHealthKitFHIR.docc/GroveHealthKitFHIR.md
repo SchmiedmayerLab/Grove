@@ -176,15 +176,16 @@ guard let type = HealthKitSourceType(sampleType.hkSampleType) else {
     return // Never exported, so there is nothing to retract.
 }
 let deletion = HealthKitFHIRExporter.Deletion(uuid: deletedObject.uuid, sourceType: type, deletedAfter: deletedAfter, detectedAt: reportedAt)
-let receipt = try exporter.retract([deletion]) { export in
-    if let graph = export.graph {
+let receipt = try exporter.retract([deletion]) { retraction in
+    if let graph = retraction.graph {
         try stage(graph.json)
     }
 }
 ```
 
+Each deletion is reported once, as a ``HealthKitFHIRExporter/Retraction``.
 A target carries the HealthKit UUID as its native record identifier only under the same `nativeIdentifier` option that disclosed it on the export.
-A deletion that names no output the exporter can have emitted, such as a workout route while `route` is `.omit`, reports `nothingToRetract` and takes no event.
+A deletion that names no output the exporter can have emitted, such as a workout route while `route` is `.omit`, reports ``HealthKitFHIRExporter/Retraction/Outcome/nothingToRetract`` and takes no event.
 
 `Observation.healthKitSample(syncIdentifier:)` and `ExchangeGraph.healthKitSamples()` read a graph back into HealthKit samples, syncing under the minted source-output identity.
 

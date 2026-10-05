@@ -67,8 +67,6 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
                 bundles.append(graph.bundle)
             case .refused(let error):
                 throw error
-            case .nothingToRetract:
-                break
             }
         }
         let encoder = JSONEncoder()

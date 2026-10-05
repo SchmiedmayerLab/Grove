@@ -152,8 +152,8 @@ extension GoldenCase {
             detectedAt: GoldenFixtures.conversionInstant
         )
         let (exporter, _) = try ExporterFixtures.exporter(inputs)
-        let (exports, _) = try ExporterFixtures.retract(exporter, [deletion])
-        return try GoldenOutput(ExporterGolden.single(exports))
+        let (retractions, _) = try ExporterFixtures.retract(exporter, [deletion])
+        return try GoldenOutput(ExporterGolden.single(retractions))
     }
 
     /// An ECG record of the corpus's reading under Apple's second algorithm version, recorded by the watch and written
