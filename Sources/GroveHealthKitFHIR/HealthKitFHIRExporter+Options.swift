@@ -122,6 +122,10 @@ extension HealthKitFHIRExporter {
         /// the device it names: a resolver whose answer changes for a reserved record takes a new sequence rather than
         /// restating that event's recording Device, and one whose answer changes within a call refuses the later input
         /// as ``HealthKitConversionError/conflictingDuplicate``.
+        ///
+        /// The Device states the name, manufacturer and model the resolver's `RecordingDevice` gives, each falling
+        /// back to the `HKDevice`'s own when the resolver gives none; its hardware, firmware and software versions,
+        /// and the UDI under ``Options/udi`` `.authorized`, always come from the `HKDevice`.
         case custom(any RecordingDeviceResolver)
 
         /// Whether a sample's `HKDevice` this policy resolves to no unit is reported as lost: under `.omit` the

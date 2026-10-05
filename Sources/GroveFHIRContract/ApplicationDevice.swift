@@ -28,7 +28,7 @@ public struct ApplicationDevice: Hashable, Sendable {
     /// The token the application's event-scoped Device snapshot identity is minted from:
     /// `<bundle identifier>|<version>`, then `|<build>` when the application states one.
     public var sourceDeviceToken: String {
-        [bundleIdentifier, version, build].compactMap(\.self).joined(separator: "|")
+        Self.sourceDeviceToken(bundleIdentifier: bundleIdentifier, version: version, build: build)
     }
 
     public init(
@@ -68,6 +68,12 @@ public struct ApplicationDevice: Hashable, Sendable {
             version: info["CFBundleShortVersionString"] as? String ?? "0",
             build: info["CFBundleVersion"] as? String
         )
+    }
+
+    /// The snapshot token of an application that states these facts; every application snapshot in a graph, the
+    /// writer a questionnaire response names included, is minted from it.
+    package static func sourceDeviceToken(bundleIdentifier: String, version: String, build: String?) -> String {
+        [bundleIdentifier, version, build].compactMap(\.self).joined(separator: "|")
     }
 
     /// Apple's bundle-identifier grammar: dot-separated, nonempty ASCII alphanumeric or hyphen labels.

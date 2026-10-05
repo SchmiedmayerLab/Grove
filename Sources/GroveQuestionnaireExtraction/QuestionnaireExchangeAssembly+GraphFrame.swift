@@ -238,7 +238,7 @@ extension GraphFrame {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .host,
-            sourceDeviceToken: "\(model)|\(osVersion)"
+            sourceDeviceToken: HostDevice.sourceDeviceToken(modelNumber: model, operatingSystemVersion: osVersion)
         )
         var device = ExchangeGraphAssembler.hostDevice(operatingSystemVersion: osVersion, modelNumber: model)
         device.identifier = [identity.fhirIdentifier]
@@ -254,9 +254,11 @@ extension GraphFrame {
         let identity = try context.identityScope.deviceSnapshot(
             event: context.eventIdentifier,
             role: .application,
-            sourceDeviceToken: [writer.applicationIdentifier.value, writer.applicationVersion, writer.applicationBuild]
-                .compactMap(\.self)
-                .joined(separator: "|")
+            sourceDeviceToken: ApplicationDevice.sourceDeviceToken(
+                bundleIdentifier: writer.applicationIdentifier.value,
+                version: writer.applicationVersion,
+                build: writer.applicationBuild
+            )
         )
         var device = ExchangeGraphAssembler.applicationDevice(
             name: writer.applicationName,

@@ -38,7 +38,7 @@ public struct HostDevice: Hashable, Sendable {
     /// The token the host's event-scoped Device snapshot identity is minted from:
     /// `<model number>|<operating-system version>`, such as `iPhone17,1|26.0.0`, the model empty when unknown.
     public var sourceDeviceToken: String {
-        "\(modelNumber ?? "")|\(operatingSystemVersion)"
+        Self.sourceDeviceToken(modelNumber: modelNumber, operatingSystemVersion: operatingSystemVersion)
     }
 
     public init(
@@ -70,6 +70,12 @@ public struct HostDevice: Hashable, Sendable {
         self.name = nil
         self.manufacturer = nil
         self.modelNumber = modelNumber
+    }
+
+    /// The snapshot token of a host that states these facts; every host snapshot in a graph, the host a
+    /// questionnaire response's writer ran on included, is minted from it.
+    package static func sourceDeviceToken(modelNumber: String?, operatingSystemVersion: String) -> String {
+        "\(modelNumber ?? "")|\(operatingSystemVersion)"
     }
 
     /// A snapshot of the current host: the hardware model `uname` reports and the operating-system version,
