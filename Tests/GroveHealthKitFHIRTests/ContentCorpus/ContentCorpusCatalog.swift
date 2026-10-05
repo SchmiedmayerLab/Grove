@@ -41,7 +41,7 @@ enum ContentCorpusCatalog {
         }
     }
 
-    /// One inventory row, the outputs its conversion mints, and what happens to each of its source fields.
+    /// One inventory row and the outputs its conversion mints.
     private static func entry(_ type: String) throws -> LosslessJSONValue {
         guard let sourceType = HealthKitSourceType(rawValue: type) else {
             throw ContentCorpusSamples.RebuildError.unknownType(type)
@@ -61,8 +61,7 @@ enum ContentCorpusCatalog {
                     "resourceType": .string(output.resourceType.rawValue),
                     "retractionRole": .string(output.retractionRole.rawValue)
                 ])
-            }),
-            "fieldDispositions": .object((HealthKitCatalog.fieldDispositions[sourceType] ?? [:]).mapValues { .string($0.rawValue) })
+            })
         ])
     }
 
