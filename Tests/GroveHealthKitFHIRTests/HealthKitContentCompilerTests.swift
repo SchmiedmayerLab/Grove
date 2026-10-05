@@ -147,7 +147,7 @@ struct HealthKitContentCompilerTests {
         #expect(Set(values.keys) == Set(CodedTable.severity.rows.map { $0.raw }).subtracting([mild]))
     }
 
-    @Test("A walking-steadiness classification the contract does not admit leaves both its occurrences unresolved")
+    @Test("A walking-steadiness classification the contract does not admit has no normative code, while the other converts")
     func unadmittedClassificationIsUnresolved() throws {
         let type = HealthKitSourceType.appleWalkingSteadinessEvent
         let veryLow = [HKCategoryValueAppleWalkingSteadinessEvent.initialVeryLow, .repeatVeryLow].map(\.rawValue)
@@ -157,14 +157,34 @@ struct HealthKitContentCompilerTests {
         }
         let defects = veryLow.map { "\(type.rawValue): value \($0) reports as very-low, which the contract does not admit" }
         #expect(Self.ownDefects(of: compilation) == defects)
-        guard case .observation(let observation)? = compilation.byIdentifier[type.rawValue]?.route,
-              case let .coded(values, unresolved) = observation.value else {
-            Issue.record("Walking steadiness no longer converts through its coded values")
-            return
+        for raw in veryLow {
+            #expect(throws: HealthKitConversionError.ValueFailure.missingNormativeCode) { try Self.notification(raw, in: compilation) }
         }
-        #expect(unresolved == Set(veryLow))
-        #expect(values.keys.sorted() == [HKCategoryValueAppleWalkingSteadinessEvent.initialLow, .repeatLow].map(\.rawValue))
-        #expect(values.values.allSatisfy { $0.occurrence != nil })
+        // A value the table does not map stays unsupported beside the unresolved ones.
+        #expect(throws: HealthKitConversionError.ValueFailure.unsupportedValue(5)) { try Self.notification(5, in: compilation) }
+        let low: KeyValuePairs<HKCategoryValueAppleWalkingSteadinessEvent, String> = [.initialLow: "initial", .repeatLow: "repeat"]
+        for (value, occurrence) in low {
+            let observation = try Self.notification(value.rawValue, in: compilation)
+            guard case .codeableConcept(let classification)? = observation.value,
+                  case .codeableConcept(let stated)? = observation.component?.first?.value else {
+                Issue.record("\(value) states no coded classification and occurrence")
+                continue
+            }
+            #expect(classification.coding?.map { $0.code?.value?.string } == ["low"])
+            #expect(stated.coding?.map { $0.code?.value?.string } == [occurrence])
+        }
+    }
+
+    @Test("A notification states the contract's notification-occurrence component wherever the contract lists it")
+    func occurrenceComponentIsFoundByIdentifier() throws {
+        let contract = HealthKitMeasurementCatalog.walkingSteadinessNotification
+        let occurrence = try #require(contract.components.first { $0.id == "notification-occurrence" })
+        let compilation = try Self.compile(.appleWalkingSteadinessEvent) { draft in
+            draft.components.insert(occurrence.with(id: "decoy", code: "decoy"), at: 0)
+        }
+        #expect(Self.ownDefects(of: compilation).isEmpty)
+        let observation = try Self.notification(HKCategoryValueAppleWalkingSteadinessEvent.repeatLow.rawValue, in: compilation)
+        #expect(observation.component?.map { $0.code.coding?.map { $0.code?.value?.string } } == [[occurrence.code]])
     }
 
     @Test("A type listed twice, or a table mapping one value twice, refuses its type")
@@ -219,6 +239,26 @@ extension HealthKitContentCompilerTests {
         return HealthKitContentCompiler.compile(contracts: contracts)
     }
 
+    /// The Observation `compilation` states for a stored walking-steadiness notification of raw `value`; HealthKit
+    /// refuses a value it does not define at creation, so the sample is a stored one.
+    private static func notification(_ value: Int, in compilation: HealthKitContentCompiler.Compilation) throws -> Observation {
+        let plan = try #require(compilation.byIdentifier[HealthKitSourceType.appleWalkingSteadinessEvent.rawValue])
+        guard case .observation(let content) = plan.route else {
+            throw plan.refusal
+        }
+        let start = GoldenFixtures.sampleStart
+        let facts = StoredSampleFixtures.SampleFacts(
+            uuid: GoldenFixtures.uuid(0xF7),
+            start: start,
+            end: start.addingTimeInterval(86_400),
+            device: nil,
+            metadata: nil,
+            writer: .unattributed
+        )
+        let sample = try StoredSampleFixtures.categorySample(HKCategoryType(.appleWalkingSteadinessEvent), value: value, facts: facts)
+        return try content.observation(sample, metadata: HealthKitSampleMetadata(sample, rule: plan.metadata))
+    }
+
     /// Checks that changing `type`'s contract as `change` says refuses the type as not yet convertible for `defect`.
     private static func expectRefused(
         _ type: HealthKitSourceType,
@@ -251,12 +291,17 @@ extension HealthKitContentCompilerTests {
 
 
 extension ComponentContract {
-    /// The component under `id`, read in `quantity`, publishing only the result codes `keep` keeps.
-    func with(id: String? = nil, quantity: QuantityContract? = nil, keeping keep: (ResultCodeContract) -> Bool = { _ in true }) -> ComponentContract {
+    /// The component under `id`, coded `code`, read in `quantity`, publishing only the result codes `keep` keeps.
+    func with(
+        id: String? = nil,
+        code: String? = nil,
+        quantity: QuantityContract? = nil,
+        keeping keep: (ResultCodeContract) -> Bool = { _ in true }
+    ) -> ComponentContract {
         ComponentContract(
             id: id ?? self.id,
             system: system,
-            code: code,
+            code: code ?? self.code,
             quantity: quantity ?? self.quantity,
             resultCodeSystem: resultCodeSystem,
             resultCodes: resultCodes.filter(keep)
