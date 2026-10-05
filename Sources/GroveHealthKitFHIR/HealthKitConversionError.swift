@@ -104,7 +104,6 @@ public enum HealthKitClinicalRecordFailure: Hashable, Sendable {
     case undecodable
     /// A FHIR release other than DSTU2 or R4.
     case unsupportedRelease
-    case unreadableAttachment
 }
 
 
@@ -240,7 +239,6 @@ extension HealthKitClinicalRecordFailure {
         case .empty: .healthkitInputClinicalRecordEmpty
         case .undecodable: .mobileInputValueShapeInvalid
         case .unsupportedRelease: .healthkitInputClinicalReleaseUnsupported
-        case .unreadableAttachment: .mobileInputUnclassified
         }
     }
 }

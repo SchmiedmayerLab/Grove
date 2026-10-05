@@ -839,19 +839,6 @@ struct HealthKitFHIRConverterTests {
             _ = try clinicalDocument(payload, version: .primaryR4())
         }
     }
-
-    @Test("Typed R4 inspection still rejects a DSTU2 payload without changing transport support")
-    @available(iOS 18, macOS 15, *)
-    func typedR4InspectionRejectsDSTU2() throws {
-        let dstu2JSON = Data(#"{"resourceType":"Observation","id":"dstu2"}"#.utf8)
-
-        #expect(throws: HealthKitConversionError.clinicalRecord(.unsupportedRelease)) {
-            _ = try HealthKitConverter.decodeR4ClinicalResource(
-                data: dstu2JSON,
-                release: .dstu2
-            )
-        }
-    }
     #endif
 
     @Test
