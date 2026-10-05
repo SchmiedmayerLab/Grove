@@ -14,7 +14,7 @@
     @TitleHeading("Producer Contract")
 }
 
-The identities, event context and validated graph every Grove producer shares.
+The identities, producer ledger and validated graph every Grove exporter shares.
 
 ## Overview
 
@@ -30,7 +30,7 @@ If you already know the pieces, jump to <doc:#Beyond-the-minimum>.
 
 ## What you need and why
 
-Five inputs make every exchange event; everything else has a default.
+Five inputs configure every exporter; everything else has a default.
 
 ### The subject pseudonym
 
@@ -46,19 +46,19 @@ The same record exported twice yields the same identifier, so a receiver dedupli
 ``OpaqueIdentityScope/init(root:keyID:epoch:key:)`` derives the twelve identifier systems the protocol recommends from your deployment root, a key id and an epoch, and holds them with the key.
 Persist the key id and the epoch beside the key; rotating either changes every opaque system with it, while the event and entry-node systems stay with the root.
 
-### The event identifier
+### The ledger
 
 Every export is an exchange event, and every event is immutable.
-An ``ExchangeEventIdentifier`` is your producer instance UUID plus a monotonic ``EventSequence``.
-A retry resends the same bytes under the same identifier; a new revision of the record gets a new sequence.
+An ``ExchangeEventIdentifier`` is a producer instance UUID plus a monotonic ``EventSequence``.
 An ``ExchangeProducer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
-The HealthKit, SensorKit and Questionnaire exporters number every event through it.
-A caller-managed converter that takes an ``ExchangeEventContext`` you build yourself, such as the source-neutral sensor converter, does not use the ledger: persist the producer instance once and durably advance the next sequence before you emit.
+The HealthKit, SensorKit and Questionnaire exporters number every event through it, and each call returns an ``ExchangeProducer/Receipt``.
+Until you release the receipt, an exact retry resends the same bytes under the same identifier; afterwards, a new revision of the record gets a new sequence.
 
 ### The repository scope
 
 Two source stores must never collide: the HealthKit store on one phone and the one on another phone can hold the same record id.
-The repository scope is one ``BusinessIdentifier`` that names the store the record came from, and it enters every opaque identity.
+The repository scope is one ``BusinessIdentifier`` that names the store the record came from, and it enters every source-record identity and every output identity derived from one.
+Device identities leave it out: a recording Device is keyed by the subject and the unit's token, and a Device snapshot by its event.
 Persist it with the installation.
 
 ### The application
@@ -67,7 +67,7 @@ The conversion Provenance names the application that assembled the graph, so a r
 ``ApplicationDevice/init(bundle:)`` reads it from your bundle.
 
 > Note: The producer's ``HostDevice`` defaults to ``HostDevice/current(processInfo:)`` and an export's instant to now.
-> The producer freezes both with each event, so a redelivery before the receipt is released rebuilds the same bytes; an ``ExchangeEventContext`` freezes nothing, so pass both explicitly when you replay a persisted event.
+> The producer freezes both with each event, so a redelivery before the receipt is released rebuilds the same bytes.
 
 ## Assemble it
 
@@ -93,7 +93,8 @@ let producer = try ExchangeProducer(
 
 The exporter for your source mints each event through the producer and turns one record into an ``ExchangeGraph``.
 Store and upload its ``ExchangeGraph/json`` verbatim, never a re-encoding of its Bundle, and release the call's ``ExchangeProducer/Receipt`` only once those bytes and your source cursor are durably committed.
-Before you trust bytes you stored or received, re-validate them.
+The graph an exporter returns is validated already.
+Re-validation is the reader's step: a receiver, or your app reading stored bytes back to trust them again, validates them under the kind the Bundle's profile claims.
 
 ```swift
 let restored = try ExchangeGraph(validating: storedBytes, kind: .active)
@@ -105,7 +106,6 @@ What to persist, and why:
 | Value | Why |
 | --- | --- |
 | The ledger | It numbers every event and freezes what each one states until the receipt is released; a reused sequence under different content is a conflict the receiver cannot resolve. |
-| The producer instance and the next sequence, for an adapter that takes an ``ExchangeEventContext`` | The ledger does not number those events; advance the sequence durably before you emit, and never reuse one for different content. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
 
 > Important: Never restore the ledger from a backup or copy it to another installation, and never change the key or the epoch without deriving new systems.
@@ -128,9 +128,6 @@ Every disclosure policy defaults to omission.
 ``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)`` discloses the clear native record identifier under a system you own; each adapter's exporter options state the rest, such as HealthKit's workout route.
 
 The exporters assign no resource id, apart from the HealthKit exporter's opt-in transitional legacy `Bundle.id`.
-A ``RepositoryID`` per ``ExchangeGraphNode`` in an ``ExchangeEventContext`` gives a node of a caller-managed converter's graph the logical id your repository assigned, and nothing else in the graph changes.
-
-``ConverterRole/gatewayApplication(_:)`` names a distinct application that mediated the measurement; it travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`, and document-only graphs carry none.
 
 A retry is exact when ``ExchangeGraph/isSemanticallyEqual(to:)`` says so: member order, whitespace and escaping do not matter, but `72` and `72.0` are different content.
 
@@ -143,11 +140,19 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 
 > Tip: Keep one identity scope per key epoch, and keep the epoch in the systems, so an old graph stays verifiable after a rotation.
 
+### Caller-managed conversion (candidates for removal)
+
+``ExchangeEventContext`` is an event you number yourself, for the source-neutral sensor converter in `GroveSensorKitFHIR`, the one converter that still takes it; both are candidates for removal.
+It does not use the ledger: persist the producer instance once, durably advance the next sequence before you emit, and never reuse a sequence for different content.
+It freezes nothing, so pass the host and the conversion instant explicitly when you replay a persisted event.
+Its ``ConverterRole`` states how the converting application relates to the measurement; ``ConverterRole/gatewayApplication(_:)`` names a distinct application that mediated it, which travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`.
+A ``RepositoryID`` per ``ExchangeGraphNode`` gives a node of the graph the logical id your repository assigned, and nothing else in the graph changes.
+
 ## Glossary
 
 | IG term | Swift |
 | --- | --- |
-| Exchange event | ``ExchangeEventIdentifier`` and ``ExchangeEventContext`` |
+| Exchange event | ``ExchangeEventIdentifier``, numbered by ``ExchangeProducer`` |
 | Exchange graph | ``ExchangeGraph`` |
 | Business identifier | ``BusinessIdentifier`` |
 | Identifier role | ``GroveIdentifierRole`` on a ``RoledIdentifier`` |
@@ -157,7 +162,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Subject | ``Subject`` and its ``Subject/identifier`` |
 | Study enrollment | ``StudyEnrollment`` |
 | Application, host and recording device | ``ApplicationDevice``, ``HostDevice``, ``RecordingDevice`` |
-| Writer | ``ExchangeGraphNode/writer`` and ``ExchangeGraphNode/writerHost``, chosen by the adapter's writer option, for HealthKit `HealthKitFHIRExporter.WriterPolicy` |
+| Writer | chosen by each exporter's writer option, for HealthKit `HealthKitFHIRExporter.WriterPolicy` |
 | Retraction event and target | an ``ExchangeGraph`` of kind ``ExchangeGraph/Kind/retraction``, whose Provenance targets carry the ``Canonicals/retractionTargetRole`` extension |
 | Governed source identifier | ``GovernedSourceIdentifierDisclosurePolicy`` |
 | Producer diagnostic | ``ProducerDiagnostic`` with its ``ExchangeGraphRule`` |
@@ -175,7 +180,6 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``SourceRecordIdentity``
 - ``EventSequence``
 - ``ExchangeEventIdentifier``
-- ``RepositoryID``
 - ``ExchangeIdentityError``
 
 ### The producer and its ledger
@@ -186,15 +190,11 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 
 ### The event
 
-- ``ExchangeEventContext``
 - ``Subject``
 - ``StudyEnrollment``
 - ``ApplicationDevice``
 - ``HostDevice``
 - ``RecordingDevice``
-- ``ConverterRole``
-- ``ExchangeGraphNode``
-- ``ConversionBatch``
 
 ### The graph
 
@@ -202,7 +202,15 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``ExchangeGraphRule``
 - ``ProducerDiagnostic``
 - ``ExchangeGraphError``
+- ``ConversionBatch``
 
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+
+### Caller-managed conversion (candidates for removal)
+
+- ``ExchangeEventContext``
+- ``ConverterRole``
+- ``ExchangeGraphNode``
+- ``RepositoryID``
