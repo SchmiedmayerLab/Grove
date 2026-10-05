@@ -228,7 +228,6 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 ### Coverage
 
 - ``HealthKitCatalog``
-- ``FieldDisposition``
 
 ### Reading observations back
 
