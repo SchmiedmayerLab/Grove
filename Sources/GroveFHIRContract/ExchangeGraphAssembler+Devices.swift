@@ -81,6 +81,10 @@ extension ExchangeGraphAssembler {
             return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)
         case .gateway:
             return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: applicationURL)
+        case .gatewayApplication(let gatewayApplication) where gatewayApplication.sourceDeviceToken == envelope.application.sourceDeviceToken:
+            // The named gateway is the converting application itself: one snapshot key, so it is the converter's
+            // snapshot, as under `.gateway`, never a second entry under the same key.
+            return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: applicationURL)
         case .gatewayApplication(let gatewayApplication):
             guard statesGateway else {
                 return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)

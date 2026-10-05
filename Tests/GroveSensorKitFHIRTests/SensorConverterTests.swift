@@ -147,6 +147,23 @@ struct SensorFHIRConverterTests {
         #expect(observation.graph.entry(fullURL: try snapshot.fullURL) != nil)
     }
 
+    /// A gateway application with the converter's own token is the converter's snapshot, as under `.gateway`, never
+    /// a second entry under the same key.
+    @Test
+    func gatewayApplicationEqualToTheConverterIsTheGateway() throws {
+        let base = try Self.context
+        func observation(_ role: ConverterRole) throws -> SensorConversion {
+            let context = SensorConversionContext(
+                event: base.event.with(converterRole: role),
+                adapterID: base.adapterID,
+                recordingDevice: base.recordingDevice
+            )
+            return try SensorConverter().convert(.sampledData(Self.sampledData()), context: context)
+        }
+        let named = try observation(.gatewayApplication(base.event.application))
+        #expect(named.graph.json == (try observation(.gateway)).graph.json)
+    }
+
     @Test
     func repositoryIDsAreAppliedOnlyWhenExplicitlyAssigned() throws {
         let base = try Self.context
