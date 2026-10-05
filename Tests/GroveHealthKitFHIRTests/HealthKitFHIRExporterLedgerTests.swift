@@ -265,32 +265,24 @@ struct HealthKitFHIRExporterLedgerTests {
     }
 
     @Test(
-        "An unregistered sample is refused under its own identifier, by the exporter and by the context API",
+        "An unregistered sample is refused under its own identifier and reported under its own UUID and type identifier",
         .enabled(if: HealthKitFHIRExporterLedgerTests.unregisteredCategoryType != nil, "no unregistered category type exists before OS 27")
     )
-    @available(*, deprecated, message: "Exercises the deprecated converter's sample entry point beside the exporter")
     func unregisteredSampleIsRefusedUnderItsIdentifier() throws {
         let type = try #require(Self.unregisteredCategoryType)
         let sample = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xA5), type: type, value: 1)
         let expected = HealthKitConversionError.unregisteredSourceType(type.rawValue)
         let (exports, _) = try Fixtures.collect(try Fixtures.exporter(), samples: [sample])
-        guard case .refused(let reason) = exports.first?.outcome else {
-            Issue.record("expected a refusal, got \(String(describing: exports.first?.outcome))")
+        guard exports.count == 1, case .refused(let reason) = exports[0].outcome else {
+            Issue.record("expected one refusal, got \(exports.map(\.outcome))")
             return
         }
         #expect(reason == expected)
-        #expect(throws: expected) {
-            try HealthKitConverter().convert(sample, context: HealthKitConversionContext())
-        }
-        // The batch entry point has no source record to name, so it reports the sample's UUID and identifier.
-        let batch = HealthKitConverter().convert([sample]) { _ in HealthKitConversionContext() }
-        #expect(batch.conversions.isEmpty)
-        guard batch.failures.count == 1, case let .unregisteredSourceType(uuid, identifier) = batch.failures[0] else {
-            Issue.record("expected one unregistered-type failure, got \(batch.failures)")
-            return
-        }
-        #expect(uuid == sample.uuid)
-        #expect(identifier == type.rawValue)
+        // A type the inventory does not list has no source type to name, so the export reports the sample's UUID and
+        // type identifier.
+        #expect(exports[0].source.uuid == sample.uuid)
+        #expect(exports[0].source.typeIdentifier == type.rawValue)
+        #expect(exports[0].source.sourceType == nil)
     }
 
     /// The ledger holds every reservation under its key's digest, so a key part that changed would orphan them all.

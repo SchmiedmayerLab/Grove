@@ -60,7 +60,6 @@ struct DocumentContextMergeTests {
     @Test("A document's own period and related references stay, and the study references follow them")
     func documentContextKeepsTheAdaptersStatements() throws {
         let record = try Self.record()
-        let context = HealthKitConversionContext(studies: Self.enrollments)
         let plan = HealthKitContentPlan[.heartbeatSeries]
         var document = try plan.recordingDocument().document(record)
         let period = Period(
@@ -69,8 +68,20 @@ struct DocumentContextMergeTests {
         )
         let adapterReference = Reference(display: "The adapter's own related output".asFHIRStringPrimitive())
         document.context = DocumentReferenceContext(period: period, related: [adapterReference])
-        let conversion = try HealthKitAssembly(context: context.event)
-            .documentGraph(for: record.series, plan: plan, document: document, request: .init(context: context))
+        // No exporter input states a document context of its own, so the assembly is handed one directly.
+        let base = ExchangeEventContext.test()
+        let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
+            adapter: HealthKitAssembly.adapter,
+            identityScope: base.identityScope,
+            subject: base.subject,
+            repositoryScope: base.repositoryScope
+        ))
+        let request = HealthKitAssembly.Request(
+            event: base.event,
+            instant: base.conversionInstant,
+            facts: ExchangeEventFacts(application: base.application, host: base.host, studies: Self.enrollments)
+        )
+        let conversion = try assembly.documentGraph(for: record.series, plan: plan, document: document, request: request)
         let (stated, studies) = try Self.document(in: conversion.primary.graph)
         #expect(studies.count == 2)
         #expect(stated.context?.period == period)

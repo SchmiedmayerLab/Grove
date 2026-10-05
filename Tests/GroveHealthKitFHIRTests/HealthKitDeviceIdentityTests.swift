@@ -18,28 +18,31 @@ import Testing
 
 @Suite("HealthKit recording Device identity")
 struct HealthKitFHIRDeviceIdentityTests {
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private func context(
+    /// One export's inputs; events a test tells apart take distinct sequences, as distinct conversion instants did.
+    private func inputs(
         subjectID: String = "1a2b3c",
-        eventOffset: TimeInterval = 0,
+        eventOffset: UInt64 = 0,
         stableUnitToken: String? = nil,
-        writer: HealthKitWriter = .omit
-    ) -> HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .logical(.test(.patient, subjectID)),
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0",
-                build: "42"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            writer: writer,
-            conversionInstant: timestamp.addingTimeInterval(eventOffset),
-            recordingDeviceStableUnitToken: stableUnitToken
+        writer: HealthKitFHIRExporter.WriterPolicy = .omit
+    ) -> ExportInputs {
+        var inputs = ExportInputs()
+        inputs.subject = .logical(.test(.patient, subjectID))
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0",
+            build: "42"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        inputs.sequence = 1 + eventOffset
+        inputs.options.writer = writer
+        if let stableUnitToken {
+            inputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: stableUnitToken))
+        }
+        return inputs
     }
 
     private func watch(
@@ -71,16 +74,16 @@ struct HealthKitFHIRDeviceIdentityTests {
 
     @Test("Model and version facts alone never claim a physical Device instance")
     func unknownPhysicalUnitIsOmitted() throws {
-        let conversion = try converter.convert(sample(watch()), context: context())
+        let conversion = try ExporterFixtures.export(sample(watch()), inputs())
 
         #expect(conversion.recordingDevice == nil)
-        #expect(conversion.graphIdentifiers.recordingDeviceSnapshot == nil)
+        #expect(conversion.identifiers.recordingDeviceSnapshot == nil)
         #expect(conversion.observation.device == nil)
     }
 
     @Test("The converting application has one clear typed bundle id and one opaque snapshot")
     func converterApplicationIdentity() throws {
-        let conversion = try converter.convert(sample(watch()), context: context())
+        let conversion = try ExporterFixtures.export(sample(watch()), inputs())
         let application = conversion.converterApplication
         let identifiers = try #require(application.identifier)
         let bundleIdentifier = try #require(identifiers.first(where: {
@@ -100,27 +103,27 @@ struct HealthKitFHIRDeviceIdentityTests {
 
     @Test("A governed stable token emits stable-unit and immutable-snapshot identifiers")
     func emitsBothTypedIdentifiers() throws {
-        let conversion = try converter.convert(
+        let conversion = try ExporterFixtures.export(
             sample(watch()),
-            context: context(stableUnitToken: "watch-unit-7")
+            inputs(stableUnitToken: "watch-unit-7")
         )
         let device = try #require(conversion.recordingDevice)
         let identifiers = try #require(device.identifier).map { try RoledIdentifier($0) }
 
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
-        #expect(identifiers[0] == conversion.graphIdentifiers.recordingDeviceSnapshot)
+        #expect(identifiers[0] == conversion.identifiers.recordingDeviceSnapshot)
         #expect(device.meta?.profile?.contains(Profile.groveRecordingDevice) == true)
     }
 
     @Test("Firmware changes create a new snapshot without changing the physical-unit identity")
     func firmwareChangesDoNotMutateHistory() throws {
-        let before = try converter.convert(
+        let before = try ExporterFixtures.export(
             sample(watch(firmware: "11.2")),
-            context: context(eventOffset: 0, stableUnitToken: "watch-unit-7")
+            inputs(eventOffset: 0, stableUnitToken: "watch-unit-7")
         )
-        let after = try converter.convert(
+        let after = try ExporterFixtures.export(
             sample(watch(firmware: "11.3"), offset: 600),
-            context: context(eventOffset: 1, stableUnitToken: "watch-unit-7")
+            inputs(eventOffset: 1, stableUnitToken: "watch-unit-7")
         )
         let beforeIdentifiers = try #require(before.recordingDevice?.identifier).map { try RoledIdentifier($0) }
         let afterIdentifiers = try #require(after.recordingDevice?.identifier).map { try RoledIdentifier($0) }
@@ -132,13 +135,13 @@ struct HealthKitFHIRDeviceIdentityTests {
 
     @Test("Stable physical identity is scoped to the subject")
     func stableIdentityIsSubjectScoped() throws {
-        let mine = try converter.convert(
+        let mine = try ExporterFixtures.export(
             sample(watch()),
-            context: context(subjectID: "1a2b3c", eventOffset: 0, stableUnitToken: "watch-unit-7")
+            inputs(subjectID: "1a2b3c", eventOffset: 0, stableUnitToken: "watch-unit-7")
         )
-        let yours = try converter.convert(
+        let yours = try ExporterFixtures.export(
             sample(watch()),
-            context: context(subjectID: "9z8y7x", eventOffset: 1, stableUnitToken: "watch-unit-7")
+            inputs(subjectID: "9z8y7x", eventOffset: 1, stableUnitToken: "watch-unit-7")
         )
         let mineIdentifiers = try #require(mine.recordingDevice?.identifier).map { try RoledIdentifier($0) }
         let yoursIdentifiers = try #require(yours.recordingDevice?.identifier).map { try RoledIdentifier($0) }
@@ -148,23 +151,23 @@ struct HealthKitFHIRDeviceIdentityTests {
 
     @Test("A HealthKit local identifier can supply the stable source token")
     func localIdentifierSuppliesStableEvidence() throws {
-        let conversion = try converter.convert(
+        let conversion = try ExporterFixtures.export(
             sample(watch(localIdentifier: "healthkit-device-42")),
-            context: context()
+            inputs()
         )
 
         #expect(conversion.recordingDevice != nil)
-        #expect(conversion.graphIdentifiers.recordingDeviceSnapshot != nil)
+        #expect(conversion.identifiers.recordingDeviceSnapshot != nil)
     }
 
     @Test("An unclassified source keeps the recording Device its HKDevice names, and the Provenance names no author")
     func unclassifiedSourceKeepsTheRecordingDevice() throws {
         let attributed = try StoredSampleFixtures.stored(sample(watch()), uuid: GoldenFixtures.uuid(0xB7), writer: GoldenFixtures.foreignWriter)
-        let conversion = try converter.convert(attributed, context: context(stableUnitToken: "watch-unit-7", writer: .omit))
-        let recordingDevice = try #require(conversion.graphIdentifiers.recordingDeviceSnapshot)
+        let conversion = try ExporterFixtures.export(attributed, inputs(stableUnitToken: "watch-unit-7", writer: .omit))
+        let recordingDevice = try #require(conversion.identifiers.recordingDeviceSnapshot)
 
         #expect(conversion.writer == nil)
-        #expect(conversion.graphIdentifiers.writerSnapshot == nil)
+        #expect(conversion.identifiers.writerSnapshot == nil)
         #expect(conversion.provenance.entity?.first?.agent == nil)
         #expect(conversion.observation.device?.reference?.value?.string == (try recordingDevice.fullURLString))
     }

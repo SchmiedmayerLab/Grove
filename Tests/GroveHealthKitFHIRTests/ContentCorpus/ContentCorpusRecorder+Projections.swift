@@ -13,10 +13,11 @@ import Foundation
 @testable import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
+import Testing
 
 
 /// The retractions and the reverse projections: the targets a deletion names, and the sample an Observation
-/// projects back to, alone or straight from a conversion's wire bytes.
+/// projects back to, alone or straight from an export's wire bytes.
 extension ContentCorpusRecorder {
     /// The instant from which HealthKit raises an uncatchable exception for any sample it is asked to create.
     private static let healthKitHorizon = Date(timeIntervalSince1970: 64_092_211_200) // 4000-01-01T00:00:00Z
@@ -34,19 +35,19 @@ extension ContentCorpusRecorder {
         }
     }
 
-    /// Converts `source`, then projects every Observation of its graphs, decoded from the wire bytes as a consumer
-    /// reads them, back to a sample; a refusal or omission renders as the conversion's own.
+    /// Exports `source`, then projects every Observation of its graphs, decoded from the wire bytes as a consumer
+    /// reads them, back to a sample; a refusal or omission renders as the export's own.
     ///
     /// HealthKit raises an uncatchable exception when asked to create a sample after 4000 or shorter than its type's
     /// minimum duration, so such a source is refused here instead of projected.
     static func roundTrip(_ source: ContentCorpusSource) throws -> LosslessJSONValue {
         try requireProjectable(source)
         let outcome = try outcome(of: source)
-        guard case .converted(let set) = outcome else {
+        guard case .converted(let exports) = outcome else {
             return try render(outcome)
         }
-        let graphs = try set.all.map { conversion in
-            let resources = (try LosslessJSONValue(parsing: conversion.graph.json)["entry"]?.elements ?? []).compactMap { $0["resource"] }
+        let graphs = try exports.compactMap(\.graph).map { graph in
+            let resources = (try LosslessJSONValue(parsing: graph.json)["entry"]?.elements ?? []).compactMap { $0["resource"] }
             let samples = try resources.filter { $0["resourceType"]?.text == ResourceType.observation.rawValue }.map { resource in
                 reverse(try JSONDecoder().decode(Observation.self, from: Data(resource.canonicalText.utf8)))
             }
@@ -55,38 +56,61 @@ extension ContentCorpusRecorder {
         return .object(["graphs": .array(graphs)])
     }
 
-    /// The deletion of a record of `type`: the targets it retracts, or why it retracts none.
+    /// The retraction of a deleted record of `type`: the targets its graph names, or why it names none. Routes are
+    /// disclosed, so a route deletion names its targets too; a type without outputs has nothing to retract.
     static func retraction(of type: String, disclosure: ContentCorpusDisclosure?) throws -> LosslessJSONValue {
         guard let sourceType = HealthKitSourceType(rawValue: type) else {
             throw ContentCorpusSamples.RebuildError.unknownType(type)
         }
-        var inputs = GoldenFixtures.Inputs()
+        var inputs = ExportInputs()
+        inputs.sequence = sequence
+        inputs.options.route = .authorized
         if disclosure == .nativeIdentifier {
-            inputs.options.nativeIdentifierDisclosure = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+            inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
         }
-        let context = try GoldenFixtures.context(sequence: sequence, inputs)
-        let record = HealthKitSourceRecord(uuid: ContentCorpusSamples.uuid, type: sourceType)
+        let deletion = HealthKitFHIRExporter.Deletion(
+            uuid: ContentCorpusSamples.uuid,
+            sourceType: sourceType,
+            deletedAfter: nil,
+            detectedAt: GoldenFixtures.conversionInstant
+        )
+        let graph: ExchangeGraph
         do {
-            let targets = try HealthKitConverter().retractionTargets(for: record, context: context) // Port point: the deprecated facade.
-            return .object(["targets": .array(targets.map(target))])
-        } catch {
+            graph = try ExporterFixtures.retraction(deletion, inputs)
+        } catch ExportFixtureError.nothingToRetract {
+            return .object(["nothingToRetract": .boolean(true)])
+        } catch let error as HealthKitConversionError {
             return refusal(error)
         }
+        let provenance = graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first
+        return .object(["targets": .array(try (provenance?.target ?? []).map(target))])
     }
 
-    /// One retraction target: its identifier with system and role, the resource type and role it retracts, and
-    /// the native record identifier it carries, or null.
-    private static func target(_ target: RetractionTarget) -> LosslessJSONValue {
-        let native = target.nativeRecordIdentifier.map { identifier in
-            LosslessJSONValue.object(["system": .string(identifier.system.rawValue), "value": .string(identifier.value)])
+    /// One retraction target as its Provenance target states it: its identifier with system and role, the resource
+    /// type and role it retracts, and the native record identifier it carries, or null.
+    private static func target(_ target: Reference) throws -> LosslessJSONValue {
+        let identifier = try RoledIdentifier(#require(target.identifier))
+        func extensionValue(_ url: FHIRPrimitive<FHIRURI>) -> Extension.ValueX? {
+            target.extension?.first { $0.url == url }?.value
+        }
+        var role = LosslessJSONValue.null
+        if case .code(let code)? = extensionValue(Canonicals.retractionTargetRole) {
+            role = .string(code.value?.string ?? "")
+        }
+        var native = LosslessJSONValue.null
+        if case .identifier(let identifier)? = extensionValue(Canonicals.retractionTargetNativeIdentifier) {
+            native = .object([
+                "system": .string(identifier.system?.value?.url.absoluteString ?? ""),
+                "value": .string(identifier.value?.value?.string ?? "")
+            ])
         }
         return .object([
-            "identifier": .string(target.identifier.identifier.value),
-            "identifierSystem": .string(target.identifier.identifier.system.rawValue),
-            "identifierRole": .string(target.identifier.role.rawValue),
-            "resourceType": .string(target.resourceType.rawValue),
-            "role": .string(target.role.rawValue),
-            "nativeRecordIdentifier": native ?? .null
+            "identifier": .string(identifier.identifier.value),
+            "identifierSystem": .string(identifier.identifier.system.rawValue),
+            "identifierRole": .string(identifier.role.rawValue),
+            "resourceType": .string(target.type?.value?.url.absoluteString ?? ""),
+            "role": role,
+            "nativeRecordIdentifier": native
         ])
     }
 

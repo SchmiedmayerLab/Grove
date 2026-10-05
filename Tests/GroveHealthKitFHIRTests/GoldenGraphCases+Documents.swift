@@ -17,7 +17,6 @@ import ModelsR4
 
 enum GoldenCaseError: Error {
     case unexpectedCompanions(Int)
-    case routeOmitted
     case notExported(String)
 }
 
@@ -27,21 +26,17 @@ extension GoldenCase {
     /// Sequences 60-79: graphs whose source has no public initializer, built on stored-sample fixtures.
     ///
     /// The ECG states the content corpus's reading (`ContentCorpusGrid.electrocardiogramReading`) through
-    /// `StoredSampleFixtures.electrocardiogram(facts:reading:)` and converts through the record entry point, as the
-    /// series and route state the corpus's beats and fixes.
+    /// `StoredSampleFixtures.electrocardiogram(facts:reading:)` and exports with its voltages, as the series and route
+    /// state the corpus's beats and fixes.
     static let documents: [GoldenCase] = [
         GoldenCase("electrocardiogram", sequence: 60) { sequence in
-            try GoldenOutput(primaryOf: electrocardiogram(uuid: 60, sequence: sequence, symptom: nil))
+            try electrocardiogram(uuid: 60, sequence: sequence, symptom: nil, index: 0)
         },
         GoldenCase("electrocardiogram-with-symptom", sequence: 61) { sequence in
-            try GoldenOutput(primaryOf: electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61)), companions: 1)
+            try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 0)
         },
         GoldenCase("electrocardiogram-symptom-companion", sequence: 61) { sequence in
-            let companions = try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61)).companions
-            guard companions.count == 1, let companion = companions.first else {
-                throw GoldenCaseError.unexpectedCompanions(companions.count)
-            }
-            return GoldenOutput(companion)
+            try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 1)
         },
         GoldenCase("heartbeat-series", sequence: 62) { sequence in
             let series = try StoredSampleFixtures.seriesSample(
@@ -49,8 +44,7 @@ extension GoldenCase {
                 sampleType: HKSeriesType.heartbeat(),
                 facts: seriesFacts(uuid: 62, duration: 2)
             )
-            let record = HealthKitHeartbeatSeriesRecord(series: series, heartbeats: ContentCorpusGrid.heartbeats.map(\.heartbeat))
-            return try GoldenOutput(primaryOf: HealthKitConverter().convert(record, context: GoldenFixtures.context(sequence: sequence)))
+            return try GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)), sequence: sequence)
         },
         GoldenCase("workout-route", sequence: 63) { sequence in
             let route = try StoredSampleFixtures.seriesSample(
@@ -58,54 +52,31 @@ extension GoldenCase {
                 sampleType: HKSeriesType.workoutRoute(),
                 facts: seriesFacts(uuid: 63, duration: 1)
             )
-            var inputs = GoldenFixtures.Inputs()
-            inputs.options.routeDisclosure = .authorized
-            let record = HealthKitWorkoutRouteRecord(route: route, locations: routeLocations)
-            guard let conversion = try HealthKitConverter().convert(record, context: GoldenFixtures.context(sequence: sequence, inputs)) else {
-                throw GoldenCaseError.routeOmitted
-            }
-            return try GoldenOutput(primaryOf: conversion)
+            var inputs = ExportInputs()
+            inputs.options.route = .authorized
+            return try GoldenFixtures.export(.workoutRoute(route, locations: routeLocations), sequence: sequence, inputs)
         }
     ] + clinicalDocuments
 
-    /// Sequences 80-99: retractions of deleted records.
+    /// Sequences 80-99: retractions of deleted records, each stating the bounds a deletion the app noted carries. (The
+    /// deleted context API could state an exact deletion instant; HealthKit reports none, so the exporter states bounds.)
     static let retractions: [GoldenCase] = [
         GoldenCase("retraction-heart-rate", sequence: 80) { sequence in
-            GoldenOutput(try HealthKitConverter().retraction(
-                for: HealthKitSourceRecord(uuid: GoldenFixtures.uuid(80), type: .heartRate),
-                context: GoldenFixtures.context(sequence: sequence),
-                occurred: .instant(GoldenFixtures.conversionInstant)
-            ))
+            try retraction(of: .heartRate, uuid: 80, sequence: sequence)
         },
         GoldenCase("retraction-heart-rate-native-identifier", sequence: 81) { sequence in
-            var inputs = GoldenFixtures.Inputs()
-            inputs.options.nativeIdentifierDisclosure = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
-            return GoldenOutput(try HealthKitConverter().retraction(
-                for: HealthKitSourceRecord(uuid: GoldenFixtures.uuid(81), type: .heartRate),
-                context: GoldenFixtures.context(sequence: sequence, inputs),
-                occurred: .period(start: GoldenFixtures.sampleStart, end: GoldenFixtures.conversionInstant)
-            ))
+            var inputs = ExportInputs()
+            inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+            return try retraction(of: .heartRate, uuid: 81, sequence: sequence, deletedAfter: GoldenFixtures.sampleStart, inputs)
         },
         GoldenCase("retraction-electrocardiogram", sequence: 82) { sequence in
-            GoldenOutput(try HealthKitConverter().retraction(
-                for: HealthKitSourceRecord(uuid: GoldenFixtures.uuid(82), type: .electrocardiogram),
-                context: GoldenFixtures.context(sequence: sequence),
-                occurred: .instant(GoldenFixtures.conversionInstant)
-            ))
+            try retraction(of: .electrocardiogram, uuid: 82, sequence: sequence)
         },
         GoldenCase("retraction-blood-pressure", sequence: 83) { sequence in
-            GoldenOutput(try HealthKitConverter().retraction(
-                for: HealthKitSourceRecord(uuid: GoldenFixtures.uuid(83), type: .bloodPressure),
-                context: GoldenFixtures.context(sequence: sequence),
-                occurred: .period(start: nil, end: GoldenFixtures.conversionInstant)
-            ))
+            try retraction(of: .bloodPressure, uuid: 83, sequence: sequence)
         },
         GoldenCase("retraction-workout", sequence: 84) { sequence in
-            GoldenOutput(try HealthKitConverter().retraction(
-                for: HealthKitSourceRecord(uuid: GoldenFixtures.uuid(84), type: .workout),
-                context: GoldenFixtures.context(sequence: sequence),
-                occurred: .instant(GoldenFixtures.conversionInstant)
-            ))
+            try retraction(of: .workout, uuid: 84, sequence: sequence)
         }
     ]
 
@@ -121,7 +92,7 @@ extension GoldenCase {
                 end: GoldenFixtures.sampleStart.addingTimeInterval(1),
                 metadata: GoldenFixtures.timeZoneMetadata
             )
-            return try GoldenFixtures.convert(StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(64)), sequence: sequence)
+            return try GoldenFixtures.export(StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(64)), sequence: sequence)
         }
     ]
     #endif
@@ -151,21 +122,38 @@ extension GoldenCase {
         </ClinicalDocument>
         """
 
-    /// The sinus-rhythm ECG the conformance fixtures use, converted with or without one correlated symptom.
+    /// The graph at `index` of the sinus-rhythm ECG the conformance fixtures use, exported with or without one
+    /// correlated symptom: the ECG's own graph first, then the symptom's.
     ///
     /// The symptom's own event takes `sequence + 100`, the only second sequence any case states.
-    static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?) throws -> HealthKitConversionSet {
-        var symptoms: [HKCategorySample] = []
-        var symptomContexts: [HealthKitConversionContext] = []
-        if let symptom {
-            symptoms = [try Self.symptom(uuid: symptom)]
-            symptomContexts = [try GoldenFixtures.context(sequence: sequence + 100)]
-        }
-        return try HealthKitConverter().convert(
-            try electrocardiogramRecord(uuid: ordinal, symptoms: symptoms),
-            context: GoldenFixtures.context(sequence: sequence),
-            symptomContexts: symptomContexts
+    static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?, index: Int) throws -> GoldenOutput {
+        let symptoms = try symptom.map { [try Self.symptom(uuid: $0)] } ?? []
+        var inputs = ExportInputs()
+        inputs.symptomSequences = [sequence + 100]
+        let record = try ExporterFixtures.electrocardiogram(electrocardiogramRecord(uuid: ordinal, symptoms: symptoms), symptoms: symptoms)
+        return try GoldenFixtures.export(record, sequence: sequence, inputs, index: index, of: 1 + symptoms.count)
+    }
+
+    /// The retraction of the record of `type` with the `ordinal` UUID, deleted after `deletedAfter` when known and
+    /// detected at the conversion instant.
+    static func retraction(
+        of type: HealthKitSourceType,
+        uuid ordinal: UInt8,
+        sequence: UInt64,
+        deletedAfter: Date? = nil,
+        _ inputs: ExportInputs = ExportInputs()
+    ) throws -> GoldenOutput {
+        var inputs = inputs
+        inputs.sequence = sequence
+        let deletion = HealthKitFHIRExporter.Deletion(
+            uuid: GoldenFixtures.uuid(ordinal),
+            sourceType: type,
+            deletedAfter: deletedAfter,
+            detectedAt: GoldenFixtures.conversionInstant
         )
+        let (exporter, _) = try ExporterFixtures.exporter(inputs)
+        let (exports, _) = try ExporterFixtures.retract(exporter, [deletion])
+        return try GoldenOutput(ExporterGolden.single(exports))
     }
 
     /// An ECG record of the corpus's reading under Apple's second algorithm version, recorded by the watch and written

@@ -81,7 +81,9 @@
             "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-retraction-provenance"
           ]
         },
-        "occurredDateTime" : "2026-08-17T23:30:00Z",
+        "occurredPeriod" : {
+          "end" : "2026-08-17T23:30:00Z"
+        },
         "recorded" : "2026-08-17T23:30:00Z",
         "resourceType" : "Provenance",
         "target" : [

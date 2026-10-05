@@ -23,30 +23,29 @@ struct ExchangeGraphOrdinalTests {
     @Test("A self-consistent key minted at the wrong per-role ordinal is refused")
     func misnumberedEntryNodeOrdinalIsRefused() throws {
         let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
-        let context = HealthKitConversionContext(
-            subject: .testPatient,
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
-        )
-        let conversion = try HealthKitConverter().convert(
+        var inputs = ExportInputs()
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        let conversion = try ExporterFixtures.export(
             HKQuantitySample(
                 type: HKQuantityType(.heartRate),
                 quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
                 start: timestamp,
                 end: timestamp.addingTimeInterval(60)
             ),
-            context: context
+            inputs
         )
+        let event = conversion.graph.eventIdentifier
         let misnumbered = try EntryNodeKey(
-            system: context.event.entryNodeIdentifierSystem,
-            event: context.event.event,
+            system: inputs.base.entryNodeIdentifierSystem,
+            event: event,
             nodeRole: "conversion-provenance",
             ordinal: 1
         )
         // The mint is genuine, so nothing but the ordinal itself is out of place.
         #expect(try EntryNodeKey(
             misnumbered.identifier,
-            event: context.event.event
+            event: event
         ).ordinal == misnumbered.ordinal)
 
         var bundle = conversion.bundle

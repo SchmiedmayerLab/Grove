@@ -93,12 +93,11 @@ extension ContentCorpusGrid {
     }
 
     /// Two faults at once for every pair of adjacent checks of an ECG conversion (zone, lead presence, count,
-    /// offsets, period, sampling frequency, finite voltages, symptom contexts, symptom validation and status,
+    /// offsets, period, sampling frequency, finite voltages, symptom validation and status,
     /// source period, classification, algorithm version, average heart rate, then the ECG's source facts): which one
     /// is reported pins their order.
     static var electrocardiogramPrecedence: [ContentCorpusVector] {
         let present = HKElectrocardiogram.SymptomsStatus.present.rawValue
-        let chest = ContentCorpusElectrocardiogram.Symptom(type: HKCategoryTypeIdentifier.chestTightnessOrPain.rawValue, value: 2, ordinal: 0xE1)
         let headache = ContentCorpusElectrocardiogram.Symptom(type: HKCategoryTypeIdentifier.headache.rawValue, value: 2, ordinal: 0xE1)
         let versionThree = zone.merging([HKMetadataKeyAppleECGAlgorithmVersion: .integer(3)]) { $1 }
         func source(
@@ -125,11 +124,6 @@ extension ContentCorpusGrid {
             ("offsets-before-period", source(reading(nonUniform) { $0.voltages[3].offset = -1 })),
             ("period-before-frequency", source(reading(nonUniform) { $0.samplingFrequency = 250 })),
             ("frequency-before-voltages", source(reading(nanVoltage) { $0.samplingFrequency = 250 })),
-            ("voltages-before-symptom-contexts", source(reading(symptoms(present, [chest])) { reading in
-                reading.voltages[1].millivolts = .nan
-                reading.symptomContexts = 0
-            })),
-            ("symptom-contexts-before-symptom-validation", source(reading(symptoms(present, [headache])) { $0.symptomContexts = 0 })),
             ("symptom-validation-before-source-period", source(symptoms(present, [headache]), reversed: true)),
             ("symptoms-status-before-source-period", source(reading { $0.symptomsStatus = 99 }, reversed: true)),
             ("symptoms-status-before-classification", source(reading(reading { $0.symptomsStatus = 99 }) { $0.classification = 99 })),
@@ -190,7 +184,6 @@ extension ContentCorpusGrid {
             ("symptoms/unexpected", symptoms(HKElectrocardiogram.SymptomsStatus.none.rawValue, [symptom(chest, 2, 0xE1)])),
             ("symptoms/required", symptoms(present, [])),
             ("symptoms/invalid-value", symptoms(present, [symptom(chest, 9, 0xE1)])),
-            ("symptoms/context-missing", reading(symptoms(present, [symptom(chest, 2, 0xE1)])) { $0.symptomContexts = 0 }),
             ("precedence/symptoms-before-classification", reading(symptoms(present, [symptom(headache, 2, 0xE1)])) { $0.classification = 99 }),
             ("precedence/duplicate-source-before-later-type", symptoms(present, [symptom(chest, 2, 0xE1), symptom(chest, 2, 0xE1), symptom(headache, 2, 0xE2)])),
             ("precedence/type-before-duplicate-source", symptoms(present, [symptom(chest, 2, 0xE1), symptom(headache, 2, 0xE1)])),

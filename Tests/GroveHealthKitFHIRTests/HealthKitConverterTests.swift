@@ -182,29 +182,25 @@ struct HealthKitFHIRConverterTests {
         }
     }
 
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
     }
 
     @Test("A valid sync pair is writer-scoped and omitted when its writer is unavailable")
     func syncIdentityIsCarried() throws {
-        let converter = HealthKitConverter()
-
-        let plain = try converter.convert(
+        let plain = try ExporterFixtures.export(
             quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-            context: context
+            inputs
         )
         let plainIdentifiers = try #require(plain.observation.identifier).map(RoledIdentifier.init)
         #expect(plainIdentifiers.map(\.role) == [.sourceRecord, .sourceOutput])
@@ -212,33 +208,33 @@ struct HealthKitFHIRConverterTests {
 
         // The same logical measurement, saved twice: HealthKit replaces the first and the
         // replacement carries a new object UUID, so only the sync identity ties them together.
-        let first = try converter.convert(
+        let first = try ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
                 value: 68.4,
                 metadata: [HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: 1]
             ),
-            context: context
+            inputs
         )
-        let revision = try converter.convert(
+        let revision = try ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
                 value: 68.9,
                 metadata: [HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: 2]
             ),
-            context: context
+            inputs
         )
 
-        func syncIdentifier(_ conversion: HealthKitConversionSet) -> String? {
+        func syncIdentifier(_ conversion: ExportedRecord) -> String? {
             conversion.observation.identifier?
                 .first { (try? RoledIdentifier($0).role) == .writerRecord }?
                 .value?.value?.string
         }
         // Canonical decimal text, not an integer: a sync version is an NSNumber and a Health
         // Connect client record version is a Long, neither of which fits FHIR's 32-bit integer.
-        func syncVersion(_ conversion: HealthKitConversionSet) -> String? {
+        func syncVersion(_ conversion: ExportedRecord) -> String? {
             guard case .string(let value) = conversion.observation.extension?
                 .first(where: { $0.url == Canonicals.writerRecordVersion })?.value else {
                 return nil
@@ -257,11 +253,11 @@ struct HealthKitFHIRConverterTests {
 
         // A stored sample names the writing application, so the pair is scoped to it: the identity is the one the
         // identity scope mints for that writer and record, and a UInt64 version survives as canonical decimal text.
-        let attributable = try converter.convert(
+        let attributable = try ExporterFixtures.export(
             attributedBodyMass([HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: NSNumber(value: UInt64.max)]),
-            context: context
+            inputs
         )
-        let expected = try context.identityScope.writerRecord(
+        let expected = try inputs.base.identityScope.writerRecord(
             writerApplication: BusinessIdentifier(system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem), value: "org.example.connected-scale"),
             writerRecordID: "scale-2026-08-19"
         )
@@ -286,7 +282,7 @@ struct HealthKitFHIRConverterTests {
         for (metadata, refusal) in malformed {
             let sample = try attributedBodyMass(metadata)
             #expect(throws: refusal, "\(metadata)") {
-                try converter.convert(sample, context: context)
+                try ExporterFixtures.export(sample, inputs)
             }
         }
     }
@@ -339,7 +335,7 @@ struct HealthKitFHIRConverterTests {
             unit: testCase.sourceUnit,
             value: testCase.sourceValue
         )
-        let conversion = try converter.convert(sample, context: context)
+        let conversion = try ExporterFixtures.export(sample, inputs)
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = conversion.observation.value else {
                 return nil
@@ -387,7 +383,7 @@ struct HealthKitFHIRConverterTests {
             start: timestamp,
             end: timestamp.addingTimeInterval(1_800)
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let value: CodeableConcept = try #require({
             guard case .codeableConcept(let concept) = observation.value else {
                 return nil
@@ -418,7 +414,7 @@ struct HealthKitFHIRConverterTests {
             end: timestamp.addingTimeInterval(60),
             objects: [systolic, diastolic]
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == [
             Profile.groveMobileBloodPressure,
@@ -452,16 +448,10 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "udi-device-id"
             )
         )
-        var attributedContext = context
-        attributedContext = HealthKitConversionContext(
-            subject: context.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            converterWasGateway: true,
-            conversionInstant: timestamp
-        )
-        let first = try converter.convert(sample, context: attributedContext)
-        let second = try converter.convert(sample, context: attributedContext)
+        var gatewayInputs = inputs
+        gatewayInputs.options.role = .gateway
+        let first = try ExporterFixtures.export(sample, gatewayInputs)
+        let second = try ExporterFixtures.export(sample, gatewayInputs)
         let entries = try #require(first.bundle.entry)
 
         #expect(first.bundle.id == nil)
@@ -469,13 +459,13 @@ struct HealthKitFHIRConverterTests {
         #expect(first.recordingDevice?.id == nil)
         #expect(first.converterApplication.id == nil)
         #expect(first.provenance.id == nil)
-        #expect(try RoledIdentifier(first.sourceIdentifier) == first.graphIdentifiers.sourceRecord)
-        #expect(first.graphIdentifiers.sourceRecord.role == .sourceRecord)
+        #expect(try RoledIdentifier(first.sourceIdentifier) == first.identifiers.sourceRecord)
+        #expect(first.identifiers.sourceRecord.role == .sourceRecord)
         #expect(first.bundle.meta?.profile == [Profile.groveMobileExchangeBundle])
         #expect(first.provenance.meta?.profile == [
             HealthKitContract.conversionProvenanceProfile
         ])
-        #expect(first.bundle.identifier == first.graphIdentifiers.event.fhirIdentifier)
+        #expect(first.bundle.identifier == first.identifiers.event.fhirIdentifier)
         #expect(entries.compactMap(\.fullUrl) == second.bundle.entry?.compactMap(\.fullUrl))
         #expect(entries.count >= 5)
         #expect(entries.allSatisfy { entry in
@@ -491,7 +481,7 @@ struct HealthKitFHIRConverterTests {
         let assemblerReference = first.provenance.agent.first?.who.reference?.value?.string
         let sourceEntities = try #require(first.provenance.entity)
         let sourceEntity = try #require(sourceEntities.first)
-        let observationURL = try first.graphIdentifiers.primaryOutput.fullURLString
+        let observationURL = try first.identifiers.primaryOutput.fullURLString
         #expect(first.observation.device.flatMap { $0.reference?.value?.string }.map(fullURLs.contains) == true)
         #expect(targetReference == observationURL)
         #expect(assemblerReference.map(fullURLs.contains) == true)
@@ -504,6 +494,8 @@ struct HealthKitFHIRConverterTests {
         #expect(first.recordingDevice?.udiCarrier == nil)
     }
 
+    /// The exporter assigns no repository id but the transitional legacy `Bundle.id`, and a custom resolver names the
+    /// recording Device's unit while the UDI stays undisclosed.
     @Test
     func repositoryIDsAndAuthorizedDeviceNamespaceAreOnlyAppliedExplicitly() throws {
         let sample = quantitySample(
@@ -521,27 +513,18 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "globally-identifying-udi"
             )
         )
-        let explicitContext = HealthKitConversionContext(
-            subject: context.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: timestamp,
-            recordingDeviceStableUnitToken: "test-recording-device",
-            repositoryIDs: [
-                .bundle: try RepositoryID("bundle-1"),
-                .primaryOutput: try RepositoryID("observation-1"),
-                .recordingDevice: try RepositoryID("device-1"),
-                .applicationDevice: try RepositoryID("application-1"),
-                .provenance: try RepositoryID("provenance-1")
-            ]
-        )
-        let conversion = try converter.convert(sample, context: explicitContext)
+        var explicitInputs = inputs
+        explicitInputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: "test-recording-device"))
+        let unassigned = try ExporterFixtures.export(sample, explicitInputs)
+        #expect(unassigned.bundle.id == nil)
+        explicitInputs.options.legacyBundleID = .healthKitUUID
+        let conversion = try ExporterFixtures.export(sample, explicitInputs)
 
-        #expect(conversion.bundle.id?.value?.string == "bundle-1")
-        #expect(conversion.observation.id?.value?.string == "observation-1")
-        #expect(conversion.recordingDevice?.id?.value?.string == "device-1")
-        #expect(conversion.converterApplication.id?.value?.string == "application-1")
-        #expect(conversion.provenance.id?.value?.string == "provenance-1")
+        #expect(conversion.bundle.id?.value?.string == sample.uuid.uuidString)
+        #expect(conversion.observation.id == nil)
+        #expect(conversion.recordingDevice?.id == nil)
+        #expect(conversion.converterApplication.id == nil)
+        #expect(conversion.provenance.id == nil)
         let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
         #expect(identifiers.allSatisfy { $0.value.hasPrefix("v0:test:1:") })
@@ -565,14 +548,9 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "authorized-udi"
             )
         )
-        let authorizedContext = HealthKitConversionContext(
-            subject: context.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: timestamp,
-            udiDisclosurePolicy: .authorizedUDI
-        )
-        let conversion = try converter.convert(sample, context: authorizedContext)
+        var authorizedInputs = inputs
+        authorizedInputs.options.udi = .authorized
+        let conversion = try ExporterFixtures.export(sample, authorizedInputs)
 
         let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
@@ -581,23 +559,23 @@ struct HealthKitFHIRConverterTests {
 
     @Test
     func typedMetadataDoesNotInferUnknownFacts() throws {
-        let automatic = try converter.convert(
+        let automatic = try ExporterFixtures.export(
             quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-            context: context
+            inputs
         )
         #expect(automatic.observation.extension?.contains {
             $0.url == Canonicals.recordingMethod
         } != true)
         #expect(automatic.writer == nil)
 
-        let manual = try converter.convert(
+        let manual = try ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
                 value: 68.4,
                 metadata: [HKMetadataKeyWasUserEntered: true]
             ),
-            context: context
+            inputs
         )
         #expect(manual.observation.extension?.contains {
             $0.url == Canonicals.recordingMethod
@@ -607,7 +585,7 @@ struct HealthKitFHIRConverterTests {
 
     @Test
     func unmodelledMetadataAndExternalUUIDAreNotInventedAsFHIRComponents() throws {
-        let conversion = try converter.convert(
+        let conversion = try ExporterFixtures.export(
             quantitySample(
                 .heartRate,
                 unit: .count().unitDivided(by: .minute()),
@@ -617,7 +595,7 @@ struct HealthKitFHIRConverterTests {
                     HKMetadataKeyExternalUUID: "linkable-and-withheld"
                 ]
             ),
-            context: context
+            inputs
         )
         // The IG's metadata mapping is closed. An open source dictionary cannot silently create
         // unprofiled Observation components, and ExternalUUID needs its own governed mapping rather
@@ -641,25 +619,14 @@ struct HealthKitFHIRConverterTests {
             display: "HealthKit object UUID"
         )
 
-        let omitted = try converter.convert(sample, context: context)
+        let omitted = try ExporterFixtures.export(sample, inputs)
         #expect(omitted.observation.identifier?.contains {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         } != true)
 
-        let disclosed = try converter.convert(
-            sample,
-            context: HealthKitConversionContext(
-                subject: .testPatient,
-                converter: ApplicationDevice.test(
-                    name: "Example Study",
-                    bundleIdentifier: "org.grovealliance.example-study",
-                    version: "2.0.0 (42)"
-                ),
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-                conversionInstant: timestamp,
-                nativeIdentifierDisclosurePolicy: .authorized(system: nativeSystem, type: nativeType)
-            )
-        )
+        var disclosureInputs = inputs
+        disclosureInputs.options.nativeIdentifier = .authorized(system: nativeSystem, type: nativeType)
+        let disclosed = try ExporterFixtures.export(sample, disclosureInputs)
         let native = try #require(disclosed.observation.identifier?.first {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         })
@@ -705,45 +672,24 @@ struct HealthKitFHIRConverterTests {
 
     @Test("Native identifiers cannot reuse generic or provider opaque namespaces")
     func nativeIdentifierSystemCannotReuseOpaqueGraphNamespace() throws {
-        let graphRoot: IdentifierSystem = "https://study.example.org/fhir/identifiers/native-collision"
-        let identitySystems = HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: graphRoot,
-            conversionInstant: timestamp
-        ).identityScope.systems.opaque
+        var disclosureInputs = inputs
+        disclosureInputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/native-collision"
+        let identitySystems = disclosureInputs.base.identityScope.systems.opaque
         for collidingNativeSystem in [
             identitySystems.sourceRecord,
             identitySystems.providerOutput,
             identitySystems.providerArtifact
         ] {
-            let disclosureContext = HealthKitConversionContext(
-                subject: .testPatient,
-                converter: ApplicationDevice.test(
-                    name: "Example Study",
-                    bundleIdentifier: "org.grovealliance.example-study",
-                    version: "2.0.0 (42)"
-                ),
-                graphIdentifierSystem: graphRoot,
-                conversionInstant: timestamp,
-                nativeIdentifierDisclosurePolicy: .authorized(system: collidingNativeSystem)
-            )
-            #expect(throws: HealthKitConversionError.reservedIdentifierSystem) {
-                try converter.convert(
-                    quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-                    context: disclosureContext
-                )
+            disclosureInputs.options.nativeIdentifier = .authorized(system: collidingNativeSystem)
+            #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierSystem(collidingNativeSystem)) {
+                try ExporterFixtures.exporter(disclosureInputs)
             }
         }
     }
 
     @Test
     func heartRateMetadataIsAllowlistedAndUnknownValuesFailClosed() throws {
-        let valid = try converter.convert(
+        let valid = try ExporterFixtures.export(
             quantitySample(
                 .heartRate,
                 unit: .count().unitDivided(by: .minute()),
@@ -753,7 +699,7 @@ struct HealthKitFHIRConverterTests {
                     HKMetadataKeyExternalUUID: "not-copied"
                 ]
             ),
-            context: context
+            inputs
         )
         #expect(valid.observation.component?.contains {
             $0.code.coding?.first?.code?.value?.string == HKMetadataKeyHeartRateMotionContext
@@ -769,7 +715,7 @@ struct HealthKitFHIRConverterTests {
             metadata: [HKMetadataKeyHeartRateMotionContext: NSNumber(value: 99)]
         )
         #expect(throws: HealthKitConversionError.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext))) {
-            try converter.convert(invalid, context: context)
+            try ExporterFixtures.export(invalid, inputs)
         }
     }
 
@@ -780,7 +726,7 @@ struct HealthKitFHIRConverterTests {
             unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)),
             value: 100
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == [
             Profile.groveMobileBloodGlucoseUnspecifiedSpecimen,
@@ -938,7 +884,7 @@ struct HealthKitFHIRConverterTests {
     func periodMetricsRejectZeroLengthIntervals() {
         let sample = quantitySample(.stepCount, unit: .count(), value: 431, interval: 0)
         #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
-            try converter.convert(sample, context: context)
+            try ExporterFixtures.export(sample, inputs)
         }
     }
 
@@ -955,7 +901,7 @@ struct HealthKitFHIRConverterTests {
         )
         #expect(stateOfMind.startDate == stateOfMind.endDate)
         for sample in [dietaryEnergy, stateOfMind] as [HKSample] {
-            let observation = try converter.convert(sample, context: context).observation
+            let observation = try ExporterFixtures.export(sample, inputs).observation
             guard case .period(let period) = observation.effective else {
                 Issue.record("\(sample.sampleType.identifier) must emit an effectivePeriod")
                 continue
@@ -1012,7 +958,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func batchReportsEveryFailureWithoutDroppingRecords() {
+    func batchReportsEveryFailureWithoutDroppingRecords() throws {
         let supported = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
         let deferred = HKCorrelation(
             type: HKCorrelationType(.food),
@@ -1020,14 +966,14 @@ struct HealthKitFHIRConverterTests {
             end: timestamp,
             objects: [quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 320)]
         )
-        let result = converter.convert([supported, deferred]) { _ in context }
-        #expect(result.conversions.count == 1)
-        #expect(result.failures.count == 1)
-        guard case .conversion(let record, let error)? = result.failures.first else {
+        let (exporter, _) = try ExporterFixtures.exporter(inputs)
+        let (exports, _) = try ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
+        #expect(exports.compactMap(\.graph).count == 1)
+        guard exports.count == 2, case .refused(let error) = exports[1].outcome else {
             Issue.record("The refused record keeps its source identity and typed reason")
             return
         }
-        #expect(record.uuid == deferred.uuid)
+        #expect(exports[1].source.uuid == deferred.uuid)
         #expect(error == .unsupportedSourceType(.food))
         #expect(error.diagnostic.code == "mobile-input.unsupported-source-type")
     }

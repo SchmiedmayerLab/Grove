@@ -16,8 +16,8 @@ import ModelsR4
 import Testing
 
 
-/// The ECG content's checks of what a caller supplies: the voltages, the symptoms and their contexts, and the facts the
-/// ECG's metadata states.
+/// The ECG content's checks of what a caller supplies: the voltages, the symptoms, and the facts the ECG's metadata
+/// states.
 @Suite
 struct HealthKitECGContentTests {
     /// One voltage of the lead.
@@ -152,7 +152,7 @@ struct HealthKitECGContentTests {
     ])
     func classificationsStateTheGuideCodes(_ classification: HKElectrocardiogram.Classification, _ code: String) throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xC1, symptoms: [], classification: classification)
-        let conversion = try HealthKitConverter().convert(record, context: HealthKitConversionContext(), symptomContexts: [])
+        let conversion = try ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []))
         let observations = conversion.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.compactMap(\.interpretation).map { $0.first?.coding?.map { $0.code?.value?.string } } == [[code]])
     }
@@ -163,11 +163,7 @@ struct HealthKitECGContentTests {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xC2, symptoms: [])
         let metadata = (record.electrocardiogram.metadata ?? [:]).merging([HKMetadataKeyWasUserEntered: true]) { _, new in new }
         let ecg = try StoredSampleFixtures.withMetadata(record.electrocardiogram, metadata)
-        let conversion = try HealthKitConverter().convert(
-            HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: record.voltageMeasurements),
-            context: HealthKitConversionContext(),
-            symptomContexts: []
-        )
+        let conversion = try ExporterFixtures.export(.electrocardiogram(ecg, voltages: record.voltageMeasurements, symptoms: []))
         let observations = conversion.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 2)
         for observation in observations {
@@ -339,63 +335,33 @@ struct HealthKitECGContentTests {
             averageHeartRate: nil,
             samplingFrequency: HKQuantity(unit: .hertz(), doubleValue: 500)
         )
-        let record = HealthKitECGRecord(
-            electrocardiogram: try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
-            voltageMeasurements: try Self.validPoints.map { point in
+        let record = HealthKitFHIRExporter.Record.electrocardiogram(
+            try StoredSampleFixtures.electrocardiogram(facts: facts, reading: reading),
+            voltages: try Self.validPoints.map { point in
                 try StoredSampleFixtures.voltageMeasurement(offset: point.offset, millivolts: point.millivolts)
             },
-            correlatedSymptoms: [symptom(.dizziness)]
+            symptoms: [symptom(.dizziness)]
         )
-        let set = try HealthKitConverter().convert(
-            record,
-            context: HealthKitConversionContext(),
-            symptomContexts: [HealthKitConversionContext(conversionInstant: ExchangeEventContext.testInstant.addingTimeInterval(1))]
-        )
-        let symptomWarnings: [HealthKitConversionWarning] = [
-            .sourceOffsetUnavailable(field: "Observation.effectivePeriod.start"),
-            .sourceOffsetUnavailable(field: "Observation.effectivePeriod.end")
+        let set = try ExporterFixtures.export(record)
+        let symptomWarnings = [
+            ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
+            ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")
         ]
         #expect(set.primary.warnings.isEmpty)
         #expect(set.companions.map(\.warnings) == [symptomWarnings])
         #expect(set.warnings == symptomWarnings)
     }
 
-    @Test("The context API refuses a symptom-context count other than the symptoms' before it validates the symptoms")
-    func symptomContextCountIsCheckedBeforeTheSymptoms() throws {
-        // Symptoms the ECG says are absent: the count mismatch is still the fault reported.
-        let record = try GoldenCase.electrocardiogramRecord(uuid: 0x60, symptoms: [])
-        #expect(throws: HealthKitConversionError.ecgEvidence(.symptomContextCountMismatch(symptoms: 1, contexts: 0))) {
-            try HealthKitConverter().convert(
-                HealthKitECGRecord(
-                    electrocardiogram: record.electrocardiogram,
-                    voltageMeasurements: record.voltageMeasurements,
-                    correlatedSymptoms: [symptom(.dizziness)]
-                ),
-                context: HealthKitConversionContext(),
-                symptomContexts: []
-            )
-        }
-    }
-
-    /// Two source records under one event would put two graphs under one event identifier; the positional symptom
-    /// contexts are the only shape that can state that, and the companion scope check does not compare events.
-    @Test("A symptom under the ECG's own event, or two symptoms under one event, are refused for the duplicate event")
-    @available(*, deprecated, message: "Exercises the deprecated converter's ECG path, the only one that takes symptom contexts")
+    /// Each symptom is a source record of its own, so it converts under an event of its own beside the ECG's.
+    @Test("Each correlated symptom converts under its own event")
     func symptomEventsAreTheirOwn() throws {
         let chest = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD1))
         let fatigue = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD2), type: .fatigue)
-        let context = HealthKitConversionContext()
-        let shared = HealthKitConversionContext(conversionInstant: ExchangeEventContext.testInstant.addingTimeInterval(1))
-        let expected = HealthKitConversionError.ecgEvidence(.duplicateSymptomEventIdentity)
-        let single = try GoldenCase.electrocardiogramRecord(uuid: 0xD0, symptoms: [chest])
-        #expect(throws: expected) {
-            try HealthKitConverter().convert(single, context: context, symptomContexts: [context])
-        }
         let pair = try GoldenCase.electrocardiogramRecord(uuid: 0xD0, symptoms: [chest, fatigue])
-        #expect(throws: expected) {
-            try HealthKitConverter().convert(pair, context: context, symptomContexts: [shared, shared])
-        }
-        #expect(try HealthKitConverter().convert(single, context: context, symptomContexts: [shared]).companions.count == 1)
+        let set = try ExporterFixtures.export(ExporterFixtures.electrocardiogram(pair, symptoms: [chest, fatigue]))
+        #expect(set.companions.count == 2)
+        let events = set.all.map(\.identifiers.event)
+        #expect(Set(events).count == events.count)
     }
 
     private func symptom(_ type: HKCategoryTypeIdentifier) -> HKCategorySample {

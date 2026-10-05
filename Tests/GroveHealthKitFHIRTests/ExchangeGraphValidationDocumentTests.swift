@@ -32,15 +32,14 @@ struct ExchangeGraphValidationDocumentTests {
     private static let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
     private static let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
 
-    private static func conversions(_ scenario: Scenario) throws -> HealthKitConversionSet {
-        let converter = HealthKitConverter()
+    private static func conversions(_ scenario: Scenario) throws -> ExportedRecord {
         switch scenario {
         case .heartRate:
-            return try converter.convert(heartRateSample(), context: context())
+            return try ExporterFixtures.export(heartRateSample(), inputs())
         case .heartRateWithStudies:
-            return try converter.convert(heartRateSample(), context: context(studies: [.test("a"), .test("b")]))
+            return try ExporterFixtures.export(heartRateSample(), inputs(studies: [.test("a"), .test("b")]))
         case .gatewayHeartRateWithDevice:
-            return try converter.convert(
+            return try ExporterFixtures.export(
                 heartRateSample(device: HKDevice(
                     name: "Band",
                     manufacturer: "Example Device Company",
@@ -51,7 +50,7 @@ struct ExchangeGraphValidationDocumentTests {
                     localIdentifier: "band-1",
                     udiDeviceIdentifier: nil
                 )),
-                context: context(converterWasGateway: true)
+                inputs(converterWasGateway: true)
             )
         case .bloodPressure:
             let dates = (start: timestamp, end: timestamp.addingTimeInterval(60))
@@ -63,30 +62,29 @@ struct ExchangeGraphValidationDocumentTests {
                     end: dates.end
                 )
             }
-            return try converter.convert(
+            return try ExporterFixtures.export(
                 HKCorrelation(
                     type: HKCorrelationType(.bloodPressure),
                     start: dates.start,
                     end: dates.end,
                     objects: [pressure(.bloodPressureSystolic, 118), pressure(.bloodPressureDiastolic, 76)]
                 ),
-                context: context()
+                inputs()
             )
         }
     }
 
-    private static func context(
+    private static func inputs(
         studies: [StudyEnrollment] = [],
         converterWasGateway: Bool = false
-    ) -> HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            converterWasGateway: converterWasGateway,
-            conversionInstant: timestamp,
-            recordingDeviceStableUnitToken: "band",
-            studies: studies
-        )
+    ) -> ExportInputs {
+        var inputs = ExportInputs()
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        inputs.studies = studies
+        inputs.options.role = converterWasGateway ? .gateway : .assembler
+        inputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: "band"))
+        return inputs
     }
 
     private static func heartRateSample(device: HKDevice? = nil) -> HKQuantitySample {
@@ -147,16 +145,15 @@ struct ExchangeGraphValidationDocumentTests {
         .disabled(if: ProcessInfo.processInfo.environment["CI"] != nil, "Process-wide heap measurement is too noisy on shared CI runners")
     )
     func graphValidationDrainsItsOwnTemporaries() throws {
-        let converter = HealthKitConverter()
-        let context = Self.context()
+        let (exporter, _) = try ExporterFixtures.exporter(Self.inputs())
         let sample = Self.heartRateSample()
-        let stored = try converter.convert(sample, context: context).primary.graph.json
+        let stored = try ExportedRecord(ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp).exports).graph.json
         let iterations = 500
         let round = { () throws -> Int in
             try autoreleasepool {
                 let before = Self.liveHeapBytes()
                 for _ in 0..<iterations {
-                    _ = try converter.convert(sample, context: context)
+                    _ = try ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp)
                     _ = try ExchangeGraph(kind: .active, jsonData: stored)
                 }
                 return Self.liveHeapBytes() - before

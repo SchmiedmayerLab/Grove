@@ -55,32 +55,30 @@ struct HealthKitClinicalFHIRRepresentationTests {
         }
     }
 
-    /// A lab result HealthKit reports in `releaseCode`, DSTU2 or R4, carrying `payload`, converted as the exporter
-    /// converts it.
+    /// A lab result HealthKit reports in `releaseCode`, DSTU2 or R4, carrying `payload`, exported.
     private func makeConversion(
         releaseCode: String,
         payload: Data = Data(#"{"resourceType":"Observation","id":"clinical"}"#.utf8)
-    ) throws -> HealthKitConversionSet {
+    ) throws -> ExportedRecord {
         let record = try StoredSampleFixtures.clinicalRecord(
             HKClinicalType(.labResultRecord),
             fhirVersion: releaseCode == "dstu2" ? .primaryDSTU2() : .primaryR4(),
             resource: payload,
             facts: GoldenCase.seriesFacts(uuid: 0xF2, duration: 0)
         )
-        return try HealthKitAssembly.convert(record, context: HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: Date(timeIntervalSince1970: 1_755_624_060)
-        ))
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
+        )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = Date(timeIntervalSince1970: 1_755_624_060)
+        return try ExporterFixtures.export(record, inputs)
     }
 
     /// Validates `conversion`'s graph again with its document's attachment stating `contentType` instead.
-    private func revalidate(_ conversion: HealthKitConversionSet, contentType: String?) throws {
+    private func revalidate(_ conversion: ExportedRecord, contentType: String?) throws {
         var bundle = conversion.bundle
         var entries = try #require(bundle.entry)
         let documentIndex = try #require(entries.firstIndex {

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Baseline-throughput benchmark of the HealthKit -> FHIR converter. It never runs in a normal test run:
+// Baseline-throughput benchmark of the HealthKit -> FHIR exporter. It never runs in a normal test run:
 // the suite is enabled only when GROVE_FHIR_BENCH_RUN=1 reaches the test process.
 //
 // Running it in RELEASE mode, which is the only configuration whose numbers mean anything:
@@ -40,7 +40,7 @@
 // Environment (plain names under SwiftPM, TEST_RUNNER_-prefixed under xcodebuild):
 //   GROVE_FHIR_BENCH_RUN=1        enable
 //   GROVE_FHIR_BENCH_N=5000       samples per quantity scenario (workouts use N/10, at least 100)
-//   GROVE_FHIR_BENCH_RUNS=3       timed repetitions of the convert() loop
+//   GROVE_FHIR_BENCH_RUNS=3       timed repetitions of the export() call
 //   GROVE_FHIR_BENCH_ONLY=name    run only the scenario with this name, or "concurrent"
 //   GROVE_FHIR_BENCH_OUT=path     also append the result lines to this file
 //   GROVE_FHIR_BENCH_DUMP=dir     write each scenario's first Bundle JSON there and report per-entry sizes
@@ -92,9 +92,7 @@ private struct ScenarioRun {
     let scenario: Scenario
     let scope: BenchScope
     let report: BenchReport
-    let converter = HealthKitConverter()
-    var contexts: [HealthKitConversionContext] = []
-    var conversions: [HealthKitConversionSet] = []
+    var exports: [HealthKitFHIRExporter.Export] = []
     var encoded: [Data] = []
     var bestConvertSeconds = 0.0
     var encodeSeconds = 0.0
@@ -103,14 +101,21 @@ private struct ScenarioRun {
     var samples: [HKSample] { scenario.samples }
     var count: Int { scenario.samples.count }
     var name: String { scenario.name }
+    /// The graphs the retained pass exported, in sample order.
+    var graphs: [ExchangeGraph] { exports.compactMap(\.graph) }
 
     func rate(_ seconds: Double, _ items: Int? = nil) -> String {
         let items = Double(items ?? count)
         return String(format: "%.3fs %.1f/s %.1fus/sample", seconds, items / seconds, seconds / items * 1_000_000)
     }
 
-    func convert(_ index: Int) throws -> HealthKitConversionSet {
-        try autoreleasepool { try converter.convert(samples[index], context: contexts[index]) }
+    /// Exports `samples` in one call through a fresh exporter of the scenario's style, as a deployment's first export
+    /// of a batch: one ledger transaction, one autorelease pool per record.
+    func export(_ samples: [HKSample]) throws -> [HealthKitFHIRExporter.Export] {
+        var exports: [HealthKitFHIRExporter.Export] = []
+        exports.reserveCapacity(samples.count)
+        _ = try scope.exporter(style: scenario.style).export(samples, at: ExchangeEventContext.testInstant) { exports.append($0) }
+        return exports
     }
 }
 
@@ -155,6 +160,22 @@ struct ConversionThroughputBenchmark {
         ]
     }
 
+    /// What the exporter's request states about `sample`'s origin under `exporter`'s policies, as the assembly resolves it.
+    private static func sourceFacts(
+        _ sample: HKSample,
+        metadata: HealthKitSampleMetadata,
+        exporter: HealthKitFHIRExporter
+    ) throws -> HealthKitAssembly.SourceFacts {
+        let policies = HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options)
+        let options = HealthKitConversionOptions(
+            writer: policies.writer,
+            recordingDevice: ResolvedRecordingDevice(device: policies.recordingDevice),
+            udiDisclosure: exporter.options.udi == .authorized ? .authorizedUDI : .omit,
+            nativeIdentifierDisclosure: exporter.options.nativeIdentifier
+        )
+        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, options: options)
+    }
+
     @Test
     func baselineThroughput() throws {
         let report = BenchReport()
@@ -195,55 +216,32 @@ struct ConversionThroughputBenchmark {
     }
 
     /// First-use costs (catalog statics, Foundation coder caches) are reported, not averaged in. Returns false
-    /// when the converter refuses the scenario's input, after reporting what a refusal costs.
+    /// when the exporter refuses the scenario's input, after reporting what a refusal costs.
     private func warmUp(_ run: inout ScenarioRun) throws -> Bool {
-        let firstContext = run.scope.context(for: run.samples[0], sequence: 1, style: run.scenario.style)
-        do {
-            _ = try autoreleasepool { try run.converter.convert(run.samples[0], context: firstContext) }
-        } catch {
-            let refusalSeconds = Stopwatch.seconds {
-                for (index, sample) in run.samples.enumerated() {
-                    let context = run.scope.context(for: sample, sequence: UInt64(index + 1), style: run.scenario.style)
-                    _ = autoreleasepool { try? run.converter.convert(sample, context: context) }
-                }
+        let first = try run.export([run.samples[0]])
+        if case .refused(let error)? = first.first?.outcome {
+            let refusalSeconds = try Stopwatch.seconds {
+                _ = try run.export(run.samples)
             }
-            let diagnostic = (error as? HealthKitConversionError)?.diagnostic
-            run.report.line("scenario=\(run.name) N=\(run.count) REFUSED error=\(diagnostic?.code ?? String(describing: error)) "
-                + "at \(diagnostic?.location ?? "?") phase=refusal \(run.rate(refusalSeconds))")
+            run.report.line("scenario=\(run.name) N=\(run.count) REFUSED error=\(error.diagnostic.code) "
+                + "at \(error.diagnostic.location) phase=refusal \(run.rate(refusalSeconds))")
             return false
         }
-        let secondContext = run.scope.context(for: run.samples[1], sequence: 2, style: run.scenario.style)
         let coldSeconds = try Stopwatch.seconds {
-            _ = try autoreleasepool { try run.converter.convert(run.samples[1], context: secondContext) }
+            _ = try run.export([run.samples[1]])
         }
-        for index in 0..<min(Self.warmUpCount, run.count) {
-            let context = run.scope.context(for: run.samples[index], sequence: UInt64(index + 1), style: run.scenario.style)
-            _ = try autoreleasepool { try run.converter.convert(run.samples[index], context: context) }
-        }
+        _ = try run.export(Array(run.samples.prefix(Self.warmUpCount)))
         run.report.line("scenario=\(run.name) N=\(run.count) secondCallMs=\(String(format: "%.2f", coldSeconds * 1_000))")
-
-        // (0) Per-sample context construction, the way a consumer has to do it today.
-        var contexts: [HealthKitConversionContext] = []
-        contexts.reserveCapacity(run.count)
-        let contextSeconds = Stopwatch.seconds {
-            for (index, sample) in run.samples.enumerated() {
-                contexts.append(run.scope.context(for: sample, sequence: UInt64(index + 1), style: run.scenario.style))
-            }
-        }
-        run.contexts = contexts
-        run.report.line("scenario=\(run.name) phase=context-construction \(run.rate(contextSeconds))")
         return true
     }
 
-    /// (a) convert() total, results discarded, one autorelease pool per sample as MyHeartCounts does; then a retained pass.
+    /// (a) export() total over the scenario in one call, results discarded; then a retained pass.
     private func measureConvert(_ run: inout ScenarioRun) throws {
         var convertRuns: [Double] = []
         let before = Memory.footprint()
         for _ in 0..<BenchEnvironment.runs {
             convertRuns.append(try Stopwatch.seconds {
-                for index in 0..<run.count {
-                    _ = try run.convert(index)
-                }
+                _ = try run.export(run.samples)
             })
         }
         let after = Memory.footprint()
@@ -255,14 +253,12 @@ struct ConversionThroughputBenchmark {
         run.report.line("scenario=\(run.name) memory footprintBeforeMB=\(Memory.megabytes(before.current)) "
             + "footprintAfterMB=\(Memory.megabytes(after.current)) lifetimePeakMB=\(Memory.megabytes(after.peak))")
 
-        var conversions: [HealthKitConversionSet] = []
-        conversions.reserveCapacity(run.count)
+        var exports: [HealthKitFHIRExporter.Export] = []
         let retainedSeconds = try Stopwatch.seconds {
-            for index in 0..<run.count {
-                conversions.append(try run.convert(index))
-            }
+            exports = try run.export(run.samples)
         }
-        run.conversions = conversions
+        run.exports = exports
+        try #require(run.graphs.count == run.count, "every sample of \(run.name) exports to a graph")
         let retained = Memory.footprint()
         let retainedBytes = retained.current > after.current ? retained.current - after.current : 0
         run.report.line("scenario=\(run.name) phase=convert-total(retained) \(run.rate(retainedSeconds)) "
@@ -274,21 +270,21 @@ struct ConversionThroughputBenchmark {
         var encoded: [Data] = []
         encoded.reserveCapacity(run.count)
         run.encodeSeconds = try Stopwatch.seconds {
-            for conversion in run.conversions {
-                encoded.append(try autoreleasepool { try JSONEncoder().encode(conversion.bundle) })
+            for graph in run.graphs {
+                encoded.append(try autoreleasepool { try JSONEncoder().encode(graph.bundle) })
             }
         }
         run.encoded = encoded
         let bytes = encoded.reduce(0) { $0 + $1.count }
-        let entries = run.conversions.reduce(0) { $0 + ($1.bundle.entry?.count ?? 0) }
-        let warnings = run.conversions.reduce(0) { $0 + $1.warnings.count }
+        let entries = run.graphs.reduce(0) { $0 + ($1.bundle.entry?.count ?? 0) }
+        let warnings = run.exports.reduce(0) { $0 + $1.warnings.count }
         run.report.line("scenario=\(run.name) phase=encode-bundle \(run.rate(run.encodeSeconds)) bytesPerBundle=\(bytes / run.count) "
             + "entriesPerBundle=\(String(format: "%.1f", Double(entries) / Double(run.count))) "
             + "warningsPerSample=\(String(format: "%.2f", Double(warnings) / Double(run.count)))")
         if let directory = BenchEnvironment.dumpDirectory {
             // The first graph's validated bytes, plus the size of each entry's resource, for inspecting what an event carries.
             try encoded[0].write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(run.name).json"))
-            let sizes = try (run.conversions[0].bundle.entry ?? []).map { entry in
+            let sizes = try (run.graphs[0].bundle.entry ?? []).map { entry in
                 "\(entry.resource?.resourceType ?? "?")=\(try JSONEncoder().encode(entry).count)"
             }
             run.report.line("scenario=\(run.name) entry-bytes \(sizes.joined(separator: " "))")
@@ -298,19 +294,19 @@ struct ConversionThroughputBenchmark {
         stagingEncoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         var stagedBytes = 0
         let stagedSeconds = try Stopwatch.seconds {
-            for conversion in run.conversions {
-                stagedBytes += try autoreleasepool { try stagingEncoder.encode(conversion.bundle).count }
+            for graph in run.graphs {
+                stagedBytes += try autoreleasepool { try stagingEncoder.encode(graph.bundle).count }
             }
         }
         run.report.line("scenario=\(run.name) phase=encode-bundle(sortedKeys+withoutEscapingSlashes) \(run.rate(stagedSeconds)) "
             + "bytesPerBundle=\(stagedBytes / run.count)")
         // The graph's stored bytes are the staging encoding (sorted members, unescaped slashes): a consumer that stores
         // graph.json verbatim skips that second encode entirely.
-        #expect(try run.conversions[0].graph.json == stagingEncoder.encode(run.conversions[0].bundle))
+        #expect(try run.graphs[0].json == stagingEncoder.encode(run.graphs[0].bundle))
 
         run.graphInitSeconds = try Stopwatch.seconds {
-            for conversion in run.conversions {
-                _ = try ExchangeGraph(kind: .active, eventIdentifier: conversion.graph.eventIdentifier, bundle: conversion.bundle)
+            for graph in run.graphs {
+                _ = try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: graph.bundle)
             }
         }
         run.report.line("scenario=\(run.name) phase=graph-init(encode+parse+validate) \(run.rate(run.graphInitSeconds))")
@@ -325,9 +321,9 @@ struct ConversionThroughputBenchmark {
             "identifier-system-roles", "entry-keys", "governed-reference-targets", "active-lifecycle"
         ]
         var passNanoseconds = [UInt64](repeating: 0, count: passNames.count)
-        for (conversion, data) in zip(run.conversions, run.encoded) {
+        for (graph, data) in zip(run.graphs, run.encoded) {
             try autoreleasepool {
-                let bundle = conversion.bundle
+                let bundle = graph.bundle
                 let entries = bundle.entry ?? []
                 var mark = DispatchTime.now().uptimeNanoseconds
                 func lap(_ pass: Int) {
@@ -339,7 +335,7 @@ struct ConversionThroughputBenchmark {
                 lap(0)
                 try ExchangeGraph.validateEntryResourcePolicy(kind: .active, entries: entries, document: document)
                 lap(1)
-                try ExchangeGraph.validateEntryNodeDigests(entries: entries, eventIdentifier: conversion.graph.eventIdentifier)
+                try ExchangeGraph.validateEntryNodeDigests(entries: entries, eventIdentifier: graph.eventIdentifier)
                 lap(2)
                 try ExchangeGraph.validateResourceIdentifiers(entries: entries, document: document)
                 lap(3)
@@ -384,15 +380,15 @@ struct ConversionThroughputBenchmark {
         run.report.line("scenario=\(run.name) phase=JSONDecoder-decode-bundle \(run.rate(decodeSeconds))")
     }
 
-    /// Construction pieces: the source facts (devices, writer, identifiers), then the clinical content alone. The
-    /// scenario's plan is looked up once, outside the loops; each phase bridges the sample's metadata itself, as each
-    /// read the metadata before the plans.
+    /// Construction pieces: the source facts (devices, writer, identifiers), then the clinical content alone, then each
+    /// event's study context. The scenario's plan is looked up once, outside the loops; each phase bridges the sample's
+    /// metadata itself, as each read the metadata before the plans.
     private func measureConstruction(_ run: ScenarioRun) throws {
         let content = try ObservationContent(try #require(HealthKitContentPlan.plan(for: run.samples[0])))
+        let exporter = run.scope.exporter(style: run.scenario.style)
         let factsSeconds = try Stopwatch.seconds {
-            for index in 0..<run.count {
-                let sample = run.samples[index]
-                _ = try HealthKitAssembly.SourceFacts(sample, metadata: content.metadata(sample), options: run.contexts[index].options)
+            for sample in run.samples {
+                _ = try Self.sourceFacts(sample, metadata: content.metadata(sample), exporter: exporter)
             }
         }
         run.report.line("scenario=\(run.name) phase=source-facts(devices+writer+identifiers) \(run.rate(factsSeconds))")
@@ -402,9 +398,15 @@ struct ConversionThroughputBenchmark {
             }
         }
         run.report.line("scenario=\(run.name) phase=observation-content \(run.rate(observationSeconds))")
+        let studies = run.scenario.style == .deployment ? run.scope.studies : []
         let studySeconds = try Stopwatch.seconds {
-            for context in run.contexts {
-                _ = try context.event.studyContext()
+            for index in 0..<run.count {
+                _ = try StudyContext(
+                    subject: run.scope.subject,
+                    studies: studies,
+                    event: run.scope.event(UInt64(index + 1)),
+                    identityScope: run.scope.identityScope
+                )
             }
         }
         run.report.line("scenario=\(run.name) phase=study-context \(run.rate(studySeconds))")
@@ -429,56 +431,51 @@ struct ConversionThroughputBenchmark {
             device: SampleFactory.watchWithoutUnitToken,
             metadata: [HKMetadataKeyHeartRateMotionContext: NSNumber(value: 1)]
         )
-        let contexts = samples.enumerated().map { index, sample in
-            scope.context(for: sample, sequence: UInt64(index + 1), style: .deployment)
+        func export() throws -> [HealthKitFHIRExporter.Export] {
+            var exports: [HealthKitFHIRExporter.Export] = []
+            _ = try scope.exporter(style: .deployment).export(samples, at: ExchangeEventContext.testInstant) { exports.append($0) }
+            return exports
         }
-        let converter = HealthKitConverter()
-        let conversions = try zip(samples, contexts).map { try converter.convert($0, context: $1) }
+        let graphs = try export().compactMap(\.graph)
         report.line("profile phase=\(phase) pid=\(ProcessInfo.processInfo.processIdentifier) seconds=\(BenchEnvironment.profileSeconds)")
         let deadline = Date().addingTimeInterval(BenchEnvironment.profileSeconds)
         var iterations = 0
         while Date() < deadline {
-            for index in samples.indices {
-                try autoreleasepool {
-                    if phase == "graph-init" {
-                        _ = try ExchangeGraph(
-                            kind: .active,
-                            eventIdentifier: conversions[index].graph.eventIdentifier,
-                            bundle: conversions[index].bundle
-                        )
-                    } else {
-                        _ = try converter.convert(samples[index], context: contexts[index])
+            if phase == "graph-init" {
+                for graph in graphs {
+                    try autoreleasepool {
+                        _ = try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: graph.bundle)
                     }
                 }
+            } else {
+                _ = try export()
             }
             iterations += samples.count
         }
         report.line("profile phase=\(phase) iterations=\(iterations)")
     }
 
-    /// Whether the converter scales across threads: the same deployment heart-rate workload split over T threads.
+    /// Whether the exporter scales across threads: the same deployment heart-rate workload split over T threads, each
+    /// exporting its share in one call through an exporter over its own ledger.
     private func runConcurrent(scope: BenchScope, count: Int, report: BenchReport) throws {
         let samples = SampleFactory.heartRate(
             count: count,
             device: SampleFactory.watchWithoutUnitToken,
             metadata: [HKMetadataKeyHeartRateMotionContext: NSNumber(value: 1)]
         )
-        let contexts = samples.enumerated().map { index, sample in
-            scope.context(for: sample, sequence: UInt64(index + 1), style: .deployment)
-        }
-        let converter = HealthKitConverter()
         for threads in [1, 2, 4, 6, 8] {
             let failures = ManagedFailureCount()
             let seconds = Stopwatch.seconds {
                 DispatchQueue.concurrentPerform(iterations: threads) { thread in
-                    var index = thread
-                    while index < count {
-                        do {
-                            _ = try autoreleasepool { try converter.convert(samples[index], context: contexts[index]) }
-                        } catch {
-                            failures.increment()
+                    let share = stride(from: thread, to: count, by: threads).map { samples[$0] }
+                    do {
+                        _ = try scope.exporter(style: .deployment).export(share, at: ExchangeEventContext.testInstant) { export in
+                            if export.graph == nil {
+                                failures.increment()
+                            }
                         }
-                        index += threads
+                    } catch {
+                        failures.increment()
                     }
                 }
             }

@@ -16,9 +16,8 @@ import ModelsR4
 import Testing
 
 
-/// The exporter is a facade over the conversion the goldens pin: its graphs are byte-identical to the old
-/// entry point's under the same event, and it adds the event bookkeeping and policies the entry point left
-/// to the caller.
+/// The exporter numbers events and applies its policies around the conversion the goldens pin: a graph it delivers
+/// within a call is byte-identical to the one it delivers for the same record alone under the same event.
 @Suite(.serialized)
 struct HealthKitFHIRExporterTests {
     private static let base = ExchangeEventContext.test()
@@ -39,30 +38,6 @@ struct HealthKitFHIRExporterTests {
         return try HealthKitFHIRExporter(producer: producer, repositoryScope: base.repositoryScope, options: options)
     }
 
-    /// The old entry point's graph for `sample` under `event`, the one the exporter minted for it.
-    private static func reference(
-        _ sample: HKSample,
-        event: ExchangeEventIdentifier?,
-        instant: Date,
-        _ configure: (inout HealthKitConversionOptions) -> Void = { _ in }
-    ) throws -> HealthKitConversion {
-        var options = HealthKitConversionOptions()
-        configure(&options)
-        let context = HealthKitConversionContext(
-            event: ExchangeEventContext(
-                subject: base.subject,
-                event: try #require(event),
-                identityScope: base.identityScope,
-                repositoryScope: base.repositoryScope,
-                application: base.application,
-                host: base.host,
-                conversionInstant: instant
-            ),
-            options: options
-        )
-        return try HealthKitAssembly.convert(sample, context: context).primary
-    }
-
     private static func collect(
         _ exporter: HealthKitFHIRExporter,
         _ samples: [HKSample],
@@ -78,23 +53,22 @@ struct HealthKitFHIRExporterTests {
         exports.compactMap(\.sequence)
     }
 
-    @Test("Graphs equal the old entry point's under the same event, with the same warnings")
+    @Test("Graphs equal the ones each record exports to alone under the same event, with the same warnings")
     func graphsEqualReference() throws {
         let exporter = try Self.exporter()
         let withDevice = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let withoutToken = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(2), device: GoldenFixtures.watchWithoutUnitToken)
         let (exports, _) = try Self.collect(exporter, [withDevice, withoutToken])
         try #require(exports.count == 2)
-        let instant = GoldenFixtures.conversionInstant
-        let first = try Self.reference(withDevice, event: exports[0].event, instant: instant)
-        let second = try Self.reference(withoutToken, event: exports[1].event, instant: instant)
+        let first = try ExporterFixtures.standalone(.sample(withDevice), as: exports[0].event)
+        let second = try ExporterFixtures.standalone(.sample(withoutToken), as: exports[1].event)
         #expect(exports[0].graph?.json == first.graph.json)
         #expect(exports[1].graph?.json == second.graph.json)
         #expect(exports[0].source == HealthKitFHIRExporter.Export.Source(uuid: GoldenFixtures.uuid(1), typeIdentifier: HKQuantityTypeIdentifier.heartRate.rawValue))
         #expect(exports[0].source.sourceType == .heartRate)
         #expect(exports[0].warnings.isEmpty)
-        #expect(exports[1].warnings == second.warnings.map(\.diagnostic))
-        #expect(exports[1].warnings.contains(ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic))
+        #expect(exports[1].warnings == second.warnings)
+        #expect(exports[1].warnings == [ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic])
         // New events number consecutively in the sorted order of their requests, under one producer instance.
         #expect(Set(Self.sequences(exports)) == ["1", "2"])
         #expect(exports[0].event?.producerInstance == exports[1].event?.producerInstance)
@@ -167,12 +141,12 @@ struct HealthKitFHIRExporterTests {
         #expect(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.agent == nil)
         let observation = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
         #expect(observation.identifier?.contains { $0.system?.value?.url.absoluteString == GoldenFixtures.nativeIdentifierSystem.rawValue } == true)
-        let reference = try Self.reference(sample, event: exports[0].event, instant: GoldenFixtures.conversionInstant) { options in
-            options.writer = .omit
-            options.udiDisclosure = .authorizedUDI
-            options.nativeIdentifierDisclosure = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
-        }
-        // Only `Bundle.id` differs from the entry point's graph under the same policies.
+        var referenceInputs = ExportInputs()
+        referenceInputs.options.udi = .authorized
+        referenceInputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+        referenceInputs.options.role = .gatewayForOwnWrites
+        let reference = try ExporterFixtures.standalone(.sample(sample), as: exports[0].event, referenceInputs)
+        // Only `Bundle.id` differs from the graph under the default device, writer and Bundle.id policies.
         var expected = reference.graph.bundle
         expected.id = GoldenFixtures.uuid(9).uuidString.asFHIRStringPrimitive()
         #expect(bundle == expected)
@@ -219,7 +193,7 @@ struct HealthKitFHIRExporterTests {
         }
     }
 
-    @Test("Retractions take their own events and recompute the targets the old entry point computed")
+    @Test("Retractions take their own events and recompute the targets a retraction of each deletion alone computes")
     func retractionsMatchReference() throws {
         let exporter = try Self.exporter()
         let detectedAt = GoldenFixtures.conversionInstant
@@ -239,21 +213,8 @@ struct HealthKitFHIRExporterTests {
         #expect(exports.map(\.source.uuid) == [GoldenFixtures.uuid(10), GoldenFixtures.uuid(11), GoldenFixtures.uuid(12)])
         #expect(Set(Self.sequences(exports)) == ["1", "2"])
         for (export, deletion) in [(exports[0], deletions[0]), (exports[2], deletions[2])] {
-            let context = HealthKitConversionContext(event: ExchangeEventContext(
-                subject: Self.base.subject,
-                event: try #require(export.event),
-                identityScope: Self.base.identityScope,
-                repositoryScope: Self.base.repositoryScope,
-                application: Self.base.application,
-                host: Self.base.host,
-                conversionInstant: detectedAt
-            ))
-            let reference = try HealthKitAssembly.retraction(
-                of: HealthKitSourceRecord(uuid: deletion.uuid, type: deletion.sourceType),
-                context: context,
-                occurred: .period(start: deletion.deletedAfter, end: detectedAt)
-            )
-            #expect(export.graph?.json == reference.graph.json)
+            let reference = try ExporterFixtures.standalone(deletion, as: export.event)
+            #expect(export.graph?.json == reference?.json)
         }
         receipt.release()
         let (afterRelease, _) = try Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13))])

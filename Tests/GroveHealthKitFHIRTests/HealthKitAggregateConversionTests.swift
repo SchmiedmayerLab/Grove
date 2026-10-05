@@ -54,20 +54,18 @@ struct HealthKitFHIRAggregateConversionTests {
         )
     ]
 
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
     }
 
     private func quantitySample(
@@ -89,7 +87,7 @@ struct HealthKitFHIRAggregateConversionTests {
     @Test("Windowed aggregates carry their fixed aggregation method", arguments: methodCases)
     func aggregateMethod(testCase: MethodCase) throws {
         let sample = quantitySample(testCase.identifier, unit: testCase.unit, value: testCase.value)
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let method = try #require(testCase.measurement.method)
         let coding = try #require(observation.method?.coding?.first)
 
@@ -102,10 +100,10 @@ struct HealthKitFHIRAggregateConversionTests {
     @Test("A point measurement asserts no aggregation method")
     func pointMeasurementsHaveNoMethod() throws {
         let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
-        let observation = try converter.convert(sample, context: context).observation
-        let resting = try converter.convert(
+        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let resting = try ExporterFixtures.export(
             quantitySample(.restingHeartRate, unit: .count().unitDivided(by: .minute()), value: 58),
-            context: context
+            inputs
         ).observation
 
         #expect(observation.method == nil)
@@ -133,7 +131,7 @@ struct HealthKitFHIRAggregateConversionTests {
             value: 4.2,
             interval: 7 * 3_600
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = observation.value else {
                 return nil
@@ -159,7 +157,7 @@ struct HealthKitFHIRAggregateConversionTests {
             value: 4.5,
             metadata: [HKMetadataKeyInsulinDeliveryReason: NSNumber(value: reason.rawValue)]
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let component = try #require(observation.component?.first)
         let expected = reason == .basal ? "basal" : "bolus"
 
@@ -185,7 +183,7 @@ struct HealthKitFHIRAggregateConversionTests {
             facts: GoldenCase.seriesFacts(uuid: 0xF4, duration: 2)
         )
         #expect(throws: HealthKitConversionError.platformExclusiveSourceType(.heartbeatSeries)) {
-            try converter.convert(series, context: context)
+            try ExporterFixtures.export(series, inputs)
         }
         for error in [HealthKitConversionError.intentionallyUnsupported(.nikeFuel, reason: reason), .platformExclusiveSourceType(.heartbeatSeries)] {
             #expect(ExchangeGraphRule(rawValue: error.diagnostic.code) != nil)

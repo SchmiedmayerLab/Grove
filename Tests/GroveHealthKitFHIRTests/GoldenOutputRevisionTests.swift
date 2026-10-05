@@ -40,7 +40,8 @@ struct GoldenRevision: Sendable, CustomTestStringConvertible {
 /// any change that alters a golden must bump `ExchangeGraphAssembler.outputRevision` or
 /// `HealthKitAssembly.outputRevision`. This table pins every golden file's digest: a changed golden fails here
 /// until its row is updated, and the updated row must carry the bumped revision, which review checks in the
-/// diff. A row never names a revision the code has not reached. A new golden adds a row without a bump.
+/// diff. A row never names a revision the code has not reached. A new golden adds a row without a bump, and so does a
+/// golden whose case changed its inputs while the output for equal inputs stayed the same.
 @Suite
 struct GoldenOutputRevisionTests {
     static let table: [GoldenRevision] = [
@@ -74,13 +75,12 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("heartbeat-series", digest: "fB3bdqSnBH2vJxBfzQQDFFeItPoT6Bs8Yom7uFbYS98", assembler: 1, healthKit: 2),
         GoldenRevision("insulin-delivery-bolus", digest: "fCw3-HgNHCW_r1bQ8bY5WiGz52iekzNbJ0-AKZp59yc", assembler: 1, healthKit: 1),
         GoldenRevision("native-identifier-disclosure", digest: "d0cEPkdGfs7W8CYbUpS-GDKoc64jN21WjgkWSibIAAM", assembler: 1, healthKit: 2),
-        GoldenRevision("outlines", digest: "SWyFVDm2r7z4Yqp6Y36Oub3aNtT6zO8emIKx-J5qmNs", assembler: 1, healthKit: 2),
-        GoldenRevision("repository-ids-on-every-node", digest: "wnO8sPt82cYYd4m50n4tycbEXWdgvNRlKjQItQI6n4Y", assembler: 1, healthKit: 1),
+        GoldenRevision("outlines", digest: "AU2PPK1WVWoCxqQXr40l7wlIzjb_hbEsAZPRS1az8mA", assembler: 1, healthKit: 2),
         GoldenRevision("retraction-blood-pressure", digest: "x4muVgyjqh8AfgVGhaS55MeMVmxJ58UR0hsghhedkEA", assembler: 1, healthKit: 1),
-        GoldenRevision("retraction-electrocardiogram", digest: "JJIp4J2S4Vr0CX-d1fi3IqAmyNzuzSz4fyrF-gbrkgM", assembler: 1, healthKit: 1),
+        GoldenRevision("retraction-electrocardiogram", digest: "XFJkq-0BWgfo5MhNXqP9JwSGXIOG95KoG3MctJesT3w", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-heart-rate-native-identifier", digest: "2nx6odq_wixvjnzRfksJPRgR_UcNs4LkE2l3El_38r4", assembler: 1, healthKit: 1),
-        GoldenRevision("retraction-heart-rate", digest: "Bol04wjtd82Dt8GlmFMS84fxEQ6DgPpRsdN-Zd5OA8g", assembler: 1, healthKit: 1),
-        GoldenRevision("retraction-workout", digest: "XsaDOMjgcyxDx-jQFZB2bLIcotexSJkELvAPeLOc7Oo", assembler: 1, healthKit: 1),
+        GoldenRevision("retraction-heart-rate", digest: "CiMnTaKtIFKsw99cXYpfbCjsAmmhKCcK3gJU93TXyl4", assembler: 1, healthKit: 1),
+        GoldenRevision("retraction-workout", digest: "usEhZIHmLddMDBczprVjzhs0D36sfLo1BbabLSD9w48", assembler: 1, healthKit: 1),
         GoldenRevision("sleep-analysis", digest: "iNlzbKzQmvuuwSYNtP01iBO0aUf7I6bcRiv7FtZsWx8", assembler: 1, healthKit: 1),
         GoldenRevision("state-of-mind", digest: "tKLQnzIzG1NWFOB2Tlfy4wcZ30_0JzFq4iPyzcLUFXc", assembler: 1, healthKit: 1),
         GoldenRevision("step-count-period", digest: "EGtl-T8Y_4ZYOsQrwTOwooimTqzOPzOizTeh_1xUyuI", assembler: 1, healthKit: 1),

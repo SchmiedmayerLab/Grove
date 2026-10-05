@@ -54,17 +54,22 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             limit: 1,
             sortedBy: [.init(\.startDate, order: .reverse)]
         )
-        let now = Date.now
-        let sequenceBase = UInt64(max(1, Int64(now.timeIntervalSince1970 * 1_000_000)))
-        let bundles = try samples.enumerated().map { offset, sample in
+        let healthKitSamples = try samples.map { sample in
             guard let healthKitSample = sample as? HKSample else {
                 throw NotASample()
             }
-            let context = try makeFHIRTestContext(
-                sequence: sequenceBase + UInt64(offset),
-                conversionInstant: now
-            )
-            return try HealthKitConverter().convert(healthKitSample, context: context).primary.bundle
+            return healthKitSample
+        }
+        var bundles: [ModelsR4.Bundle] = []
+        _ = try makeFHIRTestExporter().export(healthKitSamples) { export in
+            switch export.outcome {
+            case .graph(let graph):
+                bundles.append(graph.bundle)
+            case .refused(let error):
+                throw error
+            case .nothingToRetract:
+                break
+            }
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]

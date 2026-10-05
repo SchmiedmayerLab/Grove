@@ -185,8 +185,6 @@ struct ContentCorpusElectrocardiogram: Codable, Sendable {
     var voltages: [Voltage]
     /// The symptom samples correlated with the ECG, in the record's order.
     var symptoms: [Symptom] = []
-    /// How many symptom contexts the caller supplies, when that is not one per symptom.
-    var symptomContexts: Int?
 }
 
 
