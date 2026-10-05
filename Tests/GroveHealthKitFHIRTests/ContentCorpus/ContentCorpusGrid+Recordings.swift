@@ -283,8 +283,9 @@ extension ContentCorpusGrid {
 
     /// Heartbeat series and workout routes: their payloads, empty series, every link, the plain sample entry point, and
     /// a route's disclosure and track checked before its source facts. A fix whose horizontal accuracy CoreLocation
-    /// reports negative (an invalid coordinate) refuses the route: the registry's column, unlike the optional
-    /// readings, cannot be empty, and no fix may be left out.
+    /// reports negative (an invalid coordinate) refuses the route unclassified, first or last and whatever its altitude
+    /// reports: the registry's column, unlike the optional readings, cannot be empty, and no fix may be left out. A
+    /// zero radius is a reading; a nonfinite one is the writer's refusal.
     static var recordings: [ContentCorpusVector] {
         func series(_ label: String, _ beats: [ContentCorpusBeat], metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {
             convert("heartbeat-series/\(label)", ContentCorpusSource(.heartbeatSeries(beats: beats), end: start + 2, metadata: metadata))
@@ -306,8 +307,12 @@ extension ContentCorpusGrid {
             fix.speedAccuracy = -1
             return fix
         }
-        var invalidCoordinate = routeLocations[1]
-        invalidCoordinate.horizontalAccuracy = -1
+        func horizontal(_ accuracy: Double, _ fix: ContentCorpusLocation) -> ContentCorpusLocation {
+            var fix = fix
+            fix.horizontalAccuracy = accuracy
+            return fix
+        }
+        let invalidCoordinate = horizontal(-1, routeLocations[1])
         var linkedSeries = ContentCorpusSource(.heartbeatSeries(beats: heartbeats), end: start + 2)
         var linkedRoute = ContentCorpusSource(.workoutRoute(locations: routeLocations, disclosed: true), end: start + 1)
         linkedSeries.device = .watch
@@ -326,6 +331,9 @@ extension ContentCorpusGrid {
             route("unavailable-readings", unavailable),
             route("zero-readings", [routeLocations[0], restingFix]),
             route("negative-horizontal-accuracy", [routeLocations[0], invalidCoordinate]),
+            route("negative-horizontal-accuracy-first", [horizontal(-1, routeLocations[0]), routeLocations[1]]),
+            route("zero-horizontal-accuracy", [routeLocations[0], horizontal(0, routeLocations[1])]),
+            route("nonfinite-horizontal-accuracy", [routeLocations[0], horizontal(.nan, routeLocations[1])]),
             convert("workout-route/linked", linkedRoute),
             convert("workout-route/sample-entry", ContentCorpusSource(.bare(type: HKSeriesType.workoutRoute().identifier, sampleClass: "HKWorkoutRoute"))),
             route("precedence/omission-before-sync", routeLocations, disclosed: false, metadata: brokenSync),
