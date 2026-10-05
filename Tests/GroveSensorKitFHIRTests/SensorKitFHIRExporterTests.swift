@@ -272,6 +272,16 @@ struct SensorKitFHIRExporterTests {
         let (again, _) = try Fixtures.collect(exporter, [Self.sleep(11)], recordingDevice: nil)
         #expect(Self.sequences(again) == ["1"])
     }
+
+    @Test("Every conversion failure narrows to the refusal domain by its type")
+    func failuresNarrowToTheRefusalDomain() {
+        struct Unmodelled: Error {}
+        #expect(SensorKitConversionError(conversionFailure: SensorKitConversionError.conflictingDuplicate) == .conflictingDuplicate)
+        #expect(SensorKitConversionError(conversionFailure: SensorKitRecordError.emptySamples) == .invalidRecord(.emptySamples))
+        #expect(SensorKitConversionError(conversionFailure: ExchangeIdentityError.invalidInstant) == .exchangeIdentity(.invalidInstant))
+        #expect(SensorKitConversionError(conversionFailure: ExchangeGraphError.missingTimestamp) == .exchangeGraph(.missingTimestamp))
+        #expect(SensorKitConversionError(conversionFailure: Unmodelled()) == .unexpectedConversionFailure(String(reflecting: Unmodelled.self)))
+    }
 }
 
 
