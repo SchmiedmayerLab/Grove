@@ -15,7 +15,8 @@ import HealthKit
 
 /// A fail-closed reason why caller-supplied HealthKit ECG evidence was rejected.
 public enum HealthKitECGEvidenceFailure: Hashable, Sendable {
-    /// An ECG reached the sample entry point; its voltages and symptoms travel through the ECG record.
+    /// An ECG was exported as a bare sample; its voltages and symptoms travel in its
+    /// ``HealthKitFHIRExporter/Record/electrocardiogram(_:voltages:symptoms:)`` record.
     case evidenceRequired
     case invalidSourcePeriod
     case invalidReportedVoltageCount(Int)
@@ -120,7 +121,7 @@ public struct HealthKitDependencyFailure: Error, Equatable, Sendable {
 }
 
 
-/// A fail-closed refusal from the HealthKit conversion facade; every case reports one registry code.
+/// A fail-closed refusal of one HealthKit record by ``HealthKitFHIRExporter``; every case reports one registry code.
 ///
 /// A record with several faults is refused for the first in this order, whatever the options: its source type, then
 /// whether the export call named it before with other content, then its content (values, units, effective times),
@@ -132,7 +133,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     case unsupportedSourceType(HealthKitSourceType)
     case intentionallyUnsupported(HealthKitSourceType, reason: String)
     case notYetConvertible(HealthKitSourceType)
-    /// Admitted only as a platform-exclusive recording document, which this entry point does not emit.
+    /// Admitted only as a platform-exclusive recording document, which a bare sample of the type does not carry.
     case platformExclusiveSourceType(HealthKitSourceType)
     /// A blood pressure component converts only inside its admitting correlation.
     case componentRequiresCorrelation(HealthKitSourceType)

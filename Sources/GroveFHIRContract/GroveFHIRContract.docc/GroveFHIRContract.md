@@ -53,7 +53,7 @@ An ``ExchangeEventIdentifier`` is your producer instance UUID plus a monotonic `
 A retry resends the same bytes under the same identifier; a new revision of the record gets a new sequence.
 An ``ExchangeProducer`` mints both and keeps them, with what each event states, in a ledger your app stores; <doc:ExchangeLedgerStorage> says what that storage must guarantee.
 The HealthKit, SensorKit and Questionnaire exporters number every event through it.
-A caller-managed converter that takes an ``ExchangeEventContext`` you build yourself, such as the deprecated HealthKit converter or the source-neutral sensor converter, does not use the ledger: persist the producer instance once and durably advance the next sequence before you emit.
+A caller-managed converter that takes an ``ExchangeEventContext`` you build yourself, such as the source-neutral sensor converter, does not use the ledger: persist the producer instance once and durably advance the next sequence before you emit.
 
 ### The repository scope
 
@@ -126,7 +126,7 @@ let enrollment = try StudyEnrollment(
 ```
 
 Every disclosure policy defaults to omission.
-``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)`` discloses the clear native record identifier under a system you own, and ``RouteDisclosurePolicy/authorized`` admits a workout route.
+``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)`` discloses the clear native record identifier under a system you own; each adapter's exporter options state the rest, such as HealthKit's workout route.
 
 A ``RepositoryID`` per ``ExchangeGraphNode`` gives a graph node the logical id your repository assigned, and nothing else in the graph changes.
 
@@ -157,7 +157,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Subject | ``Subject`` and its ``Subject/identifier`` |
 | Study enrollment | ``StudyEnrollment`` |
 | Application, host and recording device | ``ApplicationDevice``, ``HostDevice``, ``RecordingDevice`` |
-| Writer | ``ExchangeGraphNode/writer`` and ``ExchangeGraphNode/writerHost``, chosen by the adapter's writer option, for HealthKit `HealthKitWriter` |
+| Writer | ``ExchangeGraphNode/writer`` and ``ExchangeGraphNode/writerHost``, chosen by the adapter's writer option, for HealthKit `HealthKitFHIRExporter.WriterPolicy` |
 | Retraction event and target | ``RetractionEvent``, ``RetractionTarget``, ``RetractionTargetRole`` |
 | Governed source identifier | ``GovernedSourceIdentifierDisclosurePolicy`` |
 | Producer diagnostic | ``ProducerDiagnostic`` with its ``ExchangeGraphRule`` |
@@ -216,4 +216,3 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
 - ``GovernedSourceIdentifierType``
-- ``RouteDisclosurePolicy``

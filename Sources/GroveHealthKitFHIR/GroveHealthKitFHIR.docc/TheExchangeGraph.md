@@ -1,4 +1,4 @@
-# The Conversion Graph
+# The Exchange Graph
 
 <!--
 #
@@ -10,17 +10,20 @@
 #
 -->
 
-Understand the resources, immutable identities, and references emitted for one source record/version.
+Understand the resources, immutable identities, and references exported for one source record/version.
 
 ## Overview
 
-Converting one `HKSample` produces a closed graph: the primary clinical output, any mandatory child outputs or source artifact, immutable Device snapshots, the bundled study context when an enrollment is known, and the Provenance assertion for that event.
+Exporting one `HKSample` produces a closed graph: the primary clinical output, any mandatory child outputs or source artifact, immutable Device snapshots, the bundled study context when an enrollment is known, and the Provenance assertion for that event.
 
 ```swift
-let conversion = try HealthKitConverter().convert(sample, context: context).primary
-conversion.identifiers.primaryOutput   // the typed identity of the normalized measurement
-conversion.graph.entry(fullURL: try conversion.identifiers.primaryOutput.fullURL)
-conversion.bundle                      // the complete graph to send
+let receipt = try exporter.export([sample]) { export in
+    guard let graph = export.graph else {
+        return // Refused: export.outcome names the reason.
+    }
+    // `graph.eventIdentifier` is the event the graph asserts, and `graph.bundle` the graph as ModelsR4 resources.
+    try stage(graph.json)   // the validated bytes, stored and sent verbatim
+}
 ```
 
 The active Bundle claims `https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle`, carries a typed event identifier, and contains exactly one source record/version.
@@ -35,7 +38,7 @@ Every supporting entry must be connected to an output or that lifecycle assertio
 An `Observation` carries the normalized value, coding, and effective time required by the selected catalog row.
 It claims the source-neutral Grove profile and the HealthKit adapter profile where both apply.
 Quantity units are exact UCUM codes.
-The converter rejects nonfinite, out-of-domain, or fractional integer-only values instead of relying on a later server validator.
+The exporter refuses nonfinite, out-of-domain, or fractional integer-only values instead of relying on a later server validator.
 
 Every output has both typed opaque identifiers:
 
@@ -54,28 +57,28 @@ Missing, unknown, and future releases fail before Grove creates a DocumentRefere
 
 ## The devices
 
-The recording hardware, conversion application, and host are separate Device resources because they answer different provenance questions.
+The recording hardware, converting application, and host are separate Device resources because they answer different provenance questions.
 Each is an immutable event-time snapshot; an application links to its host through `Device.parent`.
 
 A HealthKit application Device claims the HealthKit application profile and carries exactly two identifiers: the opaque event-scoped `device-snapshot`, plus the clear Apple product bundle identifier typed as `healthkit-identifier-type#apple-bundle-id`.
 That clear value identifies an application product, never an installation, host, account, or person.
-The converter always uses this shape; the writer of an `HKSourceRevision` uses it only when the caller classifies the source as an application through ``HealthKitWriter``.
+The converting application always uses this shape; the writer of an `HKSourceRevision` uses it only when the caller classifies the source as an application through ``HealthKitFHIRExporter/WriterPolicy``.
 That writer snapshot and the host it ran on are the graph's `writer` and `writerHost` nodes, the source agent of the Provenance.
 HealthKit does not say whether a source is an application or a device, so a source the caller has not classified states no writer and the Provenance names no author; Grove never infers the classification from the bundle identifier, the source name or the product type.
-A writer snapshot the converter already states, such as the phone the converter runs on, is that one entry rather than a second one.
+A writer snapshot the graph already states, such as the application that runs the exporter, is that one entry rather than a second one.
 
 A recording Device carries two identities.
-`recording-device` is the stable HMAC identity for the physical unit named by the ``RecordingDeviceResolver``.
+`recording-device` is the stable HMAC identity for the physical unit ``HealthKitFHIRExporter/RecordingDevicePolicy`` names.
 `device-snapshot` identifies the exact event-time representation and is the selected Bundle node/fullUrl key.
 Historical events never mutate one shared Device resource.
-A device the resolver cannot name is omitted rather than merged, and the conversion set reports ``HealthKitConversionWarning/recordingDeviceOmitted(deviceName:)``.
+A device the policy cannot name is omitted rather than merged, and the export reports the `mobile-omission.recording-device` warning.
 
 Only the catalogued descriptive fields are copied.
-A serial number or UDI remains omitted unless the caller selects the explicit authorized disclosure policy.
+A serial number or UDI remains omitted unless ``HealthKitFHIRExporter/Options/udi`` is `.authorized`.
 
 ## The study context
 
-A `StudyEnrollment` in the event context becomes three entry-node entries: the `ResearchStudy`, the `PlanDefinition` it instantiates at the exact canonical URL and version, and the `ResearchSubject` that enrolls the subject.
+A `StudyEnrollment` among the producer's studies becomes three entry-node entries: the `ResearchStudy`, the `PlanDefinition` it instantiates at the exact canonical URL and version, and the `ResearchSubject` that enrolls the subject.
 Every output references the study through the `workflow-researchStudy` extension.
 A `Subject.bundled` adds the `Patient` entry under the same entry-node scheme.
 
@@ -87,9 +90,9 @@ Its direct `meta.profile` claim contains exactly the one admitted HealthKit conv
 It records:
 
 - every emitted output as a target;
-- the converter application as the assembler and its host relationship;
+- the converting application as the assembler and its host relationship;
 - the typed `source-record` identifier as the source entity;
-- the event conversion instant in `occurred` and `recorded`.
+- the event's frozen instant in `occurred` and `recorded`.
 
 The source HealthKit UUID, writer record, source-revision context, and device tokens are framed HMAC inputs.
 They are not emitted through clear, global Grove NamingSystems.
@@ -117,7 +120,7 @@ A retry that is equal under this comparison is the exact retry the exchange prot
 
 ## Retractions
 
-A retraction is a new assertion Bundle with its own persisted event identifier, built by `RetractionEvent`.
+A retraction is a new assertion Bundle with its own event identifier, which ``HealthKitFHIRExporter/retract(_:at:receive:)`` exports for a deleted record.
 Its Provenance uses exactly one Grove `source-record-retracted` lifecycle coding and targets typed logical identifiers from an earlier active event.
 It is not an HTTP delete instruction.
 

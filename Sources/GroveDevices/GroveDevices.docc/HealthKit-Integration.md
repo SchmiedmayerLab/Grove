@@ -34,10 +34,10 @@ Use methods like ``GroveBluetoothServices/BloodPressureMeasurement/bloodPressure
 representation.
 
 > Tip: After producing an `HKSample`, pass it to the profile-aware
-    [`HealthKitConverter`](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md).
-    It returns a complete HL7 FHIR R4 collection graph with Observation, Device, and Provenance
+    [`HealthKitFHIRExporter`](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md).
+    It delivers a complete HL7 FHIR R4 collection graph with Observation, Device, and Provenance
     resources when the sample has a published conversion contract.
-    [The Conversion Graph](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/TheConversionGraph.md)
+    [The Exchange Graph](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/TheExchangeGraph.md)
     shows what those resources look like and why the device this module models appears beside
     every measurement.
 

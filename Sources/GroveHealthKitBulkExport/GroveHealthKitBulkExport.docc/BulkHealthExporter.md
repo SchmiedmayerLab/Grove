@@ -42,7 +42,7 @@ See Pausing and Recovery below for checkpoint failures and restoration behavior.
 
 This example implements a custom ``BatchProcessor``, which uploads the exported HealthKit samples received from the ``BulkHealthExporter`` into Firebase.
 Both examples convert through one `HealthKitFHIRExporter`, built as [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md) describes; it mints every event through its producer's ledger.
-The processor's `Output` is the exporter's `Receipt`: ``BatchProcessor/didPersist(_:)`` releases it once the session has durably recorded the batch, so a batch processed again after a crash reproduces the same events, byte for byte.
+The processor's `Output` is the `ExchangeProducer.Receipt` the export returns: ``BatchProcessor/didPersist(_:)`` releases it once the session has durably recorded the batch, so a batch processed again after a crash reproduces the same events, byte for byte.
 Each graph is stored as its validated `json` bytes, under its event identifier; the HealthKit UUID never names a stored object.
 
 ```swift
@@ -50,7 +50,7 @@ struct FirebaseUploader: BatchProcessor {
     let participantID: String
     let exporter: HealthKitFHIRExporter
 
-    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws -> HealthKitFHIRExporter.Receipt {
+    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws -> ExchangeProducer.Receipt {
         let db = Firestore.firestore()
         let healthData = db.collection("participants").document(participantID).collection("healthData")
         let batch = db.batch()
@@ -63,7 +63,7 @@ struct FirebaseUploader: BatchProcessor {
         return receipt
     }
 
-    func didPersist(_ receipt: HealthKitFHIRExporter.Receipt) async {
+    func didPersist(_ receipt: ExchangeProducer.Receipt) async {
         receipt.release()
     }
 }
@@ -105,7 +105,7 @@ struct FHIREncodedJSONExporter: BatchProcessor {
     /// One batch's file of graphs, and the receipt to release once the session recorded the batch.
     struct ExportedFile: Sendable {
         let url: URL
-        let receipt: HealthKitFHIRExporter.Receipt
+        let receipt: ExchangeProducer.Receipt
     }
 
     let exporter: HealthKitFHIRExporter
