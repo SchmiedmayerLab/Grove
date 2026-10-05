@@ -29,7 +29,7 @@ If you already know the pieces, jump to <doc:#Beyond-the-minimum>.
 
 ## What you need and why
 
-Four inputs make the producer, SensorKit adds two facts of its own, and everything else has a default.
+Five inputs configure an exporter, SensorKit adds two facts of its own, and everything else has a default.
 
 ### The subject pseudonym
 
@@ -68,7 +68,7 @@ The exporter needs the system under which the exact `SRVisit.locationId` is carr
 Each export call adds the time zone the batch reported its instants in; persist it with the batch, so a redelivery states the same bounds.
 
 > Note: The host defaults to `HostDevice.current()` and the event instant to now.
-> The exporter freezes the instant, the application, the host and the studies with each event, so a redelivery before the receipt is released rebuilds the same bytes, even after an update.
+> The producer freezes the instant, the application, the host and the studies with each event, so a redelivery before the receipt is released rebuilds the same bytes, even after an update.
 
 ## Assemble it
 
