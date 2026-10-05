@@ -370,7 +370,6 @@ var targets: [Target] = [
         name: "GroveHealthKitFHIR",
         dependencies: [
             .target(name: "GroveFHIRContract"),
-            .target(name: "GroveHealthKit"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
@@ -382,6 +381,7 @@ var targets: [Target] = [
         name: "GroveHealthKitFHIRTests",
         dependencies: [
             .target(name: "GroveFHIRContract"),
+            .target(name: "GroveHealthKit"),
             .target(name: "GroveHealthKitFHIR")
         ],
         exclude: testTargetExcludes("GroveHealthKitFHIRTests", additional: ["UITests"]),
