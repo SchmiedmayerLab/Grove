@@ -77,7 +77,10 @@ struct QuestionnaireGraphComparisonTests {
         Case(name: "utc", instant: 1_787_931_125.0004, recorded: "2026-08-28T15:32:05Z", occurred: "2026-08-28T15:32:05Z")
     ]
 
-    /// Ties the bytes above to the output revisions the exporter's context fingerprint states.
+    /// The row of the guide's pair withdrawn a day after the guide's instant, which has no pre-exporter baseline.
+    static let retraction = "retraction"
+
+    /// Ties the bytes above, and the retraction's, to the output revisions the exporter's context fingerprint states.
     ///
     /// An exact redelivery is byte-identical only while the projection emits the same bytes for equal inputs, so any
     /// change to a case's `ExchangeGraph.json`, whether through the baseline or the approved changes, fails here until
@@ -87,6 +90,7 @@ struct QuestionnaireGraphComparisonTests {
         Revision(name: "fractional", digest: "VQp5RruS7F5tWOE9aAzW3ekOrSLWms_Riz0Rgbe4LcY", assembler: 1, questionnaire: 1),
         Revision(name: "guide", digest: "xeDuynS1-jIdoAvYrsC-XkLYCx-xtpNamXzQjnJZGSA", assembler: 1, questionnaire: 1),
         Revision(name: "positive-offset", digest: "DNKXJaEUmirKNv8kom-DOykm02plWm-x_FhcmbD-KAw", assembler: 1, questionnaire: 1),
+        Revision(name: retraction, digest: "NRvnnCMJ8vH79ZP5s8fGJfcs86RuWHCd2bg3Tavhbls", assembler: 1, questionnaire: 1),
         Revision(name: "utc", digest: "Cbmq9hnxZ109PJuV2HnYzpkEY9UwFs5nd_ipOrINoVA", assembler: 1, questionnaire: 1)
     ]
 
@@ -177,6 +181,18 @@ struct QuestionnaireGraphComparisonTests {
         return try #require(exports.first?.graph)
     }
 
+    /// The wire bytes `row` pins: its case's graph, or the guide pair's retraction under the baseline's producer.
+    private static func bytes(of row: Revision) throws -> Data {
+        guard row.name == retraction else {
+            return try graph(#require(cases.first { $0.name == row.name })).json
+        }
+        let exporter = try Fixtures.exporter(Fixtures.producer(pinning: Fixtures.producerInstance))
+        let withdrawnAt = Fixtures.instant.addingTimeInterval(86_400)
+        var retractions: [QuestionnaireFHIRExporter.Retraction] = []
+        _ = try exporter.retract([.init(record: Fixtures.guideRecord(), withdrawnAt: withdrawnAt)], at: withdrawnAt) { retractions.append($0) }
+        return try #require(retractions.first?.graph).json
+    }
+
     @Test("The exporter's graph is the baseline with only the approved changes", arguments: Self.cases)
     func matchesTheBaselineUpToTheApprovedChanges(_ testCase: Case) throws {
         let graph = try Self.graph(testCase)
@@ -184,11 +200,10 @@ struct QuestionnaireGraphComparisonTests {
         #expect(try Self.canonical(JSONSerialization.jsonObject(with: graph.json)) == Self.canonical(expected))
     }
 
-    @Test("Each case's bytes match its row, whose revisions the code has reached", arguments: Self.revisions)
+    @Test("Each row's bytes match its digest, whose revisions the code has reached", arguments: Self.revisions)
     func bytesMatchTheirRevision(_ row: Revision) throws {
-        #expect(Set(Self.revisions.map(\.name)) == Set(Self.cases.map(\.name)))
-        let testCase = try #require(Self.cases.first { $0.name == row.name })
-        let digest = Data(SHA256.hash(data: try Self.graph(testCase).json)).base64URLEncodedStringWithoutPadding
+        #expect(Set(Self.revisions.map(\.name)) == Set(Self.cases.map(\.name) + [Self.retraction]))
+        let digest = Data(SHA256.hash(data: try Self.bytes(of: row))).base64URLEncodedStringWithoutPadding
         #expect(digest == row.digest, "\(row.name) changed to \(digest): update its row, with the bumped output revision if an output changed")
         #expect(row.assembler <= ExchangeGraphAssembler.outputRevision)
         #expect(row.questionnaire <= QuestionnaireExchangeProjection.outputRevision)
