@@ -43,6 +43,9 @@ struct HealthKitECGContentTests {
         VoltagePoint(offset: 0.256, millivolts: 3)
     ]
 
+    /// Four voltages 3 ms apart: their frequency, 1000/3 Hz, has no exact decimal.
+    private static let threeMillisecondPoints = [0.25, 0.253, 0.256, 0.259].map { VoltagePoint(offset: $0, millivolts: 0) }
+
     /// A stored ECG reporting `reportedCount` voltages sampled at `samplingFrequencyHertz` and an average heart rate of
     /// `averageHeartRate` beats per minute, supplying `points` and stating `metadata`.
     private static func record(
@@ -258,6 +261,13 @@ struct HealthKitECGContentTests {
                 expected: .samplingFrequencyMismatch
             ),
             InvalidCase(
+                testDescription: "sampling frequency one binary64 step above 1000 / period",
+                reportedCount: 4,
+                samplingFrequencyHertz: (1_000.0 / 3).nextUp,
+                points: threeMillisecondPoints,
+                expected: .samplingFrequencyMismatch
+            ),
+            InvalidCase(
                 testDescription: "nonfinite voltage",
                 reportedCount: 2,
                 samplingFrequencyHertz: 500,
@@ -274,6 +284,46 @@ struct HealthKitECGContentTests {
                 points: testCase.points
             )
         }
+    }
+
+    /// The guide compares the frequency and 1000 / period as shortest round-trip decimals, so the binary64 nearest the
+    /// quotient is the period's frequency: 1000/3 Hz at 3 ms, though no decimal times 3 is 1000; 762.939453125 Hz at
+    /// 1.31072 ms, the exact quotient, which dividing by the period's own binary64 misses (762.9394531249999); and
+    /// Apple Watch's 512 Hz at 1.953125 ms.
+    @Test("A sampling frequency nearest 1000 / period agrees with the period", arguments: [
+        ([0.25, 0.253, 0.256, 0.259], 1_000.0 / 3),
+        ([0.25, 0.251_310_72, 0.252_621_44, 0.253_932_16], 762.939_453_125),
+        ([0, 0.001_953_125, 0.003_906_25, 0.005_859_375], 512)
+    ] as [([Double], Double)])
+    func frequencyNearestTheQuotientIsAdmitted(offsets: [Double], hertz: Double) {
+        let points = offsets.map { VoltagePoint(offset: $0, millivolts: 0) }
+        #expect(throws: Never.self) {
+            try Self.waveform(reportedCount: points.count, samplingFrequencyHertz: hertz, points: points)
+        }
+    }
+
+    /// Exactly the binary64 nearest 1000 / period agrees with the period, and its neighbours do not: for every period of
+    /// at most four significant digits from 0.0001 ms to 9999 ms, and for ten-digit ones, against the division of the
+    /// exact power of ten by the exact significand, which rounds the exact quotient once.
+    @Test("Only the binary64 nearest 1000 / period agrees with the period")
+    func onlyTheNearestBinary64AgreesWithThePeriod() throws {
+        func admits(_ hertz: Double, _ period: Decimal) -> Bool {
+            (try? HealthKitECGContent.Waveform.requireFrequency(hertz, period: period)) != nil
+        }
+        let powersOfTen = try (3...15).map { try #require(Double("1e\($0)")) }
+        let short = (1..<10_000).map { ($0, 0...4) }
+        let long = stride(from: 1_000_000_007, through: 9_999_999_999, by: 89_999_999).map { ($0, 0...12) }
+        var disagreeing: [Decimal] = []
+        for (significand, exponents) in short + long {
+            for exponent in exponents {
+                let period = Decimal(sign: .plus, exponent: -exponent, significand: Decimal(significand))
+                let nearest = powersOfTen[exponent] / Double(significand)
+                if !admits(nearest, period) || admits(nearest.nextUp, period) || admits(nearest.nextDown, period) {
+                    disagreeing.append(period)
+                }
+            }
+        }
+        #expect(disagreeing.isEmpty, "\(disagreeing.count) periods disagree with their nearest frequency: \(disagreeing.prefix(10))")
     }
 
     @Test

@@ -324,15 +324,22 @@ extension HealthKitECGContent.Waveform {
         return period
     }
 
-    /// A stated sampling frequency is finite and positive, and one period at it lasts exactly one sample.
-    private static func requireFrequency(_ hertz: Double?, period: Decimal) throws(HealthKitConversionError) {
+    /// A stated sampling frequency is finite and positive, and the one the period (in milliseconds) states.
+    ///
+    /// The guide canonicalizes the frequency and 1000 / period to their shortest round-trip decimals and requires them
+    /// equal, with no tolerance. Equal shortest round-trip decimals are equal binary64 values, so the frequency must be
+    /// the binary64 nearest the quotient as `Decimal` divides it (to at least 37 significant digits less the
+    /// period's), which one correctly rounded parse finds. For a period of at most ten significant digits that is the
+    /// exact quotient's nearest binary64: a 3 ms period admits 333.3333333333333 Hz, although no decimal times 3 is
+    /// 1000, and refuses the binary64 one step above it.
+    static func requireFrequency(_ hertz: Double?, period: Decimal) throws(HealthKitConversionError) {
         guard let hertz else {
             return
         }
         guard hertz.isFinite, hertz > 0 else {
             throw .ecgEvidence(.invalidSamplingFrequency)
         }
-        guard Decimal(hertz) * period == 1_000 else {
+        guard hertz == Double((1_000 / period).description) else {
             throw .ecgEvidence(.samplingFrequencyMismatch)
         }
     }
