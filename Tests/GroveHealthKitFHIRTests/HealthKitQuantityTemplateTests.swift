@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import ModelsR4
 import Testing
@@ -28,6 +28,22 @@ struct HealthKitQuantityTemplateTests {
     private static let components: [ComponentContract] = (MeasurementCatalog.all + HealthKitMeasurementCatalog.all)
         .flatMap(\.components)
         .filter { $0.quantity != nil }
+
+    /// `domain` with each combination of inclusive and exclusive bounds; the generated catalogs state only inclusive ones.
+    private static func inclusivenessVariants(of domain: QuantityValueDomain) -> Set<QuantityValueDomain> {
+        func boundary(_ boundary: QuantityBoundary, inclusive: Bool) -> QuantityBoundary {
+            QuantityBoundary(value: boundary.value.description, inclusive: inclusive)
+        }
+        return Set([true, false].flatMap { minimumInclusive in
+            [true, false].map { maximumInclusive in
+                QuantityValueDomain(
+                    minimum: boundary(domain.minimum, inclusive: minimumInclusive),
+                    maximum: domain.maximum.map { boundary($0, inclusive: maximumInclusive) },
+                    integerOnly: domain.integerOnly
+                )
+            }
+        })
+    }
 
     @Test("A quantity template states its contract's code, system, unit and domain, and no value")
     func templatesStateTheirContract() {
@@ -101,6 +117,25 @@ struct HealthKitQuantityTemplateTests {
         for bound in domains.flatMap({ [$0.minimum] + [$0.maximum].compactMap(\.self) }) {
             let binary64 = try #require(Double(bound.value.description))
             #expect(Decimal(string: String(binary64), locale: .posix) == bound.value, "\(bound.value)")
+        }
+    }
+
+    /// The binary64 check judges only values without a `Decimal`, which never equal an exact bound; on every value that
+    /// has one, at and beside each bound, it must give the decimal-exact `contains(_:)`'s answer, whichever way each
+    /// bound is inclusive.
+    @Test("The binary64 domain check agrees with the decimal one, inclusive and exclusive bounds alike")
+    func binary64DomainCheckAgreesWithTheDecimalOne() throws {
+        let domains = Set(Self.quantities.compactMap(\.valueDomain))
+        #expect(!domains.isEmpty)
+        for domain in domains {
+            let bounds = try ([domain.minimum] + [domain.maximum].compactMap(\.self)).map { try #require(Double($0.value.description)) }
+            let values = bounds.flatMap { bound in [0, -1, 1, -0.5, 0.5, -1e-9, 1e-9].map { bound + $0 } }
+            for variant in Self.inclusivenessVariants(of: domain) {
+                for value in values {
+                    let decimal = try GroveFHIRDecimal(value).decimal
+                    #expect(variant.excludes(binary64: value) == !variant.contains(decimal), "\(variant) at \(value)")
+                }
+            }
         }
     }
 
