@@ -233,7 +233,7 @@ enum HealthKitSampleProjection {
 extension Observation {
     /// The one sample this observation describes.
     ///
-    /// This is the reverse of the converter's observation assembly, derived from the same content
+    /// This is the reverse of the exporter's observation assembly, derived from the same content
     /// plans: the code selects the measurement contract, the contract selects the one HealthKit
     /// quantity type whose plan reads it, and the published unit bindings read the value's UCUM unit.
     /// A measurement read by several HealthKit types, or by none, refuses rather than guessing.

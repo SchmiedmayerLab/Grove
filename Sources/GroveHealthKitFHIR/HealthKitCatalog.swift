@@ -58,7 +58,7 @@ public struct HealthKitUnitBinding: Sendable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitCatalog {
     /// Every platform identifier in the frozen HealthKit inventory, including characteristics
-    /// and other non-sample identifiers that are outside this converter's input type. The
+    /// and other non-sample identifiers that are outside the exporter's input type. The
     /// sleep-duration aggregate lives in the catalog's derivedAggregates, not in these rows.
     /// A consumer can render this directly as the implementation coverage matrix.
     public static let entries: [HealthKitCatalogEntry] = HealthKitContentPlan.all.map(\.entry)
