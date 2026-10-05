@@ -169,9 +169,10 @@ A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
 A deleted sample is taken back with ``HealthKitFHIRExporter/retract(_:at:receive:)``.
 It needs only the deleted object's UUID and the sample type it was reported for; the source record and every output it retracts are recomputed, so nothing from the sample's export has to be kept.
 HealthKit reports a deletion without its time, so a ``HealthKitFHIRExporter/Deletion`` bounds it by the `deletedAfter` the deletion handler received and the time it was reported.
+`sampleType` is the `HKSampleType` the anchored query that reported the deletion ran for.
 
 ```swift
-guard let type = HealthKitSourceType(sampleType.hkSampleType) else {
+guard let type = HealthKitSourceType(sampleType) else {
     return // Never exported, so there is nothing to retract.
 }
 let deletion = HealthKitFHIRExporter.Deletion(uuid: deletedObject.uuid, sourceType: type, deletedAfter: deletedAfter, detectedAt: reportedAt)

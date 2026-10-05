@@ -245,7 +245,7 @@ struct SensorKitFHIRExporterTests {
 
     @Test("Study references follow an output's own statements; the wrist-temperature algorithm version follows them")
     func studyContextOrder() throws {
-        let studies: [StudyEnrollment] = [.test("study-a"), .test("study-b")]
+        let studies: [StudyEnrollment] = try [.test("study-a"), .test("study-b")]
         let exporter = try Fixtures.exporter(Fixtures.producer(studies: studies))
         let (exports, _) = try Fixtures.collect(exporter, [try Self.wristTemperature(10)], recordingDevice: nil)
         let graph = try #require(exports.first?.graph)
@@ -276,9 +276,8 @@ struct SensorKitFHIRExporterTests {
 
 
 extension StudyEnrollment {
-    static func test(_ id: String) -> StudyEnrollment {
-        // swiftlint:disable:next force_try
-        try! StudyEnrollment(
+    static func test(_ id: String) throws -> StudyEnrollment {
+        try StudyEnrollment(
             study: BusinessIdentifier(system: "https://grovealliance.org/fhir/testing/identifiers/researchstudy", value: id),
             protocolURL: FHIRPrimitive(Canonical(stringLiteral: "https://study.example.org/PlanDefinition/\(id)")),
             protocolVersion: "1",

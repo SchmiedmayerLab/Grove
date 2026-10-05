@@ -49,8 +49,8 @@ Never send an email address, display label, bare value, or literal URL in place 
 ## Attributing a study
 
 A known enrollment travels as a `StudyEnrollment`: the study identifier, the protocol's canonical URL and version, and the enrollment identifier.
-The exporter emits the `ResearchStudy`, `PlanDefinition`, and `ResearchSubject` entries itself under the catalog's entry-node roles, and every output carries the `workflow-researchStudy` extension.
-A recording document names its studies in `DocumentReference.context.related` instead.
+The exporter emits the `ResearchStudy`, `PlanDefinition`, and `ResearchSubject` entries itself under the catalog's entry-node roles, and every Observation output carries the `workflow-researchStudy` extension.
+A recording or clinical document names its studies in `DocumentReference.context.related` instead.
 The producer's `studies` default to none.
 
 Each enrollment keeps its own protocol revision: study A can carry protocol A version 2 while study B carries protocol B version 4.

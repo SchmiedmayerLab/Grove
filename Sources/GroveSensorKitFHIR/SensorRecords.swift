@@ -15,6 +15,8 @@ import ModelsR4
 
 
 /// Contract-level failures raised before Grove emits a Sensor FHIR resource.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public enum SensorRecordError: Error, Equatable, Sendable {
     case emptyNativeRecordID
     case emptySourceTypeIdentifier
@@ -44,6 +46,8 @@ public enum SensorRecordError: Error, Equatable, Sendable {
 
 
 /// A complete coded concept used to name a sensor stream or ECG channel.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorCode: Hashable, Sendable {
     public let system: String
     public let code: String
@@ -77,6 +81,8 @@ public struct SensorCode: Hashable, Sendable {
 
 
 /// One source-neutral, uniformly sampled numeric time series.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorSampledDataRecord: Sendable {
     /// Adapter-local immutable record identity. It is HMACed before it reaches FHIR output.
     public let nativeRecordID: String
@@ -190,6 +196,8 @@ public struct SensorSampledDataRecord: Sendable {
 
 
 /// One uniformly sampled ECG lead channel, expressed in millivolts.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorECGChannel: Sendable {
     public let lead: SensorCode
     public let millivolts: [Double]
@@ -217,6 +225,8 @@ public struct SensorECGChannel: Sendable {
 
 
 /// A source-neutral ECG recording with one or more uniformly sampled lead channels.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorECGRecord: Sendable {
     /// Adapter-local immutable record identity. It is HMACed before it reaches FHIR output.
     public let nativeRecordID: String
@@ -305,6 +315,8 @@ public struct SensorECGRecord: Sendable {
 /// Construction fails closed unless the caller supplies exactly one
 /// ``SensorRawPayloadAdmission``. Grove consumes that producer-side assertion during
 /// initialization and does not retain or serialize it into the FHIR graph.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorRecordingDocument: Sendable {
     /// Where the native recording bytes travel.
     public enum Payload: Sendable {
@@ -425,6 +437,8 @@ public struct SensorRecordingDocument: Sendable {
 
 
 /// One record accepted by the source-neutral Sensor FHIR converter.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public enum SensorRecord: Sendable {
     case sampledData(SensorSampledDataRecord)
     case electrocardiogram(SensorECGRecord)

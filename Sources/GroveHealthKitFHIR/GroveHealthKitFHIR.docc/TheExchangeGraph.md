@@ -63,7 +63,7 @@ Each is an immutable event-time snapshot; an application links to its host throu
 A HealthKit application Device claims the HealthKit application profile and carries exactly two identifiers: the opaque event-scoped `device-snapshot`, plus the clear Apple product bundle identifier typed as `healthkit-identifier-type#apple-bundle-id`.
 That clear value identifies an application product, never an installation, host, account, or person.
 The converting application always uses this shape; the writer of an `HKSourceRevision` uses it only when the caller classifies the source as an application through ``HealthKitFHIRExporter/WriterPolicy``.
-That writer snapshot and the host it ran on are the graph's `writer` and `writerHost` nodes, the source agent of the Provenance.
+That writer snapshot and the host it ran on are the graph's `writer` and `writerHost` nodes, and the writer is the author agent of the Provenance's source-record entity.
 HealthKit does not say whether a source is an application or a device, so a source the caller has not classified states no writer and the Provenance names no author; Grove never infers the classification from the bundle identifier, the source name or the product type.
 A writer snapshot the graph already states, such as the application that runs the exporter, is that one entry rather than a second one.
 

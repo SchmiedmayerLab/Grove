@@ -10,6 +10,8 @@ public import GroveFHIRContract
 
 
 /// A typed failure for one record; batch conversion never drops input silently.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorRecordFailure: Error, Equatable, Sendable {
     public let nativeRecordID: String
     public let sourceTypeIdentifier: String
@@ -18,6 +20,8 @@ public struct SensorRecordFailure: Error, Equatable, Sendable {
 
 
 /// Why one source record could not be converted; every case reports one registry code.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public enum SensorConversionError: Error, Equatable, Sendable {
     case invalidExchangeIdentity(String)
     case repositoryIDWithoutRecordingDevice
