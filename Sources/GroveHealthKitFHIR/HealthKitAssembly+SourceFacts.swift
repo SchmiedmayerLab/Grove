@@ -17,7 +17,7 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
-    /// What a sample says about its origin, resolved once under the policies in force: the physical
+    /// What a sample says about its origin, resolved once under the exporter's policies: the physical
     /// unit it was measured on, who wrote it, which clear identifiers travel, and what is withheld.
     struct SourceFacts {
         let recordingDevice: ExchangeRecordingDeviceDraft?
@@ -25,29 +25,35 @@ extension HealthKitAssembly {
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
         let wasUserEntered: Bool
-        let warnings: [HealthKitConversionWarning]
+        /// Each one registered `mobile-omission` rule. An omission a policy chose is not a warning.
+        let warnings: [ProducerDiagnostic]
 
-        /// The facts of `sample`, whose metadata `metadata` bridged once.
-        init(_ sample: HKSample, metadata: HealthKitSampleMetadata, options: HealthKitConversionOptions) throws {
+        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it.
+        init(
+            _ sample: HKSample,
+            metadata: HealthKitSampleMetadata,
+            policies: HealthKitFHIRExporter.ResolvedPolicies,
+            options: HealthKitFHIRExporter.Options
+        ) throws {
             let revision = sample.sourceRevision
-            var warnings: [HealthKitConversionWarning] = []
+            var warnings: [ProducerDiagnostic] = []
             var recordingDevice: ExchangeRecordingDeviceDraft?
             if let healthKitDevice = sample.device {
-                if let recorder = options.recordingDevice.recordingDevice(for: healthKitDevice) {
-                    recordingDevice = Self.recordingDevice(recorder, healthKitDevice: healthKitDevice, udi: options.udiDisclosure)
-                } else {
+                if let recorder = policies.recordingDevice {
+                    recordingDevice = Self.recordingDevice(recorder, healthKitDevice: healthKitDevice, udi: options.udi)
+                } else if options.recordingDevice.reportsDeclinedDevices {
                     // Model and version facts cannot identify a physical unit, so the shared recording
                     // Device is omitted rather than merged, and the omission is reported.
-                    warnings.append(.recordingDeviceOmitted(deviceName: healthKitDevice.name?.nonBlank))
+                    warnings.append(ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic)
                 }
             }
             self.recordingDevice = recordingDevice
-            self.writer = try Self.writer(revision, classification: options.writer)
-            self.nativeIdentifiers = [options.nativeIdentifierDisclosure.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
+            self.writer = try Self.writer(revision, classification: policies.writer)
+            self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
             self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
             self.wasUserEntered = metadata.wasUserEntered
             if !metadata.withheldKeys.isEmpty {
-                warnings.append(.unmodeledMetadataWithheld(keys: metadata.withheldKeys))
+                warnings.append(ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic)
             }
             self.warnings = warnings
         }
@@ -63,7 +69,7 @@ extension HealthKitAssembly.SourceFacts {
     private static func recordingDevice(
         _ recorder: RecordingDevice,
         healthKitDevice: HKDevice,
-        udi: HealthKitUDIDisclosurePolicy
+        udi: HealthKitFHIRExporter.Disclosure
     ) -> ExchangeRecordingDeviceDraft {
         var device = recordingDevice(
             name: recorder.name ?? healthKitDevice.name?.nonBlank,
@@ -75,7 +81,7 @@ extension HealthKitAssembly.SourceFacts {
         versions.appendVersion(healthKitDevice.firmwareVersion, code: "531976", display: "MDC_ID_PROD_SPEC_FW")
         versions.appendVersion(healthKitDevice.softwareVersion, code: "531975", display: "MDC_ID_PROD_SPEC_SW")
         device.version = versions.isEmpty ? nil : versions
-        if udi == .authorizedUDI, let udi = healthKitDevice.udiDeviceIdentifier?.nonBlank {
+        if udi == .authorized, let udi = healthKitDevice.udiDeviceIdentifier?.nonBlank {
             device.udiCarrier = [DeviceUdiCarrier(deviceIdentifier: udi.asFHIRStringPrimitive())]
         }
         return ExchangeRecordingDeviceDraft(device: recorder, resource: device)
@@ -180,6 +186,14 @@ extension Array where Element == DeviceVersion {
         }
         let type = Coding(code: code.asFHIRStringPrimitive(), display: display.asFHIRStringPrimitive(), system: Canonicals.mdc)
         append(DeviceVersion(type: CodeableConcept(coding: [type]), value: value.asFHIRStringPrimitive()))
+    }
+}
+
+
+extension String {
+    /// The string, or `nil` when it is empty or holds nothing but whitespace.
+    var nonBlank: String? {
+        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : self
     }
 }
 

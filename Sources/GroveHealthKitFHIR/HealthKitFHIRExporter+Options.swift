@@ -12,15 +12,29 @@ public import GroveFHIRContract
 public import HealthKit
 
 
-/// The unit a ``HealthKitFHIRExporter/RecordingDevicePolicy`` resolved for one sample before its event was reserved, so
-/// the graph states the device the event's fingerprint covers without consulting the policy again.
-@available(iOS 18, macOS 15, watchOS 11, *)
-struct ResolvedRecordingDevice: RecordingDeviceResolver {
-    let device: RecordingDevice?
+/// A deployment's own way to name the physical unit behind a sample's `HKDevice`, for
+/// ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)``.
+public protocol RecordingDeviceResolver: Sendable {
+    /// The unit `device` names, or `nil` when no stable per-unit token exists.
+    func recordingDevice(for device: HKDevice) -> RecordingDevice?
+}
 
-    func recordingDevice(for _: HKDevice) -> RecordingDevice? {
-        device
-    }
+
+/// How the caller classifies the source (`HKSourceRevision.source`) of one sample, the answer of a
+/// ``HealthKitFHIRExporter/WriterPolicy/classify(_:)`` closure.
+///
+/// HealthKit does not say whether a source is an application or a device, so the classification is the
+/// caller's: Grove never infers it from the bundle identifier, the source name or the product type. Which
+/// physical unit measured the sample is `HKDevice`, which the recording Device carries separately.
+public enum HealthKitWriter: Hashable, Sendable {
+    /// The source is an application: it is stated with its name, bundle identifier and version, all copied
+    /// from the sample's `HKSourceRevision`, and the host it ran on, as the graph's writer and writer host
+    /// snapshots and the Provenance author. A source with a blank name or bundle identifier states no writer, and
+    /// one whose bundle identifier is not a valid Apple bundle identifier is refused with
+    /// ``HealthKitConversionError/sourceApplicationInvalid``.
+    case application
+    /// No writer is stated, and the Provenance names no author.
+    case omit
 }
 
 
@@ -99,10 +113,11 @@ extension HealthKitFHIRExporter {
 
     /// How a sample's `HKDevice` resolves to one physical unit.
     public enum RecordingDevicePolicy: Sendable {
-        /// Use HealthKit's per-unit `HKDevice.localIdentifier`; a device without one yields no recording
-        /// Device and the export reports ``HealthKitConversionWarning/recordingDeviceOmitted(deviceName:)``.
+        /// Use HealthKit's per-unit `HKDevice.localIdentifier`, with the device's name, manufacturer and model; a
+        /// device without one yields no recording Device and the export reports the `mobile-omission.recording-device`
+        /// warning.
         case localIdentifier
-        /// Never emit a recording Device from `HKDevice`.
+        /// Never emit a recording Device from `HKDevice`, and never report one as lost.
         case omit
         /// The deployment's own resolver. It is consulted for the `HKDevice` of every input that names a record, an
         /// ECG's correlated symptoms included, before the call reserves any event, and the event's fingerprint covers
@@ -111,11 +126,24 @@ extension HealthKitFHIRExporter {
         /// as ``HealthKitConversionError/conflictingDuplicate``.
         case custom(any RecordingDeviceResolver)
 
+        /// Whether a sample's `HKDevice` this policy resolves to no unit is reported as lost: under `.omit` the
+        /// deployment chose to state none.
+        var reportsDeclinedDevices: Bool {
+            if case .omit = self { false } else { true }
+        }
+
         /// The unit this policy resolves `device` to.
         func recordingDevice(for device: HKDevice) -> RecordingDevice? {
             switch self {
             case .localIdentifier:
-                HealthKitLocalIdentifierResolver().recordingDevice(for: device)
+                device.localIdentifier?.nonBlank.flatMap { token in
+                    try? RecordingDevice(
+                        stableUnitToken: token,
+                        name: device.name?.nonBlank,
+                        manufacturer: device.manufacturer?.nonBlank,
+                        modelNumber: device.model?.nonBlank
+                    )
+                }
             case .omit:
                 nil
             case .custom(let resolver):

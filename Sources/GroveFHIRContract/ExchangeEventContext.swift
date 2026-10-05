@@ -46,17 +46,6 @@ public enum ExchangeGraphNode: Hashable, Sendable {
 }
 
 
-/// Whether a recorded route may be disclosed.
-///
-/// A route re-identifies more readily than any other series, and no aggregate substitutes for it
-/// when a study needs the path, so the choice belongs to the deployment. Omission drops the route
-/// and keeps the session it belongs to.
-public enum RouteDisclosurePolicy: Hashable, Sendable {
-    case omit
-    case authorized
-}
-
-
 /// Everything one exchange event shares across adapters: who it is about, which event it is,
 /// the identity scope that mints its opaque identities, and the converting application and host.
 ///
@@ -64,8 +53,8 @@ public enum RouteDisclosurePolicy: Hashable, Sendable {
 /// an exact retry. Grove never reads the clock; ``conversionInstant`` is the caller's.
 ///
 /// A candidate for removal: the exporters number their events through an ``ExchangeProducer`` instead, and only
-/// the caller-managed converters still take it (HealthKit's deprecated converter and the source-neutral sensor
-/// converter, itself a removal candidate).
+/// the caller-managed source-neutral sensor converter, itself a removal candidate, still takes it (beside
+/// ``RetractionEvent``, which an exporter builds from its reservation).
 public struct ExchangeEventContext: Sendable {
     public let subject: Subject
     public let event: ExchangeEventIdentifier

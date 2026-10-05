@@ -81,8 +81,8 @@ struct DocumentContextMergeTests {
             instant: base.conversionInstant,
             facts: ExchangeEventFacts(application: base.application, host: base.host, studies: Self.enrollments)
         )
-        let conversion = try assembly.documentGraph(for: record.series, plan: plan, document: document, request: request)
-        let (stated, studies) = try Self.document(in: conversion.primary.graph)
+        let conversion = try #require(try assembly.documentGraph(for: record.series, plan: plan, document: document, request: request).first)
+        let (stated, studies) = try Self.document(in: conversion.graph)
         #expect(studies.count == 2)
         #expect(stated.context?.period == period)
         #expect(stated.context?.related?.first == adapterReference)

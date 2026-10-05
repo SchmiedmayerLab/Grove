@@ -77,12 +77,10 @@ extension HealthKitFHIRExporter {
             ),
             instant: reservation.instant,
             facts: reservation.facts,
-            repositoryIDs: try legacyRepositoryIDs(for: deletion.uuid),
-            options: HealthKitConversionOptions(nativeIdentifierDisclosure: options.nativeIdentifier)
+            repositoryIDs: try legacyRepositoryIDs(for: deletion.uuid)
         )
-        let record = HealthKitSourceRecord(uuid: deletion.uuid, type: deletion.sourceType)
         let occurred = RetractionOccurrence.period(start: deletion.clampedDeletedAfter, end: deletion.detectedAt)
-        return try assembly.retraction(of: record, request: request, occurred: occurred).graph
+        return try assembly.retraction(of: deletion.uuid, type: deletion.sourceType, request: request, occurred: occurred).graph
     }
 }
 

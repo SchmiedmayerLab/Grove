@@ -42,7 +42,7 @@ extension HealthKitAssembly {
         plan: HealthKitContentPlan = HealthKitContentPlan[.electrocardiogram],
         request: Request,
         symptomRequests: [UUID: Request]
-    ) throws -> HealthKitConversionSet {
+    ) throws -> [Conversion] {
         guard case .electrocardiogram(let content) = plan.route else {
             throw plan.refusal
         }
@@ -54,7 +54,7 @@ extension HealthKitAssembly {
         guard Set(events).count == events.count else {
             throw HealthKitConversionError.ecgEvidence(.duplicateSymptomEventIdentity)
         }
-        return HealthKitConversionSet(primary: primary, companions: companions)
+        return [primary] + companions
     }
 
     /// Each correlated symptom under its own event, in the deterministic order the ECG references them.
@@ -62,19 +62,19 @@ extension HealthKitAssembly {
         _ correlatedSymptoms: [HKCategorySample],
         status: HKElectrocardiogram.SymptomsStatus,
         symptomRequests: [UUID: Request]
-    ) throws -> [HealthKitConversion] {
+    ) throws -> [Conversion] {
         // Validation comes first, so an unsupported or duplicated symptom is refused as such.
         let symptoms = try HealthKitECGContent.validatedSymptoms(correlatedSymptoms, status: status)
-        return try symptoms.map { symptom in
+        return try symptoms.flatMap { symptom in
             guard let request = symptomRequests[symptom.uuid] else {
-                // Both callers key every symptom of a registered type, and validation admits only registered types.
+                // The exporter keys every symptom of a registered type, and validation admits only registered types.
                 preconditionFailure("Every validated symptom has a request.")
             }
-            return try convert(symptom, request: request).primary
+            return try convert(symptom, request: request)
         }
     }
 
-    private func validatedSymptomOutputIdentifiers(_ conversions: [HealthKitConversion]) throws -> [RoledIdentifier] {
+    private func validatedSymptomOutputIdentifiers(_ conversions: [Conversion]) throws -> [RoledIdentifier] {
         let outputs = conversions.map(\.identifiers.primaryOutput)
         let expectedSystem = scope.identityScope.systems.opaque.sourceOutput
         guard outputs.allSatisfy({ $0.role == .sourceOutput && $0.identifier.system == expectedSystem }) else {
@@ -110,19 +110,20 @@ extension HealthKitAssembly {
         _ record: HealthKitHeartbeatSeriesRecord,
         plan: HealthKitContentPlan = HealthKitContentPlan[.heartbeatSeries],
         request: Request
-    ) throws -> HealthKitConversionSet {
+    ) throws -> [Conversion] {
         try documentGraph(for: record.series, plan: plan, document: try plan.recordingDocument().document(record), request: request)
     }
 
-    /// Converts a workout route into the recording document that carries its track, or `nil` under
-    /// `RouteDisclosurePolicy.omit`: omitting the route drops an addition rather than rejecting anything.
+    /// Converts a workout route into the recording document that carries its track, or into nothing while
+    /// ``HealthKitFHIRExporter/Options/route`` is `.omit`: omitting the route drops an addition rather than rejecting
+    /// anything.
     func convertWorkoutRoute(
         _ record: HealthKitWorkoutRouteRecord,
         plan: HealthKitContentPlan = HealthKitContentPlan[.workoutRoute],
         request: Request
-    ) throws -> HealthKitConversionSet? {
-        guard request.options.routeDisclosure == .authorized else {
-            return nil
+    ) throws -> [Conversion] {
+        guard options.route == .authorized else {
+            return []
         }
         return try documentGraph(for: record.route, plan: plan, document: try plan.recordingDocument().document(record), request: request)
     }
@@ -148,10 +149,10 @@ extension HealthKitAssembly {
         plan: HealthKitContentPlan,
         document: DocumentReference,
         request: Request
-    ) throws -> HealthKitConversionSet {
+    ) throws -> [Conversion] {
         let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
         let output = plan.outputs[0].draft(.document(document))
-        return HealthKitConversionSet(primary: try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [output], request: request))
+        return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [output], request: request)]
     }
 }
 
@@ -160,15 +161,16 @@ extension HealthKitAssembly {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
-    /// The complete retraction of a deleted record, as its own exchange event; every target is
-    /// recomputed from the record's coordinates, so nothing from its conversion needs to be kept.
+    /// The complete retraction of the deleted record of `type` with `uuid`, as its own exchange event; every target
+    /// is recomputed from the record's coordinates, so nothing from its conversion needs to be kept.
     func retraction(
-        of record: HealthKitSourceRecord,
+        of uuid: UUID,
+        type: HealthKitSourceType,
         request: Request,
         occurred: RetractionOccurrence
     ) throws(HealthKitConversionError) -> RetractionEvent {
-        let targets = try retractionTargets(of: record, request: request)
-        let sourceRecord = try sourceRecordIdentity(of: record)
+        let targets = try retractionTargets(of: uuid, type: type)
+        let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
         do throws(RetractionEventError) {
             return try RetractionEvent(
                 targets: targets,
@@ -183,16 +185,15 @@ extension HealthKitAssembly {
 
     /// The logical targets a deletion retracts, named from the catalog alone: the same identity scope
     /// and output roles yield the same identifiers the addition minted. The sample's UUID rides along
-    /// as each target's native record identifier exactly when the disclosure policy authorizes it.
-    func retractionTargets(of record: HealthKitSourceRecord, request: Request) throws(HealthKitConversionError) -> [RetractionTarget] {
-        let plan = HealthKitContentPlan[record.type]
+    /// as each target's native record identifier exactly when ``HealthKitFHIRExporter/Options/nativeIdentifier``
+    /// authorizes it.
+    private func retractionTargets(of uuid: UUID, type: HealthKitSourceType) throws(HealthKitConversionError) -> [RetractionTarget] {
+        let plan = HealthKitContentPlan[type]
         guard !plan.outputs.isEmpty else {
             throw plan.refusal
         }
-        let nativeRecordIdentifier = request.options.nativeIdentifierDisclosure.nativeRecordIdentifier(
-            for: record.uuid.uuidString.lowercased()
-        )
-        let sourceRecord = try sourceRecordIdentity(of: record)
+        let nativeRecordIdentifier = options.nativeIdentifier.nativeRecordIdentifier(for: uuid.uuidString.lowercased())
+        let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
         var targets: [RetractionTarget] = []
         for output in plan.outputs.map(\.output) {
             let identity: RoledIdentifier
@@ -215,9 +216,9 @@ extension HealthKitAssembly {
         return targets
     }
 
-    private func sourceRecordIdentity(of record: HealthKitSourceRecord) throws(HealthKitConversionError) -> SourceRecordIdentity {
+    private func sourceRecordIdentity(of uuid: UUID, type: HealthKitSourceType) throws(HealthKitConversionError) -> SourceRecordIdentity {
         do {
-            return try scope.sourceRecord(sourceType: record.type.rawValue, nativeRecordID: record.uuid.uuidString.lowercased())
+            return try scope.sourceRecord(sourceType: type.rawValue, nativeRecordID: uuid.uuidString.lowercased())
         } catch {
             throw .opaqueIdentity(error)
         }

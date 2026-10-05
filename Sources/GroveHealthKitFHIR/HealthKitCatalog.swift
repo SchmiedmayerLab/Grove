@@ -52,7 +52,7 @@ public struct HealthKitUnitBinding: Sendable {
 }
 
 
-/// Closed, fail-closed catalog used by ``HealthKitConverter``.
+/// Closed, fail-closed catalog used by ``HealthKitFHIRExporter``.
 ///
 /// This catalog alone determines whether the public API may claim a Grove profile.
 @available(iOS 18, macOS 15, watchOS 11, *)
