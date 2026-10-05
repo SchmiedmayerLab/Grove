@@ -113,9 +113,6 @@ extension HealthKitConversionError {
         case unexpectedSymptoms
         case unsupportedSymptomType(String)
         case duplicateSymptomSource(UUID)
-        case invalidSymptomOutputIdentity
-        case duplicateSymptomOutputIdentity
-        case duplicateSymptomEventIdentity
         case unsupportedAlgorithmVersion(Int)
     }
 
