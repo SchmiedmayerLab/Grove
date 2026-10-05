@@ -53,12 +53,22 @@ extension HealthKitFHIRExporter {
 
     /// A deleted HealthKit object as the app noted it: HealthKit reports no deletion time, so the
     /// retraction states the bounds the app knows.
+    ///
+    /// Both bounds key the retraction event, so persist them with the deletion until its retraction's receipt is
+    /// released: a retry that recomputes either, such as `detectedAt` from the clock, mints a second retraction event.
     public struct Deletion: Hashable, Sendable {
         public let uuid: UUID
         public let sourceType: HealthKitSourceType
-        /// The start of the query that first reported the deletion, when known.
+        /// A lower bound on when the object was deleted, or `nil` when none is known: the latest instant every
+        /// deletion an anchored query reports is known to follow, which is when the query that produced the anchor
+        /// it started from was issued.
+        ///
+        /// GroveHealthKit passes it to `HealthKitConstraint.handleDeletedObjects(_:ofType:deletedAfter:)`. With a raw
+        /// `HKAnchoredObjectQuery`, record when you issue each query, persist that instant with the anchor the query
+        /// returns, and pass it for every deletion the next query, started from that anchor, reports. The start of
+        /// the query that reported the deletion is too late: the deletion may precede it.
         public let deletedAfter: Date?
-        /// When the app received the deletion.
+        /// When the app received the deletion; the retraction states it as the upper bound.
         public let detectedAt: Date
 
         public init(uuid: UUID, sourceType: HealthKitSourceType, deletedAfter: Date?, detectedAt: Date) {
