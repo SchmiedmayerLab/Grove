@@ -171,6 +171,25 @@ struct HealthKitFHIRDeviceIdentityTests {
         #expect(conversion.provenance.entity?.first?.agent == nil)
         #expect(conversion.observation.device?.reference?.value?.string == (try recordingDevice.fullURLString))
     }
+
+    @Test("Validation refuses an Observation.device that resolves to a snapshot other than the recording Device")
+    func observationDeviceResolvesOnlyToTheRecordingDevice() throws {
+        let conversion = try ExporterFixtures.export(sample(watch()), inputs(stableUnitToken: "watch-unit-7"))
+        let graph = conversion.graph
+        let entries = try #require(graph.bundle.entry)
+        let index = try #require(entries.firstIndex { $0.resource?.get(if: Observation.self) != nil })
+        for snapshot in [conversion.identifiers.applicationSnapshot, conversion.identifiers.hostSnapshot] {
+            var observation = conversion.observation
+            observation.device = Reference(reference: try snapshot.fullURLString.asFHIRStringPrimitive())
+            var bundle = graph.bundle
+            bundle.entry?[index].resource = ResourceProxy(with: observation)
+            #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeReferenceTargetType)) {
+                try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: bundle)
+            }
+        }
+        // The recording Device the export linked revalidates.
+        _ = try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: graph.bundle)
+    }
 }
 
 #endif

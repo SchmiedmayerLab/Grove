@@ -18,6 +18,8 @@ extension ExchangeGraph {
 
     struct ReferenceResolutionContext {
         let bundleResourceTypes: [String: String]
+        /// The fullUrls of the Device entries that claim the Grove Recording Device profile.
+        let recordingDeviceURLs: Set<String>
 
         func resourceType(for literal: String) -> String? {
             bundleResourceTypes[literal]
@@ -43,13 +45,17 @@ extension ExchangeGraph {
         document: ValidationDocument
     ) throws(ExchangeGraphError) {
         var resourceTypesByFullURL: [String: String] = [:]
+        var recordingDeviceURLs: Set<String> = []
         for entry in entries {
             if let fullURL = entry.fullUrl?.value?.url.absoluteString,
                let resource = entry.resource {
                 resourceTypesByFullURL[fullURL] = resource.resourceType
+                if case .device(let device) = resource, device.meta?.profile?.contains(Profile.groveRecordingDevice) == true {
+                    recordingDeviceURLs.insert(fullURL)
+                }
             }
         }
-        let context = ReferenceResolutionContext(bundleResourceTypes: resourceTypesByFullURL)
+        let context = ReferenceResolutionContext(bundleResourceTypes: resourceTypesByFullURL, recordingDeviceURLs: recordingDeviceURLs)
         for (index, entry) in entries.enumerated() {
             try validateGovernedReferences(in: entry.resource, context: context)
             try validateGovernedExtensions(in: entry.resource, entryIndex: index, document: document, context: context)
@@ -111,6 +117,12 @@ extension ExchangeGraph {
     ) throws(ExchangeGraphError) {
         try validateReference(observation.subject, expected: [.patient], context: context)
         try validateReference(observation.device, expected: [.device], context: context)
+        // The guide binds `Observation.device` to the hardware that recorded the measurement: a Device entry it
+        // resolves to claims the Grove Recording Device profile, never the application or host snapshot. An
+        // identifier-only logical Device reference names external hardware and stays admitted.
+        if let literal = observation.device?.reference?.value?.string, !context.recordingDeviceURLs.contains(literal) {
+            throw .ruleViolation(.mobileExchangeReferenceTargetType)
+        }
         try validateReferences(observation.hasMember ?? [], expected: [.observation], context: context)
         try validateReferences(
             observation.derivedFrom ?? [],
