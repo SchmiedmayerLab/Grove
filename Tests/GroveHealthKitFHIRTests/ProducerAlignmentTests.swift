@@ -609,6 +609,8 @@ struct ProducerContractVectorTests {
         }
         #expect(derived.event.rawValue == vectors.event.system)
         #expect(derived.entryNode.rawValue == vectors.entryNode.system)
+        // The systems carry no runtime check of their own: the twelve recommended forms keep them apart.
+        #expect(Set(derived.all).count == 12)
         #expect(try DeploymentIdentifierSystems.derived(root: "https://study.example.org/fhir/", keyID: vectors.keyId, epoch: epoch) == derived)
         #expect(throws: ExchangeIdentityError.invalidKeyID("bad key")) {
             try DeploymentIdentifierSystems.derived(root: Self.deploymentRoot, keyID: "bad key", epoch: epoch)
@@ -695,7 +697,6 @@ struct ProducerContractVectorTests {
             ),
             (ExchangeIdentityError.keyTooShort(actualBytes: 16).diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
             (ExchangeIdentityError.invalidKeyID("").diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
-            (ExchangeIdentityError.reusedIdentifierSystem.diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
             (ExchangeIdentityError.invalidIdentifierSystem("x").diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic)
         ]
         for (actual, expected) in table {

@@ -231,7 +231,7 @@ struct QuestionnaireFHIRExporterTests {
         struct Unmodelled: Error {}
         #expect(ObservationExtractionError(conversionFailure: ObservationExtractionError.subjectMissing) == .subjectMissing)
         #expect(ObservationExtractionError(conversionFailure: ExchangeIdentityError.invalidInstant) == .exchangeIdentity(.invalidInstant))
-        #expect(ObservationExtractionError(conversionFailure: ExchangeIdentityError.reusedIdentifierSystem) == .exchangeIdentity(.reusedIdentifierSystem))
+        #expect(ObservationExtractionError(conversionFailure: ExchangeIdentityError.invalidKeyID("x")) == .exchangeIdentity(.invalidKeyID("x")))
         #expect(ObservationExtractionError(conversionFailure: ExchangeGraphError.missingTimestamp) == .exchangeGraph(.missingTimestamp))
         guard case .unexpectedConversionFailure(let name) = ObservationExtractionError(conversionFailure: Unmodelled()) else {
             Issue.record("an unmodelled failure was relabelled")

@@ -25,7 +25,7 @@ enum QuestionnaireExportFixtures {
 
     static var identityScope: OpaqueIdentityScope {
         get throws {
-            let systems = try DeploymentIdentifierSystems(
+            let systems = DeploymentIdentifierSystems(
                 sourceRecord: "https://study.example.org/fhir/NamingSystem/grove-source-record-v0",
                 sourceOutput: "https://study.example.org/fhir/NamingSystem/grove-source-output-v0",
                 writerRecord: "https://study.example.org/fhir/NamingSystem/grove-writer-record-v0",
