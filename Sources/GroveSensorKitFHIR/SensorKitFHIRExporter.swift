@@ -22,6 +22,9 @@ public import GroveFHIRContract
 /// against the digest you persisted at its acquisition coordinate before you export it again (see
 /// ``SensorKitSourceRecordID``). The exporter adds a second line behind that guard: other content under a reserved
 /// record becomes a new event, never a restated one.
+///
+/// The exporter cannot retract yet. The SensorKit guide's retraction of a source record also names the device
+/// snapshots its event emitted, whose identities are minted from that event, and no input of this API states it.
 public final class SensorKitFHIRExporter: Sendable {
     /// Why an exporter could not be configured.
     public enum ConfigurationError: Error, Equatable, Sendable {

@@ -66,9 +66,28 @@ receipt.release()
 
 The producer's ledger numbers the events: until the receipt is released, an exact redelivery restates each graph byte for byte, and another response under the same identifier, such as an amendment, is a new event.
 
+## Withdrawing a response
+
+When a projected response is withdrawn, its Observations are taken back through the guide's retraction path, against their own source-output identities; the response's `entered-in-error` status is a different statement and retracts nothing.
+``QuestionnaireFHIRExporter/retract(_:at:receive:)`` takes each ``QuestionnaireFHIRExporter/Withdrawal``: the pair exactly as it was exported, and when it was withdrawn.
+It extracts the pair again to name the outputs, so keep the pair, not the graph; a pair the export refused is refused here too.
+
+```swift
+let withdrawal = QuestionnaireFHIRExporter.Withdrawal(record: record, withdrawnAt: withdrawnAt)
+let receipt = try exporter.retract([withdrawal]) { retraction in
+    if let graph = retraction.graph {
+        staged.append(graph)
+    }
+}
+// ... store the graphs ...
+receipt.release()
+```
+
+Persist `withdrawnAt` with the withdrawal: it keys the retraction event, so a retry restates the event only with the same instant, and another instant is another event.
+
 ## Consuming the bundle
 
-The graph is the exchange artifact: upload it, dedup on its identities, retract by them.
+The graph is the exchange artifact: upload it, dedup on its identities, and take it back by them through a retraction.
 A consumer can also read it back locally — `GroveHealthKitFHIR`'s sample projection turns each of the bundle's quantity Observations into the HealthKit sample it describes, using the minted source-output identity as the HealthKit sync identifier, so HealthKit dedup and exchange dedup ride the same identity.
 An app that only wants that local readback still exports the full graph, releases the receipt and discards the bundle afterwards; the identities it minted stay deterministic, so nothing is lost by not keeping it.
 

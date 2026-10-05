@@ -23,7 +23,7 @@ public import ModelsR4
 /// measurement and the conversion Provenance, plus the study context when the producer knows the participant's
 /// enrollments. The Patient is the producer's subject: the Patient it bundles, or one stating only the pseudonym. The
 /// producer's application and host are frozen with each event as for every adapter, but a Questionnaire graph states
-/// the writer instead.
+/// the writer instead. ``retract(_:at:receive:)`` takes a withdrawn response's Observations back.
 public final class QuestionnaireFHIRExporter: Sendable {
     /// One instrument and a response to it.
     public struct Record: Sendable {
@@ -136,11 +136,7 @@ extension QuestionnaireFHIRExporter {
                     identityScope: exporter.producer.identityScope,
                     repositoryScope: exporter.repositoryScope
                 )
-                let key = ExchangeEventKey(
-                    kind: .active,
-                    adapterID: QuestionnaireExchangeProjection.adapterID,
-                    sourceRecord: "QuestionnaireResponse|\(extracted.nativeRecordID)"
-                )
+                let key = ExchangeEventKey.questionnaireResponse(.active, nativeRecordID: extracted.nativeRecordID)
                 self.content = .success(Content(
                     extracted: extracted,
                     request: exporter.context.request(for: key, recordParts: try Self.recordParts(of: record))
@@ -210,6 +206,15 @@ extension ObservationExtractionError {
             self = .exchangeIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
+        case let error as RetractionEvent.ValidationError:
+            self = switch error {
+            case .exchangeIdentity(let error): .exchangeIdentity(error)
+            case .exchangeGraph(let error): .exchangeGraph(error)
+            // A withdrawal instant no FHIR dateTime can state.
+            case .invalidInstant: .exchangeIdentity(.invalidInstant)
+            case .emptyTargets, .duplicateTarget, .invalidSourceRecord, .reservedIdentifierSystem, .invalidOccurrencePeriod:
+                .unexpectedConversionFailure(String(reflecting: type(of: error)))
+            }
         default:
             self = .unexpectedConversionFailure(String(reflecting: type(of: error)))
         }

@@ -15,6 +15,10 @@ import ModelsR4
 
 /// The event-scoped identities of one projection, which every entry and internal reference resolves against.
 struct GraphFrame {
+    /// The discriminator of every Observation's source-output identity: a response extracts each measurement once,
+    /// so its contract's id alone tells the outputs apart.
+    static let outputDiscriminator = "single"
+
     let extracted: ExtractedResponse
     let context: QuestionnaireExtractionContext
     let patientNode: EntryNodeKey
@@ -92,7 +96,7 @@ extension GraphFrame {
     }
 
     func observationEntry(for measurement: ExtractedMeasurement) throws -> (entry: BundleEntry, url: String) {
-        let output = try extracted.sourceRecord.output(role: measurement.contract.id, discriminator: "single")
+        let output = try extracted.sourceRecord.output(role: measurement.contract.id, discriminator: Self.outputDiscriminator)
         let entry = try BundleEntry(
             identifier: output,
             resource: ResourceProxy(with: try observation(for: measurement, output: output))
