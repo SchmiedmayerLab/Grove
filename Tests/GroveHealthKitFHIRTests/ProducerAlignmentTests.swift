@@ -40,23 +40,6 @@ private let groveFHIRIsAvailable = FileManager.default.fileExists(
 /// Every optional parameter defaults the same way on every platform, and every disclosure omits.
 @Suite
 struct ProducerDefaultsTests {
-    @Test("The event context defaults to an assembler without studies or repository rows")
-    func eventContextDefaults() {
-        let base = ExchangeEventContext.test()
-        let context = ExchangeEventContext(
-            subject: base.subject,
-            event: base.event,
-            identityScope: base.identityScope,
-            repositoryScope: base.repositoryScope,
-            application: base.application,
-            host: base.host,
-            conversionInstant: base.conversionInstant
-        )
-        #expect(context.converterRole == .assembler)
-        #expect(context.studies.isEmpty)
-        #expect(context.repositoryIDs.isEmpty)
-    }
-
     @Test("Device facts default to nothing beyond what identifies the device")
     func deviceDefaults() throws {
         let application = try ApplicationDevice(name: "Grove", bundleIdentifier: "org.grovealliance.app", version: "1.0")
@@ -93,11 +76,11 @@ struct ProducerDefaultsTests {
         }
         #expect(type == nil)
 
-        let scope = ExchangeEventContext.test().identityScope
+        let scope = TestEvent.test().identityScope
         let record = try scope.sourceRecord(
             adapterID: "healthkit",
             sourceType: "HKQuantityTypeIdentifierHeartRate",
-            repositoryScope: ExchangeEventContext.test().repositoryScope,
+            repositoryScope: TestEvent.test().repositoryScope,
             nativeRecordID: "record-1"
         )
         let output = try record.output(role: "primary", discriminator: "0")
@@ -117,7 +100,7 @@ struct ProducerWarningTests {
     private static let warnings = [recordingDeviceOmitted, effectiveDateTimeOffsetUnavailable, unmodeledMetadataWithheld]
 
     private static func heartRate(device: HKDevice, metadata: [String: Any]) -> HKQuantitySample {
-        let start = ExchangeEventContext.testInstant
+        let start = TestEvent.testInstant
         return HKQuantitySample(
             type: HKQuantityType(.heartRate),
             quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
@@ -206,7 +189,7 @@ struct ProducerWarningTests {
         (.heartRate, .count().unitDivided(by: .minute()))
     ])
     func intervalReportsBothBounds(type: HKQuantityTypeIdentifier, unit: HKUnit) throws {
-        let start = ExchangeEventContext.testInstant
+        let start = TestEvent.testInstant
         let interval = HKQuantitySample(
             type: HKQuantityType(type),
             quantity: HKQuantity(unit: unit, doubleValue: 120),
@@ -226,7 +209,7 @@ struct ProducerWarningTests {
 /// Every effective value takes the source's time zone, else UTC, and never the host's.
 @Suite
 struct EffectiveTimeZoneTests {
-    private static let start = ExchangeEventContext.testInstant
+    private static let start = TestEvent.testInstant
     private static let end = start.addingTimeInterval(600)
 
     @Test("A stated zone gives every bound its offset and the timezone extension")
@@ -285,8 +268,8 @@ struct ProducerSurfaceTests {
     private static let heartRate = HKQuantitySample(
         type: HKQuantityType(.heartRate),
         quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
-        start: ExchangeEventContext.testInstant,
-        end: ExchangeEventContext.testInstant
+        start: TestEvent.testInstant,
+        end: TestEvent.testInstant
     )
 
     @Test("The writer and its host are graph nodes once the caller classifies an attributed sample's source as an application")
@@ -301,7 +284,7 @@ struct ProducerSurfaceTests {
     @Test("A writer snapshot the converter already states is that entry, and its host goes with it")
     func writerSharingAConverterSnapshot() throws {
         func device(_ token: String, role: OpaqueIdentityScope.DeviceRole) throws -> IdentifiedDevice {
-            let context = ExchangeEventContext.test()
+            let context = TestEvent.test()
             let identity = try context.identityScope.deviceSnapshot(event: context.event, role: role, sourceDeviceToken: token)
             return IdentifiedDevice(resource: Device(), identity: identity)
         }
@@ -404,7 +387,7 @@ struct ProducerSurfaceTests {
             uuid: Self.heartRate.uuid,
             sourceType: .heartRate,
             deletedAfter: nil,
-            detectedAt: ExchangeEventContext.testInstant
+            detectedAt: TestEvent.testInstant
         )
         func targets(_ inputs: ExportInputs) throws -> [Reference] {
             let graph = try ExporterFixtures.retraction(deletion, inputs)
@@ -448,7 +431,7 @@ struct ProducerSurfaceTests {
             uuid: Self.heartRate.uuid,
             sourceType: type,
             deletedAfter: nil,
-            detectedAt: ExchangeEventContext.testInstant
+            detectedAt: TestEvent.testInstant
         ))
         let conversion = try ExporterFixtures.export(Self.heartRate)
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
@@ -460,14 +443,12 @@ struct ProducerSurfaceTests {
 
         // The exporter drops a lower bound later than the detection; the retraction event itself refuses an inverted
         // period.
-        let base = ExchangeEventContext.test()
         let target = try RetractionEvent.Target(identifier: targets[0], resourceType: .observation, role: .primaryOutput)
         #expect(throws: RetractionEvent.ValidationError.invalidOccurrencePeriod) {
-            try RetractionEvent(
+            try TestEvent.test().retraction(
+                of: source,
                 targets: [target],
-                context: base,
-                sourceRecord: source,
-                occurred: .period(start: ExchangeEventContext.testInstant, end: ExchangeEventContext.testInstant.addingTimeInterval(-1))
+                occurred: .period(start: TestEvent.testInstant, end: TestEvent.testInstant.addingTimeInterval(-1))
             )
         }
     }

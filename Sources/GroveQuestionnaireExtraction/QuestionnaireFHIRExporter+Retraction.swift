@@ -138,24 +138,17 @@ extension QuestionnaireFHIRExporter {
             return .refused(.conflictingDuplicate)
         }
         do {
-            let context = ExchangeEventContext(
-                subject: producer.subject,
+            let retraction = try RetractionEvent(
                 event: try ExchangeEventIdentifier(
                     system: producer.identityScope.systems.event,
                     producerInstance: reservation.producerInstance,
                     sequence: reservation.sequence
                 ),
+                instant: reservation.instant,
                 identityScope: producer.identityScope,
-                repositoryScope: repositoryScope,
                 application: reservation.facts.application,
-                host: reservation.facts.host,
-                conversionInstant: reservation.instant,
-                studies: reservation.facts.studies
-            )
-            let retraction = try RetractionEvent(
-                targets: content.extracted.retractionTargets(),
-                context: context,
                 sourceRecord: content.extracted.sourceRecord.identifier,
+                targets: content.extracted.retractionTargets(),
                 occurred: .instant(content.occurred)
             )
             return .graph(retraction.graph)

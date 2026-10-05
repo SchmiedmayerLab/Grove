@@ -220,6 +220,21 @@ package struct AssembledExchangeGraph: Sendable {
 }
 
 
+/// How the converting application relates to the measurement it converts.
+///
+/// Recording and clinical documents carry no gateway link under any role: the guide defines
+/// `observation-gatewayDevice` for Observations only.
+package enum ConverterRole: Hashable, Sendable {
+    /// The application assembled the graph from a record it did not mediate.
+    case assembler
+    /// The converting application itself mediated the measurement.
+    case gateway
+    /// A distinct application mediated the measurement; graphs whose Observation outputs name it through
+    /// `observation-gatewayDevice` carry it as a second application snapshot, and document-only graphs carry none.
+    case gatewayApplication(ApplicationDevice)
+}
+
+
 /// One event's graph before assembly: the record, its outputs, and the devices and policies the
 /// adapter resolved for it.
 package struct ExchangeGraphDraft: Sendable {

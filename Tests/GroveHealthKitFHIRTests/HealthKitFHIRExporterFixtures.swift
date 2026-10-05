@@ -99,11 +99,11 @@ struct ExportInputs: Sendable {
     var converter: ApplicationDevice = .test
     var converterHost: HostDevice = .test
     var studies: [StudyEnrollment] = []
-    /// The root of the identity systems and the repository scope, as `ExchangeEventContext.test(graphIdentifierSystem:)`
+    /// The root of the identity systems and the repository scope, as `TestEvent.test(graphIdentifierSystem:)`
     /// takes it.
     var graphIdentifierSystem: IdentifierSystem?
     var instant = GoldenFixtures.conversionInstant
-    /// The record's event sequence; by default the instant in milliseconds, as `ExchangeEventContext.test` numbers it.
+    /// The record's event sequence; by default the instant in milliseconds, as `TestEvent.test` numbers it.
     var sequence: UInt64?
     /// Each ECG symptom's event sequence, in the record's order; a symptom without one takes the sequence after the
     /// previous event's.
@@ -111,7 +111,7 @@ struct ExportInputs: Sendable {
     var options = HealthKitFHIRExporter.Options()
 
     /// The test context whose identity scope, repository scope and producer instance every export states.
-    var base: ExchangeEventContext {
+    var base: TestEvent {
         .test(graphIdentifierSystem: graphIdentifierSystem)
     }
 
@@ -135,7 +135,7 @@ enum ExportFixtureError: Error {
 
 /// Producers, exporters and records the exporter tests share.
 enum ExporterFixtures {
-    static let base = ExchangeEventContext.test()
+    static let base = TestEvent.test()
 
     static func producer(
         identityScope: OpaqueIdentityScope = base.identityScope,

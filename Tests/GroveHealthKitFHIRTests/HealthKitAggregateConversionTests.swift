@@ -70,7 +70,7 @@ struct HealthKitFHIRAggregateConversionTests {
 
     /// The assembly under the test context's scope, and a request for one event of that context.
     private static func assembly() -> (HealthKitAssembly, HealthKitAssembly.Request) {
-        let base = ExchangeEventContext.test()
+        let base = TestEvent.test()
         let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
             adapter: HealthKitAssembly.adapter,
             identityScope: base.identityScope,

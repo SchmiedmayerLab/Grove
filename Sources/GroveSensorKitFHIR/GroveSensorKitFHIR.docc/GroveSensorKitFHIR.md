@@ -238,18 +238,6 @@ Other catalog-admitted Grove SensorKit streams use an exact native RecordingDocu
 ``SensorKitCatalog`` is generated from the IG and records implemented, deferred, and unavailable platform streams without claiming unsupported structure.
 On iOS, typed initializers map Grove's already-fetched safe representations into these records; no initializer performs fetching.
 
-### The source-neutral producer
-
-``SensorConverter`` is the same exchange contract without SensorKit: it converts ``SensorRecord`` values a caller assembles from any sensor source into the identical graph shape, and imports no Apple sensor framework.
-Its records carry the payload directly, as sampled data, an electrocardiogram, or a recording document.
-``SensorConversionContext`` wraps an `ExchangeEventContext`, whose event identifier the caller numbers itself, and states the adapter token.
-Its `sourceTimeZone` gives every effective bound the source's own offset; without one the bounds are in UTC and ``SensorConversion/warnings`` reports ``SensorConversionWarning/sourceOffsetUnavailable(field:)`` for each of them.
-
-> Tip: Keep the conversion context beside the outbox entry it produced; a retry then rebuilds identical bytes without touching the clock.
-
-> Note: The source-neutral producer is a candidate for removal: nothing in Grove or its known integrators converts through it.
-> A source-neutral sensor adapter that is needed later returns as an exporter on the shape of ``SensorKitFHIRExporter``.
-
 ## Glossary
 
 | IG term | Swift |
@@ -284,23 +272,6 @@ Its `sourceTimeZone` gives every effective bound the source's own offset; withou
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
 - ``SensorKitRecordingLocation``
-
-### Source-neutral conversion (candidates for removal)
-
-- ``SensorConverter``
-- ``SensorConversionContext``
-- ``SensorConversion``
-- ``SensorConversionWarning``
-- ``SensorGraphIdentifiers``
-- ``SensorBatchResult``
-- ``SensorRecordFailure``
-- ``SensorConversionError``
-- ``SensorRecord``
-- ``SensorRecordingDocument``
-- ``SensorSampledDataRecord``
-- ``SensorECGRecord``
-- ``SensorCode``
-- ``SensorRecordError``
 
 ### Recording payloads
 

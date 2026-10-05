@@ -17,18 +17,34 @@ package import ModelsR4
 ///
 /// The converting application is the assembler, referenced logically through its event-scoped
 /// snapshot identity; `occurred` states the source's deletion time or the bounds the producer
-/// knows, and the assertion is recorded at the context's conversion instant.
+/// knows, and the assertion is recorded at the event's instant.
 package struct RetractionEvent: Sendable {
     /// The lifecycle activity a retraction Provenance asserts, in the Grove lifecycle-event code system.
     static let lifecycleActivityCode = "source-record-retracted"
 
     package let graph: ExchangeGraph
 
+    /// Builds the retraction graph of one reserved event.
+    ///
+    /// - Parameters:
+    ///   - event: The event the retraction is, as its reservation numbered it.
+    ///   - instant: The event's instant, when the assertion is recorded.
+    ///   - identityScope: The deployment's identity scope, which mints the event-scoped identities.
+    ///   - application: The converting application the event's frozen facts state; the Provenance names it as the
+    ///     assembler.
+    ///   - sourceRecord: The retracted source record.
+    ///   - targets: Every logical output of the source record the retraction takes back.
+    ///   - occurred: When the source retracted the record.
+    ///   - bundleID: The logical id the Bundle states; only HealthKit's transitional legacy `Bundle.id` names one.
     package init(
-        targets: [Target],
-        context: ExchangeEventContext,
+        event: ExchangeEventIdentifier,
+        instant: Date,
+        identityScope: OpaqueIdentityScope,
+        application: ApplicationDevice,
         sourceRecord: RoledIdentifier,
-        occurred: Occurrence
+        targets: [Target],
+        occurred: Occurrence,
+        bundleID: RepositoryID? = nil
     ) throws(ValidationError) {
         guard !targets.isEmpty else {
             throw .emptyTargets
@@ -40,15 +56,15 @@ package struct RetractionEvent: Sendable {
               ExchangeIdentity.isCanonicalOpaqueIdentifierValue(sourceRecord.identifier.value) else {
             throw .invalidSourceRecord
         }
-        guard Set(targets.compactMap(\.nativeRecordIdentifier?.system)).isDisjoint(with: context.identityScope.systems.all) else {
+        guard Set(targets.compactMap(\.nativeRecordIdentifier?.system)).isDisjoint(with: identityScope.systems.all) else {
             throw .reservedIdentifierSystem
         }
         let assembler: RoledIdentifier
         do {
-            assembler = try context.identityScope.deviceSnapshot(
-                event: context.event,
+            assembler = try identityScope.deviceSnapshot(
+                event: event,
                 role: .application,
-                sourceDeviceToken: context.application.sourceDeviceToken
+                sourceDeviceToken: application.sourceDeviceToken
             )
         } catch {
             throw .exchangeIdentity(error)
@@ -56,7 +72,7 @@ package struct RetractionEvent: Sendable {
         let occurredX = try occurred.occurredX()
         let recorded: Instant
         do {
-            recorded = try ExchangeInstant.fhirInstant(context.conversionInstant)
+            recorded = try ExchangeInstant.fhirInstant(instant)
         } catch {
             throw .invalidInstant
         }
@@ -89,8 +105,8 @@ package struct RetractionEvent: Sendable {
         let entry: BundleEntry
         do {
             let nodeKey = try EntryNodeKey(
-                system: context.entryNodeIdentifierSystem,
-                event: context.event,
+                system: identityScope.systems.entryNode,
+                event: event,
                 nodeRole: "retraction-provenance",
                 ordinal: 0
             )
@@ -100,14 +116,14 @@ package struct RetractionEvent: Sendable {
         }
         var bundle = ModelsR4.Bundle(
             entry: [entry],
-            identifier: context.event.identifier.fhirIdentifier,
+            identifier: event.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileRetractionBundle]),
             timestamp: FHIRPrimitive(recorded),
             type: FHIRPrimitive(.collection)
         )
-        bundle.id = context.repositoryIDs[.bundle]?.primitive
+        bundle.id = bundleID?.primitive
         do {
-            self.graph = try ExchangeGraph(kind: .retraction, eventIdentifier: context.event, bundle: bundle)
+            self.graph = try ExchangeGraph(kind: .retraction, eventIdentifier: event, bundle: bundle)
         } catch {
             throw .exchangeGraph(error)
         }

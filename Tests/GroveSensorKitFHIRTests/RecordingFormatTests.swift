@@ -376,6 +376,24 @@ struct RegisteredRecordingPayloadTests {
             try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1e9999}"#.utf8))
         }
     }
+
+    @Test("A sidecar path is a relative reference with no empty, dot-dot or rooted segment and no query")
+    func sidecarPathIsRelative() throws {
+        func recording(at path: String) throws -> SensorKitNativeRecording {
+            try SensorKitNativeRecording(
+                title: "Native recording",
+                format: .nativeRecording,
+                payload: .sidecar(path: path, bytes: Data("{}".utf8)),
+                admission: .callerAuthorizedOpaquePayload
+            )
+        }
+        for path in ["../outside.json", "/absolute.json", "payloads//session-1.json", "session-1.json?version=2"] {
+            #expect(throws: SensorKitRecordError.invalidSidecarPath(path)) {
+                try recording(at: path)
+            }
+        }
+        #expect(try recording(at: "payloads/ambient-light/session-1.json").bytes == Data("{}".utf8))
+    }
 }
 
 // swiftlint:enable file_types_order
