@@ -42,6 +42,7 @@ path = [
     "Tests/GroveHealthKitFHIRTests/Resources/**",
     "Tests/GroveQuestionnaireTests/Resources/**",
     "Tests/GroveQuestionnaireExtractionTests/Resources/**",
+    "Tests/GroveSensorKitFHIRTests/Resources/**",
     "Tests/GroveQuestionnaireTests/UITests/TestApp/Resources/**"
 ]
 SPDX-FileCopyrightText = "2026 Stanford University and the project authors (see CONTRIBUTORS.md)"
