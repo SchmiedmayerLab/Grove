@@ -9,7 +9,6 @@
 public import ModelsR4
 
 
-/// A business identifier together with the Grove role it carries in `Identifier.type`.
 /// A semantic role carried in `Identifier.type` for Grove exchange identifiers.
 public enum GroveIdentifierRole: String, CaseIterable, Hashable, Sendable {
     case sourceRecord = "source-record"
@@ -24,6 +23,7 @@ public enum GroveIdentifierRole: String, CaseIterable, Hashable, Sendable {
 }
 
 
+/// A business identifier together with the Grove role it carries in `Identifier.type`.
 public struct RoledIdentifier: Hashable, Sendable {
     public let identifier: BusinessIdentifier
     public let role: GroveIdentifierRole

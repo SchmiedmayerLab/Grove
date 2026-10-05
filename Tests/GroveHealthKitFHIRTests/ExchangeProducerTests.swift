@@ -44,7 +44,7 @@ struct OpaqueIdentityScopeRootTests {
         #expect(scope.systems.entryNode.rawValue == "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0")
     }
 
-    @Test("The root scope reports its own faults as opaque-identity errors")
+    @Test("The root scope reports its own faults as exchange-identity errors")
     func rootScopeReportsFaults() {
         #expect(throws: ExchangeIdentityError.invalidKeyID("key one")) {
             try OpaqueIdentityScope(root: Self.root, keyID: "key one", epoch: EventSequence(1), key: Self.key)
