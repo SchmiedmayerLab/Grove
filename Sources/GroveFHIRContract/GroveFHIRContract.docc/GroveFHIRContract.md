@@ -25,12 +25,12 @@ Grove adds what plain FHIR lacks: stable identities that never leak the native r
 The receiver gets a graph it can store, compare byte for byte on a retry, and take back by identity.
 
 This module holds what the producers share.
-`GroveHealthKitFHIR` and `GroveSensorKitFHIR` turn platform records into graphs with the types described here.
+`GroveHealthKitFHIR`, `GroveSensorKitFHIR` and `GroveQuestionnaireExtraction` turn HealthKit samples, SensorKit records and questionnaire responses into graphs with the types described here.
 If you already know the pieces, jump to <doc:#Beyond-the-minimum>.
 
 ## What you need and why
 
-Five inputs make a context; everything else has a default.
+Five inputs make every exchange event; everything else has a default.
 
 ### The subject pseudonym
 
@@ -66,8 +66,8 @@ Persist it with the installation.
 The conversion Provenance names the application that assembled the graph, so a receiver knows who to trust and which version wrote it.
 ``ApplicationDevice/init(bundle:)`` reads it from your bundle.
 
-> Note: ``HostDevice`` defaults to ``HostDevice/current(processInfo:)`` and the conversion instant to now.
-> Pass both explicitly when you replay a persisted event, so the retry rebuilds the same bytes.
+> Note: The producer's ``HostDevice`` defaults to ``HostDevice/current(processInfo:)`` and an export's instant to now.
+> The producer freezes both with each event, so a redelivery before the receipt is released rebuilds the same bytes; an ``ExchangeEventContext`` freezes nothing, so pass both explicitly when you replay a persisted event.
 
 ## Assemble it
 

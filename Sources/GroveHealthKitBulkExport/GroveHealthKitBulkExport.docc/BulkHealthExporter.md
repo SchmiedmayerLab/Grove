@@ -192,7 +192,8 @@ If the app terminates before progress is saved, restoration may repeat those bat
 If progress was saved before an output was yielded or consumed, restoration skips that completed batch and cannot replay the output.
 The checkpoint records processing progress; it is separate from generated files, stream consumption, and upload receipts.
 Keep durable export or upload work in the batch processor, and use `didPersist` only for optional cleanup of retry state.
-Deduplicate HealthKit samples by participant ID and sample UUID.
+A processor that stores raw samples deduplicates them by participant ID and sample UUID.
+One that exports exchange graphs, as both examples do, needs no UUID: a batch processed again before its receipt is released reproduces the same events byte for byte, and a later export of the same sample states the same source-record identity, on which the receiver deduplicates.
 
 A checkpoint failure takes precedence over a requested pause or batch failures; inspect `failedBatches` for any batch errors.
 Retry after a user action or storage availability change, rather than in a loop.

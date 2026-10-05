@@ -96,7 +96,7 @@ public struct BusinessIdentifier: Hashable, Sendable {
 extension BusinessIdentifier {
     /// Creates an identifier-only logical Reference with an explicit target resource type.
     ///
-    /// Grove conversion contexts use this shape when the referenced resource does not travel in
+    /// Grove exchange graphs use this shape when the referenced resource does not travel in
     /// the same Bundle. Literal references remain reserved for resolvable Bundle entries.
     public func reference(to resourceType: ResourceType) -> Reference {
         Reference(
