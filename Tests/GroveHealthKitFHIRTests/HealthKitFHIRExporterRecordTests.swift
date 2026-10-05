@@ -23,9 +23,9 @@ struct HealthKitFHIRExporterRecordTests {
     private typealias Fixtures = ExporterFixtures
 
     private static let beats = [
-        HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
     ]
 
     private static func exports(

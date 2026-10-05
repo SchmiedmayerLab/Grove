@@ -20,7 +20,7 @@ import ModelsR4
 
 
 /// Names every unit by one fixed token, for tests that assert a recording Device regardless of the sample's device.
-struct FixedTokenRecordingDeviceResolver: RecordingDeviceResolver {
+struct FixedTokenRecordingDeviceResolver: HealthKitFHIRExporter.RecordingDeviceResolver {
     let token: String
 
     func recordingDevice(for device: HKDevice) -> RecordingDevice? {

@@ -6,26 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-// A beat series' beats and the two recording records read as one small inventory.
-// swiftlint:disable file_types_order
-
 #if canImport(HealthKit)
 
 import CoreLocation
-public import Foundation
 import HealthKit
-
-
-/// One beat instant in a heartbeat series, as `HKHeartbeatSeriesQuery` enumerates it.
-public struct HealthKitHeartbeat: Hashable, Sendable {
-    public let timeSinceSeriesStart: TimeInterval
-    public let precededByGap: Bool
-
-    public init(timeSinceSeriesStart: TimeInterval, precededByGap: Bool) {
-        self.timeSinceSeriesStart = timeSinceSeriesStart
-        self.precededByGap = precededByGap
-    }
-}
 
 
 /// A heartbeat series and its already-enumerated beats, as ``HealthKitFHIRExporter/Record/heartbeatSeries(_:beats:)``
@@ -37,9 +21,9 @@ public struct HealthKitHeartbeat: Hashable, Sendable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitHeartbeatSeriesRecord: Sendable {
     let series: HKHeartbeatSeriesSample
-    let heartbeats: [HealthKitHeartbeat]
+    let heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]
 
-    init(series: HKHeartbeatSeriesSample, heartbeats: [HealthKitHeartbeat]) {
+    init(series: HKHeartbeatSeriesSample, heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) {
         self.series = series
         self.heartbeats = heartbeats
     }
@@ -62,5 +46,24 @@ struct HealthKitWorkoutRouteRecord: Sendable {
     }
 }
 
+
+/// All already-fetched evidence required to convert one HealthKit ECG without querying HealthKit from the FHIR layer:
+/// what ``HealthKitFHIRExporter/Record/electrocardiogram(_:voltages:symptoms:)`` carries.
+@available(iOS 18, macOS 15, watchOS 11, *)
+struct HealthKitECGRecord: Sendable {
+    let electrocardiogram: HKElectrocardiogram
+    let voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement]
+    let correlatedSymptoms: [HKCategorySample]
+
+    init(
+        electrocardiogram: HKElectrocardiogram,
+        voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement],
+        correlatedSymptoms: [HKCategorySample] = []
+    ) {
+        self.electrocardiogram = electrocardiogram
+        self.voltageMeasurements = voltageMeasurements
+        self.correlatedSymptoms = correlatedSymptoms
+    }
+}
 
 #endif

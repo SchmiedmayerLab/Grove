@@ -12,32 +12,6 @@ public import GroveFHIRContract
 public import HealthKit
 
 
-/// A deployment's own way to name the physical unit behind a sample's `HKDevice`, for
-/// ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)``.
-public protocol RecordingDeviceResolver: Sendable {
-    /// The unit `device` names, or `nil` when no stable per-unit token exists.
-    func recordingDevice(for device: HKDevice) -> RecordingDevice?
-}
-
-
-/// How the caller classifies the source (`HKSourceRevision.source`) of one sample, the answer of a
-/// ``HealthKitFHIRExporter/WriterPolicy/classify(_:)`` closure.
-///
-/// HealthKit does not say whether a source is an application or a device, so the classification is the
-/// caller's: Grove never infers it from the bundle identifier, the source name or the product type. Which
-/// physical unit measured the sample is `HKDevice`, which the recording Device carries separately.
-public enum HealthKitWriter: Hashable, Sendable {
-    /// The source is an application: it is stated with its name, bundle identifier and version, all copied
-    /// from the sample's `HKSourceRevision`, and the host it ran on, as the graph's writer and writer host
-    /// snapshots and the Provenance author. A source with a blank name or bundle identifier states no writer, and
-    /// one whose bundle identifier is not a valid Apple bundle identifier is refused with
-    /// ``HealthKitConversionError/sourceApplicationInvalid``.
-    case application
-    /// No writer is stated, and the Provenance names no author.
-    case omit
-}
-
-
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
     /// The HealthKit-specific choices of one exporter: how sources, devices and identifiers are stated,
@@ -96,10 +70,27 @@ extension HealthKitFHIRExporter {
         /// answer: an answer that changes for a reserved record takes a new sequence rather than restating that
         /// event's writer, and one that changes within a call refuses the later input as
         /// ``HealthKitConversionError/conflictingDuplicate``.
-        case classify(@Sendable (HKSource) -> HealthKitWriter)
+        case classify(@Sendable (HKSource) -> Classification)
+
+        /// How the caller classifies the source (`HKSourceRevision.source`) of one sample, the answer of a
+        /// ``classify(_:)`` closure.
+        ///
+        /// HealthKit does not say whether a source is an application or a device, so the classification is the
+        /// caller's: Grove never infers it from the bundle identifier, the source name or the product type. Which
+        /// physical unit measured the sample is `HKDevice`, which the recording Device carries separately.
+        public enum Classification: Hashable, Sendable {
+            /// The source is an application: it is stated with its name, bundle identifier and version, all copied
+            /// from the sample's `HKSourceRevision`, and the host it ran on, as the graph's writer and writer host
+            /// snapshots and the Provenance author. A source with a blank name or bundle identifier states no writer, and
+            /// one whose bundle identifier is not a valid Apple bundle identifier is refused with
+            /// ``HealthKitConversionError/sourceApplicationInvalid``.
+            case application
+            /// No writer is stated, and the Provenance names no author.
+            case omit
+        }
 
         /// The classification of one source under this policy.
-        func classification(of source: HKSource) -> HealthKitWriter {
+        func classification(of source: HKSource) -> Classification {
             switch self {
             case .omit:
                 .omit
@@ -109,6 +100,13 @@ extension HealthKitFHIRExporter {
                 classify(source)
             }
         }
+    }
+
+    /// A deployment's own way to name the physical unit behind a sample's `HKDevice`, for
+    /// ``RecordingDevicePolicy/custom(_:)``.
+    public protocol RecordingDeviceResolver: Sendable {
+        /// The unit `device` names, or `nil` when no stable per-unit token exists.
+        func recordingDevice(for device: HKDevice) -> RecordingDevice?
     }
 
     /// How a sample's `HKDevice` resolves to one physical unit.

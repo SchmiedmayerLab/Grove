@@ -17,7 +17,7 @@ import Testing
 
 
 /// A deployment resolver that names every device by one fixed per-unit token and name.
-private struct FixedUnitResolver: RecordingDeviceResolver {
+private struct FixedUnitResolver: HealthKitFHIRExporter.RecordingDeviceResolver {
     let token: String
     var name = "Apple Watch"
 
@@ -28,7 +28,7 @@ private struct FixedUnitResolver: RecordingDeviceResolver {
 
 
 /// A resolver whose first answer is `unit-a` and every later one `unit-b`, as one reading mutable pairing state.
-private final class FirstAnswerResolver: RecordingDeviceResolver, @unchecked Sendable { // `answered` is guarded by `lock`.
+private final class FirstAnswerResolver: HealthKitFHIRExporter.RecordingDeviceResolver, @unchecked Sendable { // `answered` is guarded by `lock`.
     private let lock = NSLock()
     private var answered = false
 
@@ -51,9 +51,9 @@ struct ExporterCompanionFingerprintTests {
     private typealias Fixtures = ExporterFixtures
 
     private static let beats = [
-        HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
     ]
 
     /// The primary export of one call; the receipt is dropped without release, so the reservation stays.
@@ -93,7 +93,7 @@ struct ExporterCompanionFingerprintTests {
             facts: GoldenCase.seriesFacts(uuid: 0xF0, duration: 2)
         )
         var changedBeats = Self.beats
-        changedBeats[1] = HealthKitHeartbeat(timeSinceSeriesStart: 0.85, precededByGap: false)
+        changedBeats[1] = HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.85, precededByGap: false)
         let original = try Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
         let exact = try Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
         let changed = try Self.primary(exporter, .heartbeatSeries(series, beats: changedBeats))

@@ -19,8 +19,14 @@ import ModelsR4
 /// mint an identity a retraction cannot name.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitOutputSlot: Sendable {
-    /// The role, discriminator, resource type and retraction role.
-    let output: HealthKitOutput
+    /// The output role its identity extends the source record with.
+    let role: String
+    /// The output discriminator its identity extends the source record with.
+    let discriminator: String
+    /// The resource type the output is.
+    let resourceType: ResourceType
+    /// How a retraction names the output.
+    let retractionRole: RetractionTargetRole
     /// The envelope statements the output carries.
     let links: ExchangeOutputDraft.Links
     /// Whether the output states the primary under `derivedFrom`.
@@ -31,7 +37,10 @@ struct HealthKitOutputSlot: Sendable {
     /// The one Observation of a measurement, or an ECG's waveform: a primary output linking everything.
     static func primary(role: String, discriminator: String = "single") -> HealthKitOutputSlot {
         HealthKitOutputSlot(
-            output: HealthKitOutput(role: role, discriminator: discriminator, resourceType: .observation, retractionRole: .primaryOutput),
+            role: role,
+            discriminator: discriminator,
+            resourceType: .observation,
+            retractionRole: .primaryOutput,
             links: .all,
             derivedFromPrimary: false,
             artifactFormatCode: nil
@@ -41,7 +50,10 @@ struct HealthKitOutputSlot: Sendable {
     /// An Observation derived from the primary, such as an ECG's average heart rate.
     static func derived(role: String, discriminator: String) -> HealthKitOutputSlot {
         HealthKitOutputSlot(
-            output: HealthKitOutput(role: role, discriminator: discriminator, resourceType: .observation, retractionRole: .childOutput),
+            role: role,
+            discriminator: discriminator,
+            resourceType: .observation,
+            retractionRole: .childOutput,
             links: .all,
             derivedFromPrimary: true,
             artifactFormatCode: nil
@@ -52,7 +64,10 @@ struct HealthKitOutputSlot: Sendable {
     /// manual entry.
     static func document(role: String, format: RegisteredRecordingFormat) -> HealthKitOutputSlot {
         HealthKitOutputSlot(
-            output: HealthKitOutput(role: role, discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact),
+            role: role,
+            discriminator: "single",
+            resourceType: .documentReference,
+            retractionRole: .sourceArtifact,
             links: [.subject, .recordingDevice, .studies],
             derivedFromPrimary: false,
             artifactFormatCode: format.rawValue
@@ -62,8 +77,8 @@ struct HealthKitOutputSlot: Sendable {
     /// The draft of `resource` in this slot.
     func draft(_ resource: ExchangeOutputDraft.Resource) -> ExchangeOutputDraft {
         ExchangeOutputDraft(
-            role: output.role,
-            discriminator: output.discriminator,
+            role: role,
+            discriminator: discriminator,
             resource: resource,
             links: links,
             derivedFromPrimary: derivedFromPrimary,
@@ -111,7 +126,7 @@ final class HealthKitContentPlan: Sendable {
     /// The source type.
     let sourceType: HealthKitSourceType
     /// The type's inventory row, as the public catalog states it.
-    let entry: HealthKitCatalogEntry
+    let entry: HealthKitCatalog.Entry
     /// What the type converts through.
     let route: Route
     /// Every output a conversion of the type mints, primary first; empty for a refused type, except a clinical type on
@@ -121,7 +136,7 @@ final class HealthKitContentPlan: Sendable {
     let metadata: MetadataRule
 
     /// The unit binding of a quantity read in its contract's unit, or `nil` for any other type.
-    var unitBinding: HealthKitUnitBinding? {
+    var unitBinding: HealthKitCatalog.UnitBinding? {
         guard case .observation(let observation) = route, case .quantity(_, .unit(let binding)) = observation.value else {
             return nil
         }
@@ -140,7 +155,7 @@ final class HealthKitContentPlan: Sendable {
     /// The plan of `sourceType`.
     init(
         _ sourceType: HealthKitSourceType,
-        entry: HealthKitCatalogEntry,
+        entry: HealthKitCatalog.Entry,
         route: Route,
         outputs: [HealthKitOutputSlot] = [],
         metadata: MetadataRule = .allowlist

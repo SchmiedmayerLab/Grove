@@ -270,11 +270,11 @@ extension HealthKitContentRules {
 extension QuantityContract {
     /// The quantity's unit binding: its UCUM code and display unit, and the HealthKit unit the rules state for the
     /// code. A code the rules state no unit for is a defect.
-    func binding() throws(HealthKitContentDefect) -> HealthKitUnitBinding {
+    func binding() throws(HealthKitContentDefect) -> HealthKitCatalog.UnitBinding {
         guard let healthKitUnit = HealthKitContentRules.ucumUnits[code] else {
             throw HealthKitContentDefect("reads \(code), which has no HealthKit unit")
         }
-        return HealthKitUnitBinding(ucumCode: code, displayUnit: unit, unit: healthKitUnit)
+        return HealthKitCatalog.UnitBinding(ucumCode: code, displayUnit: unit, unit: healthKitUnit)
     }
 }
 

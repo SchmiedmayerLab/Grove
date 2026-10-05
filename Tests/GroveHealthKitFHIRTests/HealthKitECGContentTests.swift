@@ -33,7 +33,7 @@ struct HealthKitECGContentTests {
         let reportedCount: Int
         let samplingFrequencyHertz: Double?
         let points: [VoltagePoint]
-        let expected: HealthKitECGEvidenceFailure
+        let expected: HealthKitConversionError.ECGEvidenceFailure
     }
 
     private static let validPoints = [

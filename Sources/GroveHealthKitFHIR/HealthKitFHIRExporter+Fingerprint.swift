@@ -56,7 +56,7 @@ extension HealthKitFHIRExporter {
         /// The answers for no sample: no writer and no recording Device. A retraction states neither.
         static let unresolved = ResolvedPolicies(writer: .omit, recordingDevice: nil)
 
-        let writer: HealthKitWriter
+        let writer: HealthKitFHIRExporter.WriterPolicy.Classification
         /// `nil` when the sample names no `HKDevice` or the policy declines it.
         let recordingDevice: RecordingDevice?
 
@@ -156,7 +156,7 @@ extension HealthKitFHIRExporter.WriterPolicy: ExchangeContextFingerprinted {
 }
 
 
-extension HealthKitWriter: ExchangeContextFingerprinted {
+extension HealthKitFHIRExporter.WriterPolicy.Classification: ExchangeContextFingerprinted {
     package var fingerprintParts: [String] {
         switch self {
         case .application: ["application"]

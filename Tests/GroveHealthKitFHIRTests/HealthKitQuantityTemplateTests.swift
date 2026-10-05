@@ -52,7 +52,7 @@ struct HealthKitQuantityTemplateTests {
             #expect(quantity.code == template.empty.code && quantity.system == template.empty.system && quantity.unit == template.empty.unit)
         }
         for value in [Double.nan, .infinity, -.infinity] {
-            #expect(throws: HealthKitValueFailure.shapeInvalid) {
+            #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
                 try template.quantity(value)
             }
         }
@@ -89,7 +89,7 @@ struct HealthKitQuantityTemplateTests {
     @Test("The template refuses a value outside the contract's domain")
     func domainRefusal() throws {
         let template = QuantityTemplate(try #require(MeasurementCatalog.oxygenSaturation.quantity))
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try template.quantity(101)
         }
         #expect(try template.quantity(98).value?.value?.decimal == 98)

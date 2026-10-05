@@ -18,7 +18,7 @@ import ModelsR4
 enum QuantityRead: Sendable {
     /// The sample's quantity in the HealthKit unit its contract's unit binds to, which the public catalog and the
     /// reverse projection state.
-    case unit(HealthKitUnitBinding)
+    case unit(HealthKitCatalog.UnitBinding)
     /// A per-session rate HealthKit already computed, read as a plain count and bound to no unit.
     case platformRate
     /// The sample's quantity as a fraction, stated in percent.
@@ -37,7 +37,7 @@ struct BloodPressureMember: Sendable {
     /// The member's quantity type.
     let quantityType: HKQuantityTypeIdentifier
     /// The component's UCUM code and display unit, and the HealthKit unit the member is read in.
-    let binding: HealthKitUnitBinding
+    let binding: HealthKitCatalog.UnitBinding
     /// The component the member's reading becomes.
     let template: ComponentTemplate
 }
@@ -103,7 +103,7 @@ struct ObservationPlan: Sendable {
     /// The Observation of one sample: the skeleton, stating the sample's effective time and value, then the metadata
     /// component. Each step is its own statement, so a sample with several faults is refused for the first one
     /// checked: the time zone, the effective time, the value, the metadata.
-    func observation(_ sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitValueFailure) -> Observation {
+    func observation(_ sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitConversionError.ValueFailure) -> Observation {
         let zone = try metadata.timeZone()
         var observation = skeleton
         observation.effective = try effective.value(start: sample.startDate, end: sample.endDate, zone: zone)
@@ -120,7 +120,7 @@ struct ObservationPlan: Sendable {
 extension ValueRule {
     /// A category sample that states only that it occurred states `HKCategoryValue.notApplicable`; any other value is
     /// unsupported.
-    private static func requireNotApplicable(_ sample: HKSample) throws(HealthKitValueFailure) {
+    private static func requireNotApplicable(_ sample: HKSample) throws(HealthKitConversionError.ValueFailure) {
         let raw = try sample.cast(to: HKCategorySample.self).value
         guard raw == HKCategoryValue.notApplicable.rawValue else {
             throw .unsupportedValue(raw)
@@ -134,8 +134,8 @@ extension ValueRule {
         unknown: CodeableConcept,
         protected: CodeableConcept,
         unprotected: CodeableConcept
-    ) throws(HealthKitValueFailure) -> CodeableConcept {
-        switch metadata.values[HealthKitMetadataField.sexualActivityProtectionUsed.key] {
+    ) throws(HealthKitConversionError.ValueFailure) -> CodeableConcept {
+        switch metadata.values[HealthKitConversionError.MetadataField.sexualActivityProtectionUsed.key] {
         case nil: unknown
         case let used as Bool: used ? protected : unprotected
         case .some: throw .unsupportedMetadataValue(.sexualActivityProtectionUsed)
@@ -144,7 +144,7 @@ extension ValueRule {
 
     /// Sets what `sample` states on `observation`: its value; a panel's components and no value; or a workout's or
     /// reflection's components, then its value.
-    func apply(to observation: inout Observation, sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitValueFailure) {
+    func apply(to observation: inout Observation, sample: HKSample, metadata: HealthKitSampleMetadata) throws(HealthKitConversionError.ValueFailure) {
         switch self {
         case let .quantity(template, read):
             observation.value = .quantity(try template.quantity(try read.value(of: sample)))
@@ -163,7 +163,7 @@ extension ValueRule {
             observation.value = .codeableConcept(value)
         case .bloodPressure(let members):
             let correlation = try sample.cast(to: HKCorrelation.self)
-            observation.component = try members.map { member throws(HealthKitValueFailure) in
+            observation.component = try members.map { member throws(HealthKitConversionError.ValueFailure) in
                 try member.component(in: correlation)
             }
         case .workout(let content):
@@ -178,7 +178,7 @@ extension ValueRule {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuantityRead {
     /// The value read from `sample`: a quantity in its unit or as a count, a fraction in percent, or a score.
-    func value(of sample: HKSample) throws(HealthKitValueFailure) -> Double {
+    func value(of sample: HKSample) throws(HealthKitConversionError.ValueFailure) -> Double {
         switch self {
         case .unit(let binding): try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: binding.unit)
         case .platformRate: try sample.cast(to: HKQuantitySample.self).quantity.doubleValue(for: .count())
@@ -193,7 +193,7 @@ extension QuantityRead {
 extension BloodPressureMember {
     /// The component the member's reading in `correlation` becomes: the first sample of the member's type, read in
     /// the member's unit. A correlation without one misses the component.
-    func component(in correlation: HKCorrelation) throws(HealthKitValueFailure) -> ObservationComponent {
+    func component(in correlation: HKCorrelation) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent {
         let reading = correlation.objects.lazy
             .compactMap { $0 as? HKQuantitySample }
             .first { $0.quantityType.identifier == quantityType.rawValue }
@@ -207,7 +207,7 @@ extension BloodPressureMember {
 
 extension HKSample {
     /// The sample as the class its plan reads; a sample of another class has an invalid shape.
-    fileprivate func cast<Sample: HKSample>(to _: Sample.Type) throws(HealthKitValueFailure) -> Sample {
+    fileprivate func cast<Sample: HKSample>(to _: Sample.Type) throws(HealthKitConversionError.ValueFailure) -> Sample {
         guard let sample = self as? Sample else {
             throw .shapeInvalid
         }

@@ -195,7 +195,7 @@ extension HealthKitAssembly {
         let nativeRecordIdentifier = options.nativeIdentifier.nativeRecordIdentifier(for: uuid.uuidString.lowercased())
         let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
         var targets: [RetractionTarget] = []
-        for output in plan.outputs.map(\.output) {
+        for output in plan.outputs {
             let identity: RoledIdentifier
             do {
                 identity = try sourceRecord.output(role: output.role, discriminator: output.discriminator)
@@ -210,7 +210,7 @@ extension HealthKitAssembly {
                     nativeRecordIdentifier: nativeRecordIdentifier
                 ))
             } catch {
-                throw .dependency(HealthKitDependencyFailure(underlying: error))
+                throw HealthKitConversionError(dependency: error)
             }
         }
         return targets

@@ -63,9 +63,9 @@ struct DocumentPlan: Sendable {
     /// A heartbeat series' beats in the plan's format, the registry's `beat-interval-series` column schema: one row per
     /// beat, its instant in epoch seconds and whether a gap preceded it. A series without beats is refused. The
     /// exporter's companion fingerprint digests exactly these bytes.
-    func beatIntervals(seriesStart: Date, heartbeats: [HealthKitHeartbeat]) throws -> Data {
+    func beatIntervals(seriesStart: Date, heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> Data {
         guard !heartbeats.isEmpty else {
-            throw HealthKitValueFailure.emptyRecordingSeries
+            throw HealthKitConversionError.ValueFailure.emptyRecordingSeries
         }
         var writer = try RecordingCSVWriter(format: format)
         // Composed in epoch seconds rather than by offsetting the start: `Date` counts from 2001, so offsetting one
@@ -81,7 +81,7 @@ struct DocumentPlan: Sendable {
     /// per fix. A route without fixes is refused. The exporter's companion fingerprint digests exactly these bytes.
     func locationTrack(_ locations: [CLLocation]) throws -> Data {
         guard !locations.isEmpty else {
-            throw HealthKitValueFailure.emptyRecordingSeries
+            throw HealthKitConversionError.ValueFailure.emptyRecordingSeries
         }
         var writer = try RecordingCSVWriter(format: format)
         for fix in locations {
@@ -113,7 +113,7 @@ struct DocumentPlan: Sendable {
     }
 
     /// The document carrying `payload` under `title`, with its SHA-1 hash and size.
-    private func document(_ payload: Data, title: String, contentType: String?) throws(HealthKitValueFailure) -> DocumentReference {
+    private func document(_ payload: Data, title: String, contentType: String?) throws(HealthKitConversionError.ValueFailure) -> DocumentReference {
         guard let size = Int32(exactly: payload.count) else {
             throw .recordingPayloadTooLarge(byteCount: payload.count)
         }

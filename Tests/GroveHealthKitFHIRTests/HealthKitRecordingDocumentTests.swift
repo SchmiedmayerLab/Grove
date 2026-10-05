@@ -25,9 +25,9 @@ import Testing
 struct HealthKitRecordingDocumentTests {
     private static let seriesStart = Date(timeIntervalSince1970: 1_755_624_000)
     private static let heartbeats = [
-        HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
     ]
 
     private static let locations = [
@@ -102,7 +102,7 @@ struct HealthKitRecordingDocumentTests {
     }
 
     /// The payload the heartbeat-series plan writes for `heartbeats` from the guide's series start.
-    private static func beatIntervals(_ heartbeats: [HealthKitHeartbeat]) throws -> Data {
+    private static func beatIntervals(_ heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> Data {
         try HealthKitContentPlan[.heartbeatSeries].recordingDocument().beatIntervals(seriesStart: seriesStart, heartbeats: heartbeats)
     }
 
@@ -142,7 +142,7 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("A series with no beats fails closed rather than carrying a header alone")
     func emptyBeatSeriesFailsClosed() {
-        #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
+        #expect(throws: HealthKitConversionError.ValueFailure.emptyRecordingSeries) {
             try Self.beatIntervals([])
         }
     }

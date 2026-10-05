@@ -71,7 +71,7 @@ struct HealthKitContentPlanTests {
             guard case .refused(let refusal) = plan.route else {
                 #expect(!plan.outputs.isEmpty, "\(type.rawValue) converts but mints no outputs")
                 #expect(row.implementationStatus == .supported, "\(type.rawValue) is \(row.implementationStatus) but converts")
-                #expect(!plan.outputs.contains { $0.output.resourceType == .documentReference }, "\(type.rawValue)")
+                #expect(!plan.outputs.contains { $0.resourceType == .documentReference }, "\(type.rawValue)")
                 continue
             }
             #expect(plan.outputs.isEmpty, "\(type.rawValue) is refused but mints outputs")
@@ -149,8 +149,8 @@ extension HealthKitContentPlanTests {
     /// clinical record on watchOS, which has none: refused as platform exclusive, yet keeping its slot for retraction.
     private static func expectDocument(_ plan: HealthKitContentPlan) {
         let type = plan.sourceType.rawValue
-        #expect(plan.outputs.map(\.output.resourceType) == [.documentReference], "\(type) mints \(plan.outputs)")
-        let role = plan.outputs.first?.output.role
+        #expect(plan.outputs.map(\.resourceType) == [.documentReference], "\(type) mints \(plan.outputs)")
+        let role = plan.outputs.first?.role
         switch plan.route {
         case .recording:
             #expect(role == HealthKitContentRules.nativeRecordingRole, "\(type)")

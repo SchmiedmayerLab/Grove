@@ -25,7 +25,7 @@ struct HealthKitSampleMetadataTests {
         /// The sample's metadata.
         let metadata: [String: any Sendable]
         /// The zone it names, or why it names none HealthKit knows.
-        let zone: Result<TimeZone?, HealthKitValueFailure>
+        let zone: Result<TimeZone?, HealthKitConversionError.ValueFailure>
         /// Whether it states manual entry.
         var wasUserEntered = false
         /// The keys it withholds.
@@ -39,10 +39,10 @@ struct HealthKitSampleMetadataTests {
         /// The component stating the coded value of `raw`.
         case value(Int)
         /// A refusal.
-        case failure(HealthKitValueFailure)
+        case failure(HealthKitConversionError.ValueFailure)
 
         /// The outcome as `rule` states it.
-        func result(of rule: MetadataComponentRule) -> Result<ObservationComponent?, HealthKitValueFailure> {
+        func result(of rule: MetadataComponentRule) -> Result<ObservationComponent?, HealthKitConversionError.ValueFailure> {
             switch self {
             case .none: .success(nil)
             case .value(let raw): .success(rule.values[raw].map { ObservationComponent(code: rule.code, value: .codeableConcept($0)) })
@@ -71,7 +71,7 @@ struct HealthKitSampleMetadataTests {
 
     @Test("Every plan consumes the adapter's typed allowlist")
     func everyPlanConsumesTheAllowlist() {
-        #expect(HealthKitContentPlan.all.allSatisfy { $0.metadata.consumedKeys == HealthKitMetadataField.keys })
+        #expect(HealthKitContentPlan.all.allSatisfy { $0.metadata.consumedKeys == HealthKitConversionError.MetadataField.keys })
     }
 
     @Test("The bridge reads the time zone, manual entry and withheld keys")
@@ -80,7 +80,7 @@ struct HealthKitSampleMetadataTests {
         for expected in Self.bridgeCases {
             let bridged = HealthKitSampleMetadata(try Self.heartRate(metadata: expected.metadata), rule: rule)
             let label = String(describing: expected.metadata)
-            #expect(Result { () throws(HealthKitValueFailure) in try bridged.timeZone() } == expected.zone, "\(label)")
+            #expect(Result { () throws(HealthKitConversionError.ValueFailure) in try bridged.timeZone() } == expected.zone, "\(label)")
             #expect(bridged.statesTimeZone == (expected.metadata[HKMetadataKeyTimeZone] != nil), "\(label)")
             #expect(bridged.values.count == expected.metadata.count, "\(label)")
             #expect(bridged.wasUserEntered == expected.wasUserEntered, "\(label)")
@@ -115,7 +115,7 @@ struct HealthKitSampleMetadataTests {
             for (value, expected) in stated {
                 let metadata: [String: any Sendable] = value.map { [rule.field.key: $0] } ?? [:]
                 let bridged = HealthKitSampleMetadata(try Self.sample(plan, metadata: metadata), rule: plan.metadata)
-                let read = Result { () throws(HealthKitValueFailure) in try rule.component(bridged) }
+                let read = Result { () throws(HealthKitConversionError.ValueFailure) in try rule.component(bridged) }
                 #expect(read == expected.result(of: rule), "\(type.rawValue) \(String(describing: value))")
             }
         }

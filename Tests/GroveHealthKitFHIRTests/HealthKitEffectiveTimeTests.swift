@@ -252,7 +252,7 @@ struct HealthKitEffectiveTimeTests {
             (253_402_300_799.9995, nil), (253_402_290_000, kiritimati), (1_787_148_600, TimeZone(secondsFromGMT: 64_800))
         ]
         for (since1970, zone) in refused {
-            #expect(throws: HealthKitValueFailure.shapeInvalid) {
+            #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
                 try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: since1970), zone: zone)
             }
         }
@@ -272,7 +272,7 @@ struct HealthKitEffectiveTimeTests {
         let lastJulianSecond = Date(timeIntervalSince1970: -12_219_292_801)
         #expect(try HealthKitEffectiveTime.exactDateTime(lastJulianSecond, offset: 0.25, zone: .gmt).description == "1582-10-14T23:59:59.25Z")
         let yearZero = Date(timeIntervalSince1970: -62_135_596_801)
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try HealthKitEffectiveTime.dateTime(yearZero, zone: nil)
         }
         #expect(throws: HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)) {
@@ -290,10 +290,10 @@ struct HealthKitEffectiveTimeTests {
             == .period(HealthKitEffectiveTime.period(start: start, end: end, zone: nil)))
         #expect(try EffectiveRule.interval(nonZero: false).value(start: start, end: start, zone: nil)
             == .period(HealthKitEffectiveTime.period(start: start, end: start, zone: nil)))
-        #expect(throws: HealthKitValueFailure.effectivePeriodInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try EffectiveRule.interval(nonZero: true).value(start: start, end: start, zone: nil)
         }
-        #expect(throws: HealthKitValueFailure.effectivePeriodInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try EffectiveRule.interval(nonZero: false).value(start: end, end: start, zone: nil)
         }
     }
