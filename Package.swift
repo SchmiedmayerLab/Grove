@@ -1491,6 +1491,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "GroveQuestionnaireExtraction"),
             .target(name: "GroveFHIRContract"),
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         resources: [
