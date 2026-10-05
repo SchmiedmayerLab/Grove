@@ -84,10 +84,11 @@ struct QuantityTemplate: Sendable {
 
 
 extension QuantityValueDomain {
-    /// Whether the domain excludes a finite binary64 that has no `Decimal`: fractional where only integers are
-    /// admitted, or beyond a bound. Compared in binary64, which is exact as every generated bound is exact there
-    /// (`HealthKitQuantityTemplateTests` pins it); a bound that did not parse would exclude nothing.
-    fileprivate func excludes(binary64 value: Double) -> Bool {
+    /// Whether the domain excludes the finite binary64 `value`: fractional where only integers are admitted, or beyond
+    /// a bound. ``QuantityTemplate/quantity(_:)`` asks it only for a value that has no `Decimal`. Compared in binary64,
+    /// it agrees with `contains(_:)` wherever a `Decimal` exists, as every generated bound is exact in binary64
+    /// (`HealthKitQuantityTemplateTests` pins both); a bound that did not parse would exclude nothing.
+    func excludes(binary64 value: Double) -> Bool {
         let bound = { (boundary: QuantityBoundary) in Double(boundary.value.description) ?? .nan }
         if integerOnly, value.rounded(.towardZero) != value {
             return true
