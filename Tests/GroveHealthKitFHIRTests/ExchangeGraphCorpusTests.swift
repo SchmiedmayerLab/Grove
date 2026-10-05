@@ -746,7 +746,7 @@ struct ExchangeGraphCorpusTests {
         } catch let error as ExchangeGraphError {
             #expect(error.diagnostic == ExchangeGraphRule.mobileExchangeUnclassified.diagnostic)
         }
-        #expect(ExchangeGraph.rule(for: .missingResource) == .mobileExchangeUnclassified)
+        #expect(ExchangeGraph.rule(for: .invalidInstant) == .mobileExchangeUnclassified)
     }
 
     @Test("The retraction builder carries its source-record entity and known time bounds", arguments: [

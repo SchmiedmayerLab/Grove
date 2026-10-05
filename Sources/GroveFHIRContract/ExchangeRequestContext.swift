@@ -70,7 +70,7 @@ package struct ExchangeRequestContext: Sendable {
 
     private static func framed(_ parts: [String]) -> Data {
         do {
-            return try LengthFramedUTF8.encode(parts)
+            return try Data(lengthFramedUTF8: parts)
         } catch {
             preconditionFailure("A context fingerprint part exceeds the framing limit: \(error)")
         }

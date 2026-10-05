@@ -11,7 +11,8 @@ public import Foundation
 
 /// The converting application, as the immutable application Device snapshot states it.
 public struct ApplicationDevice: Hashable, Sendable {
-    public enum InitError: Error, Equatable, Sendable {
+    /// Why the stated application is not one a Device snapshot can name.
+    public enum ValidationError: Error, Equatable, Sendable {
         case blankName
         case invalidBundleIdentifier(String)
         case blankVersion
@@ -35,7 +36,7 @@ public struct ApplicationDevice: Hashable, Sendable {
         bundleIdentifier: String,
         version: String,
         build: String? = nil
-    ) throws(InitError) {
+    ) throws(ValidationError) {
         guard !name.isBlank else {
             throw .blankName
         }
@@ -58,7 +59,7 @@ public struct ApplicationDevice: Hashable, Sendable {
     ///
     /// A host without a bundle identifier, such as a bare test runner, has no application identity
     /// to state and fails here rather than inside a conversion.
-    public init(bundle: Foundation.Bundle) throws(InitError) {
+    public init(bundle: Foundation.Bundle) throws(ValidationError) {
         let info = bundle.infoDictionary ?? [:]
         let identifier = bundle.bundleIdentifier ?? ""
         try self.init(

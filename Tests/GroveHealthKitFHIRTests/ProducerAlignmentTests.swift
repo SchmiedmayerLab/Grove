@@ -666,15 +666,15 @@ struct ProducerContractVectorTests {
             case "empty-component":
                 let names = try #require(catalog.opaqueIdentity.identityKinds.first { $0.kind == kind.rawValue }?.components)
                 let path = "\(kind.rawValue).\(names[try #require(vector.components.firstIndex(of: ""))])"
-                #expect(throws: OpaqueIdentityError.emptyComponent(path), "\(vector.id)") {
+                #expect(throws: ExchangeIdentityError.emptyComponent(path), "\(vector.id)") {
                     try scope.identifier(kind: kind, components: vector.components)
                 }
             case "provider-kind-required":
-                #expect(throws: OpaqueIdentityError.providerKindRequired(vector.components[0]), "\(vector.id)") {
+                #expect(throws: ExchangeIdentityError.providerKindRequired(vector.components[0]), "\(vector.id)") {
                     try scope.identifier(kind: kind, components: vector.components)
                 }
             case "non-canonical-part-index":
-                #expect(throws: OpaqueIdentityError.nonCanonicalPartIndex("\(kind.rawValue).part-index"), "\(vector.id)") {
+                #expect(throws: ExchangeIdentityError.nonCanonicalPartIndex("\(kind.rawValue).part-index"), "\(vector.id)") {
                     try scope.identifier(kind: kind, components: vector.components)
                 }
             default:
@@ -687,22 +687,22 @@ struct ProducerContractVectorTests {
     func identityFaultCodes() {
         let path = "source-artifact.part-index"
         let table: [(ProducerDiagnostic, ProducerDiagnostic)] = [
-            (OpaqueIdentityError.emptyComponent(path).diagnostic, ExchangeGraphRule.mobileInputRequiredMetadataMissing.diagnostic(at: path)),
-            (OpaqueIdentityError.nonCanonicalPartIndex(path).diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: path)),
+            (ExchangeIdentityError.emptyComponent(path).diagnostic, ExchangeGraphRule.mobileInputRequiredMetadataMissing.diagnostic(at: path)),
+            (ExchangeIdentityError.nonCanonicalPartIndex(path).diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: path)),
             (
                 ExchangeIdentityError.invalidEventIdentifier("e0:x").diagnostic,
                 ExchangeGraphRule.mobileExchangeEventIdentity.diagnostic(at: "Bundle.identifier.value")
             ),
-            (OpaqueIdentityError.keyTooShort(actualBytes: 16).diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
-            (OpaqueIdentityError.invalidKeyID("").diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
-            (OpaqueIdentityError.reusedIdentifierSystem.diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
+            (ExchangeIdentityError.keyTooShort(actualBytes: 16).diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
+            (ExchangeIdentityError.invalidKeyID("").diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
+            (ExchangeIdentityError.reusedIdentifierSystem.diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic),
             (ExchangeIdentityError.invalidIdentifierSystem("x").diagnostic, ExchangeGraphRule.mobileInputUnclassified.diagnostic)
         ]
         for (actual, expected) in table {
             #expect(actual == expected, "\(expected.code)")
         }
-        let fault = OpaqueIdentityError.emptyComponent(path)
-        #expect(HealthKitConversionError.opaqueIdentity(fault).diagnostic == fault.diagnostic)
+        let fault = ExchangeIdentityError.emptyComponent(path)
+        #expect(HealthKitConversionError.exchangeIdentity(fault).diagnostic == fault.diagnostic)
     }
 
     @Test("Registry severities have not drifted")

@@ -28,7 +28,7 @@ extension ExchangeEventContext {
 
     /// The application that mediated the measurement: the converter itself, a distinct application
     /// snapshot, or none.
-    package func gatewayURL(converterURL: String) throws(OpaqueIdentityError) -> String? {
+    package func gatewayURL(converterURL: String) throws(ExchangeIdentityError) -> String? {
         switch converterRole {
         case .assembler:
             return nil

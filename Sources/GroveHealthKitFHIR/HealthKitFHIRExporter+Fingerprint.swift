@@ -130,7 +130,7 @@ extension HealthKitECGContent.Waveform {
     /// What the ECG Observation's SampledData and effective period state from the voltages, length-framed: the
     /// first and last offsets, the period and the data.
     func serialized() throws -> Data {
-        try LengthFramedUTF8.encode([firstOffset.description, lastOffset.description, period.description, data])
+        try Data(lengthFramedUTF8: [firstOffset.description, lastOffset.description, period.description, data])
     }
 }
 

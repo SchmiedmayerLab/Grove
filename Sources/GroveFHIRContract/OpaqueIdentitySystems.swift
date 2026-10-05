@@ -41,7 +41,7 @@ public struct OpaqueIdentitySystems: Hashable, Sendable {
         sourceContext: IdentifierSystem,
         recordingDevice: IdentifierSystem,
         deviceSnapshot: IdentifierSystem
-    ) throws(OpaqueIdentityError) {
+    ) throws(ExchangeIdentityError) {
         let values = [
             sourceRecord,
             sourceOutput,

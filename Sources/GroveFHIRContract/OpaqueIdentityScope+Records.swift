@@ -13,7 +13,7 @@ extension OpaqueIdentityScope {
         sourceType: String,
         repositoryScope: BusinessIdentifier,
         nativeRecordID: String
-    ) throws(OpaqueIdentityError) -> SourceRecordIdentity {
+    ) throws(ExchangeIdentityError) -> SourceRecordIdentity {
         try SourceRecordIdentity(
             scope: self,
             components: [
@@ -32,7 +32,7 @@ extension OpaqueIdentityScope {
         sourceType: String,
         providerScope: BusinessIdentifier,
         nativeRecordID: String
-    ) throws(OpaqueIdentityError) -> ProviderRecordIdentity {
+    ) throws(ExchangeIdentityError) -> ProviderRecordIdentity {
         try ProviderRecordIdentity(
             scope: self,
             components: [
@@ -49,7 +49,7 @@ extension OpaqueIdentityScope {
     public func writerRecord(
         writerApplication: BusinessIdentifier,
         writerRecordID: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(
             kind: .writerRecord,
             components: [
@@ -69,7 +69,7 @@ extension OpaqueIdentityScope {
         contextType: String,
         repositoryScope: BusinessIdentifier,
         nativeContextID: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try validateCodeToken(contextType, field: "source-context.context-type")
         return try identifier(
             kind: .sourceContext,
@@ -88,7 +88,7 @@ extension OpaqueIdentityScope {
         kind: OpaqueIdentityKind,
         role: String,
         discriminator: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try validateCodeToken(role, field: "\(kind.rawValue).output-role")
         return try identifier(kind: kind, components: record + [role, discriminator])
     }
@@ -98,7 +98,7 @@ extension OpaqueIdentityScope {
         kind: OpaqueIdentityKind,
         formatCode: String,
         partIndex: CanonicalNonnegativeDecimal
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(kind: kind, components: record + [formatCode, partIndex.rawValue])
     }
 }

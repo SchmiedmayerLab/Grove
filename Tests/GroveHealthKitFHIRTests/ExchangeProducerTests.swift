@@ -46,16 +46,16 @@ struct OpaqueIdentityScopeRootTests {
 
     @Test("The root scope reports its own faults as opaque-identity errors")
     func rootScopeReportsFaults() {
-        #expect(throws: OpaqueIdentityError.invalidKeyID("key one")) {
+        #expect(throws: ExchangeIdentityError.invalidKeyID("key one")) {
             try OpaqueIdentityScope(root: Self.root, keyID: "key one", epoch: EventSequence(1), key: Self.key)
         }
-        #expect(throws: OpaqueIdentityError.invalidKeyID("")) {
+        #expect(throws: ExchangeIdentityError.invalidKeyID("")) {
             try OpaqueIdentityScope(root: Self.root, keyID: "", epoch: EventSequence(1), key: Self.key)
         }
-        #expect(throws: OpaqueIdentityError.keyTooShort(actualBytes: 16)) {
+        #expect(throws: ExchangeIdentityError.keyTooShort(actualBytes: 16)) {
             try OpaqueIdentityScope(root: Self.root, keyID: "key-1", epoch: EventSequence(1), key: SymmetricKey(size: .bits128))
         }
-        #expect(throws: OpaqueIdentityError.publishedConformanceKeyProhibited) {
+        #expect(throws: ExchangeIdentityError.publishedConformanceKeyProhibited) {
             try OpaqueIdentityScope(
                 root: Self.root,
                 keyID: "key-1",
@@ -63,7 +63,7 @@ struct OpaqueIdentityScopeRootTests {
                 key: SymmetricKey(data: Data((0...31).map(UInt8.init)))
             )
         }
-        #expect(OpaqueIdentityError.invalidDeploymentRoot("x").diagnostic.code == ExchangeGraphRule.mobileInputUnclassified.rawValue)
+        #expect(ExchangeIdentityError.invalidDeploymentRoot("x").diagnostic.code == ExchangeGraphRule.mobileInputUnclassified.rawValue)
     }
 }
 
