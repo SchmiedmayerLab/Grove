@@ -54,7 +54,7 @@ The `ExchangeProducer` numbers the events in a ledger your app stores, and freez
 ### The repository scope
 
 Two SensorKit stores must never collide: the store on one phone and the store on another can hold the same record id.
-The repository scope is one `BusinessIdentifier` that names this installation's SensorKit store, and it enters every opaque identity.
+The repository scope is one `BusinessIdentifier` that names this installation's SensorKit store, and it enters every source-record and output identity.
 Use a system your deployment owns and a token you persist once per installation, such as a UUID minted on first launch.
 
 ### The application
@@ -64,8 +64,11 @@ The conversion Provenance names the application that assembled the graph, so a r
 
 ### The SensorKit facts
 
-The exporter needs the system under which the exact `SRVisit.locationId` is carried; the guide requires it on every visit that names a location.
-Each export call adds the time zone the batch reported its instants in; persist it with the batch, so a redelivery states the same bounds.
+The exporter needs the system under which the exact `SRVisit.locationId` is carried; the guide requires one your deployment owns, scoped to the deployment or the source store, on every visit that names a location.
+Each export call adds two facts about the batch:
+
+- `sourceTimeZone` is the zone every effective bound states its offset in. SensorKit reports absolute instants and no zone, so use the device's zone when you first publish the batch, `TimeZone.current`, and persist it with the batch: a redelivery states the same bounds only under the same zone.
+- `recordingDevice` names the physical unit that recorded the batch. SensorKit's `BatchInfo.device` describes a model, never one unit, and the guide never lets descriptive facts stand in for a unit, so pass a `RecordingDevice` only when your deployment governs a stable token for that unit, such as one it assigned to the participant's paired watch, and persist it with the batch. Without one, the graphs name no recording Device.
 
 > Note: The host defaults to `HostDevice.current()` and the event instant to now.
 > The producer freezes the instant, the application, the host and the studies with each event, so a redelivery before the receipt is released rebuilds the same bytes, even after an update.
@@ -97,9 +100,7 @@ let exporter = try SensorKitFHIRExporter(
 )
 ```
 
-Export a fetched batch and store each graph's bytes verbatim.
-`records` are the batch's ``SensorKitRecord`` values, each named by the ``SensorKitSourceRecordID`` derived from the anchored batch, and `batchTimeZone` the zone the batch reported.
-Release the receipt only once the stored graphs are durable and the batch is acknowledged; until then an exact redelivery reproduces the same events, byte for byte.
+Export each anchored batch, store each graph's bytes verbatim, and acknowledge the batch before you release the receipt; "Publish an anchored batch" below walks through one batch.
 
 ```swift
 let receipt = try exporter.export(records, sourceTimeZone: batchTimeZone) { export in
@@ -118,8 +119,9 @@ What to persist, and why:
 | The ledger storage | It numbers every event and freezes what each one states until the receipt is released. Never restore it from a backup or copy it to another installation. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
 | The installation token | It is the repository scope of every identity this store mints. |
-| The batch's time zone | A redelivery states the same effective bounds only under the same zone. |
-| The source record id and its digest | A retry may reuse the id only for the same source bytes. |
+| The batch's time zone, and its recording-device token when you pass one | A redelivery states the same graphs only with the same facts. |
+| Each record's source record id and the digest of its `retryEvidence` | After the release, the id may name only the bytes first seen at its coordinate. |
+| Each sidecar's bytes, at the path its graph states | The graph names the bytes by path, size and SHA-1, and never carries them. |
 
 > Important: Never change the key or the epoch without deriving new systems.
 > It breaks the promise that one identifier means one thing.
@@ -150,42 +152,62 @@ A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
 
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapter's output against the grove-fhir corpora and the official validator.
 
-### Identify and acknowledge anchored batches
+### Publish an anchored batch
 
-``SensorKitSourceRecordID`` preserves acquisition multiplicity.
-Derive it from the anchored batch's persisted coordinate, sensor and device partitions, and the sample's zero-based ordinal.
-Do not derive it from payload bytes: two byte-identical records acquired at different coordinates are two records.
-Persist a digest of the source fields and native bytes beside the record; an exact retry must reproduce that digest before it may reuse the identifier.
-The exporter adds a second line behind that guard: other content under a reserved record becomes a new event, never a restated one.
+`SensorKit.fetchAnchored(_:batchSize:)` in `GroveSensorKit` delivers each batch with its `info`, whose acquisition coordinate survives a restart, and advances its query anchor only when you call `acknowledge()`.
+One batch becomes records in one of two ways:
+
+- **One record per batch.** A tabular stream (accelerometer, ambient light, ambient pressure, heart rate, pedometer) becomes one ``SensorKitTabularRecording`` from all its samples, and a photoplethysmogram batch one ``SensorKitPreparedPPGRecording`` from `SensorKitPPGRecording(samples:).prepared()`. A rotation-rate batch becomes one ``SensorKitRotationRateRecord`` from its samples, which exposes no `retryEvidence`, so digest the samples you pass. The record's ordinal is 0.
+- **One record per sample.** A visit, an on-wrist event, a device-usage report and an ECG session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal.
+
+The other record cases, such as messages or phone usage, keyboard metrics, sleep sessions and a raw recording, take values you assemble; digest exactly what you pass.
+
+``SensorKitSourceRecordID/derived(acquisitionBatch:sourceToken:deviceProductType:recordOrdinal:)`` names each record from the batch's coordinate, the stream's catalog token (`SensorKitCatalog.sourceToken(for:)`), the batch's device product type and that ordinal, never from its content.
+Two guards keep one name meaning one content:
+
+- **Your digest, across releases.** Each preparation exposes `retryEvidence`, the bytes Grove derives the record from. Digest them, persist the digest beside the record's id, and on a redelivery of the batch fail the batch when a digest differs: SensorKit may change records inside an unacknowledged boundary, and after the release only this digest stops an id from naming other content. An ECG session's evidence covers its identifier, states and waveform; its start, sampling frequency, lead and guidance enter its graph too, so digest them beside it.
+- **The exporter's fingerprint, before the release.** Until the receipt is released, the ledger restates a reserved record only for the same content; other content under a reserved id becomes a new event, never a restated one.
+
+Failing a batch means throwing before `acknowledge()`: the anchor stays, the batch is reissued after a restart under the same coordinate and ids, and the reservations it made stay for that redelivery.
+A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.resetQueryAnchors(for:)`, which fetches the range again under new coordinates, so new ids.
+
+A tabular batch, with `retryLog` standing for your app's durable store of each batch's digests and time zone, and `stageSidecar` for your upload of the bytes:
 
 ```swift
-for try await batch in sensorKit.fetchAnchored(sensor) {
-    var records: [SensorKitRecord] = []
-    for (ordinal, sample) in batch.samples.enumerated() {
-        let recordID = SensorKitSourceRecordID.derived(
-            acquisitionBatch: batch.info.acquisitionBatch,
-            sourceToken: sourceToken,
-            deviceProductType: batch.info.device.productType,
-            recordOrdinal: UInt64(ordinal)
-        )
-        let sourceDigest = try digestCanonicalSource(sample)
-        try verifyRetryOrPersist(recordID, sourceDigest)
-        records.append(try makeRecord(sample, sourceRecordID: recordID))
+let productType = batch.info.device.productType
+let recording = try SensorKitTabularRecording(samples: batch.samples, deviceProductType: productType)
+let sourceRecordID = SensorKitSourceRecordID.derived(
+    acquisitionBatch: batch.info.acquisitionBatch,
+    sourceToken: recording.sourceToken,
+    deviceProductType: productType,
+    recordOrdinal: 0
+)
+try retryLog.verifyOrRecord(sourceRecordID, digest: SHA256.hash(data: recording.retryEvidence))
+let sidecarPath = "sensorkit/\(sourceRecordID.value).\(recording.format.fileExtension)"
+let record = try recording.sensorKitRecord(
+    sourceRecordID: sourceRecordID,
+    title: "Accelerometer",
+    location: .sidecar(path: sidecarPath),
+    admission: .callerAuthorizedOpaquePayload
+)
+let receipt = try exporter.export([record], sourceTimeZone: try retryLog.timeZone(of: batch, current: .current)) { export in
+    if let graph = export.graph {
+        try stageSidecar(recording.data, at: sidecarPath)
+        try stage(graph.json)
     }
-    let receipt = try exporter.export(records, sourceTimeZone: try persistedTimeZone(for: batch)) { export in
-        if let graph = export.graph {
-            try persist(graph.json, for: export.source)
-        }
-    }
-
-    // Advance the query cursor only after every retry-critical value and graph is durable.
-    try await batch.acknowledge()
-    receipt.release()
 }
+try await batch.acknowledge()
+receipt.release()
 ```
 
-An unacknowledged batch is reissued after restart.
-Asking for another batch first fails closed, as does acknowledging twice or acknowledging after the cursor has changed or been reset.
+A structured stream prepares each sample instead, such as `try SensorKitPreparedStructuredRecord(visit: sample)` with the sample's position as its ordinal; a preparation whose `nativePayload` is non-nil (a device-usage report or an ECG session) carries native bytes and takes the `sensorKitRecord(sourceRecordID:title:location:admission:)` form, every other one `sensorKitRecord(sourceRecordID:)`.
+`receive` is called exactly once per record, in input order, with its graph or its refusal; a refused record is skipped, and the batch goes on.
+
+A sidecar keeps large bytes out of the graph: the DocumentReference states the path you chose as `Attachment.url`, verbatim, with the bytes' size and SHA-1, and never fetches or carries them.
+The path is a relative reference your deployment resolves, typically against the storage root you upload sidecars to, so ship the bytes there, unchanged, before the graph is acknowledged, and keep them immutable; a receiver checks what it fetched against the size and hash.
+A path must be relative, with no empty, `.` or `..` segment, query or fragment.
+
+SensorKit records cannot be retracted yet: the guide's retraction of a source record also names the device snapshots its event emitted, which are minted from that event, and the exporter takes no input that states it.
 
 ### Declare native recording bytes
 
@@ -255,6 +277,13 @@ Its `sourceTimeZone` gives every effective bound the source's own offset; withou
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
 - ``SensorRawPayloadAdmission``
+
+### Preparing fetched batches
+
+- ``SensorKitTabularRecording``
+- ``SensorKitPreparedPPGRecording``
+- ``SensorKitPreparedStructuredRecord``
+- ``SensorKitRecordingLocation``
 
 ### Source-neutral conversion (candidates for removal)
 
