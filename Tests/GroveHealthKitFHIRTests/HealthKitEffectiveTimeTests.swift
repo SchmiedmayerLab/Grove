@@ -257,12 +257,15 @@ struct HealthKitEffectiveTimeTests {
         #expect(ExchangeInstant.utcLexeme(date) == "2023-08-07T04:04:20.282Z")
     }
 
-    /// The first two lie beside a half millisecond, where their binary64 product since 1970 rounds the other way
-    /// (`….192` and `….922`); the last two are exact ties.
+    /// The first three lie beside a half millisecond, where their binary64 product since 1970 rounds the other way
+    /// (`….192`, `….922` and `….404`). The second's and third's products since 2001, which the kernel takes, are
+    /// themselves ties, which their rounding error breaks down and up, away from the even neighbour. The last two
+    /// are exact ties.
     @Test("Mobile milliseconds round the exact instant, not its binary64 product, and break exact ties to even")
     func exactInstantRounding() throws {
         let instants: [(TimeInterval, String)] = [
             (1_790_638_382.1925, "2026-09-28T23:33:02.193Z"), (1_795_885_209.9215, "2026-11-28T17:00:09.921Z"),
+            (1_792_530_829.4045, "2026-10-20T21:13:49.405Z"),
             (1_787_148_600.0625, "2026-08-19T14:10:00.062Z"), (1_787_148_600.1875, "2026-08-19T14:10:00.188Z")
         ]
         for (since1970, expected) in instants {
