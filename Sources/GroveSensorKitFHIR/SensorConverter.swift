@@ -363,9 +363,10 @@ extension SensorConverter {
     }
 
     /// A distinct gateway application travels as a second application snapshot when the primary is an Observation,
-    /// which names it; the converter itself as gateway needs no further entry.
+    /// which names it; the converter itself as gateway, named by `.gateway` or by its own token, needs no further entry.
     static func gatewayApplication(context: SensorConversionContext) throws -> IdentifiedDevice? {
-        guard case .gatewayApplication(let application) = context.event.converterRole else {
+        guard case .gatewayApplication(let application) = context.event.converterRole,
+              application.sourceDeviceToken != context.event.application.sourceDeviceToken else {
             return nil
         }
         let identity = try context.identityScope.deviceSnapshot(

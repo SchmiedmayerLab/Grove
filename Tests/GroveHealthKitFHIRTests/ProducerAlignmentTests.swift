@@ -344,6 +344,16 @@ struct ProducerSurfaceTests {
         #expect(conversion.bundle.id != nil, "the legacy Bundle.id is the only repository id the exporter states")
     }
 
+    @Test("A gateway application that is the converting application states the converter as the gateway")
+    func gatewayApplicationEqualToTheConverter() throws {
+        var named = ExportInputs()
+        named.options.role = .gatewayApplication(named.converter)
+        var gateway = ExportInputs()
+        gateway.options.role = .gateway
+        let conversion = try ExporterFixtures.export(Self.heartRate, named)
+        #expect(conversion.graph.json == (try ExporterFixtures.export(Self.heartRate, gateway)).graph.json)
+    }
+
     @Test("The application and host snapshots are minted from the tokens the devices state")
     func deviceTokensMintTheSnapshots() throws {
         let application = ApplicationDevice.test
