@@ -66,40 +66,15 @@ extension ExchangeGraphAssembler {
             }
             return output.links.contains(.gateway)
         }
-        let converter = try converterSnapshots(
-            event: draft.event,
-            repositoryIDs: draft.repositoryIDs,
-            role: draft.converterRole,
-            statesGateway: statesGateway
-        )
-        let recording = try recordingSnapshot(draft.recordingDevice, event: draft.event, repositoryIDs: draft.repositoryIDs)
-        let writer = try writerSnapshots(draft.writer, event: draft.event, repositoryIDs: draft.repositoryIDs, converter: converter)
-        if draft.repositoryIDs[.recordingDevice] != nil, recording == nil {
-            throw ExchangeAssemblyError.repositoryIDWithoutNode(.recordingDevice)
-        }
-        let writerEntries = Set(writer?.entries.map(\.identity) ?? [])
-        if draft.repositoryIDs[.writer] != nil, !writerEntries.contains(where: { $0 == writer?.application.identity }) {
-            throw ExchangeAssemblyError.repositoryIDWithoutNode(.writer)
-        }
-        if draft.repositoryIDs[.writerHost] != nil, !writerEntries.contains(where: { $0 == writer?.host.identity }) {
-            throw ExchangeAssemblyError.repositoryIDWithoutNode(.writerHost)
-        }
+        let converter = try converterSnapshots(event: draft.event, role: draft.converterRole, statesGateway: statesGateway)
+        let recording = try recordingSnapshot(draft.recordingDevice, event: draft.event)
+        let writer = try writerSnapshots(draft.writer, event: draft.event, converter: converter)
         return Devices(converter: converter, recording: recording, writer: writer)
     }
 
-    private func converterSnapshots(
-        event: ExchangeEventIdentifier,
-        repositoryIDs: [ExchangeGraphNode: RepositoryID],
-        role: ConverterRole,
-        statesGateway: Bool
-    ) throws -> ConverterSnapshots {
-        let host = try hostSnapshot(envelope.host, event: event, repositoryID: repositoryIDs[.hostDevice])
-        let application = try applicationSnapshot(
-            envelope.application,
-            event: event,
-            parentURL: try host.identity.fullURLString,
-            repositoryID: repositoryIDs[.applicationDevice]
-        )
+    private func converterSnapshots(event: ExchangeEventIdentifier, role: ConverterRole, statesGateway: Bool) throws -> ConverterSnapshots {
+        let host = try hostSnapshot(envelope.host, event: event)
+        let application = try applicationSnapshot(envelope.application, event: event, parentURL: try host.identity.fullURLString)
         let applicationURL = try application.identity.fullURLString
         switch role {
         case .assembler:
@@ -110,7 +85,7 @@ extension ExchangeGraphAssembler {
             guard statesGateway else {
                 return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)
             }
-            let gateway = try applicationSnapshot(gatewayApplication, event: event, parentURL: nil, repositoryID: nil)
+            let gateway = try applicationSnapshot(gatewayApplication, event: event, parentURL: nil)
             return ConverterSnapshots(
                 host: host,
                 application: application,
@@ -121,11 +96,7 @@ extension ExchangeGraphAssembler {
         }
     }
 
-    private func recordingSnapshot(
-        _ draft: ExchangeRecordingDeviceDraft?,
-        event: ExchangeEventIdentifier,
-        repositoryIDs: [ExchangeGraphNode: RepositoryID]
-    ) throws -> RecordingSnapshot? {
+    private func recordingSnapshot(_ draft: ExchangeRecordingDeviceDraft?, event: ExchangeEventIdentifier) throws -> RecordingSnapshot? {
         guard let draft else {
             return nil
         }
@@ -137,7 +108,6 @@ extension ExchangeGraphAssembler {
         )
         let snapshot = try scope.deviceSnapshot(event: event, role: .recordingDevice, sourceDeviceToken: draft.device.stableUnitToken)
         var resource = draft.resource
-        resource.id = repositoryIDs[.recordingDevice]?.primitive
         resource.identifier = [snapshot.fhirIdentifier, stable.fhirIdentifier]
         return RecordingSnapshot(device: IdentifiedDevice(resource: resource, identity: snapshot), url: try snapshot.fullURLString)
     }
@@ -145,19 +115,13 @@ extension ExchangeGraphAssembler {
     private func writerSnapshots(
         _ writer: ExchangeWriterDraft?,
         event: ExchangeEventIdentifier,
-        repositoryIDs: [ExchangeGraphNode: RepositoryID],
         converter: ConverterSnapshots
     ) throws -> WriterSnapshots? {
         guard let writer else {
             return nil
         }
-        let host = try hostSnapshot(writer.host, event: event, repositoryID: repositoryIDs[.writerHost])
-        var snapshot = try applicationSnapshot(
-            writer.application,
-            event: event,
-            parentURL: try host.identity.fullURLString,
-            repositoryID: repositoryIDs[.writer]
-        )
+        let host = try hostSnapshot(writer.host, event: event)
+        var snapshot = try applicationSnapshot(writer.application, event: event, parentURL: try host.identity.fullURLString)
         if !writer.statesVersion {
             var resource = snapshot.resource
             resource.version = nil
@@ -172,7 +136,7 @@ extension ExchangeGraphAssembler {
     }
 
 
-    private func hostSnapshot(_ host: HostDevice, event: ExchangeEventIdentifier, repositoryID: RepositoryID?) throws -> IdentifiedDevice {
+    private func hostSnapshot(_ host: HostDevice, event: ExchangeEventIdentifier) throws -> IdentifiedDevice {
         let identity = try envelope.identityScope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: host.sourceDeviceToken)
         var resource = Self.hostDevice(
             operatingSystemVersion: host.operatingSystemVersion,
@@ -180,7 +144,6 @@ extension ExchangeGraphAssembler {
             name: host.name,
             manufacturer: host.manufacturer
         )
-        resource.id = repositoryID?.primitive
         resource.identifier = [identity.fhirIdentifier]
         return IdentifiedDevice(resource: resource, identity: identity)
     }
@@ -188,8 +151,7 @@ extension ExchangeGraphAssembler {
     private func applicationSnapshot(
         _ application: ApplicationDevice,
         event: ExchangeEventIdentifier,
-        parentURL: String?,
-        repositoryID: RepositoryID?
+        parentURL: String?
     ) throws -> IdentifiedDevice {
         let identity = try envelope.identityScope.deviceSnapshot(
             event: event,
@@ -202,7 +164,6 @@ extension ExchangeGraphAssembler {
             build: application.build,
             profile: envelope.adapter.applicationDeviceProfile
         )
-        resource.id = repositoryID?.primitive
         resource.identifier = [identity.fhirIdentifier] + (envelope.adapter.applicationIdentifier?(application).map { [$0] } ?? [])
         resource.parent = parentURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
         return IdentifiedDevice(resource: resource, identity: identity)
@@ -216,9 +177,9 @@ extension ExchangeGraphAssembler {
     /// The body of an application Device snapshot as every exchange graph states it: the profile, the status, the
     /// user-friendly name, the version, and the build when there is one.
     ///
-    /// The caller adds the snapshot identity and any clear identifiers, the parent host and any repository id. The
-    /// assembler states the converting application and the writer this way, and Questionnaire its writer, which
-    /// names its own identifier and may state no host.
+    /// The caller adds the snapshot identity, any clear identifiers and the parent host. The assembler states the
+    /// converting application and the writer this way, and Questionnaire its writer, which names its own identifier and
+    /// may state no host.
     package static func applicationDevice(
         name: String,
         version: String,
@@ -243,7 +204,7 @@ extension ExchangeGraphAssembler {
     /// The body of a host Device snapshot as every exchange graph states it: the profile, the status, the name,
     /// manufacturer and model when known, and the operating-system version.
     ///
-    /// The caller adds the snapshot identity and any repository id.
+    /// The caller adds the snapshot identity.
     package static func hostDevice(
         operatingSystemVersion: String,
         modelNumber: String?,

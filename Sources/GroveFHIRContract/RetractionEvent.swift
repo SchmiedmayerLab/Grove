@@ -60,7 +60,7 @@ package struct RetractionEvent: Sendable {
         } catch {
             throw .invalidInstant
         }
-        var provenance = Provenance(
+        let provenance = Provenance(
             activity: CodeableConcept(coding: [Coding(
                 code: Self.lifecycleActivityCode.asFHIRStringPrimitive(),
                 display: "Source record retracted".asFHIRStringPrimitive(),
@@ -86,7 +86,6 @@ package struct RetractionEvent: Sendable {
             recorded: FHIRPrimitive(recorded),
             target: targets.map(\.reference)
         )
-        provenance.id = context.repositoryIDs[.provenance]?.primitive
         let entry: BundleEntry
         do {
             let nodeKey = try EntryNodeKey(

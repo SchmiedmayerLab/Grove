@@ -127,7 +127,8 @@ let enrollment = try StudyEnrollment(
 Every disclosure policy defaults to omission.
 ``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)`` discloses the clear native record identifier under a system you own; each adapter's exporter options state the rest, such as HealthKit's workout route.
 
-A ``RepositoryID`` per ``ExchangeGraphNode`` gives a graph node the logical id your repository assigned, and nothing else in the graph changes.
+The exporters assign no resource id, apart from the HealthKit exporter's opt-in transitional legacy `Bundle.id`.
+A ``RepositoryID`` per ``ExchangeGraphNode`` in an ``ExchangeEventContext`` gives a node of a caller-managed converter's graph the logical id your repository assigned, and nothing else in the graph changes.
 
 ``ConverterRole/gatewayApplication(_:)`` names a distinct application that mediated the measurement; it travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`, and document-only graphs carry none.
 
