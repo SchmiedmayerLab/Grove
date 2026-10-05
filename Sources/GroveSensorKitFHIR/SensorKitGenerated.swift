@@ -26,7 +26,6 @@ public enum SensorKitContract {
     public static let sourceTypeExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-source-type"
     public static let visitLocationExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-visit-location"
     public static let wristTemperatureAlgorithmVersionExtension = "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-wrist-temperature-algorithm-version"
-    public static let visitLocationIdentifierSystem = "https://grovealliance.org/fhir/sensorkit/NamingSystem/sensorkit-visit-location-id"
     public static let sourceTypeCodeSystem = "https://grovealliance.org/fhir/sensorkit/CodeSystem/sensorkit-source-type"
     public static let conceptCodeSystem = "https://grovealliance.org/fhir/sensorkit/CodeSystem/sensorkit-concept"
     public static let valueCodeSystem = "https://grovealliance.org/fhir/sensorkit/CodeSystem/sensorkit-value"

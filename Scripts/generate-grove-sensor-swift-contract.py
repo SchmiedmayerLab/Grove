@@ -363,7 +363,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         "sourceTypeExtension": f"{canonical}/StructureDefinition/sensorkit-source-type",
         "visitLocationExtension": f"{canonical}/StructureDefinition/sensorkit-visit-location",
         "wristTemperatureAlgorithmVersionExtension": f"{canonical}/StructureDefinition/sensorkit-wrist-temperature-algorithm-version",
-        "visitLocationIdentifierSystem": f"{canonical}/NamingSystem/sensorkit-visit-location-id",
         "sourceTypeCodeSystem": f"{canonical}/CodeSystem/sensorkit-source-type",
         "conceptCodeSystem": f"{canonical}/CodeSystem/sensorkit-concept",
         "valueCodeSystem": f"{canonical}/CodeSystem/sensorkit-value",
