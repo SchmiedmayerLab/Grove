@@ -42,10 +42,10 @@ struct HealthKitFHIRExporterLedgerTests {
         return Set(devices.flatMap { $0.version ?? [] }.compactMap { $0.value.value?.string })
     }
 
-    /// One heart rate, one ECG with a symptom, and one retraction, under `producer`.
+    /// The graphs of one heart rate, one ECG with a symptom, and one retraction, under `producer`.
     private static func deliver(
         under producer: ExchangeProducer
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipts: [ExchangeProducer.Receipt]) {
+    ) throws -> (graphs: [ExchangeGraph?], receipts: [ExchangeProducer.Receipt]) {
         let exporter = try Fixtures.exporter(producer)
         let records: [HealthKitFHIRExporter.Record] = [
             .sample(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1))),
@@ -53,7 +53,7 @@ struct HealthKitFHIRExporterLedgerTests {
         ]
         let (exports, receipt) = try Fixtures.collect(exporter, records)
         let (retractions, retractionReceipt) = try Fixtures.retract(exporter, [Fixtures.deletion(4, deletedAfter: GoldenFixtures.sampleStart)])
-        return (exports + retractions, [receipt, retractionReceipt])
+        return (exports.map(\.graph) + retractions.map(\.graph), [receipt, retractionReceipt])
     }
 
     @Test("G2: a redelivery before release is byte-identical across app, OS and study changes; after release it is new")
@@ -66,7 +66,7 @@ struct HealthKitFHIRExporterLedgerTests {
             storage: storage
         )
         let first = try Self.deliver(under: original)
-        try #require(first.exports.count == 4)
+        try #require(first.graphs.count == 4)
         var receipts = first.receipts
         // App 1.0 (100) to 1.1 (110), OS 26.0 to 27.0, studies [] to [s1 rev 1], then [s1 rev 1] to [s1 rev 2].
         let updated = try ["1", "2"].map { revision in
@@ -79,19 +79,19 @@ struct HealthKitFHIRExporterLedgerTests {
         }
         for producer in updated {
             let again = try Self.deliver(under: producer)
-            #expect(again.exports.map(\.graph?.json) == first.exports.map(\.graph?.json))
-            #expect(again.exports.map(\.event) == first.exports.map(\.event))
+            #expect(again.graphs.map(\.?.json) == first.graphs.map(\.?.json))
+            #expect(again.graphs.map(\.?.eventIdentifier) == first.graphs.map(\.?.eventIdentifier))
             receipts += again.receipts
         }
-        #expect(Self.deviceVersions(first.exports[0].graph).contains("1.0"))
+        #expect(Self.deviceVersions(first.graphs[0]).contains("1.0"))
         receipts.forEach { $0.release() }
         let renewed = try Self.deliver(under: try #require(updated.last))
-        for (renewedExport, firstExport) in zip(renewed.exports, first.exports) {
-            #expect(renewedExport.event != firstExport.event)
-            #expect(renewedExport.graph?.json != firstExport.graph?.json)
+        for (renewedGraph, firstGraph) in zip(renewed.graphs, first.graphs) {
+            #expect(renewedGraph?.eventIdentifier != firstGraph?.eventIdentifier)
+            #expect(renewedGraph?.json != firstGraph?.json)
         }
-        #expect(Self.deviceVersions(renewed.exports[0].graph).contains("1.1"))
-        #expect(!Self.deviceVersions(renewed.exports[0].graph).contains("1.0"))
+        #expect(Self.deviceVersions(renewed.graphs[0]).contains("1.1"))
+        #expect(!Self.deviceVersions(renewed.graphs[0]).contains("1.0"))
     }
 
     @Test("G18: the first delivery and a redelivery through a fresh process produce byte-equal graphs")
@@ -100,7 +100,7 @@ struct HealthKitFHIRExporterLedgerTests {
         let studies = [try Self.study(revision: "1"), StudyEnrollment.test("s2")]
         let first = try Self.deliver(under: try Fixtures.producer(studies: studies, storage: storage, holds: HoldRegistry()))
         let again = try Self.deliver(under: try Fixtures.producer(studies: [], storage: storage, holds: HoldRegistry()))
-        #expect(again.exports.map(\.graph?.json) == first.exports.map(\.graph?.json))
+        #expect(again.graphs.map(\.?.json) == first.graphs.map(\.?.json))
     }
 
     @Test("G8: a call that throws in receive leaves its reservations; the redelivery reuses them and its release removes them")
@@ -201,15 +201,15 @@ struct HealthKitFHIRExporterLedgerTests {
         #expect(pair.first { $0.source.uuid == one.uuid }?.event == single[1].event, "the unchanged symptom keeps its event")
         let before = try Fixtures.retract(exporter, [Fixtures.deletion(0x83, deletedAfter: GoldenFixtures.sampleStart)])
         let after = try Fixtures.retract(exporter, [Fixtures.deletion(0x83, deletedAfter: GoldenFixtures.sampleStart + 1)])
-        #expect(before.exports[0].event != after.exports[0].event)
+        #expect(before.retractions[0].event != after.retractions[0].event)
         let both = try Fixtures.retract(exporter, [
             Fixtures.deletion(0x84, deletedAfter: GoldenFixtures.sampleStart),
             Fixtures.deletion(0x84, deletedAfter: nil),
             Fixtures.deletion(0x84, deletedAfter: GoldenFixtures.sampleStart)
         ])
-        #expect(both.exports[0].event != both.exports[1].event)
-        #expect(both.exports[0].event == both.exports[2].event)
-        #expect(both.exports[0].graph?.json != both.exports[1].graph?.json)
+        #expect(both.retractions[0].event != both.retractions[1].event)
+        #expect(both.retractions[0].event == both.retractions[2].event)
+        #expect(both.retractions[0].graph?.json != both.retractions[1].graph?.json)
     }
 
     @Test("G11: a released retraction forgets the deleted record's active reservation; an unreleased one forgets nothing")

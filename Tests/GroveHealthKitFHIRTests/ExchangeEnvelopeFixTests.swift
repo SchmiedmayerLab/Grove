@@ -242,13 +242,13 @@ struct ExchangeEnvelopeFixTests {
             deletedAfter: nil,
             detectedAt: GoldenFixtures.conversionInstant
         )
-        var omitted: [HealthKitFHIRExporter.Export] = []
+        var omitted: [HealthKitFHIRExporter.Retraction] = []
         _ = try Self.exporter().retract([deletion], at: GoldenFixtures.conversionInstant) { omitted.append($0) }
         guard case .nothingToRetract? = omitted.first?.outcome else {
             Issue.record("An undisclosed route was never exported, so there is nothing to retract")
             return
         }
-        var authorized: [HealthKitFHIRExporter.Export] = []
+        var authorized: [HealthKitFHIRExporter.Retraction] = []
         _ = try Self.exporter { $0.route = .authorized }.retract([deletion], at: GoldenFixtures.conversionInstant) { authorized.append($0) }
         #expect(authorized.first?.graph?.kind == .retraction)
     }

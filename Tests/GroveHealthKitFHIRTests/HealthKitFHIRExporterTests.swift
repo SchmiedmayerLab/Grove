@@ -202,19 +202,19 @@ struct HealthKitFHIRExporterTests {
             HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(11), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt),
             HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(12), sourceType: .bloodPressure, deletedAfter: nil, detectedAt: detectedAt)
         ]
-        var exports: [HealthKitFHIRExporter.Export] = []
-        let receipt = try exporter.retract(deletions, at: detectedAt) { exports.append($0) }
-        try #require(exports.count == 3)
+        var retractions: [HealthKitFHIRExporter.Retraction] = []
+        let receipt = try exporter.retract(deletions, at: detectedAt) { retractions.append($0) }
+        try #require(retractions.count == 3)
         // Outcomes arrive in input order; the systolic component never emitted outputs.
-        guard case .nothingToRetract = exports[1].outcome else {
-            Issue.record("a systolic component never emitted outputs; expected nothingToRetract, got \(exports[1].outcome)")
+        guard case .nothingToRetract = retractions[1].outcome else {
+            Issue.record("a systolic component never emitted outputs; expected nothingToRetract, got \(retractions[1].outcome)")
             return
         }
-        #expect(exports.map(\.source.uuid) == [GoldenFixtures.uuid(10), GoldenFixtures.uuid(11), GoldenFixtures.uuid(12)])
-        #expect(Set(Self.sequences(exports)) == ["1", "2"])
-        for (export, deletion) in [(exports[0], deletions[0]), (exports[2], deletions[2])] {
-            let reference = try ExporterFixtures.standalone(deletion, as: export.event)
-            #expect(export.graph?.json == reference?.json)
+        #expect(retractions.map(\.deletion) == deletions)
+        #expect(Set(retractions.compactMap(\.sequence)) == ["1", "2"])
+        for (retraction, deletion) in [(retractions[0], deletions[0]), (retractions[2], deletions[2])] {
+            let reference = try ExporterFixtures.standalone(deletion, as: retraction.event)
+            #expect(retraction.graph?.json == reference?.json)
         }
         receipt.release()
         let (afterRelease, _) = try Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13))])
@@ -226,19 +226,19 @@ struct HealthKitFHIRExporterTests {
         let storage = LedgerCountingStorage()
         let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, storage: storage)
         let detectedAt = GoldenFixtures.conversionInstant
-        var exports: [HealthKitFHIRExporter.Export] = []
+        var retractions: [HealthKitFHIRExporter.Retraction] = []
         _ = try exporter.retract(
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(20), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt)],
             at: detectedAt
-        ) { exports.append($0) }
+        ) { retractions.append($0) }
         #expect(storage.take().transactions == 0)
-        _ = try exporter.export([HKSample](), at: detectedAt) { exports.append($0) }
+        _ = try exporter.export([HKSample](), at: detectedAt) { _ in }
         #expect(storage.take().transactions == 0)
         _ = try exporter.retract(
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(21), sourceType: .heartRate, deletedAfter: detectedAt + 60, detectedAt: detectedAt)],
             at: detectedAt
-        ) { exports.append($0) }
-        let bundle = try #require(exports.last?.graph?.bundle)
+        ) { retractions.append($0) }
+        let bundle = try #require(retractions.last?.graph?.bundle)
         #expect(bundle.id?.value?.string == GoldenFixtures.uuid(21).uuidString)
         let provenance = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         guard case .period(let period)? = provenance.occurred else {
@@ -257,7 +257,7 @@ struct HealthKitFHIRExporterTests {
         let observations = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) })
         try #require(observations.count == 1)
         let session = try #require(observations[0].identifier?.first { (try? RoledIdentifier($0).role) == .sourceOutput }?.value?.value?.string)
-        var retractions: [HealthKitFHIRExporter.Export] = []
+        var retractions: [HealthKitFHIRExporter.Retraction] = []
         let deletion = HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant)
         _ = try exporter.retract([deletion], at: GoldenFixtures.conversionInstant) { retractions.append($0) }
         let provenance = try #require(retractions.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)

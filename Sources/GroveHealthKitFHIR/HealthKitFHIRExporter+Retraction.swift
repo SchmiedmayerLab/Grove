@@ -15,9 +15,10 @@ import HealthKit
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// Retracts deleted records in input order, one retraction event per deletion that names outputs this
-    /// exporter can have emitted; every other deletion is reported as ``Export/Outcome/nothingToRetract``.
-    /// Targets are recomputed from the catalog, so nothing from the original export needs to be kept.
+    /// Retracts deleted records in input order, calling `receive` once per deletion: one retraction event per deletion
+    /// that names outputs this exporter can have emitted; every other deletion is reported as
+    /// ``Retraction/Outcome/nothingToRetract``. Targets are recomputed from the catalog, so nothing from the original
+    /// export needs to be kept.
     ///
     /// Every retraction event is reserved in one ledger transaction. Two deletions of one record with
     /// different bounds are two events, each under its own key, so an exact retry of the call reproduces
@@ -31,7 +32,7 @@ extension HealthKitFHIRExporter {
     public func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
-        receive: (Export) throws -> Void
+        receive: (Retraction) throws -> Void
     ) throws -> ExchangeProducer.Receipt {
         let requests = deletions.map { deletion in
             isRetractable(deletion) ? context.request(for: .retraction(deletion)) : nil
@@ -43,17 +44,17 @@ extension HealthKitFHIRExporter {
         )
         for (deletion, request) in zip(deletions, requests) {
             guard let request, let reservation = reserved[request] else {
-                try receive(Export(source: deletion.source, outcome: .nothingToRetract, warnings: []))
+                try receive(Retraction(deletion: deletion, outcome: .nothingToRetract))
                 continue
             }
             // A refusal keeps its reservation held until the receipt is released, never mid-call.
-            let outcome: Export.Outcome
+            let outcome: Retraction.Outcome
             do {
                 outcome = .graph(try retraction(of: deletion, reservation: reservation))
             } catch {
                 outcome = .refused(HealthKitConversionError(conversionFailure: error, source: deletion.sourceType))
             }
-            try receive(Export(source: deletion.source, outcome: outcome, warnings: []))
+            try receive(Retraction(deletion: deletion, outcome: outcome))
         }
         return receipt
     }
@@ -87,10 +88,6 @@ extension HealthKitFHIRExporter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.Deletion {
-    var source: HealthKitFHIRExporter.Export.Source {
-        HealthKitFHIRExporter.Export.Source(uuid: uuid, typeIdentifier: sourceType.rawValue)
-    }
-
     /// The lower bound the retraction states. A backwards clock adjustment can put the earlier query after
     /// the detection; the known upper bound is kept rather than an invalid period stated.
     var clampedDeletedAfter: Date? {

@@ -68,8 +68,8 @@ struct HealthKitFHIRExporterCallTests {
     func retractionTakesOneReserveTransaction() throws {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(storage: storage)
-        let (exports, receipt) = try Fixtures.retract(exporter, [Fixtures.deletion(0xD1), Fixtures.deletion(0xD2), Fixtures.deletion(0xD3)])
-        #expect(Set(exports.compactMap(\.sequence)) == ["1", "2", "3"])
+        let (retractions, receipt) = try Fixtures.retract(exporter, [Fixtures.deletion(0xD1), Fixtures.deletion(0xD2), Fixtures.deletion(0xD3)])
+        #expect(Set(retractions.compactMap(\.sequence)) == ["1", "2", "3"])
         #expect(storage.take().transactions == 1)
         receipt.release()
         #expect(storage.take().transactions == 1)
@@ -85,9 +85,9 @@ struct HealthKitFHIRExporterCallTests {
             deletedAfter: nil,
             detectedAt: GoldenFixtures.conversionInstant
         )
-        let (exports, receipt) = try Fixtures.retract(exporter, [deletion])
-        guard case .nothingToRetract = exports.first?.outcome else {
-            Issue.record("expected nothing to retract, got \(String(describing: exports.first?.outcome))")
+        let (retractions, receipt) = try Fixtures.retract(exporter, [deletion])
+        guard case .nothingToRetract = retractions.first?.outcome else {
+            Issue.record("expected nothing to retract, got \(String(describing: retractions.first?.outcome))")
             return
         }
         #expect(storage.take().transactions == 0)

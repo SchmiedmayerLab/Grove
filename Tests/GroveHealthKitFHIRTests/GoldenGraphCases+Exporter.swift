@@ -80,12 +80,12 @@ enum ExporterGolden {
         return try GoldenOutput(exports[index])
     }
 
-    /// The one export of a call.
-    static func single(_ exports: [HealthKitFHIRExporter.Export]) throws -> HealthKitFHIRExporter.Export {
-        guard exports.count == 1, let export = exports.first else {
-            throw GoldenCaseError.unexpectedCompanions(exports.count - 1)
+    /// The one export or retraction of a call.
+    static func single<Delivery>(_ deliveries: [Delivery]) throws -> Delivery {
+        guard deliveries.count == 1, let delivery = deliveries.first else {
+            throw GoldenCaseError.unexpectedCompanions(deliveries.count - 1)
         }
-        return export
+        return delivery
     }
 
     /// The sinus-rhythm ECG record with one correlated symptom.
@@ -173,8 +173,8 @@ extension GoldenCase {
                 deletedAfter: GoldenFixtures.sampleStart.addingTimeInterval(0.125),
                 detectedAt: GoldenFixtures.conversionInstant.addingTimeInterval(-0.25)
             )
-            let (exports, _) = try ExporterFixtures.retract(ExporterGolden.exporter(sequence: sequence, deployment: true), [deletion])
-            return try GoldenOutput(ExporterGolden.single(exports))
+            let (retractions, _) = try ExporterFixtures.retract(ExporterGolden.exporter(sequence: sequence, deployment: true), [deletion])
+            return try GoldenOutput(ExporterGolden.single(retractions))
         }
     ] + exporterClinicalRecords
 
