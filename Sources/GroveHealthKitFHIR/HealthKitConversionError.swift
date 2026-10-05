@@ -142,16 +142,20 @@ extension HealthKitConversionError {
             }
         }
 
-        /// Whether a graph that was built carries `value` under this key, where the content reads it: the heart-rate
-        /// motion context (a metadata component) and the ECG algorithm version (the waveform's method) are read only
-        /// from a number and dropped otherwise; every other reader refuses a value it does not carry.
+        /// Whether a graph that was built carries `value` under this key as a source type's own content reads it
+        /// (``MetadataRule/contentFields``): the heart-rate motion context (a metadata component) and the ECG algorithm
+        /// version (the waveform's method) only as a number, as their readers drop any other value; the insulin
+        /// delivery reason, menstrual cycle start and sexual-activity protection always, as their readers refuse what
+        /// they do not carry. The time zone, manual entry and the sync pair are no type's content: the graph's outputs
+        /// show whether they are carried, so here they are not, and a caller that asks keeps them reported.
         func readerAccepts(_ value: Any) -> Bool {
             switch self {
             case .heartRateMotionContext, .appleECGAlgorithmVersion:
                 (value as? NSNumber) != nil
-            case .timeZone, .syncIdentifier, .syncVersion, .wasUserEntered, .insulinDeliveryReason, .menstrualCycleStart,
-                 .sexualActivityProtectionUsed:
+            case .insulinDeliveryReason, .menstrualCycleStart, .sexualActivityProtectionUsed:
                 true
+            case .timeZone, .syncIdentifier, .syncVersion, .wasUserEntered:
+                false
             }
         }
     }

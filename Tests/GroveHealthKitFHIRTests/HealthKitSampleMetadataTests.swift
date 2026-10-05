@@ -80,6 +80,16 @@ struct HealthKitSampleMetadataTests {
         }
     }
 
+    @Test("The time zone, manual entry and the sync pair are carried as the outputs show, never as content")
+    func outputKeysAreNoContent() {
+        let stated: [(HealthKitConversionError.MetadataField, any Sendable)] = [
+            (.timeZone, "America/Los_Angeles"), (.syncIdentifier, "record"), (.syncVersion, 3), (.wasUserEntered, true)
+        ]
+        for (field, value) in stated {
+            #expect(!field.readerAccepts(value), "\(field)")
+        }
+    }
+
     @Test("The bridge reads the time zone and manual entry, and holds no contained metadata for a plain sample")
     func bridgeReadsTheMetadata() throws {
         let rule = HealthKitContentPlan[.heartRate].metadata

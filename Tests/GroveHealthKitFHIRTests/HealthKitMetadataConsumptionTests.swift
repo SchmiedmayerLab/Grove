@@ -177,6 +177,42 @@ struct HealthKitMetadataConsumptionTests {
         #expect(conversion.warnings == [Warnings.unmodeled])
     }
 
+    /// `HKWorkout`'s initializer files each event under the workout and under the one activity it synthesizes, whose
+    /// metadata is empty, so ``workoutEventKeys()`` cannot tell where a key came from. A recorded workout keeps its own
+    /// events, its activities' metadata and each activity's events apart, and each of them is read.
+    @Test("A recorded workout's own events, each activity and each activity's events are reported apart")
+    func workoutActivityKeys() throws {
+        let begin = GoldenFixtures.sampleStart
+        func stating(_ key: String) -> [String: Any] {
+            GoldenFixtures.timeZoneMetadata.merging([key: 1]) { $1 }
+        }
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .running
+        let activity = HKWorkoutActivity(
+            workoutConfiguration: configuration,
+            start: begin,
+            end: begin.addingTimeInterval(300),
+            metadata: stating("com.example.activity")
+        )
+        let segment = HKWorkoutEvent(type: .segment, dateInterval: DateInterval(start: begin, duration: 300), metadata: stating("com.example.segment"))
+        let lap = HKWorkoutEvent(type: .lap, dateInterval: DateInterval(start: begin, duration: 60), metadata: stating("com.example.lap"))
+        let built = HKWorkout(
+            activityType: .running,
+            start: begin,
+            end: begin.addingTimeInterval(600),
+            workoutEvents: [lap],
+            totalEnergyBurned: nil,
+            totalDistance: nil,
+            device: nil,
+            metadata: GoldenFixtures.timeZoneMetadata
+        )
+        let workout = try StoredSampleFixtures.workout(built, activities: [(activity, events: [segment])])
+        #expect(workout.workoutEvents == [lap])
+        let conversion = try Warnings.convert(StoredSampleFixtures.stored(workout, uuid: GoldenFixtures.uuid(0xEA)))
+        #expect(conversion.withheldMetadataKeys == ["com.example.activity", "com.example.lap", "com.example.segment"])
+        #expect(conversion.warnings == [Warnings.unmodeled])
+    }
+
     @Test("A contained object's key is withheld unless the record carries the equal value; manual entry false never is")
     func containedKeys() {
         let zone = HKMetadataKeyTimeZone

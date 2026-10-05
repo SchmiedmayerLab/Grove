@@ -103,8 +103,8 @@ enum StoredSampleFixtures {
             ("HKQuantitySample", ["quantity", "count"]),
             ("HKCategorySample", ["value"]),
             ("HKCorrelation", ["objects"]),
-            ("HKWorkout", ["workoutActivityType", "duration", "primaryActivity"]),
-            ("HKWorkoutActivity", ["statisticsPerType"]),
+            ("HKWorkout", ["workoutActivityType", "duration", "primaryActivity", "subActivities"]),
+            ("HKWorkoutActivity", ["statisticsPerType", "workoutEvents"]),
             ("HKStatistics", ["dataType", "sumQuantity", "averageQuantity", "minimumQuantity", "maximumQuantity"]),
             ("HKStateOfMind", ["kind", "valence", "labels", "associations"]),
             ("HKScoredAssessment", ["score"]),
@@ -159,6 +159,21 @@ enum StoredSampleFixtures {
             throw FixtureError.keyNotHonored(key: "metadata", class: String(describing: type(of: sample)))
         }
         return sample
+    }
+
+    /// `workout` made of `activities`, each stating the events paired with it, in place of the one activity its
+    /// initializer synthesized from its events; HealthKit attaches activities, and events to an activity, only while it
+    /// records a workout. The workout's own events stay as built.
+    static func workout(_ workout: HKWorkout, activities: [(activity: HKWorkoutActivity, events: [HKWorkoutEvent])]) throws -> HKWorkout {
+        for (activity, events) in activities {
+            try restate(activity, with: ["workoutEvents": events])
+        }
+        try restate(workout, with: ["subActivities": activities.map(\.activity)])
+        guard workout.workoutActivities.elementsEqual(activities.map(\.activity), by: ===),
+              workout.workoutActivities.map(\.workoutEvents) == activities.map(\.events) else {
+            throw FixtureError.keyNotHonored(key: "subActivities/workoutEvents", class: "HKWorkout")
+        }
+        return workout
     }
 
     /// A bare instance of a sample class without a public initializer, carrying exactly `facts`.
