@@ -9,19 +9,19 @@
 import Foundation
 
 
-public enum RecordingDeviceError: Error, Equatable, Sendable {
-    case blankStableUnitToken
-    case blankName
-    case blankManufacturer
-    case blankModelNumber
-}
-
-
 /// The physical recorder, identified by a source-local token that stays stable for the same unit.
 ///
 /// The token is never emitted. Adapters feed it to the deployment-scoped `recording-device`
 /// identity instead of disclosing a platform identifier.
 public struct RecordingDevice: Hashable, Sendable {
+    /// Why the stated recorder is not one a Device can name.
+    public enum ValidationError: Error, Equatable, Sendable {
+        case blankStableUnitToken
+        case blankName
+        case blankManufacturer
+        case blankModelNumber
+    }
+
     public let stableUnitToken: String
     public let name: String?
     public let manufacturer: String?
@@ -32,7 +32,7 @@ public struct RecordingDevice: Hashable, Sendable {
         name: String? = nil,
         manufacturer: String? = nil,
         modelNumber: String? = nil
-    ) throws(RecordingDeviceError) {
+    ) throws(ValidationError) {
         guard !stableUnitToken.isBlank else {
             throw .blankStableUnitToken
         }

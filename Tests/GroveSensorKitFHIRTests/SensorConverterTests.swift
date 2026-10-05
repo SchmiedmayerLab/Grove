@@ -261,12 +261,12 @@ struct SensorFHIRConverterTests {
     @Test("An identity fault reports its own registry code through both sensor adapters")
     func identityFaultsKeepTheirCodes() {
         let opaque = [
-            OpaqueIdentityError.emptyComponent("source-record.native-record-id"),
+            ExchangeIdentityError.emptyComponent("source-record.native-record-id"),
             .nonCanonicalPartIndex("source-artifact.part-index")
         ]
         for fault in opaque {
-            #expect(SensorConversionError.opaqueIdentity(fault).diagnostic == fault.diagnostic)
-            #expect(SensorKitConversionError.opaqueIdentity(fault).diagnostic == fault.diagnostic)
+            #expect(SensorConversionError.exchangeIdentity(fault).diagnostic == fault.diagnostic)
+            #expect(SensorKitConversionError.exchangeIdentity(fault).diagnostic == fault.diagnostic)
         }
         #expect(opaque.map(\.diagnostic.code) == ["mobile-input.required-metadata-missing", "mobile-input.unclassified"])
         let malformed = ExchangeIdentityError.invalidEventIdentifier("e0:x")

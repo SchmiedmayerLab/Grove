@@ -22,24 +22,24 @@ public struct ProviderRecordIdentity: Sendable, CustomDebugStringConvertible {
         "ProviderRecordIdentity(identifier: \(identifier.identifier.value))"
     }
 
-    init(scope: OpaqueIdentityScope, components: [String]) throws(OpaqueIdentityError) {
+    init(scope: OpaqueIdentityScope, components: [String]) throws(ExchangeIdentityError) {
         self.identifier = try scope.identifier(kind: .providerRecord, components: components)
         self.scope = scope
         self.components = components
     }
 
     /// The `provider-output` identifier of one output this record converts to.
-    public func output(role: String, discriminator: String) throws(OpaqueIdentityError) -> RoledIdentifier {
+    public func output(role: String, discriminator: String) throws(ExchangeIdentityError) -> RoledIdentifier {
         try scope.output(extending: components, kind: .providerOutput, role: role, discriminator: discriminator)
     }
 
     /// The `provider-artifact` identifier of one part of the record's native artifact.
-    public func artifact(formatCode: String, partIndex: CanonicalNonnegativeDecimal) throws(OpaqueIdentityError) -> RoledIdentifier {
+    public func artifact(formatCode: String, partIndex: CanonicalNonnegativeDecimal) throws(ExchangeIdentityError) -> RoledIdentifier {
         try scope.artifact(extending: components, kind: .providerArtifact, formatCode: formatCode, partIndex: partIndex)
     }
 
     /// Convenience for a locally machine-sized part index.
-    public func artifact(formatCode: String, partIndex: UInt64) throws(OpaqueIdentityError) -> RoledIdentifier {
+    public func artifact(formatCode: String, partIndex: UInt64) throws(ExchangeIdentityError) -> RoledIdentifier {
         try artifact(formatCode: formatCode, partIndex: CanonicalNonnegativeDecimal(partIndex))
     }
 }

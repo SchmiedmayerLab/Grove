@@ -194,14 +194,14 @@ struct GroveFHIRExchangeIdentityTests {
 
     @Test("Length framing distinguishes delimiter and field-boundary collisions")
     func lengthFramingIsUnambiguous() throws {
-        #expect(try LengthFramedUTF8.encode(["a|b", "c"]) != LengthFramedUTF8.encode(["a", "b|c"]))
-        #expect(try LengthFramedUTF8.encode(["é"]) != LengthFramedUTF8.encode(["e", "\u{301}"]))
-        #expect(try LengthFramedUTF8.encode([""]) == Data([0, 0, 0, 0]))
+        #expect(try Data(lengthFramedUTF8: ["a|b", "c"]) != Data(lengthFramedUTF8: ["a", "b|c"]))
+        #expect(try Data(lengthFramedUTF8: ["é"]) != Data(lengthFramedUTF8: ["e", "\u{301}"]))
+        #expect(try Data(lengthFramedUTF8: [""]) == Data([0, 0, 0, 0]))
     }
 
     @Test("The published conformance key cannot initialize a production identity scope")
     func rejectsPublishedConformanceKeyInProductionInitializer() throws {
-        #expect(throws: OpaqueIdentityError.publishedConformanceKeyProhibited) {
+        #expect(throws: ExchangeIdentityError.publishedConformanceKeyProhibited) {
             try OpaqueIdentityScope(
                 systems: Self.scope.systems,
                 keyID: "must-not-ship",
@@ -244,13 +244,13 @@ extension GroveFHIRExchangeIdentityTests {
     }
 
     private func expectEmptySourceComponents(repository: BusinessIdentifier) {
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-record.adapter-id")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-record.adapter-id")) {
             try Self.scope.sourceRecord(adapterID: "", sourceType: "type", repositoryScope: repository, nativeRecordID: "id")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-record.source-type")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-record.source-type")) {
             try Self.scope.sourceRecord(adapterID: "adapter", sourceType: "", repositoryScope: repository, nativeRecordID: "id")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-record.native-record-id")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-record.native-record-id")) {
             try Self.scope.sourceRecord(adapterID: "adapter", sourceType: "type", repositoryScope: repository, nativeRecordID: "")
         }
     }
@@ -267,38 +267,38 @@ extension GroveFHIRExchangeIdentityTests {
             repositoryScope: repository,
             nativeRecordID: "id"
         )
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-output.output-role")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-output.output-role")) {
             try record.output(role: "", discriminator: "single")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-output.output-discriminator")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-output.output-discriminator")) {
             try record.output(role: "primary", discriminator: "")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("writer-record.writer-record-id")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("writer-record.writer-record-id")) {
             try Self.scope.writerRecord(writerApplication: application, writerRecordID: "")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-artifact.format-code")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-artifact.format-code")) {
             try record.artifact(formatCode: "", partIndex: 0)
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-context.context-type")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-context.context-type")) {
             try Self.scope.sourceContext(
                 adapterID: "adapter", contextType: "", repositoryScope: repository, nativeContextID: "id"
             )
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("source-context.native-context-id")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("source-context.native-context-id")) {
             try Self.scope.sourceContext(
                 adapterID: "adapter", contextType: "context", repositoryScope: repository, nativeContextID: ""
             )
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("recording-device.stable-unit-token")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("recording-device.stable-unit-token")) {
             try Self.scope.recordingDevice(adapterID: "adapter", subject: subject, stableUnitToken: "")
         }
-        #expect(throws: OpaqueIdentityError.emptyComponent("device-snapshot.source-device-token")) {
+        #expect(throws: ExchangeIdentityError.emptyComponent("device-snapshot.source-device-token")) {
             try Self.scope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: "")
         }
     }
 
     private func expectProviderKindRequired(_ providerCode: String, repository: BusinessIdentifier) {
-        #expect(throws: OpaqueIdentityError.providerKindRequired(providerCode)) {
+        #expect(throws: ExchangeIdentityError.providerKindRequired(providerCode)) {
             try Self.scope.sourceRecord(
                 adapterID: providerCode,
                 sourceType: "type",
@@ -398,7 +398,7 @@ extension GroveFHIRExchangeIdentityTests {
         arguments: ["", "00", "01", "-1", "+1", "1.0", " 1", "1 ", "١"]
     )
     func noncanonicalProtocolDecimal(_ rawValue: String) {
-        #expect(throws: CanonicalDecimalError.invalidNonnegativeDecimal(rawValue)) {
+        #expect(throws: ExchangeIdentityError.invalidNonnegativeDecimal(rawValue)) {
             try CanonicalNonnegativeDecimal(rawValue)
         }
     }

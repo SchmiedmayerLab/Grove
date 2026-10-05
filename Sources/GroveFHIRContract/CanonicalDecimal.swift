@@ -6,12 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-public enum CanonicalDecimalError: Error, Equatable, Sendable {
-    case invalidNonnegativeDecimal(String)
-    case invalidPositiveDecimal(String)
-}
-
-
 /// An unsigned base-10 integer in its canonical wire representation.
 ///
 /// The exchange protocol deliberately does not impose a machine-integer upper bound. This value
@@ -21,7 +15,7 @@ public struct CanonicalNonnegativeDecimal: Hashable, Sendable, CustomStringConve
 
     public var description: String { rawValue }
 
-    public init(_ rawValue: String) throws(CanonicalDecimalError) {
+    public init(_ rawValue: String) throws(ExchangeIdentityError) {
         guard Self.isCanonical(rawValue) else {
             throw .invalidNonnegativeDecimal(rawValue)
         }

@@ -208,8 +208,6 @@ extension ObservationExtractionError {
             self = error
         case let error as ExchangeIdentityError:
             self = .exchangeIdentity(error)
-        case let error as OpaqueIdentityError:
-            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
         default:

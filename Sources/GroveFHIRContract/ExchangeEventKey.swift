@@ -80,7 +80,7 @@ extension ExchangeEventKey {
         }
         let framed: Data
         do {
-            framed = try LengthFramedUTF8.encode(parts)
+            framed = try Data(lengthFramedUTF8: parts)
         } catch {
             preconditionFailure("An event key part exceeds the framing limit: \(error)")
         }

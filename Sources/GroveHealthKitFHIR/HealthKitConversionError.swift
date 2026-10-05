@@ -39,7 +39,6 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     /// refused, so an exact retry of the call reproduces every event.
     case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
-    case opaqueIdentity(OpaqueIdentityError)
     case exchangeGraph(ExchangeGraphError)
     /// A failure raised by something this domain does not model, named by its type alone: a failing FHIR date
     /// conversion describes itself with the exact instant it could not convert, and that instant identifies a
@@ -52,8 +51,6 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .exchangeGraph(let error):
             return error.diagnostic
         case .exchangeIdentity(let error):
-            return error.diagnostic
-        case .opaqueIdentity(let error):
             return error.diagnostic
         default:
             return rule.diagnostic(at: location)
@@ -71,7 +68,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .ecgEvidence: .healthkitInputEcgEvidence
         case .clinicalRecord(let failure): failure.rule
         case .sourceApplicationInvalid: .healthkitInputSourceApplicationInvalid
-        case .conflictingDuplicate, .exchangeIdentity, .opaqueIdentity, .dependency:
+        case .conflictingDuplicate, .exchangeIdentity, .dependency:
             .mobileInputUnclassified
         case .exchangeGraph(let error): ExchangeGraphRule(rawValue: error.diagnostic.code) ?? .mobileExchangeUnclassified
         }
@@ -87,7 +84,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .clinicalRecord: "HKClinicalRecord.fhirResource"
         case .sourceApplicationInvalid: "HKSourceRevision.source.bundleIdentifier"
         case .conflictingDuplicate: "HKSample"
-        case .exchangeIdentity, .opaqueIdentity, .exchangeGraph, .dependency: "Bundle"
+        case .exchangeIdentity, .exchangeGraph, .dependency: "Bundle"
         }
     }
 }
@@ -231,8 +228,6 @@ extension HealthKitConversionError {
             self = source.map { .invalidValue($0, failure) } ?? Self(dependency: failure)
         case let error as ExchangeIdentityError:
             self = .exchangeIdentity(error)
-        case let error as OpaqueIdentityError:
-            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
         default:
@@ -245,7 +240,6 @@ extension HealthKitConversionError {
     /// reserved native identifier system when it is configured.)
     init(_ error: RetractionEventError) {
         self = switch error {
-        case .opaqueIdentity(let error): .opaqueIdentity(error)
         case .exchangeIdentity(let error): .exchangeIdentity(error)
         case .exchangeGraph(let error): .exchangeGraph(error)
         case .emptyTargets, .duplicateTarget, .invalidSourceRecord, .reservedIdentifierSystem, .invalidInstant, .invalidOccurrencePeriod:

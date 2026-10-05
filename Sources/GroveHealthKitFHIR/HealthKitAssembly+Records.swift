@@ -200,7 +200,7 @@ extension HealthKitAssembly {
             do {
                 identity = try sourceRecord.output(role: output.role, discriminator: output.discriminator)
             } catch {
-                throw .opaqueIdentity(error)
+                throw .exchangeIdentity(error)
             }
             do {
                 targets.append(try RetractionTarget(
@@ -220,7 +220,7 @@ extension HealthKitAssembly {
         do {
             return try scope.sourceRecord(sourceType: type.rawValue, nativeRecordID: uuid.uuidString.lowercased())
         } catch {
-            throw .opaqueIdentity(error)
+            throw .exchangeIdentity(error)
         }
     }
 }

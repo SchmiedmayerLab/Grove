@@ -54,10 +54,9 @@ public enum ObservationExtractionError: Error, Equatable, Sendable {
     /// The export call named the response earlier with other content. The first input keeps the response's event;
     /// each later one that differs is refused, so an exact retry of the call reproduces every event.
     case conflictingDuplicate
-    /// An event-scoped identity, such as an entry-node key, could not be minted.
+    /// An identity could not be minted: an event-scoped one such as an entry-node key, or a deterministic one such as
+    /// the response's source-record identity.
     case exchangeIdentity(ExchangeIdentityError)
-    /// A deterministic identity, such as the response's source-record identity, could not be minted.
-    case opaqueIdentity(OpaqueIdentityError)
     /// The projected graph does not satisfy the exchange contract.
     case exchangeGraph(ExchangeGraphError)
     /// A dependency raised a failure this domain does not model, named by type.

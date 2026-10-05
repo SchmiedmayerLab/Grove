@@ -42,23 +42,13 @@ public struct EntryNodeKey: Hashable, Sendable {
               }) else {
             throw .invalidEntryNodeRole
         }
-        let framed: Data
-        do {
-            framed = try LengthFramedUTF8.encode([
-                "org.grovealliance.fhir.entry-node.v0",
-                event.identifier.identifier.system.rawValue,
-                event.identifier.identifier.value,
-                nodeRole,
-                ordinal.rawValue
-            ])
-        } catch {
-            switch error {
-            case .componentTooLarge(let byteCount):
-                throw .identityComponentTooLarge(byteCount)
-            default:
-                throw .identityFramingFailure
-            }
-        }
+        let framed = try Data(lengthFramedUTF8: [
+            "org.grovealliance.fhir.entry-node.v0",
+            event.identifier.identifier.system.rawValue,
+            event.identifier.identifier.value,
+            nodeRole,
+            ordinal.rawValue
+        ])
         let digest = Data(SHA256.hash(data: framed)).base64URLEncodedStringWithoutPadding
         self.identifier = RoledIdentifier(
             identifier: BusinessIdentifier(system: system, nonemptyValue: "n0:\(nodeRole):\(ordinal.rawValue):\(digest)"),

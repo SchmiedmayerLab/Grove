@@ -20,33 +20,33 @@ import Testing
 struct HealthKitFHIRApplicationIdentityTests {
     @Test("A bundle-less host has no application identity to state")
     func bundleLessHostIsRejected() {
-        #expect(throws: ApplicationDevice.InitError.invalidBundleIdentifier("")) {
+        #expect(throws: ApplicationDevice.ValidationError.invalidBundleIdentifier("")) {
             try ApplicationDevice(name: "Runner", bundleIdentifier: "", version: "1.0")
         }
     }
 
     @Test("A bundle identifier is the exact Apple product token, not arbitrary text")
     func malformedBundleIdentifierIsRejected() {
-        #expect(throws: ApplicationDevice.InitError.invalidBundleIdentifier("org.example. bad-id")) {
+        #expect(throws: ApplicationDevice.ValidationError.invalidBundleIdentifier("org.example. bad-id")) {
             try ApplicationDevice(name: "Runner", bundleIdentifier: "org.example. bad-id", version: "1.0")
         }
     }
 
     @Test("Blank application and host facts are refused where the deployment configures them")
     func blankFactsAreRefusedAtConstruction() {
-        #expect(throws: ApplicationDevice.InitError.blankName) {
+        #expect(throws: ApplicationDevice.ValidationError.blankName) {
             try ApplicationDevice(name: " ", bundleIdentifier: "org.example.app", version: "1.0")
         }
-        #expect(throws: ApplicationDevice.InitError.blankVersion) {
+        #expect(throws: ApplicationDevice.ValidationError.blankVersion) {
             try ApplicationDevice(name: "Runner", bundleIdentifier: "org.example.app", version: "")
         }
-        #expect(throws: HostDeviceError.blankOperatingSystemVersion) {
+        #expect(throws: HostDevice.ValidationError.blankOperatingSystemVersion) {
             try HostDevice(operatingSystemVersion: "")
         }
-        #expect(throws: HostDeviceError.blankModelNumber) {
+        #expect(throws: HostDevice.ValidationError.blankModelNumber) {
             try HostDevice(operatingSystemVersion: "26.0", modelNumber: " ")
         }
-        #expect(throws: RecordingDeviceError.blankStableUnitToken) {
+        #expect(throws: RecordingDevice.ValidationError.blankStableUnitToken) {
             try RecordingDevice(stableUnitToken: "")
         }
     }

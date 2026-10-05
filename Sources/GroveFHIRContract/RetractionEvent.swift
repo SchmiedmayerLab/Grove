@@ -168,7 +168,7 @@ public struct RetractionEvent: Sendable {
                 sourceDeviceToken: context.application.sourceDeviceToken
             )
         } catch {
-            throw .opaqueIdentity(error)
+            throw .exchangeIdentity(error)
         }
         let occurredX = try occurred.occurredX()
         let recorded: Instant
@@ -242,7 +242,6 @@ public enum RetractionEventError: Error, Equatable, Sendable {
     case invalidInstant
     /// A retraction period starts after it ends.
     case invalidOccurrencePeriod
-    case opaqueIdentity(OpaqueIdentityError)
     case exchangeIdentity(ExchangeIdentityError)
     case exchangeGraph(ExchangeGraphError)
 }

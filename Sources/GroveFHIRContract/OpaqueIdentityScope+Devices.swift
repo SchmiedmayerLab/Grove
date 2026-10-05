@@ -12,7 +12,7 @@ extension OpaqueIdentityScope {
         adapterID: String,
         subject: BusinessIdentifier,
         stableUnitToken: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(
             kind: .recordingDevice,
             components: [
@@ -29,7 +29,7 @@ extension OpaqueIdentityScope {
         event: ExchangeEventIdentifier,
         role: DeviceSnapshotRole,
         sourceDeviceToken: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(
             kind: .deviceSnapshot,
             components: [

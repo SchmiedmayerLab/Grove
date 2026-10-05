@@ -23,7 +23,6 @@ public enum SensorConversionError: Error, Equatable, Sendable {
     case repositoryIDWithoutRecordingDevice
     case payloadTooLarge(byteCount: Int)
     case exchangeIdentity(ExchangeIdentityError)
-    case opaqueIdentity(OpaqueIdentityError)
     case exchangeGraph(ExchangeGraphError)
     /// A dependency raised a failure this domain does not model, named by type.
     ///
@@ -36,8 +35,6 @@ public enum SensorConversionError: Error, Equatable, Sendable {
         case .exchangeGraph(let error):
             return error.diagnostic
         case .exchangeIdentity(let error):
-            return error.diagnostic
-        case .opaqueIdentity(let error):
             return error.diagnostic
         case .payloadTooLarge:
             return ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.diagnostic
@@ -57,8 +54,6 @@ extension SensorConversionError {
             self = error
         case let error as ExchangeIdentityError:
             self = .exchangeIdentity(error)
-        case let error as OpaqueIdentityError:
-            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
         default:

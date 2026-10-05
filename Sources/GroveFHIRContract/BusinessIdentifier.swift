@@ -62,16 +62,7 @@ public struct BusinessIdentifier: Hashable, Sendable {
     /// The length-framed UUID-v5 name bytes of this identifier.
     package var canonicalNameData: Data {
         get throws(ExchangeIdentityError) {
-            do {
-                return try LengthFramedUTF8.encode([system.rawValue, value])
-            } catch {
-                switch error {
-                case .componentTooLarge(let byteCount):
-                    throw .identityComponentTooLarge(byteCount)
-                default:
-                    throw .identityFramingFailure
-                }
-            }
+            try Data(lengthFramedUTF8: [system.rawValue, value])
         }
     }
 

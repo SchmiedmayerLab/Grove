@@ -24,7 +24,7 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         opaque: OpaqueIdentitySystems,
         event: IdentifierSystem,
         entryNode: IdentifierSystem
-    ) throws(OpaqueIdentityError) {
+    ) throws(ExchangeIdentityError) {
         guard event != entryNode, !opaque.all.contains(event), !opaque.all.contains(entryNode) else {
             throw .reusedIdentifierSystem
         }
@@ -75,9 +75,7 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
                 recordingDevice: try system(form, kind: .recordingDevice),
                 deviceSnapshot: try system(form, kind: .deviceSnapshot)
             )
-        } catch let error as ExchangeIdentityError {
-            throw error
-        } catch {
+        } catch .reusedIdentifierSystem {
             // Ten distinct kinds under one form cannot share a system.
             throw .invalidIdentifierSystem(deploymentRoot)
         }

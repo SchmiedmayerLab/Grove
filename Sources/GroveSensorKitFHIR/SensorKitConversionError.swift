@@ -18,7 +18,6 @@ public enum SensorKitConversionError: Error, Equatable, Sendable {
     /// each later one that differs is refused, so an exact retry of the call reproduces every event.
     case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
-    case opaqueIdentity(OpaqueIdentityError)
     case exchangeGraph(ExchangeGraphError)
     /// A dependency raised a failure this domain does not model, named by type.
     ///
@@ -33,8 +32,6 @@ public enum SensorKitConversionError: Error, Equatable, Sendable {
         case .invalidRecord(let error):
             return error.diagnostic
         case .exchangeIdentity(let error):
-            return error.diagnostic
-        case .opaqueIdentity(let error):
             return error.diagnostic
         case .payloadTooLarge:
             return ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.diagnostic
@@ -56,8 +53,6 @@ extension SensorKitConversionError {
             self = .invalidRecord(error)
         case let error as ExchangeIdentityError:
             self = .exchangeIdentity(error)
-        case let error as OpaqueIdentityError:
-            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
         default:

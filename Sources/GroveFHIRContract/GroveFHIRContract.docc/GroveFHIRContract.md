@@ -180,6 +180,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``ExchangeEventIdentifier``
 - ``EntryNodeKey``
 - ``RepositoryID``
+- ``ExchangeIdentityError``
 
 ### The producer and its ledger
 

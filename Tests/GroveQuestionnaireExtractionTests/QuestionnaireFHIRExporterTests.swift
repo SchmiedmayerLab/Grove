@@ -81,7 +81,7 @@ struct QuestionnaireFHIRExporterTests {
             ]
         }
         let (exports, _) = try Fixtures.collect(exporter, [blankIdentifier, foreignStudy, try Fixtures.guideRecord()])
-        guard case .refused(.opaqueIdentity) = exports[0].outcome else {
+        guard case .refused(.exchangeIdentity) = exports[0].outcome else {
             Issue.record("a blank response identifier is not an identity refusal: \(String(describing: exports[0].outcome))")
             return
         }
@@ -231,7 +231,7 @@ struct QuestionnaireFHIRExporterTests {
         struct Unmodelled: Error {}
         #expect(ObservationExtractionError(conversionFailure: ObservationExtractionError.subjectMissing) == .subjectMissing)
         #expect(ObservationExtractionError(conversionFailure: ExchangeIdentityError.invalidInstant) == .exchangeIdentity(.invalidInstant))
-        #expect(ObservationExtractionError(conversionFailure: OpaqueIdentityError.reusedIdentifierSystem) == .opaqueIdentity(.reusedIdentifierSystem))
+        #expect(ObservationExtractionError(conversionFailure: ExchangeIdentityError.reusedIdentifierSystem) == .exchangeIdentity(.reusedIdentifierSystem))
         #expect(ObservationExtractionError(conversionFailure: ExchangeGraphError.missingTimestamp) == .exchangeGraph(.missingTimestamp))
         guard case .unexpectedConversionFailure(let name) = ObservationExtractionError(conversionFailure: Unmodelled()) else {
             Issue.record("an unmodelled failure was relabelled")

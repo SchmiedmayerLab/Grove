@@ -61,7 +61,7 @@ package struct ExchangeEnvelope: Sendable {
         }
 
         /// The source-record identity of one native record in this repository.
-        package func sourceRecord(sourceType: String, nativeRecordID: String) throws(OpaqueIdentityError) -> SourceRecordIdentity {
+        package func sourceRecord(sourceType: String, nativeRecordID: String) throws(ExchangeIdentityError) -> SourceRecordIdentity {
             try identityScope.sourceRecord(
                 adapterID: adapter.adapterID,
                 sourceType: sourceType,

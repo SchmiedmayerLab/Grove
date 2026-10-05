@@ -6,26 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import Foundation
-
-
-/// The frozen byte framing shared by HMAC preimages and UUIDv5 entry names.
-public enum LengthFramedUTF8 {
-    /// Encodes every UTF-8 field with its unsigned 32-bit big-endian byte count.
-    public static func encode(_ fields: [String]) throws(OpaqueIdentityError) -> Data {
-        var data = Data()
-        for field in fields {
-            let bytes = Data(field.utf8)
-            guard let length = UInt32(exactly: bytes.count) else {
-                throw .componentTooLarge(byteCount: bytes.count)
-            }
-            var bigEndianLength = length.bigEndian
-            withUnsafeBytes(of: &bigEndianLength) { data.append(contentsOf: $0) }
-            data.append(bytes)
-        }
-        return data
-    }
-}
+package import Foundation
 
 
 extension Data {
@@ -35,6 +16,22 @@ extension Data {
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
+    }
+
+    /// Every UTF-8 field preceded by its unsigned 32-bit big-endian byte count: the frozen framing of every HMAC
+    /// preimage and UUIDv5 entry name, so no delimiter is special.
+    package init(lengthFramedUTF8 fields: [String]) throws(ExchangeIdentityError) {
+        var data = Data()
+        for field in fields {
+            let bytes = Data(field.utf8)
+            guard let length = UInt32(exactly: bytes.count) else {
+                throw .identityComponentTooLarge(bytes.count)
+            }
+            var bigEndianLength = length.bigEndian
+            Swift.withUnsafeBytes(of: &bigEndianLength) { data.append(contentsOf: $0) }
+            data.append(bytes)
+        }
+        self = data
     }
 }
 
