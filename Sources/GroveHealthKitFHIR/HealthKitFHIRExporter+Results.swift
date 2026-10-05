@@ -25,10 +25,21 @@ extension HealthKitFHIRExporter {
         /// event of its own.
         case electrocardiogram(HKElectrocardiogram, voltages: [HKElectrocardiogram.VoltageMeasurement], symptoms: [HKCategorySample])
         /// A heartbeat series with its beats, exported as a recording document.
-        case heartbeatSeries(HKHeartbeatSeriesSample, beats: [HealthKitHeartbeat])
+        case heartbeatSeries(HKHeartbeatSeriesSample, beats: [Heartbeat])
         /// A workout route with its locations, exported as a recording document only under
         /// ``Options/route`` `.authorized`.
         case workoutRoute(HKWorkoutRoute, locations: [CLLocation])
+
+        /// One beat instant in a heartbeat series, as `HKHeartbeatSeriesQuery` enumerates it.
+        public struct Heartbeat: Hashable, Sendable {
+            public let timeSinceSeriesStart: TimeInterval
+            public let precededByGap: Bool
+
+            public init(timeSinceSeriesStart: TimeInterval, precededByGap: Bool) {
+                self.timeSinceSeriesStart = timeSinceSeriesStart
+                self.precededByGap = precededByGap
+            }
+        }
 
         var sample: HKSample {
             switch self {

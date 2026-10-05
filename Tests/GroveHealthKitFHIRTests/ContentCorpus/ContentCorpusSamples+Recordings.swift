@@ -78,8 +78,8 @@ extension ContentCorpusSamples {
 
 extension ContentCorpusBeat {
     /// The beat as the converter's record states it.
-    var heartbeat: HealthKitHeartbeat {
-        HealthKitHeartbeat(timeSinceSeriesStart: offset, precededByGap: gap)
+    var heartbeat: HealthKitFHIRExporter.Record.Heartbeat {
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: offset, precededByGap: gap)
     }
 }
 

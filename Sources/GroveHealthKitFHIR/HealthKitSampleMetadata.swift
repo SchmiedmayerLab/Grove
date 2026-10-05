@@ -18,7 +18,7 @@ import ModelsR4
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MetadataRule: Sendable {
     /// The rule of every source type today: the adapter's whole typed allowlist, whichever keys a path reads.
-    static let allowlist = MetadataRule(consumedKeys: HealthKitMetadataField.keys)
+    static let allowlist = MetadataRule(consumedKeys: HealthKitConversionError.MetadataField.keys)
 
     /// The keys the conversion reads and carries, or validates.
     let consumedKeys: Set<String>
@@ -56,7 +56,7 @@ struct MetadataComponentRule: Sendable {
     )
 
     /// The metadata field read.
-    let field: HealthKitMetadataField
+    let field: HealthKitConversionError.MetadataField
     /// How it is read.
     let reading: Reading
     /// The component's code.
@@ -65,7 +65,7 @@ struct MetadataComponentRule: Sendable {
     let values: [Int: CodeableConcept]
 
     /// A component coded by the metadata key itself in the adapter's metadata-key CodeSystem.
-    private init(field: HealthKitMetadataField, reading: Reading, display: String, vocabulary: MetadataVocabulary) {
+    private init(field: HealthKitConversionError.MetadataField, reading: Reading, display: String, vocabulary: MetadataVocabulary) {
         let code = Coding(field.key, display: display, system: Canonicals.healthKitMetadataKey)
         self.init(
             field: field,
@@ -76,7 +76,7 @@ struct MetadataComponentRule: Sendable {
     }
 
     /// A component of the given code and values.
-    private init(field: HealthKitMetadataField, reading: Reading, code: CodeableConcept, values: [Int: CodeableConcept]) {
+    private init(field: HealthKitConversionError.MetadataField, reading: Reading, code: CodeableConcept, values: [Int: CodeableConcept]) {
         self.field = field
         self.reading = reading
         self.code = code
@@ -100,7 +100,7 @@ struct MetadataComponentRule: Sendable {
     }
 
     /// The component the sample's metadata states, or `nil` when an optional value is absent.
-    func component(_ metadata: HealthKitSampleMetadata) throws(HealthKitValueFailure) -> ObservationComponent? {
+    func component(_ metadata: HealthKitSampleMetadata) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent? {
         let stated = metadata.values[field.key]
         let raw: Int
         switch reading {
@@ -158,7 +158,7 @@ struct HealthKitSampleMetadata {
     }
 
     /// The time zone the sample names, or `nil` when it names none; a name that is not a known zone is unsupported.
-    func timeZone() throws(HealthKitValueFailure) -> TimeZone? {
+    func timeZone() throws(HealthKitConversionError.ValueFailure) -> TimeZone? {
         switch values[HKMetadataKeyTimeZone] {
         case nil:
             return nil

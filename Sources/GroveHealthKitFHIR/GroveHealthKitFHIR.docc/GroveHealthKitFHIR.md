@@ -148,7 +148,7 @@ let disclosing = try HealthKitFHIRExporter(producer: producer, repositoryScope: 
 Heartbeat series, workout route, clinical record and CDA graphs state no gateway application.
 
 Some samples keep what their graph needs outside the sample, and HealthKit makes you query it separately.
-Pass them as a ``HealthKitFHIRExporter/Record`` with that companion data: an `HKElectrocardiogram` with its voltages and correlated symptoms, each symptom an event of its own; an `HKHeartbeatSeriesSample` with its ``HealthKitHeartbeat``s; an `HKWorkoutRoute` with its locations.
+Pass them as a ``HealthKitFHIRExporter/Record`` with that companion data: an `HKElectrocardiogram` with its voltages and correlated symptoms, each symptom an event of its own; an `HKHeartbeatSeriesSample` with its ``HealthKitFHIRExporter/Record/Heartbeat``s; an `HKWorkoutRoute` with its locations.
 A clinical record and a CDA document carry their bytes in the sample, so they export as ``HealthKitFHIRExporter/Record/sample(_:)``.
 
 ```swift
@@ -161,7 +161,7 @@ let receipt = try exporter.export(records: [.electrocardiogram(ecg, voltages: vo
 
 A sample that cannot be exported is refused in place with a ``HealthKitConversionError``, and the call continues.
 ``HealthKitFHIRExporter/Export/warnings`` lists what a graph does not carry although its record did, each a registered `ProducerDiagnostic`; log them with that graph's event.
-`mobile-omission.recording-device` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``RecordingDeviceResolver`` through ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)`` when you have one.
+`mobile-omission.recording-device` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``HealthKitFHIRExporter/RecordingDeviceResolver`` through ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)`` when you have one.
 `mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone.
 `mobile-omission.unmodeled-metadata` means the sample carried metadata outside the typed allowlist, which was left out.
 An omission an option chose, such as `recordingDevice` `.omit`, is never a warning.
@@ -204,7 +204,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 | Subject | `Subject` |
 | Study enrollment | `StudyEnrollment` |
 | Application, host and recording device | `ApplicationDevice`, `HostDevice`, `RecordingDevice` named by a ``HealthKitFHIRExporter/RecordingDevicePolicy`` |
-| Writer | ``HealthKitWriter``, answered by a ``HealthKitFHIRExporter/WriterPolicy`` |
+| Writer | ``HealthKitFHIRExporter/WriterPolicy/Classification``, answered by a ``HealthKitFHIRExporter/WriterPolicy`` |
 | Retraction event and target | `RetractionEvent`, `RetractionTarget` |
 | Governed source identifier | `GovernedSourceIdentifierDisclosurePolicy` |
 | Producer diagnostic | `ProducerDiagnostic` from ``HealthKitConversionError/diagnostic`` or ``HealthKitFHIRExporter/Export/warnings`` |
@@ -220,29 +220,14 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 
 - ``HealthKitFHIRExporter``
 - ``HealthKitSourceType``
-- ``HealthKitHeartbeat``
-
-### Policies
-
-- ``HealthKitWriter``
-- ``RecordingDeviceResolver``
 
 ### Refusals
 
 - ``HealthKitConversionError``
-- ``HealthKitValueFailure``
-- ``HealthKitECGEvidenceFailure``
-- ``HealthKitClinicalRecordFailure``
-- ``HealthKitDependencyFailure``
-- ``HealthKitMetadataField``
 
 ### Coverage
 
 - ``HealthKitCatalog``
-- ``HealthKitCatalogEntry``
-- ``HealthKitMeasurementContract``
-- ``HealthKitOutput``
-- ``HealthKitUnitBinding``
 - ``FieldDisposition``
 
 ### Reading observations back

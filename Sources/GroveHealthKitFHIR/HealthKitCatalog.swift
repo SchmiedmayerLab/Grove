@@ -13,45 +13,6 @@ public import HealthKit
 public import ModelsR4
 
 
-/// One measurement and its exact direct profile claims in the HealthKit adapter matrix.
-public struct HealthKitMeasurementContract: Sendable {
-    public let id: String
-    public let profiles: [FHIRPrimitive<Canonical>]
-}
-
-
-/// One output a source type's conversion mints, and how a retraction names it.
-public struct HealthKitOutput: Hashable, Sendable {
-    public let role: String
-    public let discriminator: String
-    public let resourceType: ResourceType
-    public let retractionRole: RetractionTargetRole
-}
-
-
-/// One authoritative row in the HealthKit implementation matrix.
-public struct HealthKitCatalogEntry: Sendable {
-    public let sourceTypeIdentifier: String
-    public let title: String
-    /// The one selected contract, or all candidate contracts when source facts cannot select one.
-    public let measurements: [HealthKitMeasurementContract]
-    public let implementationStatus: HealthKitImplementationStatus
-    public let requirement: String?
-}
-
-
-/// One measurement's unit, as UCUM states it and as HealthKit spells it.
-@available(iOS 18, macOS 15, watchOS 11, *)
-public struct HealthKitUnitBinding: Sendable {
-    /// The UCUM code the Grove measurement contract binds, such as `Cel`.
-    public let ucumCode: String
-    /// The display unit the contract states, such as `beats/minute`.
-    public let displayUnit: String
-    /// The HealthKit unit the adapter reads and writes the measurement in.
-    public let unit: HKUnit
-}
-
-
 /// Closed, fail-closed catalog used by ``HealthKitFHIRExporter``.
 ///
 /// This catalog alone determines whether the public API may claim a Grove profile.
@@ -61,7 +22,7 @@ public enum HealthKitCatalog {
     /// and other non-sample identifiers that are outside the exporter's input type. The
     /// sleep-duration aggregate lives in the catalog's derivedAggregates, not in these rows.
     /// A consumer can render this directly as the implementation coverage matrix.
-    public static let entries: [HealthKitCatalogEntry] = HealthKitContentPlan.all.map(\.entry)
+    public static let entries: [Entry] = HealthKitContentPlan.all.map(\.entry)
 
     /// Every unit this adapter binds, as the pair of spellings the same quantity carries.
     ///
@@ -77,8 +38,8 @@ public enum HealthKitCatalog {
     /// The bindings are the content plans' own, in inventory row order: every quantity read in its contract's unit,
     /// then the blood-pressure panel's members, whose unit no scalar quantity binds although the adapter consumes and
     /// emits it.
-    public static let unitBindings: [HealthKitUnitBinding] = {
-        let members = HealthKitContentPlan.all.flatMap { plan -> [HealthKitUnitBinding] in
+    public static let unitBindings: [UnitBinding] = {
+        let members = HealthKitContentPlan.all.flatMap { plan -> [UnitBinding] in
             guard case .observation(let observation) = plan.route, case .bloodPressure(let members) = observation.value else {
                 return []
             }
@@ -101,15 +62,15 @@ public enum HealthKitCatalog {
         units[binding.ucumCode] = units[binding.ucumCode] ?? binding.unit
     }
 
-    /// Every output the converter mints for one source type, in the order the graph emits them.
+    /// Every output a conversion mints for one source type, in the order the graph emits them; a retraction of the
+    /// type names exactly these.
     ///
-    /// A caller holding only a source type — a deletion, whose sample is already gone — names the outputs an
-    /// addition minted. One exception: an ECG's average-heart-rate child is listed whether or not the ECG stated an
-    /// average, so the retraction of an ECG without one also names a child that was never emitted. A deletion cannot
-    /// tell the two apart, and the pinned guide has no source-record retraction scope yet (an IG gap; a draft
-    /// exists); a receiver resolves the extra target to nothing.
-    public static func outputs(for type: HealthKitSourceType) -> [HealthKitOutput] {
-        HealthKitContentPlan[type].outputs.map(\.output)
+    /// One exception: an ECG's average-heart-rate child is listed whether or not the ECG stated an average, so the
+    /// retraction of an ECG without one also names a child that was never emitted. A deletion cannot tell the two
+    /// apart, and the pinned guide has no source-record retraction scope yet (an IG gap; a draft exists); a receiver
+    /// resolves the extra target to nothing.
+    static func outputs(for type: HealthKitSourceType) -> [HealthKitOutputSlot] {
+        HealthKitContentPlan[type].outputs
     }
 
     /// The HealthKit unit a UCUM code names, or `nil` when this adapter binds no measurement to it.
@@ -128,8 +89,38 @@ public enum HealthKitCatalog {
     }
 
     /// The inventory row of a source type; every generated type has one.
-    public static subscript(type: HealthKitSourceType) -> HealthKitCatalogEntry {
+    public static subscript(type: HealthKitSourceType) -> Entry {
         HealthKitContentPlan[type].entry
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitCatalog {
+    /// One authoritative row in the HealthKit implementation matrix.
+    public struct Entry: Sendable {
+        /// One measurement and its exact direct profile claims.
+        public struct Measurement: Sendable {
+            public let id: String
+            public let profiles: [FHIRPrimitive<Canonical>]
+        }
+
+        public let sourceTypeIdentifier: String
+        public let title: String
+        /// The one selected contract, or all candidate contracts when source facts cannot select one.
+        public let measurements: [Measurement]
+        public let implementationStatus: HealthKitImplementationStatus
+        public let requirement: String?
+    }
+
+    /// One measurement's unit, as UCUM states it and as HealthKit spells it.
+    public struct UnitBinding: Sendable {
+        /// The UCUM code the Grove measurement contract binds, such as `Cel`.
+        public let ucumCode: String
+        /// The display unit the contract states, such as `beats/minute`.
+        public let displayUnit: String
+        /// The HealthKit unit the adapter reads and writes the measurement in.
+        public let unit: HKUnit
     }
 }
 

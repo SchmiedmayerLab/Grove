@@ -18,7 +18,7 @@ import Testing
 
 
 /// A resolver whose only distinguishing feature is that the deployment supplied it.
-private struct NoRecordingDevice: RecordingDeviceResolver {
+private struct NoRecordingDevice: HealthKitFHIRExporter.RecordingDeviceResolver {
     func recordingDevice(for device: HKDevice) -> RecordingDevice? {
         nil
     }

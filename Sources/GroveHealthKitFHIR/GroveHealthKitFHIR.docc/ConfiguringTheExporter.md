@@ -108,7 +108,7 @@ Every output carries typed `source-record` and `source-output` identifiers; reco
 
 ``HealthKitFHIRExporter/Options/recordingDevice`` names the physical unit behind a sample's `HKDevice`.
 The default `.localIdentifier` uses the per-unit `HKDevice.localIdentifier`; model and version facts cannot identify a unit, so a device without one yields no recording Device and the export reports the `mobile-omission.recording-device` warning.
-`.custom` takes your own ``RecordingDeviceResolver``, and `.omit` states no recording Device at all.
+`.custom` takes your own ``HealthKitFHIRExporter/RecordingDeviceResolver``, and `.omit` states no recording Device at all.
 Every disclosure defaults to omission: the UDI, the workout route, and the clear native identifier are emitted only under an explicit authorized option, and an omission an option chose never warns.
 ``HealthKitFHIRExporter/Options/nativeIdentifier`` governs both paths: the primary output of an export and the targets a retraction names for a deletion carry the HealthKit UUID under the same authorized system.
 

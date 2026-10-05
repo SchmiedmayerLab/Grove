@@ -33,7 +33,7 @@ private final class CountingClassifier: @unchecked Sendable { // `consultations`
         self.flips = flips
     }
 
-    func classify(_ source: HKSource) -> HealthKitWriter {
+    func classify(_ source: HKSource) -> HealthKitFHIRExporter.WriterPolicy.Classification {
         lock.lock()
         consultations += 1
         let isFirst = consultations == 1

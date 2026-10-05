@@ -31,7 +31,7 @@ struct ComponentTemplate: Sendable {
     }
 
     /// The component carrying `value`.
-    func component(_ value: Double) throws(HealthKitValueFailure) -> ObservationComponent {
+    func component(_ value: Double) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent {
         ObservationComponent(code: code, value: .quantity(try quantity.quantity(value)))
     }
 }
@@ -56,7 +56,7 @@ struct QuantityTemplate: Sendable {
     }
 
     /// The quantity carrying `value` as its shortest round-trip decimal, which must lie in the domain.
-    func quantity(_ value: Double) throws(HealthKitValueFailure) -> Quantity {
+    func quantity(_ value: Double) throws(HealthKitConversionError.ValueFailure) -> Quantity {
         let decimal: Decimal
         do {
             decimal = try GroveFHIRDecimal(value).decimal

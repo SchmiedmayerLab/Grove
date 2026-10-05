@@ -269,7 +269,7 @@ struct HealthKitFHIRCategoryConversionTests {
     // samples are stored ones, built past that check.
     @Test("Menstrual flow without HealthKit's mandatory cycle-start metadata fails closed")
     func menstrualCycleStartIsRequired() throws {
-        let failures: [([String: any Sendable], HealthKitValueFailure)] = [
+        let failures: [([String: any Sendable], HealthKitConversionError.ValueFailure)] = [
             ([:], .requiredMetadataMissing(.menstrualCycleStart)),
             ([HKMetadataKeyMenstrualCycleStart: "yes"], .unsupportedMetadataValue(.menstrualCycleStart))
         ]

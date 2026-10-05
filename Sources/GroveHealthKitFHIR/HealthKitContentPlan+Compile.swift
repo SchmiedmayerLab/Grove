@@ -87,13 +87,13 @@ struct HealthKitContentCompiler {
 
     /// The inventory row as the public catalog states it: a multi-measurement row pairs each measurement with its own
     /// profile when the counts match; every other row gives each measurement the row's whole profile list.
-    private static func entry(_ row: HealthKitContractRow) -> HealthKitCatalogEntry {
+    private static func entry(_ row: HealthKitContractRow) -> HealthKitCatalog.Entry {
         let measurements = if row.measurementIDs.count > 1, row.measurementIDs.count == row.profiles.count {
-            zip(row.measurementIDs, row.profiles).map { HealthKitMeasurementContract(id: $0, profiles: [$1]) }
+            zip(row.measurementIDs, row.profiles).map { HealthKitCatalog.Entry.Measurement(id: $0, profiles: [$1]) }
         } else {
-            row.measurementIDs.map { HealthKitMeasurementContract(id: $0, profiles: row.profiles) }
+            row.measurementIDs.map { HealthKitCatalog.Entry.Measurement(id: $0, profiles: row.profiles) }
         }
-        return HealthKitCatalogEntry(
+        return HealthKitCatalog.Entry(
             sourceTypeIdentifier: row.sourceTypeIdentifier,
             title: row.title,
             measurements: measurements,
@@ -152,7 +152,7 @@ struct HealthKitContentCompiler {
 
     /// A clinical type's plan. watchOS has no clinical records, so it refuses the type there, yet keeps its output:
     /// a record another platform emitted can still be retracted.
-    private static func clinical(_ document: DocumentPlan, type: HealthKitSourceType, entry: HealthKitCatalogEntry) -> HealthKitContentPlan {
+    private static func clinical(_ document: DocumentPlan, type: HealthKitSourceType, entry: HealthKitCatalog.Entry) -> HealthKitContentPlan {
         #if os(watchOS)
         let route = HealthKitContentPlan.Route.refused(.platformExclusiveSourceType(type))
         #else
@@ -195,7 +195,7 @@ struct HealthKitContentCompiler {
         _ rule: HealthKitContentRules.Rule,
         row: HealthKitContractRow,
         type: HealthKitSourceType,
-        entry: HealthKitCatalogEntry
+        entry: HealthKitCatalog.Entry
     ) throws(HealthKitContentDefect) -> HealthKitContentPlan {
         switch rule {
         case .observation(let rule):

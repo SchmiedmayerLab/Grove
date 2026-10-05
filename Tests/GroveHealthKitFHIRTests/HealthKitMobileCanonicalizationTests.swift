@@ -62,13 +62,13 @@ struct HealthKitFHIRMobileCanonicalizationTests {
     @Test("Non-finite effective instants and quantities fail closed")
     func nonFiniteValues() throws {
         let template = QuantityTemplate(try #require(MeasurementCatalog.bodyTemperature.quantity))
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try template.quantity(.infinity)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try template.quantity(.nan)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try HealthKitEffectiveTime.dateTime(Date(timeIntervalSince1970: .infinity), zone: nil)
         }
     }

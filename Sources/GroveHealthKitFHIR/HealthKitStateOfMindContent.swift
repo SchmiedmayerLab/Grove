@@ -153,7 +153,7 @@ struct HealthKitStateOfMindContent: Sendable {
     }
 
     /// Sets a reflection's components, then its valence, on `observation`.
-    func apply(to observation: inout Observation, reflection: HKStateOfMind) throws(HealthKitValueFailure) {
+    func apply(to observation: inout Observation, reflection: HKStateOfMind) throws(HealthKitConversionError.ValueFailure) {
         var components = [kinds[reflection.kind], classifications[reflection.valenceClassification]].compactMap(\.self)
         components += reflection.labels.compactMap { labels[$0] }.sorted { $0.code < $1.code }.map(\.component)
         components += reflection.associations.compactMap { associations[$0] }.sorted { $0.code < $1.code }.map(\.component)

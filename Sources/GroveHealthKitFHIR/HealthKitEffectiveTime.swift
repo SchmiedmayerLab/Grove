@@ -25,7 +25,7 @@ enum EffectiveRule: Hashable, Sendable {
     case interval(nonZero: Bool)
 
     /// The effective value for a sample spanning `start` to `end` in the source's `zone`.
-    func value(start: Date, end: Date, zone: TimeZone?) throws(HealthKitValueFailure) -> Observation.EffectiveX {
+    func value(start: Date, end: Date, zone: TimeZone?) throws(HealthKitConversionError.ValueFailure) -> Observation.EffectiveX {
         switch self {
         case .instant:
             return .dateTime(try HealthKitEffectiveTime.dateTime(start, zone: zone))
@@ -69,7 +69,7 @@ enum HealthKitEffectiveTime {
 
     /// An effective instant in the source's own zone, which also travels as the `timezone` extension,
     /// or in UTC when the source names none.
-    static func dateTime(_ date: Date, zone: TimeZone?) throws(HealthKitValueFailure) -> FHIRPrimitive<DateTime> {
+    static func dateTime(_ date: Date, zone: TimeZone?) throws(HealthKitConversionError.ValueFailure) -> FHIRPrimitive<DateTime> {
         guard let lexeme = mobileLexeme(date, zone: zone), let dateTime = try? DateTime(lexeme) else {
             throw .shapeInvalid
         }
@@ -83,7 +83,7 @@ enum HealthKitEffectiveTime {
     }
 
     /// An effective Period in the source's zone; the end is built first, as its failures take precedence.
-    static func period(start: Date, end: Date, zone: TimeZone?) throws(HealthKitValueFailure) -> Period {
+    static func period(start: Date, end: Date, zone: TimeZone?) throws(HealthKitConversionError.ValueFailure) -> Period {
         let end = try dateTime(end, zone: zone)
         return Period(end: end, start: try dateTime(start, zone: zone))
     }

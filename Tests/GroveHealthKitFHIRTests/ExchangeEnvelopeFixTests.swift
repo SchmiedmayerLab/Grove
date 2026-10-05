@@ -65,8 +65,8 @@ struct ExchangeEnvelopeFixTests {
             facts: GoldenCase.seriesFacts(uuid: ordinal, duration: 2)
         )
         return .heartbeatSeries(series, beats: [
-            HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-            HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false)
+            HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
+            HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false)
         ])
     }
 
@@ -119,7 +119,7 @@ struct ExchangeEnvelopeFixTests {
             var facts = GoldenCase.seriesFacts(uuid: 89, duration: 2)
             facts.metadata = metadata
             let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
-            let record = HealthKitFHIRExporter.Record.heartbeatSeries(series, beats: [HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false)])
+            let record = HealthKitFHIRExporter.Record.heartbeatSeries(series, beats: [HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false)])
             #expect(throws: HealthKitConversionError.invalidValue(.heartbeatSeries, .invalidMetadataValue(.syncVersion))) {
                 try ExporterFixtures.export(record)
             }

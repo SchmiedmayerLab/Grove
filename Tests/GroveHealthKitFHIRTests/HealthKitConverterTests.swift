@@ -874,7 +874,7 @@ struct HealthKitFHIRConverterTests {
                 #expect(!observes, "\(row.sourceTypeIdentifier) converts to an Observation of its sample")
             } else {
                 #expect(observes, "\(row.sourceTypeIdentifier) is supported but converts to no Observation")
-                #expect(plan?.outputs.first?.output.role == row.measurements.first?.id)
+                #expect(plan?.outputs.first?.role == row.measurements.first?.id)
             }
         }
     }
@@ -921,7 +921,7 @@ struct HealthKitFHIRConverterTests {
         #expect(throws: Never.self) {
             try plan.effective.value(start: timestamp, end: timestamp, zone: nil)
         }
-        #expect(throws: HealthKitValueFailure.effectivePeriodInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
             try plan.effective.value(start: timestamp, end: timestamp.addingTimeInterval(-1), zone: nil)
         }
     }
@@ -934,22 +934,22 @@ struct HealthKitFHIRConverterTests {
 
         let zero = try QuantityTemplate(steps).quantity(0)
         #expect(zero.value?.value?.decimal == 0)
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try QuantityTemplate(steps).quantity(1.5)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try QuantityTemplate(steps).quantity(-1)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try QuantityTemplate(percentage).quantity(100.01)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try QuantityTemplate(percentage).quantity(-0.01)
         }
         #expect(throws: Never.self) {
             try QuantityTemplate(percentage).quantity(100)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
+        #expect(throws: HealthKitConversionError.ValueFailure.shapeInvalid) {
             try QuantityTemplate(valence).quantity(1.01)
         }
         #expect(throws: Never.self) {

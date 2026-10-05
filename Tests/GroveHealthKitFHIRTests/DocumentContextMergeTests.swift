@@ -29,8 +29,8 @@ struct DocumentContextMergeTests {
             facts: GoldenCase.seriesFacts(uuid: 0xE1, duration: 2)
         )
         return HealthKitHeartbeatSeriesRecord(series: series, heartbeats: [
-            HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-            HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false)
+            HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
+            HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false)
         ])
     }
 

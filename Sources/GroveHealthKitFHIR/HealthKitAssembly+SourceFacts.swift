@@ -105,7 +105,10 @@ extension HealthKitAssembly.SourceFacts {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly.SourceFacts {
-    private static func writer(_ revision: HKSourceRevision, classification: HealthKitWriter) throws -> ExchangeWriterDraft? {
+    private static func writer(
+        _ revision: HKSourceRevision,
+        classification: HealthKitFHIRExporter.WriterPolicy.Classification
+    ) throws -> ExchangeWriterDraft? {
         switch classification {
         case .omit:
             return nil
@@ -149,10 +152,10 @@ extension HealthKitAssembly.SourceFacts {
             return nil
         }
         guard let syncIdentifier = identifierValue as? String, !syncIdentifier.isEmpty else {
-            throw HealthKitValueFailure.invalidMetadataValue(.syncIdentifier)
+            throw HealthKitConversionError.ValueFailure.invalidMetadataValue(.syncIdentifier)
         }
         guard let versionValue else {
-            throw HealthKitValueFailure.invalidMetadataValue(.syncVersion)
+            throw HealthKitConversionError.ValueFailure.invalidMetadataValue(.syncVersion)
         }
         let version = try canonicalSyncVersion(versionValue)
         guard !writerApplication.isEmpty else {
@@ -167,12 +170,12 @@ extension HealthKitAssembly.SourceFacts {
               var decimal = Decimal(string: number.stringValue, locale: Locale(identifier: "en_US_POSIX")),
               !decimal.isNaN,
               decimal >= 0 else {
-            throw HealthKitValueFailure.invalidMetadataValue(.syncVersion)
+            throw HealthKitConversionError.ValueFailure.invalidMetadataValue(.syncVersion)
         }
         var integral = Decimal()
         NSDecimalRound(&integral, &decimal, 0, .down)
         guard integral == decimal else {
-            throw HealthKitValueFailure.invalidMetadataValue(.syncVersion)
+            throw HealthKitConversionError.ValueFailure.invalidMetadataValue(.syncVersion)
         }
         return NSDecimalString(&integral, Locale(identifier: "en_US_POSIX"))
     }
