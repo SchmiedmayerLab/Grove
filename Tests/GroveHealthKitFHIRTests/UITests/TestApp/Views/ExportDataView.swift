@@ -65,24 +65,14 @@ struct ExportDataView: View {
                 let fetchEndTS = CACurrentMediaTime()
                 print("did fetch samples (#=\(samples.count)) (took \(fetchEndTS - fetchStartTS) sec)")
                 let mapResourcesStartTS = CACurrentMediaTime()
-                let now = Date.now
-                let sequenceBase = UInt64(max(1, Int64(now.timeIntervalSince1970 * 1_000_000)))
-                var sequenceBySource = Dictionary(
-                    uniqueKeysWithValues: samples.enumerated().map { offset, sample in
-                        (sample.uuid, sequenceBase + UInt64(offset))
+                var refusal: HealthKitConversionError?
+                _ = try makeFHIRTestExporter().export(samples) { export in
+                    if case .refused(let error) = export.outcome, refusal == nil {
+                        refusal = error
                     }
-                )
-                let result = HealthKitConverter().convert(samples.map { $0 as HKSample }) { sample in
-                    guard let sequence = sequenceBySource.removeValue(forKey: sample.uuid) else {
-                        throw SequenceMissing()
-                    }
-                    return try makeFHIRTestContext(
-                        sequence: sequence,
-                        conversionInstant: now
-                    )
                 }
-                if let failure = result.failures.first {
-                    throw failure
+                if let refusal {
+                    throw refusal
                 }
                 let mapResourcesEndTS = CACurrentMediaTime()
                 print("did turn into resources (took \(mapResourcesEndTS - mapResourcesStartTS) sec)")
@@ -122,5 +112,3 @@ extension HKHealthStore {
     }
 }
 
-
-private struct SequenceMissing: Error {}

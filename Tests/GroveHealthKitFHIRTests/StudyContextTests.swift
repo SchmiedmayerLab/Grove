@@ -35,8 +35,11 @@ struct StudyContextTests {
     private static func conversion(
         subject: Subject = .testPatient,
         studies: [StudyEnrollment] = enrollments
-    ) throws -> HealthKitConversionSet {
-        try HealthKitConverter().convert(sample, context: HealthKitConversionContext(subject: subject, studies: studies))
+    ) throws -> ExportedRecord {
+        var inputs = ExportInputs()
+        inputs.subject = subject
+        inputs.studies = studies
+        return try ExporterFixtures.export(sample, inputs)
     }
 
     private static func graph(subject: Subject = .testPatient) throws -> ExchangeGraph {
@@ -114,7 +117,7 @@ struct StudyContextTests {
         #expect(conversion.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
         #expect(conversion.observation.value == baseline.observation.value)
         #expect(conversion.observation.effective == baseline.observation.effective)
-        #expect(conversion.graphIdentifiers == baseline.graphIdentifiers)
+        #expect(conversion.identifiers == baseline.identifiers)
         #expect(conversion.provenance == baseline.provenance)
         #expect(conversion.bundle.identifier == baseline.bundle.identifier)
         let fullURLs = Set(conversion.bundle.entry?.compactMap(\.fullUrl) ?? [])

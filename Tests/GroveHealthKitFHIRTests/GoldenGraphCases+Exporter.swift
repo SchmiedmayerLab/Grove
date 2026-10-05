@@ -55,19 +55,14 @@ enum ExporterGolden {
     /// An exporter whose fresh ledger hands out `sequence` next under the fixed producer instance, with the
     /// deployment's application, studies and options, or with the test application and default options.
     static func exporter(sequence: UInt64, deployment: Bool) throws -> HealthKitFHIRExporter {
-        let storage = ExchangeProducer.InMemoryStorage()
-        let instance = ExchangeEventContext.test().event.producerInstance
-        try storage.transaction { try $0.write(ProducerEntry(instance: instance, next: sequence).encoded(), for: LedgerKey.producer) }
-        let producer = try ExporterFixtures.producer(
-            application: deployment ? deploymentApplication : .test,
-            studies: deployment ? deploymentStudies : [],
-            storage: storage
-        )
-        return try ExporterFixtures.exporter(producer) { options in
-            if deployment {
-                options = deploymentOptions
-            }
+        var inputs = ExportInputs()
+        inputs.sequence = sequence
+        if deployment {
+            inputs.converter = deploymentApplication
+            inputs.studies = deploymentStudies
+            inputs.options = deploymentOptions
         }
+        return try ExporterFixtures.exporter(inputs).exporter
     }
 
     /// The graph at `index` of the `count` exports one call delivers for `records`, in delivery order.
@@ -112,11 +107,11 @@ enum ExporterGolden {
 }
 
 
-/// The graphs `HealthKitFHIRExporter` itself delivers: its ledger, its options and the facts frozen with each
-/// reservation, which the converter's goldens never reach.
+/// The graphs `HealthKitFHIRExporter` delivers under the deployment's own configuration: its options and the facts
+/// frozen with each reservation, numbered by the exporter itself.
 extension GoldenCase {
     /// Sequences 100-119. Each case exports through a fresh ledger that hands out its sequence next under the fixed
-    /// producer instance every golden states, so an exporter golden is as reproducible as a converter golden.
+    /// producer instance every golden states; an ECG's events are numbered by the exporter, in its own order.
     static let exporter: [GoldenCase] = [
         // The exporter's defaults on an Apple per-device source: no writer and no author, and a recording Device
         // only because the sample's HKDevice names its unit.
@@ -200,24 +195,5 @@ extension GoldenCase {
     #endif
 }
 
-
-extension GoldenOutput {
-    /// What one export delivered: its graph, the record it reported the graph for, which the golden test checks
-    /// against the graph's source identity, and, as the outline spells them, the diagnostics it reported.
-    init(_ export: HealthKitFHIRExporter.Export) throws {
-        guard let graph = export.graph else {
-            throw GoldenCaseError.notExported(String(describing: export.outcome))
-        }
-        guard let type = export.source.sourceType else {
-            throw GoldenCaseError.notExported("a graph reported for the unregistered type \(export.source.typeIdentifier)")
-        }
-        self.init(
-            graph: graph,
-            renderedWarnings: export.warnings.map { "\($0.code)@\($0.location)" },
-            source: HealthKitSourceRecord(uuid: export.source.uuid, type: type),
-            identifiers: nil
-        )
-    }
-}
 
 #endif

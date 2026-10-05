@@ -28,28 +28,6 @@ struct HealthKitFHIRExporterRecordTests {
         HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
     ]
 
-    /// The assembly's own graph under the event the exporter minted, as the old entry point built it.
-    private static func reference(
-        event: ExchangeEventIdentifier?,
-        _ configure: (inout HealthKitConversionOptions) -> Void = { _ in }
-    ) throws -> HealthKitConversionContext {
-        var options = HealthKitConversionOptions()
-        configure(&options)
-        let base = Fixtures.base
-        return HealthKitConversionContext(
-            event: ExchangeEventContext(
-                subject: base.subject,
-                event: try #require(event),
-                identityScope: base.identityScope,
-                repositoryScope: base.repositoryScope,
-                application: base.application,
-                host: base.host,
-                conversionInstant: GoldenFixtures.conversionInstant
-            ),
-            options: options
-        )
-    }
-
     private static func exports(
         _ records: [HealthKitFHIRExporter.Record],
         _ exporter: HealthKitFHIRExporter
@@ -95,12 +73,8 @@ struct HealthKitFHIRExporterRecordTests {
         )
         let (exports, _) = try Self.exports([.heartbeatSeries(series, beats: Self.beats)], exporter)
         try #require(exports.count == 1)
-        let context = try Self.reference(event: exports[0].event)
-        let reference = try HealthKitAssembly(context: context.event).convertHeartbeatSeries(
-            HealthKitHeartbeatSeriesRecord(series: series, heartbeats: Self.beats),
-            request: .init(context: context)
-        )
-        #expect(exports[0].graph?.json == reference.primary.graph.json)
+        let reference = try Fixtures.standalone(.heartbeatSeries(series, beats: Self.beats), as: exports[0].event)
+        #expect(exports[0].graph?.json == reference.graph.json)
         #expect(exports[0].source.sourceType == .heartbeatSeries)
     }
 
@@ -114,12 +88,10 @@ struct HealthKitFHIRExporterRecordTests {
         )
         let (exports, _) = try Self.exports([.workoutRoute(route, locations: GoldenCase.routeLocations)], exporter)
         try #require(exports.count == 1)
-        let context = try Self.reference(event: exports[0].event) { $0.routeDisclosure = .authorized }
-        let reference = try #require(try HealthKitAssembly(context: context.event).convertWorkoutRoute(
-            HealthKitWorkoutRouteRecord(route: route, locations: GoldenCase.routeLocations),
-            request: .init(context: context)
-        ))
-        #expect(exports[0].graph?.json == reference.primary.graph.json)
+        var inputs = ExportInputs()
+        inputs.options.route = .authorized
+        let reference = try Fixtures.standalone(.workoutRoute(route, locations: GoldenCase.routeLocations), as: exports[0].event, inputs)
+        #expect(exports[0].graph?.json == reference.graph.json)
     }
 
     @Test("A route the policy omits delivers nothing, neither graph nor refusal, and holds its event until release")

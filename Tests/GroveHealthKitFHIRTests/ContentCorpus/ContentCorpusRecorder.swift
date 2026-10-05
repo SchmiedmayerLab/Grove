@@ -16,28 +16,24 @@ import HealthKit
 import ModelsR4
 
 
-/// Runs one corpus vector through the converter's public entry points and renders what came out as JSON tokens.
+/// Runs one corpus vector through `HealthKitFHIRExporter` and renders what came out as JSON tokens.
 ///
-/// A conversion renders, per graph, the output resources exactly as the wire carries them, the envelope around
-/// them (each entry's resource type, each Provenance target, and a digest of the Bundle's own members and every
-/// entry that is not an output), and the warnings in order. A refusal renders as its registry code, location and
-/// Swift error, and a policy omission as such.
-///
-/// Port points for the cleanup step: every conversion and retraction here goes through the deprecated
-/// `HealthKitConverter` facade (each call is marked `Port point`). When the facade is deleted they move to
-/// `HealthKitFHIRExporter`, whose rendering of every convert vector `ContentCorpusExporterTests` already pins.
+/// An export renders, per graph, the output resources exactly as the wire carries them, the envelope around them
+/// (each entry's resource type, each Provenance target, and a digest of the Bundle's own members and every entry that
+/// is not an output), and the warnings in order, each as its registry code and location. A refusal renders as its
+/// registry code, location and Swift error, and a policy omission as such.
 enum ContentCorpusRecorder {
-    /// What converting one source record produced.
+    /// What exporting one source record produced.
     enum Outcome {
-        /// The record's graphs.
-        case converted(HealthKitConversionSet)
+        /// The record's graphs, the record's own first, then an ECG's symptoms.
+        case converted([HealthKitFHIRExporter.Export])
         /// A policy chose to emit nothing.
         case omitted
         /// The record was refused.
         case refused(HealthKitConversionError)
     }
 
-    /// The event sequence every vector converts under; an ECG's symptoms take the sequences after it.
+    /// The event sequence every vector exports under; an ECG's symptoms take the sequences after it.
     static let sequence: UInt64 = 300
 
     /// The output resources a graph's content layer produces; every other entry is envelope.
@@ -54,40 +50,34 @@ enum ContentCorpusRecorder {
         }
     }
 
-    /// Converts `source` through the entry point its record takes.
+    /// Exports `source` as the record its payload takes.
     static func outcome(of source: ContentCorpusSource) throws -> Outcome {
-        let context = try context(for: source)
-        let converter = HealthKitConverter() // Port point: the deprecated facade.
+        let record: HealthKitFHIRExporter.Record
         switch source.record {
         case .electrocardiogram(let reading):
-            let record = try ContentCorpusSamples.electrocardiogram(source, reading: reading)
-            let symptomContexts = try (0..<(reading.symptomContexts ?? reading.symptoms.count)).map { index in
-                try GoldenFixtures.context(sequence: sequence + 1 + UInt64(index))
-            }
-            return capture { () throws(HealthKitConversionError) in
-                try converter.convert(record, context: context, symptomContexts: symptomContexts) // Port point.
-            }
+            let ecg = try ContentCorpusSamples.electrocardiogram(source, reading: reading)
+            record = .electrocardiogram(ecg.electrocardiogram, voltages: ecg.voltageMeasurements, symptoms: ecg.correlatedSymptoms)
         case .heartbeatSeries(let beats):
-            let record = try ContentCorpusSamples.heartbeatSeries(source, beats: beats)
-            return capture { () throws(HealthKitConversionError) in try converter.convert(record, context: context) } // Port point.
+            let series = try ContentCorpusSamples.heartbeatSeries(source, beats: beats)
+            record = .heartbeatSeries(series.series, beats: series.heartbeats)
         case .workoutRoute(let locations, _):
-            let record = try ContentCorpusSamples.workoutRoute(source, locations: locations)
-            do {
-                return try converter.convert(record, context: context).map(Outcome.converted) ?? .omitted // Port point.
-            } catch {
-                return .refused(error)
-            }
+            let route = try ContentCorpusSamples.workoutRoute(source, locations: locations)
+            record = .workoutRoute(route.route, locations: route.locations)
         default:
-            let sample = try ContentCorpusSamples.sample(source)
-            return capture { () throws(HealthKitConversionError) in try converter.convert(sample, context: context) } // Port point.
+            record = .sample(try ContentCorpusSamples.sample(source))
         }
+        let exports = try ExporterFixtures.exports(record, inputs(for: source))
+        if exports.count == 1, case .refused(let error) = exports[0].outcome {
+            return .refused(error)
+        }
+        return exports.isEmpty ? .omitted : .converted(exports)
     }
 
     /// The tokens an outcome renders as.
     static func render(_ outcome: Outcome) throws -> LosslessJSONValue {
         switch outcome {
-        case .converted(let set):
-            .object(["graphs": .array(try set.all.map { try graph($0.graph, warnings: GoldenOutput($0).renderedWarnings) })])
+        case .converted(let exports):
+            .object(["graphs": .array(try exports.map(graph))])
         case .omitted:
             .object(["omitted": .boolean(true)])
         case .refused(let error):
@@ -95,18 +85,19 @@ enum ContentCorpusRecorder {
         }
     }
 
-    /// The suite's fixed context, under a gateway converter with one study when the vector asks for every link,
-    /// and with routes disclosed when its route is.
-    static func context(for source: ContentCorpusSource) throws -> HealthKitConversionContext {
-        var inputs = GoldenFixtures.Inputs()
+    /// The suite's fixed inputs, under a gateway converter with one study when the vector asks for every link, and
+    /// with routes disclosed when its route is.
+    static func inputs(for source: ContentCorpusSource) -> ExportInputs {
+        var inputs = ExportInputs()
+        inputs.sequence = sequence
         if source.context == .linked {
-            inputs.converterRole = .gateway
+            inputs.options.role = .gateway
             inputs.studies = [.test("study-a")]
         }
         if case .workoutRoute(_, disclosed: true) = source.record {
-            inputs.options.routeDisclosure = .authorized
+            inputs.options.route = .authorized
         }
-        return try GoldenFixtures.context(sequence: sequence, inputs)
+        return inputs
     }
 
     /// A refusal as its registry code, location and Swift error.
@@ -119,14 +110,18 @@ enum ContentCorpusRecorder {
         return .object(["refused": refusal])
     }
 
-    /// One graph's output resources as its wire bytes state them, its envelope, and its warnings as rendered.
-    static func graph(_ graph: ExchangeGraph, warnings: [String]) throws -> LosslessJSONValue {
+    /// One export's output resources as its graph's wire bytes state them, its envelope, and its warnings, each as its
+    /// registry code and the element it names.
+    static func graph(_ export: HealthKitFHIRExporter.Export) throws -> LosslessJSONValue {
+        guard let graph = export.graph else {
+            return .string("unexpected outcome \(export.outcome)")
+        }
         let bundle = try LosslessJSONValue(parsing: graph.json)
         let entries = bundle["entry"]?.elements ?? []
         return .object([
             "outputs": .array(entries.compactMap { $0["resource"] }.filter(isOutput)),
             "envelope": envelope(of: bundle, entries: entries),
-            "warnings": .array(warnings.map(LosslessJSONValue.string))
+            "warnings": .array(export.warnings.map { .string("\($0.code)@\($0.location)") })
         ])
     }
 
@@ -160,15 +155,6 @@ enum ContentCorpusRecorder {
             "provenanceTargets": .array(targets),
             "digest": .string(SHA256.hash(data: Data(digested.utf8)).map { String(format: "%02x", $0) }.joined())
         ])
-    }
-
-    /// The outcome of one conversion that either produces a set or refuses.
-    private static func capture(_ convert: () throws(HealthKitConversionError) -> HealthKitConversionSet) -> Outcome {
-        do {
-            return .converted(try convert())
-        } catch {
-            return .refused(error)
-        }
     }
 }
 

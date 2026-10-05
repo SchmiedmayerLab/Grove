@@ -186,14 +186,15 @@ struct StoredSampleFixturesTests {
     @Test("The chosen UUID and writer are what the converter sees")
     func converterReadsTheStoredFacts() throws {
         let sample = try GoldenFixtures.heartRate(uuid: Self.uuid, device: GoldenFixtures.watch, writer: Self.writer)
-        let context = try GoldenFixtures.context(sequence: 250, .applicationWriter)
-        let conversion = try HealthKitConverter().convert(sample, context: context).primary
+        var inputs = ExportInputs.applicationWriter
+        inputs.sequence = 250
+        let conversion = try ExporterFixtures.export(sample, inputs).primary
 
         #expect(conversion.source.uuid == Self.uuid)
-        let expectedRecord = try context.event.identityScope.sourceRecord(
+        let expectedRecord = try inputs.base.identityScope.sourceRecord(
             adapterID: HealthKitAssembly.adapter.adapterID,
             sourceType: HealthKitSourceType.heartRate.rawValue,
-            repositoryScope: context.event.repositoryScope,
+            repositoryScope: inputs.base.repositoryScope,
             nativeRecordID: Self.uuid.uuidString.lowercased()
         ).identifier
         #expect(conversion.identifiers.sourceRecord == expectedRecord)

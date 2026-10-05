@@ -150,18 +150,16 @@ struct ConformanceFixtureTests {
 
         let contextTime = try instant("2026-08-20T12:00:00-07:00")
 
-        let context = HealthKitConversionContext(
-            subject: Self.subject,
-            converter: ApplicationDevice.test(
-                name: "Grove Conformance Fixture",
-                bundleIdentifier: "org.grovealliance.conformance-fixture",
-                version: "0.5.0"
-            ),
-            graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
-            converterWasGateway: true,
-            conversionInstant: contextTime
+        var inputs = ExportInputs()
+        inputs.subject = Self.subject
+        inputs.converter = ApplicationDevice.test(
+            name: "Grove Conformance Fixture",
+            bundleIdentifier: "org.grovealliance.conformance-fixture",
+            version: "0.5.0"
         )
-        let converter = HealthKitConverter()
+        inputs.graphIdentifierSystem = "https://grovealliance.org/fhir/testing/identifiers/conformance-graph"
+        inputs.instant = contextTime
+        inputs.options.role = .gateway
         var fixtures: [String: ModelsR4.Bundle] = [:]
         func quantity(
             _ type: HKQuantityTypeIdentifier,
@@ -183,7 +181,7 @@ struct ConformanceFixtureTests {
             )
         }
         func add(_ name: String, _ sample: HKSample) throws {
-            fixtures[name] = try converter.convert(sample, context: context).bundle
+            fixtures[name] = try ExporterFixtures.export(sample, inputs).bundle
         }
 
         func addQuantityVector(
@@ -343,21 +341,15 @@ struct ConformanceFixtureTests {
         ))
 
         // A source the caller classifies as an application: its writer Device, its host and the Provenance author.
-        let writerContext = HealthKitConversionContext(
-            subject: Self.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            writer: .application,
-            converterWasGateway: true,
-            conversionInstant: contextTime
-        )
-        fixtures["heart-rate-classified-writer"] = try converter.convert(
+        var writerInputs = inputs
+        writerInputs.options.writer = .classify { _ in .application }
+        fixtures["heart-rate-classified-writer"] = try ExporterFixtures.export(
             StoredSampleFixtures.stored(
                 quantity(.heartRate, .count().unitDivided(by: .minute()), 64, effective: .dateTime("2026-08-20T08:25:00-07:00")),
                 uuid: UUID(uuidString: "6C4B1D1E-0000-4000-8000-0000000000F1") ?? UUID(),
                 writer: GoldenFixtures.foreignWriter
             ),
-            context: writerContext
+            writerInputs
         ).bundle
 
         let mindfulness = try vector("mindfulness-session")
@@ -435,21 +427,17 @@ struct ConformanceFixtureTests {
         ))
 
         let ecgStart = try instant("2026-08-20T08:20:00-07:00")
-        let ecgContext = HealthKitConversionContext(
-            subject: Self.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: contextTime,
-            studies: [.test("study-a"), .test("study-b")]
-        )
-        let studyQuantity = try converter.convert(
+        var ecgInputs = inputs
+        ecgInputs.options.role = .assembler
+        ecgInputs.studies = [.test("study-a"), .test("study-b")]
+        let studyQuantity = try ExporterFixtures.export(
             quantity(
                 .heartRate,
                 .count().unitDivided(by: .minute()),
                 72,
                 effective: .dateTime("2026-08-20T08:20:00-07:00")
             ),
-            context: ecgContext
+            ecgInputs
         )
         fixtures["heart-rate-two-studies"] = studyQuantity.bundle
         let quantityStudies = studyQuantity.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
@@ -478,11 +466,7 @@ struct ConformanceFixtureTests {
         let voltages = try [(0.250, 0.125), (0.252, 0.250), (0.254, -0.125), (0.256, 0)].map { offset, millivolts in
             try StoredSampleFixtures.voltageMeasurement(offset: offset, millivolts: millivolts)
         }
-        let ecgConversion = try converter.convert(
-            HealthKitECGRecord(electrocardiogram: ecg, voltageMeasurements: voltages),
-            context: ecgContext,
-            symptomContexts: []
-        )
+        let ecgConversion = try ExporterFixtures.export(.electrocardiogram(ecg, voltages: voltages, symptoms: []), ecgInputs)
         let ecgObservation = ecgConversion.observation
         let ecgStudies = ecgObservation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(ecgStudies.map(\.value) == quantityStudies.map(\.value))
@@ -504,7 +488,7 @@ struct ConformanceFixtureTests {
         #expect(ecgObservation.method?.coding?.first?.system?.value?.url.absoluteString ==
             "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version")
         #expect(ecgObservation.method?.coding?.first?.code?.value?.string == "version2")
-        #expect(ecgConversion.graphIdentifiers.childOutputs.count == 1)
+        #expect(ecgConversion.identifiers.childOutputs.count == 1)
         let ecgChildren = ecgConversion.bundle.entry?.compactMap { entry -> Observation? in
             guard case .observation(let child)? = entry.resource,
                   child.meta?.profile?.contains(
@@ -524,7 +508,7 @@ struct ConformanceFixtureTests {
         #expect(averageHeartRateCategoryCodings.first?.system?.value?.url.absoluteString ==
             "http://terminology.hl7.org/CodeSystem/observation-category")
         #expect(averageHeartRateCategoryCodings.first?.code?.value?.string == "vital-signs")
-        let expectedECGURL = try ecgConversion.graphIdentifiers.primaryOutput.fullURLString
+        let expectedECGURL = try ecgConversion.identifiers.primaryOutput.fullURLString
         #expect(averageHeartRate.derivedFrom?.count == 1)
         #expect(averageHeartRate.derivedFrom?.first?.reference?.value?.string == expectedECGURL)
         #expect(averageHeartRate.identifier?.count == 2)

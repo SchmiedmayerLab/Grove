@@ -93,7 +93,9 @@ struct HealthKitUnitBindingTests {
     ])
     func convertsFromAnotherUnit(_ conversion: UnitConversionCase) throws {
         let sample = try GoldenFixtures.quantity(conversion.type, HKQuantity(unit: conversion.unit, doubleValue: conversion.value), uuid: GoldenFixtures.uuid(0xC8))
-        let graph = try HealthKitConverter().convert(sample, context: GoldenFixtures.context(sequence: 900)).graph
+        var inputs = ExportInputs()
+        inputs.sequence = 900
+        let graph = try ExporterFixtures.export(sample, inputs).graph
         let quantity = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements?.first?["resource"]?["valueQuantity"]
         #expect(quantity?["value"] == .number(conversion.lexeme))
         #expect(quantity?["code"]?.text == conversion.code)

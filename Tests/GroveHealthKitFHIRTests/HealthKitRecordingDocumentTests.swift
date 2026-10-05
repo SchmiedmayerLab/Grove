@@ -90,15 +90,15 @@ struct HealthKitRecordingDocumentTests {
     }
 
     /// The heartbeat series of the guide's example, with its beats.
-    private static func heartbeatSeries() throws -> HealthKitHeartbeatSeriesRecord {
+    private static func heartbeatSeries() throws -> HealthKitFHIRExporter.Record {
         let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts(duration: 2))
-        return HealthKitHeartbeatSeriesRecord(series: series, heartbeats: heartbeats)
+        return .heartbeatSeries(series, beats: heartbeats)
     }
 
     /// A workout route with `locations`.
-    private static func workoutRoute(_ locations: [CLLocation]) throws -> HealthKitWorkoutRouteRecord {
+    private static func workoutRoute(_ locations: [CLLocation]) throws -> HealthKitFHIRExporter.Record {
         let route = try StoredSampleFixtures.seriesSample(HKWorkoutRoute.self, sampleType: HKSeriesType.workoutRoute(), facts: facts(duration: 1))
-        return HealthKitWorkoutRouteRecord(route: route, locations: locations)
+        return .workoutRoute(route, locations: locations)
     }
 
     /// The payload the heartbeat-series plan writes for `heartbeats` from the guide's series start.
@@ -106,22 +106,21 @@ struct HealthKitRecordingDocumentTests {
         try HealthKitContentPlan[.heartbeatSeries].recordingDocument().beatIntervals(seriesStart: seriesStart, heartbeats: heartbeats)
     }
 
-    private func context(
-        routeDisclosurePolicy: RouteDisclosurePolicy = .omit,
+    private func inputs(
+        route: HealthKitFHIRExporter.Disclosure = .omit,
         studies: [StudyEnrollment] = []
-    ) -> HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: Date(timeIntervalSince1970: 1_755_624_060),
-            routeDisclosurePolicy: routeDisclosurePolicy,
-            studies: studies
+    ) -> ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = Date(timeIntervalSince1970: 1_755_624_060)
+        inputs.options.route = route
+        inputs.studies = studies
+        return inputs
     }
 
     @Test("A beat series is written in the registry's published bytes")
@@ -151,7 +150,7 @@ struct HealthKitRecordingDocumentTests {
     @Test("A beat series is carried as a recording document, not reduced to a value")
     func beatSeriesGraphCarriesThePublishedContract() throws {
         let payload = try Self.beatIntervals(Self.heartbeats)
-        let conversion = try HealthKitAssembly.convert(try Self.heartbeatSeries(), context: context())
+        let conversion = try ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
         let document = conversion.document
 
         #expect(document.meta?.profile == [
@@ -162,7 +161,7 @@ struct HealthKitRecordingDocumentTests {
         #expect(document.subject == .testPatient)
         let identifiers = try #require(document.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
-        #expect(document.identifier?[1].value?.value?.string == conversion.graphIdentifiers.sourceOutput.value)
+        #expect(document.identifier?[1].value?.value?.string == conversion.identifiers.sourceOutput.value)
         #expect(document.content.count == 1)
 
         let content = try #require(document.content.first)
@@ -179,9 +178,7 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("The document states its HealthKit source type and its conversion event")
     func documentGraphStatesItsSourceAndProvenance() throws {
-        let record = try Self.heartbeatSeries()
-        let sample = record.series
-        let conversion = try HealthKitAssembly.convert(record, context: context())
+        let conversion = try ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
 
         let coding = try #require(conversion.document.type?.coding?.first)
         #expect(coding.system?.value?.url.absoluteString
@@ -195,29 +192,26 @@ struct HealthKitRecordingDocumentTests {
             Issue.record("HealthKit source type must use the lineage valueCode extension")
             return
         }
-        #expect(sourceType.value?.string == sample.sampleType.identifier)
+        #expect(sourceType.value?.string == HKDataTypeIdentifierHeartbeatSeries)
 
         #expect(conversion.provenance.meta?.profile == [
             HealthKitContract.conversionProvenanceProfile
         ])
-        let documentURL = try conversion.graphIdentifiers.sourceOutput.fullURLString
+        let documentURL = try conversion.identifiers.sourceOutput.fullURLString
         #expect(conversion.provenance.target.first?.reference?.value?.string == documentURL)
         #expect(conversion.bundle.entry?.first?.fullUrl?.value?.url.absoluteString == documentURL)
         #expect(conversion.document.author?.last?.reference?.value?.string
-            == (try conversion.graphIdentifiers.converterApplicationSnapshot.fullURLString))
+            == (try conversion.identifiers.converterApplicationSnapshot.fullURLString))
     }
 
     @Test("A route is omitted under the default disclosure policy")
     func routeIsOmittedByDefault() throws {
-        #expect(try HealthKitAssembly.convert(try Self.workoutRoute(Self.locations), context: context()) == nil)
+        #expect(try ExporterFixtures.exports(try Self.workoutRoute(Self.locations), inputs()).isEmpty)
     }
 
     @Test("An authorized route is written in the registry's column schema")
     func authorizedRouteIsCarried() throws {
-        let conversion = try #require(try HealthKitAssembly.convert(
-            try Self.workoutRoute(Self.locations),
-            context: context(routeDisclosurePolicy: .authorized)
-        ))
+        let conversion = try ExporterFixtures.export(try Self.workoutRoute(Self.locations), inputs(route: .authorized))
         let payload = try #require(conversion.document.content.first?.attachment.data?.value?.data())
 
         // The second fix reports no altitude, speed, or course, and each unavailable reading is an
@@ -232,8 +226,8 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("An authorized route with no fixes fails closed")
     func emptyAuthorizedRouteFailsClosed() {
-        #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
-            try HealthKitAssembly.convert(try Self.workoutRoute([]), context: context(routeDisclosurePolicy: .authorized))
+        #expect(throws: HealthKitConversionError.invalidValue(.workoutRoute, .emptyRecordingSeries)) {
+            try ExporterFixtures.export(try Self.workoutRoute([]), inputs(route: .authorized))
         }
     }
 
@@ -248,7 +242,7 @@ struct HealthKitRecordingDocumentTests {
             metadata: nil
         )
 
-        let conversion = try HealthKitAssembly.convert(sample, context: context())
+        let conversion = try ExporterFixtures.export(sample, inputs())
         let content = try #require(conversion.document.content.first)
 
         #expect(content.format?.code?.value?.string == "clinical-document")
@@ -275,11 +269,11 @@ extension HealthKitRecordingDocumentTests {
     func studyRelevancePreservesRecording(studyCount: Int) throws {
         let record = try Self.heartbeatSeries()
         let studies = (0..<studyCount).map { StudyEnrollment.test("study-\($0)") }
-        let baseline = try HealthKitAssembly.convert(record, context: context())
-        let conversion = try HealthKitAssembly.convert(record, context: context(studies: studies))
+        let baseline = try ExporterFixtures.export(record, inputs())
+        let conversion = try ExporterFixtures.export(record, inputs(studies: studies))
         #expect(conversion.document.context?.related?.count ?? 0 == studyCount)
         #expect(conversion.document.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
-        #expect(conversion.graphIdentifiers == baseline.graphIdentifiers)
+        #expect(conversion.identifiers == baseline.identifiers)
         #expect(conversion.document.content == baseline.document.content)
         #expect(conversion.provenance == baseline.provenance)
         #expect(conversion.bundle.identifier == baseline.bundle.identifier)

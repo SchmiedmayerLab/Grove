@@ -33,20 +33,18 @@ struct HealthKitFHIRCatalogConversionTests {
         (MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex]).map { ($0.id, $0) }
     ) { first, _ in first }
 
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
     }
 
     /// HealthKit aborts the process when a type's required metadata is missing, so the few
@@ -88,7 +86,7 @@ struct HealthKitFHIRCatalogConversionTests {
             metadata: requiredMetadata(for: identifier)
         )
 
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == contract.healthKitProfiles, "\(identifier) profile claim")
         let codings = try #require(observation.code.coding, "\(identifier) has no code")

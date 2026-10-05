@@ -15,29 +15,30 @@ import HealthKit
 import Testing
 
 
-/// Invariant checks over one conversion, shared by the corpus pass so no vector converts twice.
+/// Invariant checks over one export, shared by the corpus pass so no vector exports twice.
 enum ContentCorpusInvariants {
-    /// Every output a conversion of `source` emitted that its source type's catalog outputs do not name, and a
-    /// primary output that is not the catalog's first: identity enters only through the catalog's (role,
-    /// discriminator) pairs, minted under the context the vector converted under.
+    /// Every output an export of `source` emitted that its source type's catalog outputs do not name, and a primary
+    /// output that is not the catalog's first: identity enters only through the catalog's (role, discriminator) pairs,
+    /// minted under the scope the vector exported under.
     static func uncatalogedOutputs(of outcome: ContentCorpusRecorder.Outcome, source: ContentCorpusSource) throws -> [String] {
-        guard case .converted(let set) = outcome else {
+        guard case .converted(let exports) = outcome else {
             return []
         }
-        let context = try ContentCorpusRecorder.context(for: source)
-        return try set.all.flatMap { conversion -> [String] in
-            let record = try context.identityScope.sourceRecord(
+        let base = ContentCorpusRecorder.inputs(for: source).base
+        return try exports.map(ExportedGraph.init).flatMap { exported -> [String] in
+            let type = try #require(exported.source.sourceType)
+            let record = try base.identityScope.sourceRecord(
                 adapterID: HealthKitAssembly.adapter.adapterID,
-                sourceType: conversion.source.type.rawValue,
-                repositoryScope: context.event.repositoryScope,
-                nativeRecordID: conversion.source.uuid.uuidString.lowercased()
+                sourceType: type.rawValue,
+                repositoryScope: base.repositoryScope,
+                nativeRecordID: exported.source.uuid.uuidString.lowercased()
             )
-            let cataloged = try HealthKitCatalog.outputs(for: conversion.source.type).map { output in
+            let cataloged = try HealthKitCatalog.outputs(for: type).map { output in
                 try record.output(role: output.role, discriminator: output.discriminator)
             }
-            let emitted = [conversion.identifiers.primaryOutput] + conversion.identifiers.childOutputs
+            let emitted = [exported.identifiers.primaryOutput] + exported.identifiers.childOutputs
             var problems = emitted.filter { !cataloged.contains($0) }.map { "\($0.identifier.value) is not a cataloged output" }
-            if cataloged.first != conversion.identifiers.primaryOutput {
+            if cataloged.first != exported.identifiers.primaryOutput {
                 problems.append("the primary output is not the catalog's first")
             }
             return problems

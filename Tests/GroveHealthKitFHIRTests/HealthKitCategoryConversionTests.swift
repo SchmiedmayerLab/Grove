@@ -135,20 +135,18 @@ struct HealthKitFHIRCategoryConversionTests {
         )
     ]
 
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
     }
 
     private func categorySample(
@@ -179,7 +177,7 @@ struct HealthKitFHIRCategoryConversionTests {
     @Test("Every HKCategoryValueSeverity grade absorbs into the shared severity code", arguments: severityCases)
     func symptomSeverity(testCase: SeverityCase) throws {
         let sample = categorySample(.headache, value: testCase.value.rawValue)
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let codings = try codings(observation)
         let contract = HealthKitMeasurementCatalog.symptomHeadache
 
@@ -194,13 +192,13 @@ struct HealthKitFHIRCategoryConversionTests {
 
     @Test("Presence-only symptoms bind the two-code presence subset")
     func symptomPresence() throws {
-        let present = try converter.convert(
+        let present = try ExporterFixtures.export(
             categorySample(.moodChanges, value: HKCategoryValuePresence.present.rawValue),
-            context: context
+            inputs
         ).observation
-        let notPresent = try converter.convert(
+        let notPresent = try ExporterFixtures.export(
             categorySample(.sleepChanges, value: HKCategoryValuePresence.notPresent.rawValue),
-            context: context
+            inputs
         ).observation
 
         #expect(try codings(present)[0].code?.value?.string == "present")
@@ -218,7 +216,7 @@ struct HealthKitFHIRCategoryConversionTests {
             value: testCase.value,
             metadata: testCase.requiredMetadata
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let codings = try codings(observation)
         let expectedDisplay = testCase.measurement.resultCodes
             .first { $0.code == testCase.sharedCode }?
@@ -243,7 +241,7 @@ struct HealthKitFHIRCategoryConversionTests {
             value: HKCategoryValueVaginalBleeding.light.rawValue,
             metadata: [HKMetadataKeyMenstrualCycleStart: cycleStart]
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
         let component = try #require(observation.component?.first)
         let componentValue: CodeableConcept = try #require({
             guard case .codeableConcept(let concept) = component.value else {
@@ -290,24 +288,24 @@ struct HealthKitFHIRCategoryConversionTests {
                 facts: facts
             )
             #expect(throws: HealthKitConversionError.invalidValue(.menstrualFlow, failure)) {
-                try converter.convert(sample, context: context)
+                try ExporterFixtures.export(sample, inputs)
             }
         }
     }
 
     @Test("Interval flags emit their one fixed result code")
     func fixedResultCodes() throws {
-        let pregnancy = try converter.convert(
+        let pregnancy = try ExporterFixtures.export(
             categorySample(.pregnancy, value: HKCategoryValue.notApplicable.rawValue),
-            context: context
+            inputs
         ).observation
-        let lactation = try converter.convert(
+        let lactation = try ExporterFixtures.export(
             categorySample(.lactation, value: HKCategoryValue.notApplicable.rawValue),
-            context: context
+            inputs
         ).observation
-        let spotting = try converter.convert(
+        let spotting = try ExporterFixtures.export(
             categorySample(.intermenstrualBleeding, value: HKCategoryValue.notApplicable.rawValue),
-            context: context
+            inputs
         ).observation
 
         #expect(try codings(pregnancy).map { $0.code?.value?.string } == ["pregnant"])
@@ -329,20 +327,20 @@ struct HealthKitFHIRCategoryConversionTests {
             value: HKCategoryValue.notApplicable.rawValue,
             metadata: metadata
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try ExporterFixtures.export(sample, inputs).observation
 
         #expect(try codings(observation).first?.code?.value?.string == expected)
     }
 
     @Test("Interval sessions emit the Period duration in the profile's unit")
     func sessionDurations() throws {
-        let mindful = try converter.convert(
+        let mindful = try ExporterFixtures.export(
             categorySample(.mindfulSession, value: HKCategoryValue.notApplicable.rawValue, interval: 600),
-            context: context
+            inputs
         ).observation
-        let handwashing = try converter.convert(
+        let handwashing = try ExporterFixtures.export(
             categorySample(.handwashingEvent, value: HKCategoryValue.notApplicable.rawValue, interval: 22),
-            context: context
+            inputs
         ).observation
 
         func quantity(_ observation: Observation) throws -> Quantity {

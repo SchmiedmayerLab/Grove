@@ -16,60 +16,28 @@ import ModelsR4
 import Testing
 
 
-/// What one case pins: the graph the API emitted, what it reported losing, in order, and what it reported about
-/// the graph's record and identities.
+/// What one case pins: the graph the exporter delivered, what it reported losing, in order, and the record it reported
+/// the graph for.
 struct GoldenOutput: Sendable {
     let graph: ExchangeGraph
-    /// Each warning as the outline spells it: the registry code, then the field, device name or keys it names.
+    /// Each warning as the outline spells it: the registry code, then the element it names.
     let renderedWarnings: [String]
-    /// The record the API reported the graph for; `nil` for a converter retraction, which reports none.
-    let source: HealthKitSourceRecord?
-    /// The identities the conversion reported; `nil` where the API reports none.
-    let identifiers: ExchangeGraphIdentifiers?
+    /// The record the exporter reported the graph for, which the golden test checks against the graph's source identity.
+    let source: HealthKitFHIRExporter.Export.Source
 
-    init(graph: ExchangeGraph, renderedWarnings: [String], source: HealthKitSourceRecord?, identifiers: ExchangeGraphIdentifiers?) {
+    /// What one export delivered; an export without a graph throws.
+    init(_ export: HealthKitFHIRExporter.Export) throws {
+        guard let graph = export.graph else {
+            throw GoldenCaseError.notExported(String(describing: export.outcome))
+        }
         self.graph = graph
-        self.renderedWarnings = renderedWarnings
-        self.source = source
-        self.identifiers = identifiers
-    }
-
-    init(_ conversion: HealthKitConversion) {
-        graph = conversion.graph
-        renderedWarnings = conversion.warnings.map { warning in
-            switch warning {
-            case .recordingDeviceOmitted(let deviceName):
-                "\(warning.diagnostic.code)(\(deviceName ?? ""))"
-            case .sourceOffsetUnavailable(let field):
-                "\(warning.diagnostic.code)@\(field)"
-            case .unmodeledMetadataWithheld(let keys):
-                "\(warning.diagnostic.code)(\(keys.joined(separator: ",")))"
-            }
-        }
-        source = conversion.source
-        identifiers = conversion.identifiers
-    }
-
-    init(_ retraction: RetractionEvent) {
-        graph = retraction.graph
-        renderedWarnings = []
-        source = nil
-        identifiers = nil
-    }
-
-    /// The primary graph of `set`, which must carry exactly `companions` companion graphs: a case that pins only
-    /// the primary would otherwise let a spurious or a lost companion pass.
-    init(primaryOf set: HealthKitConversionSet, companions: Int = 0) throws {
-        guard set.companions.count == companions else {
-            throw GoldenCaseError.unexpectedCompanions(set.companions.count)
-        }
-        self.init(set.primary)
+        renderedWarnings = export.warnings.map { "\($0.code)@\($0.location)" }
+        source = export.source
     }
 }
 
 
-/// One pinned wire shape: a stable name, the event sequence its context states, and how the
-/// converter's public API (or, for ECGs, the internal seam the existing tests use) produces it.
+/// One pinned wire shape: a stable name, the event sequence its export takes, and how `HealthKitFHIRExporter` produces it.
 ///
 /// Sequences are append-only: a new case takes the next free number of its group so that adding a
 /// case never re-mints the identities of an existing golden.
@@ -95,25 +63,6 @@ struct GoldenCase: Sendable, CustomTestStringConvertible {
 /// The fixed inputs every golden case is built from. Nothing here reads the clock, the process
 /// or the host, so two runs on two machines mint the same identities and the same bytes.
 enum GoldenFixtures {
-    /// What a case varies beyond its sample: every field defaults to the test context's fixed facts.
-    struct Inputs: Sendable {
-        /// The default inputs with the sample's source classified as an application, for the cases that pin how a
-        /// writer travels; by default no writer is stated.
-        static var applicationWriter: Inputs {
-            var inputs = Inputs()
-            inputs.options.writer = .application
-            return inputs
-        }
-
-        var subject: Subject = .testPatient
-        var converter: ApplicationDevice = .test
-        var converterHost: HostDevice = .test
-        var converterRole: ConverterRole = .assembler
-        var studies: [StudyEnrollment] = []
-        var repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
-        var options = HealthKitConversionOptions()
-    }
-
     /// 2026-08-17T23:30:00Z, in whole seconds: the conversion instant of every case.
     static let conversionInstant = ExchangeEventContext.testInstant
     /// 2026-08-17T22:30:00Z (15:30 in Los Angeles): when every sample starts.
@@ -161,34 +110,26 @@ enum GoldenFixtures {
         UUID(uuid: (0x3A, 0x7E, 0x5C, 0x10, 0x00, 0x00, 0x40, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ordinal))
     }
 
-    /// The context of one case: the test identity scope and key, the fixed producer instance, and `sequence`.
-    static func context(sequence: UInt64, _ inputs: Inputs = Inputs()) throws -> HealthKitConversionContext {
-        let base = ExchangeEventContext.test()
-        let event = try ExchangeEventIdentifier(
-            system: base.identityScope.systems.event,
-            producerInstance: base.event.producerInstance,
-            sequence: EventSequence(sequence)
-        )
-        return HealthKitConversionContext(
-            event: ExchangeEventContext(
-                subject: inputs.subject,
-                event: event,
-                identityScope: base.identityScope,
-                repositoryScope: base.repositoryScope,
-                application: inputs.converter,
-                host: inputs.converterHost,
-                conversionInstant: conversionInstant,
-                converterRole: inputs.converterRole,
-                studies: inputs.studies,
-                repositoryIDs: inputs.repositoryIDs
-            ),
-            options: inputs.options
-        )
+    /// The export at `index` of the `count` exports one call delivers for `record`, its event numbered `sequence`.
+    static func export(
+        _ record: HealthKitFHIRExporter.Record,
+        sequence: UInt64,
+        _ inputs: ExportInputs = ExportInputs(),
+        index: Int = 0,
+        of count: Int = 1
+    ) throws -> GoldenOutput {
+        var inputs = inputs
+        inputs.sequence = sequence
+        let exports = try ExporterFixtures.exports(record, inputs)
+        guard exports.count == count else {
+            throw GoldenCaseError.unexpectedCompanions(exports.count - 1)
+        }
+        return try GoldenOutput(exports[index])
     }
 
-    /// The one graph of `sample` under the old public entry point, with what the conversion reported losing.
-    static func convert(_ sample: HKSample, sequence: UInt64, _ inputs: Inputs = Inputs()) throws -> GoldenOutput {
-        try GoldenOutput(primaryOf: HealthKitConverter().convert(sample, context: context(sequence: sequence, inputs)))
+    /// The one graph `sample` exports to under `inputs`, its event numbered `sequence`.
+    static func export(_ sample: HKSample, sequence: UInt64, _ inputs: ExportInputs = ExportInputs()) throws -> GoldenOutput {
+        try export(.sample(sample), sequence: sequence, inputs)
     }
 
     /// A 72 bpm heart rate; `end` stays the start instant unless a case states an interval.
@@ -303,92 +244,23 @@ extension GoldenOutput {
         "\(identifier?["system"]?.text ?? "")|\(identifier?["value"]?.text ?? "")"
     }
 
-    private static func key(_ identity: RoledIdentifier) -> String {
-        "\(identity.identifier.system.rawValue)|\(identity.identifier.value)"
-    }
-
-    /// Where what the API reported disagrees with the graph it reported it for, read from the graph's own tokens.
-    ///
-    /// A reported source is the record the Provenance's source entity names; an export reports one for its
-    /// retractions too. Reported identities: each output and Device is the entry its fullUrl names and carries that
-    /// identity, the Provenance is the one entry at its entry-node fullUrl, the primary output carries the source
-    /// record identity minted from the source and exactly the reported source-artifact identity, and every output and
-    /// Device entry is reported (a distinct gateway application aside, which no identity names). Empty for a converter
-    /// retraction, which reports neither.
+    /// Where the record the exporter reported disagrees with the graph it reported it for, read from the graph's own
+    /// tokens: the reported record is the one the Provenance's source entity names, for a retraction too.
     func reportMismatches(identityScope: OpaqueIdentityScope, repositoryScope: BusinessIdentifier) throws -> [String] {
         let entries: [LosslessJSONValue] = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements ?? []
-        let minted = try source.map { source in
-            try identityScope.sourceRecord(
-                adapterID: HealthKitAssembly.adapter.adapterID,
-                sourceType: source.type.rawValue,
-                repositoryScope: repositoryScope,
-                nativeRecordID: source.uuid.uuidString.lowercased()
-            ).identifier
-        }
-        var mismatches: [String] = []
+        let type = try #require(source.sourceType, "a graph reported for the unregistered type \(source.typeIdentifier)")
+        let minted = try identityScope.sourceRecord(
+            adapterID: HealthKitAssembly.adapter.adapterID,
+            sourceType: type.rawValue,
+            repositoryScope: repositoryScope,
+            nativeRecordID: source.uuid.uuidString.lowercased()
+        ).identifier
         let sourceEntities = entries
             .filter { $0["resource"]?["resourceType"]?.text == "Provenance" }
             .flatMap { $0["resource"]?["entity"]?.elements ?? [] }
             .filter { $0["role"]?.text == "source" }
-        if let minted, sourceEntities.map({ Self.key($0["what"]?["identifier"]) }) != [Self.key(minted)] {
-            mismatches.append("source")
-        }
-        guard let identifiers else {
-            return mismatches
-        }
-        if minted != identifiers.sourceRecord {
-            mismatches.append("source record identity")
-        }
-        return mismatches + (try identityMismatches(identifiers, entries: entries))
-    }
-
-    /// Where the reported identities disagree with the graph's entries.
-    private func identityMismatches(_ identifiers: ExchangeGraphIdentifiers, entries: [LosslessJSONValue]) throws -> [String] {
-        var byURL: [String: LosslessJSONValue] = [:]
-        for entry in entries {
-            byURL[entry["fullUrl"]?.text ?? ""] = entry
-        }
-        func stated(_ url: String) -> [LosslessJSONValue] {
-            byURL[url]?["resource"]?["identifier"]?.elements ?? []
-        }
-        func urls(ofTypes types: Set<String>) -> Set<String> {
-            Set(entries.filter { types.contains($0["resource"]?["resourceType"]?.text ?? "") }.compactMap { $0["fullUrl"]?.text })
-        }
-        let optionalDevices: [RoledIdentifier] = [
-            identifiers.recordingDeviceSnapshot, identifiers.writerSnapshot, identifiers.writerHostSnapshot
-        ].compactMap(\.self)
-        let devices: [RoledIdentifier] = [identifiers.applicationSnapshot, identifiers.hostSnapshot] + optionalDevices
-        let outputs: [RoledIdentifier] = [identifiers.primaryOutput] + identifiers.childOutputs
-        var mismatches: [String] = []
-        for node in outputs + devices where !stated(try node.fullURLString).contains(where: { Self.key($0) == Self.key(node) }) {
-            mismatches.append("node \(node.identifier.value)")
-        }
-        // A Provenance carries no identifier; its entry-node key is its fullUrl.
-        if urls(ofTypes: ["Provenance"]) != [try identifiers.provenance.fullURLString] {
-            mismatches.append("provenance")
-        }
-        if identifiers.event != graph.eventIdentifier.identifier {
-            mismatches.append("event")
-        }
-        let primary = stated(try identifiers.primaryOutput.fullURLString)
-        if !primary.contains(where: { Self.key($0) == Self.key(identifiers.sourceRecord) }) {
-            mismatches.append("source record on the primary output")
-        }
-        let artifacts = primary.filter { $0["type"]?["coding"]?.elements?.first?["code"]?.text == GroveIdentifierRole.sourceArtifact.rawValue }
-        if artifacts.map({ Self.key($0) }) != [identifiers.sourceArtifact].compactMap(\.self).map({ Self.key($0) }) {
-            mismatches.append("source artifact")
-        }
-        if urls(ofTypes: ["Observation", "DocumentReference"]) != Set(try outputs.map { try $0.fullURLString }) {
-            mismatches.append("outputs")
-        }
-        let deviceURLs = Set(try devices.map { try $0.fullURLString })
-        let extensions: [LosslessJSONValue] = entries.flatMap { $0["resource"]?["extension"]?.elements ?? [] }
-        let gatewayURLs = Set(extensions.filter { $0["url"]?.text == Canonicals.gatewayDevice.value?.url.absoluteString }
-            .compactMap { $0["valueReference"]?["reference"]?.text })
-        if urls(ofTypes: ["Device"]).subtracting(gatewayURLs.subtracting(deviceURLs)) != deviceURLs {
-            mismatches.append("devices")
-        }
-        return mismatches
+        let named = sourceEntities.map { Self.key($0["what"]?["identifier"]) }
+        return named == ["\(minted.identifier.system.rawValue)|\(minted.identifier.value)"] ? [] : ["source"]
     }
 }
 

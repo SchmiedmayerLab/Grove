@@ -91,12 +91,12 @@ enum Stopwatch {
 }
 
 
-/// How one scenario's event contexts are configured.
+/// How one scenario's exporter is configured.
 enum ContextStyle: String {
     /// The suite's default fixture: logical subject, no study, every disclosure omitted.
     case minimal
     /// What MyHeartCounts configures: one study enrollment (three bundled study entries), the native
-    /// HealthKit UUID disclosed under a deployment system, and a repository id on the Bundle.
+    /// HealthKit UUID disclosed under a deployment system, and the HealthKit UUID as `Bundle.id`.
     case deployment
 }
 
@@ -105,6 +105,114 @@ struct Scenario {
     let name: String
     let style: ContextStyle
     let samples: [HKSample]
+}
+
+
+final class ManagedFailureCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+
+    func increment() {
+        lock.lock()
+        count += 1
+        lock.unlock()
+    }
+}
+
+
+/// The per-deployment facts a long-lived producer would hold once; only the event differs per sample.
+struct BenchScope {
+    static let producerInstance = UUID(uuid: (
+        0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
+        0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
+    ))
+    static let nativeRecordSystem: IdentifierSystem = "https://bench.example.org/fhir/identifiers/healthkit-record"
+
+    let systems: DeploymentIdentifierSystems
+    let identityScope: OpaqueIdentityScope
+    let repositoryScope: BusinessIdentifier
+    let subject: Subject
+    let application: ApplicationDevice
+    let host: HostDevice
+    let studies: [StudyEnrollment]
+
+    init() {
+        systems = try! DeploymentIdentifierSystems.derived(
+            root: "https://bench.example.org/fhir",
+            keyID: "store",
+            epoch: EventSequence(1)
+        )
+        identityScope = try! OpaqueIdentityScope(
+            systems: systems,
+            keyID: "store",
+            epoch: EventSequence(1),
+            key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
+        )
+        repositoryScope = try! BusinessIdentifier(
+            system: IdentifierSystem("https://bench.example.org/fhir/identifiers/repository"),
+            value: "healthkit:participant-0001"
+        )
+        subject = .logical(try! BusinessIdentifier(
+            system: IdentifierSystem("https://bench.example.org/fhir/identifiers/participant"),
+            value: "participant-0001"
+        ))
+        application = try! ApplicationDevice(
+            name: "Bench App",
+            bundleIdentifier: "org.example.bench",
+            version: "1.2.3",
+            build: "456"
+        )
+        host = try! HostDevice(
+            operatingSystemVersion: "26.1",
+            name: "iPhone",
+            manufacturer: "Apple Inc.",
+            modelNumber: "iPhone17,1"
+        )
+        studies = [
+            try! StudyEnrollment(
+                study: BusinessIdentifier(
+                    system: IdentifierSystem("https://bench.example.org/fhir/identifiers/research-study"),
+                    value: "bench-study"
+                ),
+                protocolURL: FHIRPrimitive(Canonical(stringLiteral: "https://bench.example.org/fhir/PlanDefinition/bench-study")),
+                protocolVersion: "7",
+                enrollment: BusinessIdentifier(
+                    system: IdentifierSystem("https://bench.example.org/fhir/identifiers/research-subject"),
+                    value: "bench-study:participant-0001"
+                )
+            )
+        ]
+    }
+
+    /// A fresh exporter configured for `style`, over its own in-memory ledger: the exporter a deployment keeps per
+    /// participant, before its first event.
+    func exporter(style: ContextStyle) -> HealthKitFHIRExporter {
+        let producer = try! ExchangeProducer(
+            identityScope: identityScope,
+            subject: subject,
+            application: application,
+            host: host,
+            studies: style == .deployment ? studies : [],
+            storage: ExchangeProducer.InMemoryStorage()
+        )
+        var options = HealthKitFHIRExporter.Options()
+        if style == .deployment {
+            options.nativeIdentifier = .authorized(system: Self.nativeRecordSystem)
+            options.legacyBundleID = .healthKitUUID
+        }
+        return try! HealthKitFHIRExporter(producer: producer, repositoryScope: repositoryScope, options: options)
+    }
+
+    /// The event identifier with `sequence` under the fixed producer instance.
+    func event(_ sequence: UInt64) -> ExchangeEventIdentifier {
+        try! ExchangeEventIdentifier(system: systems.event, producerInstance: Self.producerInstance, sequence: EventSequence(sequence))
+    }
 }
 
 
@@ -195,131 +303,6 @@ enum SampleFactory {
                 totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: 640),
                 totalDistance: HKQuantity(unit: .meter(), doubleValue: 10_000),
                 metadata: [HKMetadataKeyTimeZone: "Europe/Berlin"]
-            )
-        }
-    }
-}
-
-
-final class ManagedFailureCount: @unchecked Sendable {
-    private let lock = NSLock()
-    private var count = 0
-
-    var value: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return count
-    }
-
-    func increment() {
-        lock.lock()
-        count += 1
-        lock.unlock()
-    }
-}
-
-
-/// The per-deployment facts a long-lived producer would hold once; only the event differs per sample.
-struct BenchScope {
-    static let producerInstance = UUID(uuid: (
-        0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
-        0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
-    ))
-    static let nativeRecordSystem: IdentifierSystem = "https://bench.example.org/fhir/identifiers/healthkit-record"
-
-    let systems: DeploymentIdentifierSystems
-    let identityScope: OpaqueIdentityScope
-    let repositoryScope: BusinessIdentifier
-    let subject: Subject
-    let application: ApplicationDevice
-    let host: HostDevice
-    let studies: [StudyEnrollment]
-
-    init() {
-        systems = try! DeploymentIdentifierSystems.derived(
-            root: "https://bench.example.org/fhir",
-            keyID: "store",
-            epoch: EventSequence(1)
-        )
-        identityScope = try! OpaqueIdentityScope(
-            systems: systems,
-            keyID: "store",
-            epoch: EventSequence(1),
-            key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
-        )
-        repositoryScope = try! BusinessIdentifier(
-            system: IdentifierSystem("https://bench.example.org/fhir/identifiers/repository"),
-            value: "healthkit:participant-0001"
-        )
-        subject = .logical(try! BusinessIdentifier(
-            system: IdentifierSystem("https://bench.example.org/fhir/identifiers/participant"),
-            value: "participant-0001"
-        ))
-        application = try! ApplicationDevice(
-            name: "Bench App",
-            bundleIdentifier: "org.example.bench",
-            version: "1.2.3",
-            build: "456"
-        )
-        host = try! HostDevice(
-            operatingSystemVersion: "26.1",
-            name: "iPhone",
-            manufacturer: "Apple Inc.",
-            modelNumber: "iPhone17,1"
-        )
-        studies = [
-            try! StudyEnrollment(
-                study: BusinessIdentifier(
-                    system: IdentifierSystem("https://bench.example.org/fhir/identifiers/research-study"),
-                    value: "bench-study"
-                ),
-                protocolURL: FHIRPrimitive(Canonical(stringLiteral: "https://bench.example.org/fhir/PlanDefinition/bench-study")),
-                protocolVersion: "7",
-                enrollment: BusinessIdentifier(
-                    system: IdentifierSystem("https://bench.example.org/fhir/identifiers/research-subject"),
-                    value: "bench-study:participant-0001"
-                )
-            )
-        ]
-    }
-
-    /// One sample's context under a distinct event sequence, the way a consumer builds it per record today.
-    func context(for sample: HKSample, sequence: UInt64, style: ContextStyle) -> HealthKitConversionContext {
-        let event = try! ExchangeEventIdentifier(
-            system: systems.event,
-            producerInstance: Self.producerInstance,
-            sequence: EventSequence(sequence)
-        )
-        let instant = ExchangeEventContext.testInstant.addingTimeInterval(Double(sequence) / 1_000)
-        switch style {
-        case .minimal:
-            return HealthKitConversionContext(
-                event: ExchangeEventContext(
-                    subject: subject,
-                    event: event,
-                    identityScope: identityScope,
-                    repositoryScope: repositoryScope,
-                    application: application,
-                    host: host,
-                    conversionInstant: instant
-                )
-            )
-        case .deployment:
-            return HealthKitConversionContext(
-                event: ExchangeEventContext(
-                    subject: subject,
-                    event: event,
-                    identityScope: identityScope,
-                    repositoryScope: repositoryScope,
-                    application: application,
-                    host: host,
-                    conversionInstant: instant,
-                    studies: studies,
-                    repositoryIDs: [.bundle: try! RepositoryID(sample.uuid.uuidString)]
-                ),
-                options: HealthKitConversionOptions(
-                    nativeIdentifierDisclosure: .authorized(system: Self.nativeRecordSystem)
-                )
             )
         }
     }

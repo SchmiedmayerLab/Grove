@@ -83,11 +83,11 @@ struct GoldenOutline: Codable, Equatable {
 }
 
 
-/// Pins the converter's current wire output, token for token, so the refactor can be proven identical.
+/// Pins the exporter's wire output, token for token, so a refactor can be proven identical.
 ///
-/// Each case converts fixed inputs through the OLD API and compares the graph's stored JSON (`ExchangeGraph.json`,
-/// the bytes a consumer uploads) with the checked-in golden over lossless tokens: member order is free, array order
-/// and decimal lexemes are not. A failure names the first differing path.
+/// Each case exports fixed inputs through `HealthKitFHIRExporter` and compares the graph's stored JSON
+/// (`ExchangeGraph.json`, the bytes a consumer uploads) with the checked-in golden over lossless tokens: member order
+/// is free, array order and decimal lexemes are not. A failure names the first differing path.
 @Suite
 struct GoldenGraphTests {
     @Test(.enabled(if: !GoldenStore.resources.isGenerating), arguments: GoldenCase.all)
@@ -163,8 +163,9 @@ struct GoldenGraphTests {
     @Test(arguments: [false, true])
     func workoutsExportTheSessionAlone(withEvents: Bool) throws {
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
-        let context = try GoldenFixtures.context(sequence: 200)
-        let conversion = try HealthKitConverter().convert(workout, context: context)
+        var inputs = ExportInputs()
+        inputs.sequence = 200
+        let conversion = try ExporterFixtures.export(workout, inputs)
         let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 1)
         #expect(observations.first?.hasMember == nil)
@@ -178,13 +179,15 @@ struct GoldenGraphTests {
     func workoutRetractionIsExact() throws {
         #expect(HealthKitCatalog.outputs(for: .workout).map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA2))
-        let conversion = try HealthKitConverter().convert(workout, context: GoldenFixtures.context(sequence: 202))
-        let retraction = try HealthKitConverter().retraction(
-            for: HealthKitSourceRecord(uuid: workout.uuid, type: .workout),
-            context: GoldenFixtures.context(sequence: 203),
-            occurred: .instant(GoldenFixtures.conversionInstant)
+        var inputs = ExportInputs()
+        inputs.sequence = 202
+        let conversion = try ExporterFixtures.export(workout, inputs)
+        inputs.sequence = 203
+        let retraction = try ExporterFixtures.retraction(
+            HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant),
+            inputs
         )
-        let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         let emitted = ([conversion.identifiers.primaryOutput] + conversion.identifiers.childOutputs).map(\.identifier.value)
         #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == emitted)
     }
@@ -195,15 +198,17 @@ struct GoldenGraphTests {
     func ecgRetractionNamesTheAverageHeartRateChildAlways() throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xA4, symptoms: [], averageHeartRate: nil)
         let ecg = record.electrocardiogram
-        let context = try GoldenFixtures.context(sequence: 204)
-        let conversion = try HealthKitConverter().convert(record, context: context, symptomContexts: []).primary
+        var inputs = ExportInputs()
+        inputs.sequence = 204
+        let conversion = try ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []), inputs).primary
         #expect(conversion.identifiers.childOutputs.isEmpty, "an ECG without an average emits no child")
-        let retraction = try HealthKitConverter().retraction(
-            for: HealthKitSourceRecord(uuid: ecg.uuid, type: .electrocardiogram),
-            context: GoldenFixtures.context(sequence: 205),
-            occurred: .instant(GoldenFixtures.conversionInstant)
+        inputs.sequence = 205
+        let retraction = try ExporterFixtures.retraction(
+            HealthKitFHIRExporter.Deletion(uuid: ecg.uuid, sourceType: .electrocardiogram, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant),
+            inputs
         )
-        let provenance = try #require(retraction.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let context = ExchangeEventContext.test()
         let child = try context.identityScope
             .sourceRecord(
                 adapterID: HealthKitAssembly.adapter.adapterID,
@@ -223,9 +228,10 @@ struct GoldenGraphTests {
         var writer = GoldenFixtures.foreignWriter
         writer.bundleIdentifier = "not a bundle id"
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xA1), writer: writer)
-        let context = try GoldenFixtures.context(sequence: 201, .applicationWriter)
+        var inputs = ExportInputs.applicationWriter
+        inputs.sequence = 201
         #expect(throws: HealthKitConversionError.sourceApplicationInvalid) {
-            try HealthKitConverter().convert(sample, context: context)
+            try ExporterFixtures.export(sample, inputs)
         }
     }
 

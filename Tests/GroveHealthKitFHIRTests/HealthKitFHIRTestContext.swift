@@ -6,9 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Fixed valid fixtures deliberately fail at test-process startup if their literals drift, and the
-// conveniences read one graph back the way the old result types spelled it.
-// swiftlint:disable force_try force_unwrapping function_body_length type_contents_order
+// Fixed valid fixtures deliberately fail at test-process startup if their literals drift.
+// swiftlint:disable force_try function_body_length
 
 #if canImport(HealthKit)
 
@@ -149,93 +148,10 @@ extension ExchangeEventContext {
 }
 
 
-/// Keeps the fixtures concise while production callers build the shared event context themselves.
-extension HealthKitConversionContext {
-    init(
-        subject: Subject = .testPatient,
-        converter: ApplicationDevice = .test,
-        converterHost: HostDevice = .test,
-        graphIdentifierSystem: IdentifierSystem? = nil,
-        writer: HealthKitWriter = .omit,
-        converterWasGateway: Bool = false,
-        conversionInstant: Date = ExchangeEventContext.testInstant,
-        recordingDeviceStableUnitToken: String? = nil,
-        udiDisclosurePolicy: HealthKitUDIDisclosurePolicy = .omit,
-        nativeIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        routeDisclosurePolicy: RouteDisclosurePolicy = .omit,
-        studies: [StudyEnrollment] = [],
-        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
-    ) {
-        self.init(
-            event: .test(
-                subject: subject,
-                graphIdentifierSystem: graphIdentifierSystem,
-                converter: converter,
-                converterHost: converterHost,
-                converterRole: converterWasGateway ? .gateway : .assembler,
-                conversionInstant: conversionInstant,
-                studies: studies,
-                repositoryIDs: repositoryIDs
-            ),
-            options: HealthKitConversionOptions(
-                writer: writer,
-                recordingDevice: recordingDeviceStableUnitToken.map { FixedTokenRecordingDeviceResolver(token: $0) }
-                    ?? .healthKitLocalIdentifier,
-                udiDisclosure: udiDisclosurePolicy,
-                routeDisclosure: routeDisclosurePolicy,
-                nativeIdentifierDisclosure: nativeIdentifierDisclosurePolicy
-            )
-        )
-    }
-
-    var graphIdentifierSystem: IdentifierSystem? {
-        event.event.identifier.identifier.system
-    }
-
-    var subject: Subject { event.subject }
-    var converter: ApplicationDevice { event.application }
-    var conversionInstant: Date { event.conversionInstant }
-}
-
-
 extension ExchangeGraph {
     func resource<R: Resource>(_ type: R.Type, at identifier: RoledIdentifier) -> R? {
         entry(fullURL: try! identifier.fullURL)?.resource?.get(if: R.self)
     }
-}
-
-
-extension HealthKitConversion {
-    var graphIdentifiers: ExchangeGraphIdentifiers { identifiers }
-    var localSourceUUID: UUID { source.uuid }
-    var sourceIdentifier: Identifier { identifiers.sourceRecord.fhirIdentifier }
-    var observation: Observation { graph.resource(Observation.self, at: identifiers.primaryOutput)! }
-    var document: DocumentReference { graph.resource(DocumentReference.self, at: identifiers.primaryOutput)! }
-    var provenance: Provenance { graph.resource(Provenance.self, at: identifiers.provenance)! }
-    var converterApplication: Device { graph.resource(Device.self, at: identifiers.applicationSnapshot)! }
-    var converterHost: Device { graph.resource(Device.self, at: identifiers.hostSnapshot)! }
-    var recordingDevice: Device? { identifiers.recordingDeviceSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
-    var writer: Device? { identifiers.writerSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
-    var writerHost: Device? { identifiers.writerHostSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
-}
-
-
-extension HealthKitConversionSet {
-    var graph: ExchangeGraph { primary.graph }
-    var bundle: ModelsR4.Bundle { primary.bundle }
-    var identifiers: ExchangeGraphIdentifiers { primary.identifiers }
-    var graphIdentifiers: ExchangeGraphIdentifiers { primary.identifiers }
-    var source: HealthKitSourceRecord { primary.source }
-    var localSourceUUID: UUID { primary.source.uuid }
-    var sourceIdentifier: Identifier { primary.sourceIdentifier }
-    var observation: Observation { primary.observation }
-    var document: DocumentReference { primary.document }
-    var provenance: Provenance { primary.provenance }
-    var converterApplication: Device { primary.converterApplication }
-    var converterHost: Device { primary.converterHost }
-    var recordingDevice: Device? { primary.recordingDevice }
-    var writer: Device? { primary.writer }
-    var writerHost: Device? { primary.writerHost }
 }
 
 

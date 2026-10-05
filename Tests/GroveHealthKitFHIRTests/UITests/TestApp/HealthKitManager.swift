@@ -70,41 +70,28 @@ final class HealthKitManager: Sendable {
 }
 
 
-/// Creates an isolated exchange event for this disposable UI-test producer.
+/// Creates the exporter of this disposable UI-test producer, over an in-memory ledger.
 ///
-/// A production app persists its producer UUID and next sequence before conversion and reuses the
-/// complete event identifier for an exact retry. The UI test deliberately receives the sequence so
-/// each source record/version remains one immutable event rather than sharing one Bundle identity.
-func makeFHIRTestContext(
-    sequence: UInt64,
-    conversionInstant: Date
-) throws -> HealthKitConversionContext {
+/// A production app keeps one exporter per participant over a durable ledger, so an exact redelivery reproduces each
+/// event; the UI test starts a fresh ledger every time, so each export takes new events.
+func makeFHIRTestExporter() throws -> HealthKitFHIRExporter {
     let systemRoot = "https://grovealliance.org/fhir/testing/identifiers/ui-test"
     let systems = try DeploymentIdentifierSystems(
         opaque: fhirTestIdentitySystems(systemRoot: systemRoot),
         event: IdentifierSystem("\(systemRoot)/event"),
         entryNode: IdentifierSystem("\(systemRoot)/entry-node")
     )
-    let event = ExchangeEventContext(
-        subject: .logical(try BusinessIdentifier(
-            system: "https://grovealliance.org/fhir/testing/identifiers/patient",
-            value: "example"
-        )),
-        event: try ExchangeEventIdentifier(
-            system: systems.event,
-            producerInstance: UUID(uuid: (
-                0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
-                0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
-            )),
-            sequence: EventSequence(sequence)
-        ),
+    let producer = try ExchangeProducer(
         identityScope: try OpaqueIdentityScope(
             systems: systems,
             keyID: "ui-test",
             epoch: EventSequence(1),
             key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
         ),
-        repositoryScope: try BusinessIdentifier(system: IdentifierSystem("\(systemRoot)/repository"), value: "healthkit"),
+        subject: .logical(try BusinessIdentifier(
+            system: "https://grovealliance.org/fhir/testing/identifiers/patient",
+            value: "example"
+        )),
         application: try ApplicationDevice(
             name: "Grove HealthKit FHIR Test App",
             bundleIdentifier: "org.grovealliance.healthkit-fhir-test-app",
@@ -117,9 +104,12 @@ func makeFHIRTestContext(
             manufacturer: "Apple",
             modelNumber: "UI Test Device"
         ),
-        conversionInstant: conversionInstant
+        storage: ExchangeProducer.InMemoryStorage()
     )
-    return HealthKitConversionContext(event: event)
+    return try HealthKitFHIRExporter(
+        producer: producer,
+        repositoryScope: try BusinessIdentifier(system: IdentifierSystem("\(systemRoot)/repository"), value: "healthkit")
+    )
 }
 
 

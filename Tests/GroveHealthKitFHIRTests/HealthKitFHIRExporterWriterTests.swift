@@ -125,13 +125,6 @@ struct HealthKitFHIRExporterWriterTests {
         return Dictionary(uniqueKeysWithValues: exports.map { ($0.source.uuid, $0) })
     }
 
-    /// A heart rate from the Apple per-device source, converted under the conversion options' defaults.
-    private static func defaultConversion(_ ordinal: UInt8, device: HKDevice?) throws -> HealthKitConversion {
-        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(ordinal), device: device, writer: watchSource)
-        let context = HealthKitConversionContext(event: try GoldenFixtures.context(sequence: 300).event)
-        return try HealthKitAssembly.convert(sample, context: context).primary
-    }
-
     @Test("W1: by default an Apple per-device source states no writer, no author and no recording Device of its own")
     func exporterDefaultStatesNoWriter() throws {
         let exporter = try Fixtures.exporter()
@@ -158,25 +151,6 @@ struct HealthKitFHIRExporterWriterTests {
         #expect(exports[resolved.uuid]?.warnings.isEmpty == true)
     }
 
-    @Test("W1: the conversion options default to no writer too, with the same recording Device and warning")
-    func conversionOptionsDefaultStatesNoWriter() throws {
-        #expect(HealthKitConversionOptions().writer == .omit)
-        #expect(HealthKitConversionOptions.default.writer == .omit)
-        let bare = try Self.defaultConversion(0x34, device: nil)
-        let declined = try Self.defaultConversion(0x35, device: GoldenFixtures.watchWithoutUnitToken)
-        let resolved = try Self.defaultConversion(0x36, device: GoldenFixtures.watch)
-        for conversion in [bare, declined, resolved] {
-            Self.statesNoWriter(conversion.graph.bundle, source: Self.watchSource)
-            #expect(conversion.writer == nil)
-        }
-        #expect(bare.recordingDevice == nil)
-        #expect(bare.warnings.isEmpty)
-        #expect(declined.recordingDevice == nil)
-        #expect(declined.warnings == [.recordingDeviceOmitted(deviceName: "Apple Watch")])
-        #expect(resolved.recordingDevice?.deviceName?.first?.name.value?.string == "Apple Watch")
-        #expect(resolved.warnings.isEmpty)
-    }
-
     @Test("W2: a listed bundle identifier states its application writer from the sample's own source revision; others state none")
     func listedApplicationsStateTheirWriter() throws {
         let exporter = try Fixtures.exporter { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }
@@ -188,21 +162,8 @@ struct HealthKitFHIRExporterWriterTests {
         #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(listedExport.graph?.bundle)))
         Self.statesNoWriter(try #require(exports[unlisted.uuid]?.graph?.bundle), source: Self.otherApplication)
         Self.statesNoWriter(try #require(exports[watch.uuid]?.graph?.bundle), source: Self.watchSource)
-        // The listed source converts exactly as the entry point does with the source classified as an application.
-        let base = Fixtures.base
-        let context = HealthKitConversionContext(
-            event: try ExchangeEventContext(
-                subject: base.subject,
-                event: try #require(listedExport.event),
-                identityScope: base.identityScope,
-                repositoryScope: base.repositoryScope,
-                application: base.application,
-                host: base.host,
-                conversionInstant: GoldenFixtures.conversionInstant
-            ),
-            options: HealthKitConversionOptions(writer: .application)
-        )
-        let reference = try HealthKitAssembly.convert(listed, context: context).primary
+        // The listed source exports exactly as it does with every source classified as an application.
+        let reference = try Fixtures.standalone(.sample(listed), as: listedExport.event, .applicationWriter)
         #expect(listedExport.graph?.json == reference.graph.json)
     }
 
