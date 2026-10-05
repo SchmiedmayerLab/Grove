@@ -20,8 +20,8 @@ import ModelsR4
 /// its writer and recording device, and hands the draft to the shared ``ExchangeGraphAssembler``.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitAssembly: Sendable {
-    /// What one record's conversion needs beyond the envelope's scope: its event, the facts frozen with it,
-    /// and the policies in force.
+    /// What one record's conversion needs beyond the exporter's scope and options: its event, the facts frozen with
+    /// it, and what the exporter's policies answered for its sample.
     struct Request: Sendable {
         let event: ExchangeEventIdentifier
         let instant: Date
@@ -29,7 +29,9 @@ struct HealthKitAssembly: Sendable {
         let facts: ExchangeEventFacts
         let converterRole: ConverterRole
         let repositoryIDs: [ExchangeGraphNode: RepositoryID]
-        let options: HealthKitConversionOptions
+        /// What the writer and recording-device policies answered for the sample before its event was reserved; a
+        /// retraction states no sample's origin and resolves nothing.
+        let policies: HealthKitFHIRExporter.ResolvedPolicies
 
         init(
             event: ExchangeEventIdentifier,
@@ -37,25 +39,29 @@ struct HealthKitAssembly: Sendable {
             facts: ExchangeEventFacts,
             converterRole: ConverterRole = .assembler,
             repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:],
-            options: HealthKitConversionOptions = .default
+            policies: HealthKitFHIRExporter.ResolvedPolicies = .unresolved
         ) {
             self.event = event
             self.instant = instant
             self.facts = facts
             self.converterRole = converterRole
             self.repositoryIDs = repositoryIDs
-            self.options = options
+            self.policies = policies
         }
+    }
 
-        init(context: HealthKitConversionContext) {
-            self.init(
-                event: context.event.event,
-                instant: context.event.conversionInstant,
-                facts: ExchangeEventFacts(context.event),
-                converterRole: context.event.converterRole,
-                repositoryIDs: context.event.repositoryIDs,
-                options: context.options
-            )
+    /// One record's graph as the assembly built it: the record it is for, the identities it states, and what the record
+    /// carried that the graph does not.
+    struct Conversion: Sendable {
+        let source: HealthKitFHIRExporter.Export.Source
+        let identifiers: ExchangeGraphIdentifiers
+        let graph: ExchangeGraph
+        /// Each one registered `mobile-omission` rule; empty when the graph carries everything its record supplied.
+        let warnings: [ProducerDiagnostic]
+
+        /// The export that delivers this graph.
+        var export: HealthKitFHIRExporter.Export {
+            HealthKitFHIRExporter.Export(source: source, outcome: .graph(graph), warnings: warnings)
         }
     }
 
@@ -84,22 +90,16 @@ struct HealthKitAssembly: Sendable {
 
     /// The producer's scope. It holds no facts: each graph's envelope takes its own request's frozen facts.
     let scope: ExchangeEnvelope.Scope
+    /// The exporter's options: what every graph discloses.
+    let options: HealthKitFHIRExporter.Options
 
-    init(scope: ExchangeEnvelope.Scope) {
+    init(scope: ExchangeEnvelope.Scope, options: HealthKitFHIRExporter.Options = HealthKitFHIRExporter.Options()) {
         self.scope = scope
-    }
-
-    init(context: ExchangeEventContext) {
-        self.init(scope: ExchangeEnvelope.Scope(
-            adapter: Self.adapter,
-            identityScope: context.identityScope,
-            subject: context.subject,
-            repositoryScope: context.repositoryScope
-        ))
+        self.options = options
     }
 
     /// Converts one sample only when the closed catalog admits its exact published contract.
-    func convert(_ sample: HKSample, request: Request) throws -> HealthKitConversionSet {
+    func convert(_ sample: HKSample, request: Request) throws -> [Conversion] {
         guard let plan = HealthKitContentPlan.plan(for: sample) else {
             throw HealthKitConversionError.unregisteredSourceType(sample.sampleType.identifier)
         }
@@ -108,15 +108,14 @@ struct HealthKitAssembly: Sendable {
 
     /// Converts one sample through its type's plan. An ECG or a recording needs the caller's companion data, so its
     /// bare sample is refused.
-    func convert(_ sample: HKSample, plan: HealthKitContentPlan, request: Request) throws -> HealthKitConversionSet {
+    func convert(_ sample: HKSample, plan: HealthKitContentPlan, request: Request) throws -> [Conversion] {
         switch plan.route {
         case .observation(let observation):
             let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
             // A workout exports its session alone: the pinned guide defines no HealthKit segment output, and a
             // deletion could not name segments it never saw (healthkit-adapter.json workout row).
             let primary = plan.outputs[0].draft(.observation(try observation.observation(sample, metadata: metadata)))
-            let conversion = try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [primary], request: request)
-            return HealthKitConversionSet(primary: conversion)
+            return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [primary], request: request)]
         case .clinical(let document):
             let carried = try clinicalDocument(sample, plan: plan, document: document)
             return try documentGraph(for: sample, plan: plan, document: carried, request: request)
@@ -137,12 +136,11 @@ struct HealthKitAssembly: Sendable {
         metadata: HealthKitSampleMetadata,
         outputs: [ExchangeOutputDraft],
         request: Request
-    ) throws -> HealthKitConversion {
+    ) throws -> Conversion {
         guard !outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
-        let source = HealthKitSourceRecord(uuid: sample.uuid, type: type)
-        let facts = try SourceFacts(sample, metadata: metadata, options: request.options)
+        let facts = try SourceFacts(sample, metadata: metadata, policies: request.policies, options: options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
         // One record states one entry method: the sample's own metadata decides it for every output it yields.
@@ -165,16 +163,17 @@ struct HealthKitAssembly: Sendable {
             repositoryIDs: request.repositoryIDs
         )
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts)).assemble(draft)
-        return HealthKitConversion(
-            source: source,
+        return Conversion(
+            source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
             graph: assembled.graph,
             warnings: facts.warnings + sourceOffsetWarnings(for: metadata, outputs: outputs)
         )
     }
 
-    /// The effective elements the outputs serialized in UTC because the sample named no time zone, each once.
-    private func sourceOffsetWarnings(for metadata: HealthKitSampleMetadata, outputs: [ExchangeOutputDraft]) -> [HealthKitConversionWarning] {
+    /// The effective elements the outputs serialized in UTC because the sample named no time zone, each once, as the
+    /// registered `mobile-omission.source-offset` warning located at the element.
+    private func sourceOffsetWarnings(for metadata: HealthKitSampleMetadata, outputs: [ExchangeOutputDraft]) -> [ProducerDiagnostic] {
         guard !metadata.statesTimeZone else {
             return []
         }
@@ -190,7 +189,7 @@ struct HealthKitAssembly: Sendable {
             }
             fields += elements.filter { !fields.contains($0) }
         }
-        return fields.map { .sourceOffsetUnavailable(field: $0) }
+        return fields.map(ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at:))
     }
 }
 
@@ -207,7 +206,7 @@ extension HealthKitAssembly {
         return version == build && revision.source.bundleIdentifier == application.bundleIdentifier
     }
 
-    /// The event context a retraction or a bundled study context is minted from, under the request's facts.
+    /// The event context a retraction is minted from, under the request's facts.
     func eventContext(for request: Request) -> ExchangeEventContext {
         ExchangeEventContext(
             subject: scope.subject,
@@ -221,14 +220,6 @@ extension HealthKitAssembly {
             studies: request.facts.studies,
             repositoryIDs: request.repositoryIDs
         )
-    }
-}
-
-
-extension ExchangeEventFacts {
-    /// The facts an explicit event context states.
-    init(_ context: ExchangeEventContext) {
-        self.init(application: context.application, host: context.host, studies: context.studies)
     }
 }
 

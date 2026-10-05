@@ -6,14 +6,14 @@
 // SPDX-License-Identifier: MIT
 //
 
-// The public recording inputs and their graph result form one small contract inventory.
+// A beat series' beats and the two recording records read as one small inventory.
 // swiftlint:disable file_types_order
 
 #if canImport(HealthKit)
 
-public import CoreLocation
+import CoreLocation
 public import Foundation
-public import HealthKit
+import HealthKit
 
 
 /// One beat instant in a heartbeat series, as `HKHeartbeatSeriesQuery` enumerates it.
@@ -28,33 +28,35 @@ public struct HealthKitHeartbeat: Hashable, Sendable {
 }
 
 
-/// A heartbeat series and its already-enumerated beats.
+/// A heartbeat series and its already-enumerated beats, as ``HealthKitFHIRExporter/Record/heartbeatSeries(_:beats:)``
+/// carries them.
 ///
 /// A series keeps its beats outside the sample, so the conversion cannot read them itself. The
 /// caller runs `HKHeartbeatSeriesQuery` and hands the complete enumeration over, exactly as an
 /// electrocardiogram's voltage measurements are supplied.
 @available(iOS 18, macOS 15, watchOS 11, *)
-public struct HealthKitHeartbeatSeriesRecord: Sendable {
-    public let series: HKHeartbeatSeriesSample
-    public let heartbeats: [HealthKitHeartbeat]
+struct HealthKitHeartbeatSeriesRecord: Sendable {
+    let series: HKHeartbeatSeriesSample
+    let heartbeats: [HealthKitHeartbeat]
 
-    public init(series: HKHeartbeatSeriesSample, heartbeats: [HealthKitHeartbeat]) {
+    init(series: HKHeartbeatSeriesSample, heartbeats: [HealthKitHeartbeat]) {
         self.series = series
         self.heartbeats = heartbeats
     }
 }
 
 
-/// A workout route and its already-enumerated location fixes.
+/// A workout route and its already-enumerated location fixes, as
+/// ``HealthKitFHIRExporter/Record/workoutRoute(_:locations:)`` carries them.
 ///
 /// The fixes come from `HKWorkoutRouteQuery`; whether they may be disclosed at all is
-/// `RouteDisclosurePolicy` on the conversion context.
+/// ``HealthKitFHIRExporter/Options/route``.
 @available(iOS 18, macOS 15, watchOS 11, *)
-public struct HealthKitWorkoutRouteRecord: Sendable {
-    public let route: HKWorkoutRoute
-    public let locations: [CLLocation]
+struct HealthKitWorkoutRouteRecord: Sendable {
+    let route: HKWorkoutRoute
+    let locations: [CLLocation]
 
-    public init(route: HKWorkoutRoute, locations: [CLLocation]) {
+    init(route: HKWorkoutRoute, locations: [CLLocation]) {
         self.route = route
         self.locations = locations
     }

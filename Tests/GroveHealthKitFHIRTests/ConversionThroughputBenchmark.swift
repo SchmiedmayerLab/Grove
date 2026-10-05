@@ -167,13 +167,7 @@ struct ConversionThroughputBenchmark {
         exporter: HealthKitFHIRExporter
     ) throws -> HealthKitAssembly.SourceFacts {
         let policies = HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options)
-        let options = HealthKitConversionOptions(
-            writer: policies.writer,
-            recordingDevice: ResolvedRecordingDevice(device: policies.recordingDevice),
-            udiDisclosure: exporter.options.udi == .authorized ? .authorizedUDI : .omit,
-            nativeIdentifierDisclosure: exporter.options.nativeIdentifier
-        )
-        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, options: options)
+        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, policies: policies, options: exporter.options)
     }
 
     @Test

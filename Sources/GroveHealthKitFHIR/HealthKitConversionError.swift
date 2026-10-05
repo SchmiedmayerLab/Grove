@@ -34,10 +34,6 @@ public enum HealthKitECGEvidenceFailure: Hashable, Sendable {
     case unexpectedSymptoms
     case unsupportedSymptomType(String)
     case duplicateSymptomSource(UUID)
-    /// One context per correlated symptom sample, in the record's order.
-    case symptomContextCountMismatch(symptoms: Int, contexts: Int)
-    /// A companion context names a different subject, repository scope or identity scope.
-    case mismatchedSymptomContext
     case invalidSymptomOutputIdentity
     case duplicateSymptomOutputIdentity
     case duplicateSymptomEventIdentity

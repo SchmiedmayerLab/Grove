@@ -8,18 +8,18 @@
 
 #if canImport(HealthKit)
 
-public import HealthKit
+import HealthKit
 
 
-/// All already-fetched evidence required to convert one HealthKit ECG without querying
-/// HealthKit from the FHIR layer.
+/// All already-fetched evidence required to convert one HealthKit ECG without querying HealthKit from the FHIR layer:
+/// what ``HealthKitFHIRExporter/Record/electrocardiogram(_:voltages:symptoms:)`` carries.
 @available(iOS 18, macOS 15, watchOS 11, *)
-public struct HealthKitECGRecord: Sendable {
-    public let electrocardiogram: HKElectrocardiogram
-    public let voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement]
-    public let correlatedSymptoms: [HKCategorySample]
+struct HealthKitECGRecord: Sendable {
+    let electrocardiogram: HKElectrocardiogram
+    let voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement]
+    let correlatedSymptoms: [HKCategorySample]
 
-    public init(
+    init(
         electrocardiogram: HKElectrocardiogram,
         voltageMeasurements: [HKElectrocardiogram.VoltageMeasurement],
         correlatedSymptoms: [HKCategorySample] = []

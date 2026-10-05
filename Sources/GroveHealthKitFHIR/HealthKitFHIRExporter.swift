@@ -59,12 +59,15 @@ public final class HealthKitFHIRExporter: Sendable {
         self.producer = producer
         self.repositoryScope = repositoryScope
         self.options = options
-        self.assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
-            adapter: HealthKitAssembly.adapter,
-            identityScope: producer.identityScope,
-            subject: producer.subject,
-            repositoryScope: repositoryScope
-        ))
+        self.assembly = HealthKitAssembly(
+            scope: ExchangeEnvelope.Scope(
+                adapter: HealthKitAssembly.adapter,
+                identityScope: producer.identityScope,
+                subject: producer.subject,
+                repositoryScope: repositoryScope
+            ),
+            options: options
+        )
         self.context = ExchangeRequestContext(
             label: "grove-healthkit-context-v0",
             outputRevisions: [outputRevisions.assembler, outputRevisions.healthKit],
@@ -205,24 +208,18 @@ extension HealthKitFHIRExporter {
         }
         // A refusal keeps its reservations held: they are released with the receipt, never mid-call, so a
         // standalone export of the same record in this call keeps its event.
-        let set: HealthKitConversionSet?
+        let conversions: [HealthKitAssembly.Conversion]
         do {
-            set = try convert(plan, content: content, primary: primary, reserved: reserved)
+            conversions = try convert(plan, content: content, primary: primary, reserved: reserved)
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
             try receive(Export(source: plan.source, outcome: .refused(failure), warnings: []))
             return
         }
-        guard let set else {
-            // A policy chose to emit nothing (an unauthorized route); that is not a refusal and never warns.
-            return
-        }
-        for conversion in set.all {
-            try receive(Export(
-                source: Export.Source(uuid: conversion.source.uuid, typeIdentifier: conversion.source.type.rawValue),
-                outcome: .graph(conversion.graph),
-                warnings: reportableWarnings(conversion.warnings)
-            ))
+        // A policy that chose to emit nothing (an unauthorized route) leaves no conversion; that is not a refusal and
+        // never warns.
+        for conversion in conversions {
+            try receive(conversion.export)
         }
     }
 
@@ -241,7 +238,7 @@ extension HealthKitFHIRExporter {
         content: HealthKitContentPlan,
         primary: Plan.Event,
         reserved: [ExchangeEventRequest: ExchangeEventReservation]
-    ) throws -> HealthKitConversionSet? {
+    ) throws -> [HealthKitAssembly.Conversion] {
         let request = try request(for: plan.record.sample, policies: primary.policies, reservation: reservation(for: primary.request, in: reserved))
         switch plan.record {
         case .sample(let sample):
@@ -278,23 +275,13 @@ extension HealthKitFHIRExporter {
         }
         return requests
     }
-
-    /// An omission a policy chose is never reported.
-    private func reportableWarnings(_ warnings: [HealthKitConversionWarning]) -> [ProducerDiagnostic] {
-        warnings.compactMap { warning in
-            if case .recordingDeviceOmitted = warning, case .omit = options.recordingDevice {
-                return nil
-            }
-            return warning.diagnostic
-        }
-    }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// One record's event, the facts frozen with it, and the policies in force, with the answers resolved for its
-    /// sample before the reservation, which its fingerprint covers.
+    /// One record's event, the facts frozen with it, and the answers the policies resolved for its sample before the
+    /// reservation, which its fingerprint covers.
     func request(for sample: HKSample, policies: ResolvedPolicies, reservation: ExchangeEventReservation) throws -> HealthKitAssembly.Request {
         HealthKitAssembly.Request(
             event: try ExchangeEventIdentifier(
@@ -307,13 +294,7 @@ extension HealthKitFHIRExporter {
             // The gateway role compares the sample's revision with the build the event froze.
             converterRole: options.role.converterRole(for: sample.sourceRevision, application: reservation.facts.application),
             repositoryIDs: try legacyRepositoryIDs(for: sample.uuid),
-            options: HealthKitConversionOptions(
-                writer: policies.writer,
-                recordingDevice: ResolvedRecordingDevice(device: policies.recordingDevice),
-                udiDisclosure: options.udi == .authorized ? .authorizedUDI : .omit,
-                routeDisclosure: options.route == .authorized ? .authorized : .omit,
-                nativeIdentifierDisclosure: options.nativeIdentifier
-            )
+            policies: policies
         )
     }
 
