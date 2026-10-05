@@ -105,6 +105,17 @@ struct HealthKitSampleProjectionEffectiveTests {
         #expect(interval.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
     }
 
+    @Test("A Period states the time zone of its start when its end has another offset")
+    func periodStatesTheZoneOfItsStart() throws {
+        // The night Los Angeles falls back: the same wall-clock time an hour later, at the winter offset.
+        let start = "2026-11-01T01:30:00-07:00"
+        let end = "2026-11-01T01:30:00-08:00"
+        let sample = try Self.observation(MeasurementCatalog.heartRate, .period(start: start, end: end), value: 72).healthKitSample()
+        #expect(sample.startDate == (try DateTime(start).asNSDate()))
+        #expect(sample.endDate == sample.startDate.addingTimeInterval(3_600))
+        #expect(sample.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
+    }
+
     @Test("A converted heart-rate interval reads back as the sample it came from, syncing under its minted identity")
     func heartRateIntervalRoundTrips() throws {
         let output = try #require(GoldenCase.all.first { $0.name == "heart-rate-interval" }).output()
@@ -179,6 +190,19 @@ struct HealthKitSampleProjectionEffectiveTests {
         #expect(refusal == .effectivePeriodInvalid(id: id))
         #expect(refusal.diagnostic.code == "mobile-input.effective-period-invalid")
         #expect(refusal.diagnostic.location == "Observation.effectivePeriod")
+    }
+
+    @Test("A heart rate whose Period ends less than a millisecond before it starts refuses, although both state one wire millisecond")
+    func subMillisecondReversedPeriodRefuses() throws {
+        let start = "2026-08-24T07:41:00.0004-07:00"
+        let end = "2026-08-24T07:41:00.0001-07:00"
+        let startDate = try DateTime(start).asNSDate()
+        let endDate = try DateTime(end).asNSDate()
+        // The rule judges the wire's milliseconds, where the pair is one instant; HealthKit raises on the raw reversal.
+        #expect(startDate > endDate)
+        #expect(try EffectiveRule(MeasurementCatalog.heartRate).admitsPeriod(from: startDate, to: endDate))
+        let observation = try Self.observation(MeasurementCatalog.heartRate, .period(start: start, end: end), value: 72)
+        #expect(Self.refusal(observation) == .effectivePeriodInvalid(id: "heart-rate"))
     }
 
     @Test("A measurement HealthKit cannot be written as refuses before its effective is read")
