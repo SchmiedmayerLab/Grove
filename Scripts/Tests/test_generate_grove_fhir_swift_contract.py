@@ -626,22 +626,36 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         generated = self.generate(self.catalogs())
 
         self.assertIn(
-            'public static let opaqueIdentitySystemForm = '
+            'package static let opaqueIdentitySystemForm = '
             '"<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"',
             generated,
         )
         self.assertIn(
-            'public static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"',
+            'package static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"',
             generated,
         )
         self.assertIn(
-            'public static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"',
+            'package static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"',
             generated,
         )
+        self.assertIn("package enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {", generated)
         self.assertIn('case researchStudy = "research-study"', generated)
-        self.assertIn('public static let equalityFormattingVector = "reformatted-retry"', generated)
-        self.assertIn('public static let equalityDecimalLexemeVector = "lexeme-retry"', generated)
-        self.assertIn('public static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"', generated)
+        self.assertIn('package static let equalityFormattingVector = "reformatted-retry"', generated)
+        self.assertIn('package static let equalityDecimalLexemeVector = "lexeme-retry"', generated)
+        self.assertIn('package static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"', generated)
+        self.assertNotIn("entryIdentifierExtension", generated)
+
+    def test_generates_the_canonical_root_on_canonicals(self):
+        generated = self.generate(self.catalogs())
+
+        self.assertIn(
+            "extension Canonicals {\n"
+            "    /// Canonical root of the grove-fhir package closure used to generate these constants.\n"
+            '    public static let root = "https://grovealliance.org/fhir"\n'
+            "}",
+            generated,
+        )
+        self.assertNotIn("ContractVersion", generated)
 
     def test_generates_the_opaque_identity_component_rules(self):
         generated = self.generate(self.catalogs())
@@ -684,32 +698,34 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
     def test_generates_exact_healthkit_inventory_and_adapter_contract(self):
         generated = self.generate(self.catalogs())
 
-        self.assertIn("public enum HealthKitContract", generated)
-        self.assertIn('public static let catalogVersion = "0.6.0"', generated)
+        self.assertIn("package enum HealthKitContract", generated)
         self.assertIn("HKDataTypeIdentifierElectrocardiogram", generated)
         self.assertIn("HKQuantityTypeIdentifierBodyMassIndex", generated)
-        self.assertIn("public static let bodyMassIndexProfiles", generated)
-        self.assertIn("public static let electrocardiogramProfiles", generated)
-        self.assertIn("public static let sourceTypeExtension", generated)
+        self.assertIn("package static let electrocardiogramProfiles", generated)
+        self.assertIn("package static let sourceTypeExtension", generated)
+        # Members no Swift code reads are not generated.
+        for unread in ("catalogVersion", "sourceTypeCodeSystem", "electrocardiogramSourceTypeIdentifier", "bodyMassIndexProfiles"):
+            self.assertNotIn(unread, generated)
         self.assertNotIn("electrocardiogramCorrelatedSymptomExtension", generated)
-        self.assertIn("public static let applicationDeviceProfile", generated)
-        self.assertIn("public static let appleBundleIdentifierSystem", generated)
-        self.assertIn('public static let appleBundleIdentifierTypeCode = "apple-bundle-id"', generated)
-        self.assertIn("public static let clinicalRecordProfile", generated)
+        self.assertIn("package static let applicationDeviceProfile", generated)
+        self.assertIn("package static let appleBundleIdentifierSystem", generated)
+        self.assertIn('package static let appleBundleIdentifierTypeCode = "apple-bundle-id"', generated)
+        self.assertIn("package static let clinicalRecordProfile", generated)
         self.assertNotIn("clinicalFHIRReleaseExtension", generated)
-        self.assertIn('public static let clinicalFHIRPayloadFormatCode = "fhir-resource"', generated)
-        self.assertIn("public static let admittedClinicalFHIRReleaseCodes: Set<String>", generated)
-        self.assertIn("public static let clinicalFHIRContentTypeByRelease: [String: String]", generated)
+        self.assertIn('package static let clinicalFHIRPayloadFormatCode = "fhir-resource"', generated)
+        self.assertIn("package static let admittedClinicalFHIRReleaseCodes: Set<String>", generated)
+        self.assertIn("package static let clinicalFHIRContentTypeByRelease: [String: String]", generated)
         self.assertIn('        "dstu2",', generated)
         self.assertIn('        "r4",', generated)
         self.assertIn('        "dstu2": "application/fhir+json; fhirVersion=1.0",', generated)
         self.assertIn('        "r4": "application/fhir+json; fhirVersion=4.0",', generated)
-        self.assertIn("public static let adapterOnlyOutputProfiles", generated)
-        self.assertIn("public static let documentProfileModes", generated)
-        self.assertIn("public static let deviceProfileModes", generated)
-        self.assertIn("public static let activeProvenanceProfiles", generated)
-        self.assertIn("public static let activeOutputResourceTypes", generated)
-        self.assertIn("public static let containedResourcesAllowed = false", generated)
+        self.assertIn("package static let adapterOnlyOutputProfiles", generated)
+        self.assertIn("package static let documentProfileModes", generated)
+        self.assertIn("package static let deviceProfileModes", generated)
+        self.assertIn("package static let activeProvenanceProfiles", generated)
+        self.assertIn("package static let activeOutputResourceTypes", generated)
+        # The generator refuses any other value, so no Swift constant restates it.
+        self.assertNotIn("containedResourcesAllowed", generated)
         self.assertIn('"Specimen": "https://grovealliance.org/fhir/health-connect/', generated)
         # Generated rows reference the profile constants this file defines rather than literals.
         self.assertIn("Profile.healthkitEcgObservation],", generated)
@@ -795,8 +811,8 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         ]
         generated = self.generate(catalogs)
 
-        mobile = generated.index("public enum MeasurementCatalog {")
-        healthkit = generated.index("public enum HealthKitMeasurementCatalog {")
+        mobile = generated.index("package enum MeasurementCatalog {")
+        healthkit = generated.index("package enum HealthKitMeasurementCatalog {")
         self.assertLess(mobile, healthkit)
         self.assertLess(generated.index("let heartRate = MeasurementContract("), healthkit)
         self.assertGreater(generated.index("let symptomHeadache = MeasurementContract("), healthkit)
@@ -807,8 +823,8 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             generated,
         )
         self.assertIn("    init(value lexical: String, inclusive: Bool) {", generated)
-        self.assertNotIn("    public init(value lexical: String, inclusive: Bool) {", generated)
-        self.assertIn("public func contains(_ value: Decimal) -> Bool", generated)
+        self.assertNotIn("    package init(value lexical: String, inclusive: Bool) {", generated)
+        self.assertIn("package func contains(_ value: Decimal) -> Bool", generated)
         self.assertNotIn("stepCadence", generated)
 
     def test_preserves_effective_datetime_or_period_choice(self):
@@ -840,7 +856,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
         generated = self.generate(catalogs)
 
-        self.assertIn("public static let providerOwnedSemanticAdapters", generated)
+        self.assertIn("package static let providerOwnedSemanticAdapters", generated)
         self.assertIn(
             '"https://grovealliance.org/fhir/oura/StructureDefinition/oura-readiness-score": '
             '"https://grovealliance.org/fhir/oura/StructureDefinition/oura-observation"',
@@ -872,7 +888,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
         generated = self.generate(catalogs)
 
-        self.assertIn("public let requiredCodings: [CodingContract]", generated)
+        self.assertIn("package let requiredCodings: [CodingContract]", generated)
         self.assertIn(
             'CodingContract(system: "http://loinc.org", code: "8867-4", display: "Heart rate")',
             generated,
@@ -936,7 +952,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             "    )\n",
             generated,
         )
-        self.assertLess(generated.index("public enum HealthKitContract {"), generated.index("let bodyMassIndex ="))
+        self.assertLess(generated.index("package enum HealthKitContract {"), generated.index("let bodyMassIndex ="))
         self.assertNotIn("        bodyMassIndex,", generated)
 
     def test_rejects_a_body_mass_index_claim_its_row_does_not_state(self):
@@ -1066,6 +1082,8 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             "    ]",
             generated,
         )
+        # The symptoms status is a bare extension valueCode, which states no CodeSystem.
+        self.assertNotIn("symptomsStatusSystem", generated)
         self.assertIn(
             "    static let symptomsStatusCodes: [HKElectrocardiogram.SymptomsStatus: String] = [\n"
             '        HKElectrocardiogram.SymptomsStatus.none: "none",\n'

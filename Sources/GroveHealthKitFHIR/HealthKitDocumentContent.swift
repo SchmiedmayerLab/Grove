@@ -40,7 +40,7 @@ struct DocumentPlan: Sendable {
         typeCoding: Coding? = nil,
         title: String
     ) {
-        let formatCoding = Coding(format.rawValue, system: RecordingFormatContract.recordingFormatCodeSystem)
+        let formatCoding = Coding(format.rawValue, system: RegisteredRecordingFormat.codeSystem)
         var skeleton = DocumentReference(
             content: [],
             meta: Meta(profile: profiles),

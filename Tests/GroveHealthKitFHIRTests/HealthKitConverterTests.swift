@@ -352,8 +352,10 @@ struct HealthKitFHIRConverterTests {
             #expect(profileClaims.contains(Profile.healthkitObservation))
         }
         if testCase == .bodyMassIndex {
-            // The plan derives these from the profile rule; the guide states them (standardAdapterClaims).
-            #expect(profileClaims == HealthKitContract.bodyMassIndexProfiles)
+            // The plan derives these from the profile rule; the guide's inventory row states them (and the generator
+            // checks they are its standardAdapterClaims).
+            let guideProfiles = HealthKitContract.rows.first { $0.sourceTypeIdentifier == HealthKitSourceType.bodyMassIndex.rawValue }?.profiles
+            #expect(profileClaims == guideProfiles)
         } else {
             #expect(profileClaims.allSatisfy { !ProfileClaims.forbiddenExplicitProfiles.contains($0) })
         }

@@ -214,7 +214,7 @@ extension SensorKitConverter {
         // payload format Coding values.
         return Coding(
             code: code.rawValue.asFHIRStringPrimitive(),
-            system: RecordingFormatContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
+            system: RegisteredRecordingFormat.codeSystem.asFHIRURIPrimitive()
         )
     }
 

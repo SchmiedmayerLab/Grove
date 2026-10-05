@@ -318,8 +318,6 @@ enum HealthKitElectrocardiogramClaim {
         HKElectrocardiogram.Classification.inconclusiveOther: "inconclusiveOther",
         HKElectrocardiogram.Classification.unrecognized: "unrecognized",
     ]
-    /// The CodeSystem of the healthkit-ecg-symptoms-status.valueCode code each HKElectrocardiogram.symptomsStatus maps to.
-    static let symptomsStatusSystem = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-symptoms-status"
     /// The healthkit-ecg-symptoms-status.valueCode code of each HKElectrocardiogram.symptomsStatus the guide admits.
     static let symptomsStatusCodes: [HKElectrocardiogram.SymptomsStatus: String] = [
         HKElectrocardiogram.SymptomsStatus.notSet: "notSet",
