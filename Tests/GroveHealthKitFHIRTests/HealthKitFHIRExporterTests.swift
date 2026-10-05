@@ -187,7 +187,7 @@ struct HealthKitFHIRExporterTests {
 
     @Test("A native identifier under a deployment system is refused at configuration")
     func reservedNativeIdentifierSystemIsRefused() throws {
-        let system = Self.base.identityScope.systems.opaque.sourceRecord
+        let system = Self.base.identityScope.systems.sourceRecord
         #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierSystem(system)) {
             try Self.exporter { $0.nativeIdentifier = .authorized(system: system) }
         }

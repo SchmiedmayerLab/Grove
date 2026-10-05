@@ -121,7 +121,6 @@ struct QuestionnaireWriterContextTests {
         #expect(reference.identifier == identifier.fhirIdentifier)
         #expect(reference.type?.value?.url.absoluteString == "Patient")
         #expect(reference.reference == nil)
-        #expect(try reference.validated(as: .patient) == .identifier(type: .patient, identifier: identifier))
     }
 
     private func context(

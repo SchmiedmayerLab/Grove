@@ -365,7 +365,7 @@ extension ExchangeGraph {
                   let code = coding.code?.value?.string else {
                 return false
             }
-            return (try? GovernedSourceIdentifierType(
+            return (try? GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
                 system: system,
                 code: code,
                 display: coding.display?.value?.string

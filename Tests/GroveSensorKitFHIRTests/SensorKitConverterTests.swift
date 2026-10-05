@@ -193,7 +193,7 @@ struct GroveSensorKitFHIRConverterTests {
             "https://study.example.org/fhir/identifier/sensorkit-source-record"
         let graph = try SensorKitExporterFixtures.graph(.rotationRate(record), nativeIdentifier: .authorized(
             system: nativeSystem,
-            type: GovernedSourceIdentifierType(
+            type: GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
                 system: "https://study.example.org/fhir/CodeSystem/source-identifier-type",
                 code: "sensorkit-record-id"
             )
@@ -532,9 +532,9 @@ struct GroveSensorKitFHIRConverterTests {
     func governedNativeIDRejectsReservedSystem() throws {
         let identityScope = SensorFHIRIdentityTestSupport.identityScope
         for reserved in [
-            identityScope.systems.opaque.sourceRecord,
-            identityScope.systems.opaque.providerOutput,
-            identityScope.systems.opaque.providerArtifact
+            identityScope.systems.sourceRecord,
+            identityScope.systems.providerOutput,
+            identityScope.systems.providerArtifact
         ] {
             #expect(throws: SensorKitFHIRExporter.ConfigurationError.reservedIdentifierSystem(reserved)) {
                 try SensorKitExporterFixtures.exporter(SensorKitExporterFixtures.producer(), nativeIdentifier: .authorized(system: reserved))
@@ -546,8 +546,8 @@ struct GroveSensorKitFHIRConverterTests {
     func visitLocationRejectsProviderOpaqueSystems() throws {
         let identityScope = SensorFHIRIdentityTestSupport.identityScope
         for reserved in [
-            identityScope.systems.opaque.providerOutput,
-            identityScope.systems.opaque.providerArtifact
+            identityScope.systems.providerOutput,
+            identityScope.systems.providerArtifact
         ] {
             #expect(throws: SensorKitFHIRExporter.ConfigurationError.reservedIdentifierSystem(reserved)) {
                 try SensorKitExporterFixtures.exporter(SensorKitExporterFixtures.producer(), visitLocationIdentifierSystem: reserved)

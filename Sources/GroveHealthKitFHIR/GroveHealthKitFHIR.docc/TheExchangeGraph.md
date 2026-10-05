@@ -109,7 +109,7 @@ Every graph node is an addressable Bundle entry with a deterministic fullUrl, so
 
 Internal nodes use deterministic `urn:uuid` full URLs.
 UUIDv5 input is the unsigned length-framed UTF-8 pair `[identifier.system, identifier.value]` for the selected typed identity.
-Nodes without a separate business identity use a typed `EntryNodeKey`, whose ordinal is the entry's zero-based position among the entries sharing its role.
+Nodes without a separate business identity use a typed entry-node key, whose ordinal is the entry's zero-based position among the entries sharing its role.
 An exact retry therefore rebuilds identical references, while a new event version cannot collide with an earlier snapshot.
 
 ## Equality and retries

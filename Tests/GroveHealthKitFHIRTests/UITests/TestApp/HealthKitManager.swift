@@ -76,14 +76,9 @@ final class HealthKitManager: Sendable {
 /// event; the UI test starts a fresh ledger every time, so each export takes new events.
 func makeFHIRTestExporter() throws -> HealthKitFHIRExporter {
     let systemRoot = "https://grovealliance.org/fhir/testing/identifiers/ui-test"
-    let systems = try DeploymentIdentifierSystems(
-        opaque: fhirTestIdentitySystems(systemRoot: systemRoot),
-        event: IdentifierSystem("\(systemRoot)/event"),
-        entryNode: IdentifierSystem("\(systemRoot)/entry-node")
-    )
     let producer = try ExchangeProducer(
         identityScope: try OpaqueIdentityScope(
-            systems: systems,
+            root: IdentifierSystem(systemRoot),
             keyID: "ui-test",
             epoch: EventSequence(1),
             key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
@@ -112,20 +107,3 @@ func makeFHIRTestExporter() throws -> HealthKitFHIRExporter {
     )
 }
 
-
-private func fhirTestIdentitySystems(
-    systemRoot: String
-) throws -> OpaqueIdentitySystems {
-    try OpaqueIdentitySystems(
-        sourceRecord: IdentifierSystem("\(systemRoot)/source-record/test/1"),
-        sourceOutput: IdentifierSystem("\(systemRoot)/source-output/test/1"),
-        writerRecord: IdentifierSystem("\(systemRoot)/writer-record/test/1"),
-        providerRecord: IdentifierSystem("\(systemRoot)/provider-record/test/1"),
-        providerOutput: IdentifierSystem("\(systemRoot)/provider-output/test/1"),
-        sourceArtifact: IdentifierSystem("\(systemRoot)/source-artifact/test/1"),
-        providerArtifact: IdentifierSystem("\(systemRoot)/provider-artifact/test/1"),
-        sourceContext: IdentifierSystem("\(systemRoot)/source-context/test/1"),
-        recordingDevice: IdentifierSystem("\(systemRoot)/recording-device/test/1"),
-        deviceSnapshot: IdentifierSystem("\(systemRoot)/device-snapshot/test/1")
-    )
-}

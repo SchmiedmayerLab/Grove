@@ -43,8 +43,8 @@ Persist the pair with the enrollment; ``Subject/logical(_:)`` is the default for
 
 Every record and every output gets an opaque identity: an HMAC of the record's native facts under your deployment's secret key.
 The same record exported twice yields the same identifier, so a receiver deduplicates, and nobody can recover the native id from it.
-``DeploymentIdentifierSystems/derived(root:keyID:epoch:)`` derives the twelve identifier systems the protocol recommends from your deployment root, a key id and an epoch, and ``OpaqueIdentityScope`` holds them with the key.
-Persist the key id and the epoch beside the key; rotating either changes every system with it.
+``OpaqueIdentityScope/init(root:keyID:epoch:key:)`` derives the twelve identifier systems the protocol recommends from your deployment root, a key id and an epoch, and holds them with the key.
+Persist the key id and the epoch beside the key; rotating either changes every opaque system with it, while the event and entry-node systems stay with the root.
 
 ### The event identifier
 
@@ -71,12 +71,11 @@ The conversion Provenance names the application that assembled the graph, so a r
 
 ## Assemble it
 
-Once per installation, derive the systems, create the scope and name the application.
+Once per installation, create the scope and name the application.
 `hmacKey` is the `SymmetricKey` you load from the keychain, `keyID` and `epoch` the values persisted beside it.
 
 ```swift
-let systems = try DeploymentIdentifierSystems.derived(root: "https://study.example.org/fhir", keyID: keyID, epoch: epoch)
-let identityScope = try OpaqueIdentityScope(systems: systems, keyID: keyID, epoch: epoch, key: hmacKey)
+let identityScope = try OpaqueIdentityScope(root: "https://study.example.org/fhir", keyID: keyID, epoch: epoch, key: hmacKey)
 let application = try ApplicationDevice(bundle: .main)
 ```
 
@@ -152,8 +151,8 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Business identifier | ``BusinessIdentifier`` |
 | Identifier role | ``GroveIdentifierRole`` on a ``RoledIdentifier`` |
 | Opaque identity | minted by ``OpaqueIdentityScope`` under ``DeploymentIdentifierSystems`` |
-| Source-record identity | ``SourceRecordIdentity``, or ``ProviderRecordIdentity`` for a provider-owned record; it mints the output and artifact identities that extend it |
-| Entry-node key | ``EntryNodeKey`` |
+| Source-record identity | ``SourceRecordIdentity``; it names the output identities that extend it |
+| Entry-node key | the ``Canonicals/entryNodeKey`` extension on each Bundle entry |
 | Subject | ``Subject`` and its ``Subject/identifier`` |
 | Study enrollment | ``StudyEnrollment`` |
 | Application, host and recording device | ``ApplicationDevice``, ``HostDevice``, ``RecordingDevice`` |
@@ -171,14 +170,10 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``RoledIdentifier``
 - ``GroveIdentifierRole``
 - ``DeploymentIdentifierSystems``
-- ``OpaqueIdentitySystems``
 - ``OpaqueIdentityScope``
 - ``SourceRecordIdentity``
-- ``ProviderRecordIdentity``
-- ``OpaqueIdentityKind``
 - ``EventSequence``
 - ``ExchangeEventIdentifier``
-- ``EntryNodeKey``
 - ``RepositoryID``
 - ``ExchangeIdentityError``
 
@@ -198,7 +193,6 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``RecordingDevice``
 - ``ConverterRole``
 - ``ExchangeGraphNode``
-- ``ExchangeGraphIdentifiers``
 - ``ConversionBatch``
 
 ### The graph
@@ -216,4 +210,3 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
-- ``GovernedSourceIdentifierType``

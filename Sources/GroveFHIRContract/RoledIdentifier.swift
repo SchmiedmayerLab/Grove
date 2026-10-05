@@ -10,6 +10,20 @@ public import ModelsR4
 
 
 /// A business identifier together with the Grove role it carries in `Identifier.type`.
+/// A semantic role carried in `Identifier.type` for Grove exchange identifiers.
+public enum GroveIdentifierRole: String, CaseIterable, Hashable, Sendable {
+    case sourceRecord = "source-record"
+    case sourceOutput = "source-output"
+    case writerRecord = "writer-record"
+    case sourceArtifact = "source-artifact"
+    case sourceContext = "source-context"
+    case recordingDevice = "recording-device"
+    case deviceSnapshot = "device-snapshot"
+    case event
+    case entryNode = "entry-node"
+}
+
+
 public struct RoledIdentifier: Hashable, Sendable {
     public let identifier: BusinessIdentifier
     public let role: GroveIdentifierRole
@@ -59,5 +73,17 @@ public struct RoledIdentifier: Hashable, Sendable {
             throw .invalidIdentifierRole(rawRole)
         }
         self.init(identifier: try BusinessIdentifier(identifier), role: role)
+    }
+}
+
+
+extension BundleEntry {
+    /// An exchange entry keyed by its complete identifier, at the deterministic fullUrl that identifier names.
+    package init(identifier: RoledIdentifier, resource: ResourceProxy) throws(ExchangeIdentityError) {
+        self.init(
+            extension: [Extension(url: Canonicals.entryNodeKey, value: .identifier(identifier.fhirIdentifier))],
+            fullUrl: try identifier.fullURL,
+            resource: resource
+        )
     }
 }

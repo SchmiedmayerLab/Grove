@@ -26,7 +26,7 @@ extension String {
     ///   `Double`: a subnormal such as `5e-324` is outside `Decimal`'s range and parses to `nil`.
     /// - `formatted(.number…)` goes through ICU, whose digit and separator output depends on the
     ///   locale and the platform's ICU version — not something a frozen wire contract can rest on.
-    public init(groveFHIRPlainDecimal value: Double) {
+    package init(groveFHIRPlainDecimal value: Double) {
         guard value != 0 else {
             self = "0"
             return

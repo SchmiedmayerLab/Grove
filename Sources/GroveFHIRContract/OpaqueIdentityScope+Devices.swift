@@ -8,7 +8,7 @@
 
 extension OpaqueIdentityScope {
     /// Identifies one physical acquisition unit for one subject by its governed stable per-unit token.
-    public func recordingDevice(
+    package func recordingDevice(
         adapterID: String,
         subject: BusinessIdentifier,
         stableUnitToken: String
@@ -25,9 +25,9 @@ extension OpaqueIdentityScope {
     }
 
     /// Identifies one immutable event-time Device snapshot, the snapshot's Bundle entry key.
-    public func deviceSnapshot(
+    package func deviceSnapshot(
         event: ExchangeEventIdentifier,
-        role: DeviceSnapshotRole,
+        role: DeviceRole,
         sourceDeviceToken: String
     ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(

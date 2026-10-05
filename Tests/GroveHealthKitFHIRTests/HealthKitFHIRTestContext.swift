@@ -117,18 +117,16 @@ extension ExchangeEventContext {
             ),
             identityScope: OpaqueIdentityScope(
                 systems: DeploymentIdentifierSystems(
-                    opaque: OpaqueIdentitySystems(
-                        sourceRecord: IdentifierSystem("\(systemRoot)/source-record/test/1"),
-                        sourceOutput: IdentifierSystem("\(systemRoot)/source-output/test/1"),
-                        writerRecord: IdentifierSystem("\(systemRoot)/writer-record/test/1"),
-                        providerRecord: IdentifierSystem("\(systemRoot)/provider-record/test/1"),
-                        providerOutput: IdentifierSystem("\(systemRoot)/provider-output/test/1"),
-                        sourceArtifact: IdentifierSystem("\(systemRoot)/source-artifact/test/1"),
-                        providerArtifact: IdentifierSystem("\(systemRoot)/provider-artifact/test/1"),
-                        sourceContext: IdentifierSystem("\(systemRoot)/source-context/test/1"),
-                        recordingDevice: IdentifierSystem("\(systemRoot)/recording-device/test/1"),
-                        deviceSnapshot: IdentifierSystem("\(systemRoot)/device-snapshot/test/1")
-                    ),
+                    sourceRecord: IdentifierSystem("\(systemRoot)/source-record/test/1"),
+                    sourceOutput: IdentifierSystem("\(systemRoot)/source-output/test/1"),
+                    writerRecord: IdentifierSystem("\(systemRoot)/writer-record/test/1"),
+                    providerRecord: IdentifierSystem("\(systemRoot)/provider-record/test/1"),
+                    providerOutput: IdentifierSystem("\(systemRoot)/provider-output/test/1"),
+                    sourceArtifact: IdentifierSystem("\(systemRoot)/source-artifact/test/1"),
+                    providerArtifact: IdentifierSystem("\(systemRoot)/provider-artifact/test/1"),
+                    sourceContext: IdentifierSystem("\(systemRoot)/source-context/test/1"),
+                    recordingDevice: IdentifierSystem("\(systemRoot)/recording-device/test/1"),
+                    deviceSnapshot: IdentifierSystem("\(systemRoot)/device-snapshot/test/1"),
                     event: IdentifierSystem("\(systemRoot)/event"),
                     entryNode: IdentifierSystem("\(systemRoot)/entry-node")
                 ),
