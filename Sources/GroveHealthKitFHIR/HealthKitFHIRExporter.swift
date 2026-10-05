@@ -243,7 +243,11 @@ extension HealthKitFHIRExporter {
         primary: Plan.Event,
         reserved: [ExchangeEventRequest: ExchangeEventReservation]
     ) throws -> [HealthKitAssembly.Conversion] {
-        let request = try request(for: plan.record.sample, policies: primary.policies, reservation: reservation(for: primary.request, in: reserved))
+        let request = try assemblyRequest(
+            for: plan.record.sample,
+            policies: primary.policies,
+            reservation: reservation(for: primary.request, in: reserved)
+        )
         switch plan.record {
         case .sample(let sample):
             return try assembly.convert(sample, plan: content, request: request)
@@ -274,7 +278,11 @@ extension HealthKitFHIRExporter {
             guard let event, requests[symptom.uuid] == nil else {
                 continue
             }
-            requests[symptom.uuid] = try request(for: symptom, policies: event.policies, reservation: reservation(for: event.request, in: reserved))
+            requests[symptom.uuid] = try assemblyRequest(
+                for: symptom,
+                policies: event.policies,
+                reservation: reservation(for: event.request, in: reserved)
+            )
         }
         return requests
     }
@@ -283,9 +291,14 @@ extension HealthKitFHIRExporter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// One record's event, the facts frozen with it, and the answers the policies resolved for its sample before the
-    /// reservation, which its fingerprint covers.
-    func request(for sample: HKSample, policies: ResolvedPolicies, reservation: ExchangeEventReservation) throws -> HealthKitAssembly.Request {
+    /// What the assembly builds one record's graph from: its event under `reservation`, the facts frozen with it, and
+    /// the answers the policies resolved for its sample before the reservation, which its fingerprint covers. Not the
+    /// ledger request (`ExchangeRequestContext.request(for:recordParts:)`), which that reservation answered.
+    func assemblyRequest(
+        for sample: HKSample,
+        policies: ResolvedPolicies,
+        reservation: ExchangeEventReservation
+    ) throws -> HealthKitAssembly.Request {
         HealthKitAssembly.Request(
             event: try ExchangeEventIdentifier(
                 system: producer.identityScope.systems.event,
