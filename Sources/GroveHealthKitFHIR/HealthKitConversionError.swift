@@ -238,7 +238,7 @@ extension HealthKitConversionError {
     /// Narrows a failure to build a deleted record's retraction event to this published domain; the event's own checks,
     /// such as a deletion bound no FHIR dateTime can state, are refused as a dependency. (The exporter already refuses a
     /// reserved native identifier system when it is configured.)
-    init(_ error: RetractionEventError) {
+    init(_ error: RetractionEvent.ValidationError) {
         self = switch error {
         case .exchangeIdentity(let error): .exchangeIdentity(error)
         case .exchangeGraph(let error): .exchangeGraph(error)

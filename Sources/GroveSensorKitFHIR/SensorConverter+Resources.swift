@@ -347,7 +347,7 @@ extension SensorConverter {
                 role: FHIRPrimitive(.source),
                 what: Reference(identifier: sourceIdentifier)
             )],
-            meta: Meta(profile: [GroveLifecycleContract.conversionProvenanceProfile]),
+            meta: Meta(profile: [Profile.groveMobileConversionProvenance]),
             occurred: .dateTime(FHIRPrimitive(try DateTime(utc: recordedAt))),
             recorded: FHIRPrimitive(try Instant(utc: recordedAt)),
             target: [reference(targetURL)]

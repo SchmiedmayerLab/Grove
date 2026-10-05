@@ -277,7 +277,7 @@ extension HealthKitRecordingDocumentTests {
         #expect(conversion.document.content == baseline.document.content)
         #expect(conversion.provenance == baseline.provenance)
         #expect(conversion.bundle.identifier == baseline.bundle.identifier)
-        _ = try ExchangeGraph(kind: .active, jsonData: JSONEncoder().encode(conversion.bundle))
+        _ = try ExchangeGraph(validating: JSONEncoder().encode(conversion.bundle), kind: .active)
     }
 }
 

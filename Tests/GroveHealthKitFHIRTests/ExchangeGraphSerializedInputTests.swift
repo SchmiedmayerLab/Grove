@@ -22,28 +22,28 @@ struct ExchangeGraphSerializedInputTests {
         #"{"resourceType":"Bundle","unrecognized":1e9999}"#,
         #"{"resourceType":"Bundle"} trailing"#,
         "{\"nested\":" + String(repeating: "[", count: 513) + "0" + String(repeating: "]", count: 513) + "}"
-    ], [ExchangeGraphKind.active, .retraction])
-    func rejectsMalformedJSON(json: String, kind: ExchangeGraphKind) {
+    ], [ExchangeGraph.Kind.active, .retraction])
+    func rejectsMalformedJSON(json: String, kind: ExchangeGraph.Kind) {
         #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
-            try ExchangeGraph(kind: kind, jsonData: Data(json.utf8))
+            try ExchangeGraph(validating: Data(json.utf8), kind: kind)
         }
     }
 
     @Test("Serialized events reject invalid UTF-8 before model decoding", arguments: [
-        ExchangeGraphKind.active, .retraction
+        ExchangeGraph.Kind.active, .retraction
     ])
-    func rejectsInvalidUTF8(kind: ExchangeGraphKind) {
+    func rejectsInvalidUTF8(kind: ExchangeGraph.Kind) {
         let bytes = Data([0x7B, 0x22, 0x78, 0x22, 0x3A, 0x22, 0xFF, 0x22, 0x7D])
         #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
-            try ExchangeGraph(kind: kind, jsonData: bytes)
+            try ExchangeGraph(validating: bytes, kind: kind)
         }
     }
 
     @Test("Grove identifier namespaces are checked before URL normalization", arguments: [
         "https://study.example.org/identifiers/naïve",
         "https://study.example.org/identifiers/with space"
-    ], [ExchangeGraphKind.active, .retraction])
-    func rejectsRawInvalidIdentifierSystem(system: String, kind: ExchangeGraphKind) {
+    ], [ExchangeGraph.Kind.active, .retraction])
+    func rejectsRawInvalidIdentifierSystem(system: String, kind: ExchangeGraph.Kind) {
         // A nested logical reference, because checking only Bundle.identifier would miss the same ambiguity there.
         let identifier = #"""
         {"system":"\#(system)","value":"subject","type":{"coding":[{
@@ -57,7 +57,7 @@ struct ExchangeGraphSerializedInputTests {
         }
         let json = #"{"resourceType":"Bundle","entry":[{"resource":\#(resource)}]}"#
         #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeOpaqueResourceIdentity)) {
-            try ExchangeGraph(kind: kind, jsonData: Data(json.utf8))
+            try ExchangeGraph(validating: Data(json.utf8), kind: kind)
         }
     }
 }

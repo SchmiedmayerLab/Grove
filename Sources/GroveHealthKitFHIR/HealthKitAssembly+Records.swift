@@ -167,11 +167,11 @@ extension HealthKitAssembly {
         of uuid: UUID,
         type: HealthKitSourceType,
         request: Request,
-        occurred: RetractionOccurrence
+        occurred: RetractionEvent.Occurrence
     ) throws(HealthKitConversionError) -> RetractionEvent {
         let targets = try retractionTargets(of: uuid, type: type)
         let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
-        do throws(RetractionEventError) {
+        do throws(RetractionEvent.ValidationError) {
             return try RetractionEvent(
                 targets: targets,
                 context: eventContext(for: request),
@@ -187,14 +187,14 @@ extension HealthKitAssembly {
     /// and output roles yield the same identifiers the addition minted. The sample's UUID rides along
     /// as each target's native record identifier exactly when ``HealthKitFHIRExporter/Options/nativeIdentifier``
     /// authorizes it.
-    private func retractionTargets(of uuid: UUID, type: HealthKitSourceType) throws(HealthKitConversionError) -> [RetractionTarget] {
+    private func retractionTargets(of uuid: UUID, type: HealthKitSourceType) throws(HealthKitConversionError) -> [RetractionEvent.Target] {
         let plan = HealthKitContentPlan[type]
         guard !plan.outputs.isEmpty else {
             throw plan.refusal
         }
         let nativeRecordIdentifier = options.nativeIdentifier.nativeRecordIdentifier(for: uuid.uuidString.lowercased())
         let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
-        var targets: [RetractionTarget] = []
+        var targets: [RetractionEvent.Target] = []
         for output in plan.outputs {
             let identity: RoledIdentifier
             do {
@@ -203,7 +203,7 @@ extension HealthKitAssembly {
                 throw .exchangeIdentity(error)
             }
             do {
-                targets.append(try RetractionTarget(
+                targets.append(try RetractionEvent.Target(
                     identifier: identity,
                     resourceType: output.resourceType,
                     role: output.retractionRole,

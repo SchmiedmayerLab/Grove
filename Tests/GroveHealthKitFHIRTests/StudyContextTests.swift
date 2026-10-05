@@ -60,7 +60,7 @@ struct StudyContextTests {
         object["entry"] = try rewriting(try #require(object["entry"] as? Entries))
         let data = try JSONSerialization.data(withJSONObject: object)
         do {
-            _ = try ExchangeGraph(kind: .active, jsonData: data)
+            _ = try ExchangeGraph(validating: data, kind: .active)
             return nil
         } catch {
             return error.diagnostic

@@ -317,7 +317,7 @@ extension ExchangeGraph {
                 && grove.isEmpty
         case .retraction:
             return grove.count == 1
-                && grove[0].code?.value?.string == GroveLifecycleContract.sourceRecordRetracted
+                && grove[0].code?.value?.string == RetractionEvent.lifecycleActivityCode
                 && iso.isEmpty
         }
     }

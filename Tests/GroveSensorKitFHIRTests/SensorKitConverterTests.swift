@@ -86,7 +86,7 @@ struct GroveSensorKitFHIRConverterTests {
             repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
             nativeRecordID: sourceID.value
         )
-        let identifier = try record.output(role: RetractionTargetRole.primaryOutput.rawValue, discriminator: discriminator)
+        let identifier = try record.output(role: RetractionEvent.Target.Role.primaryOutput.rawValue, discriminator: discriminator)
         #expect(identifier.systemValue ==
             "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1")
         #expect(identifier.role == .sourceOutput)

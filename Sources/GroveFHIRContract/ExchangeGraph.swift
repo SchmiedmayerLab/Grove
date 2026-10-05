@@ -10,11 +10,6 @@ public import Foundation
 public import ModelsR4
 
 
-/// The semantic kind of a complete Grove exchange graph; the kind now lives at ``ExchangeGraph/Kind``.
-@available(*, deprecated, renamed: "ExchangeGraph.Kind", message: "Compatibility spelling; removed with the exporter rework's final cleanup.")
-public typealias ExchangeGraphKind = ExchangeGraph.Kind
-
-
 /// The one authoritative, validated value emitted by a Grove producer.
 ///
 /// Entries are owned only by the Bundle. Producers may expose stable entry keys, but do not retain
@@ -33,7 +28,7 @@ public struct ExchangeGraph: Sendable {
             case .active:
                 Profile.groveMobileExchangeBundle
             case .retraction:
-                GroveLifecycleContract.retractionBundleProfile
+                Profile.groveMobileRetractionBundle
             }
         }
     }
@@ -59,7 +54,8 @@ public struct ExchangeGraph: Sendable {
     /// The event's business identifier, as `Bundle.identifier` states it.
     public var event: BusinessIdentifier { eventIdentifier.identifier.identifier }
 
-    public init(
+    /// Validates a graph an adapter assembled, keeping its canonical encoding as ``json``.
+    package init(
         kind: Kind,
         eventIdentifier: ExchangeEventIdentifier,
         bundle: ModelsR4.Bundle
@@ -104,15 +100,6 @@ public struct ExchangeGraph: Sendable {
         }
         self.kind = kind
         self.json = json
-    }
-
-    /// ``init(validating:kind:)`` under its earlier spelling.
-    @available(*, deprecated, renamed: "init(validating:kind:)", message: "Compatibility spelling; removed with the exporter rework's final cleanup.")
-    public init(
-        kind: Kind,
-        jsonData: Data
-    ) throws(ExchangeGraphError) {
-        try self.init(validating: jsonData, kind: kind)
     }
 
     private static func decodeValidated(
@@ -239,7 +226,7 @@ public struct ExchangeGraph: Sendable {
         kind: Kind
     ) throws(ExchangeGraphError) -> [BundleEntry] {
         let profiles = bundle.meta?.profile ?? []
-        let exchangeProfiles = [Profile.groveMobileExchangeBundle, GroveLifecycleContract.retractionBundleProfile]
+        let exchangeProfiles = [Profile.groveMobileExchangeBundle, Profile.groveMobileRetractionBundle]
         guard profiles.filter(exchangeProfiles.contains) == [kind.profile] else {
             throw diagnostic(.mobileExchangeBundleProfile, location: "Bundle.meta.profile")
         }

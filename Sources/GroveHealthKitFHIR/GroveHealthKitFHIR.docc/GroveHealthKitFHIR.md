@@ -204,7 +204,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 | Study enrollment | `StudyEnrollment` |
 | Application, host and recording device | `ApplicationDevice`, `HostDevice`, `RecordingDevice` named by a ``HealthKitFHIRExporter/RecordingDevicePolicy`` |
 | Writer | ``HealthKitFHIRExporter/WriterPolicy/Classification``, answered by a ``HealthKitFHIRExporter/WriterPolicy`` |
-| Retraction event and target | `RetractionEvent`, `RetractionTarget` |
+| Retraction event and target | ``HealthKitFHIRExporter/Retraction``, whose graph's Provenance targets carry the `Canonicals.retractionTargetRole` extension |
 | Governed source identifier | `GovernedSourceIdentifierDisclosurePolicy` |
 | Producer diagnostic | `ProducerDiagnostic` from ``HealthKitConversionError/diagnostic`` or ``HealthKitFHIRExporter/Export/warnings`` |
 
