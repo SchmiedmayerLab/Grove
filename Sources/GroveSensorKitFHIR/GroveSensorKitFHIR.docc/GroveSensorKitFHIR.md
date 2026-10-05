@@ -256,7 +256,7 @@ Its `sourceTimeZone` gives every effective bound the source's own offset; withou
 - ``SensorKitNativeRecording``
 - ``SensorRawPayloadAdmission``
 
-### Source-neutral conversion
+### Source-neutral conversion (candidates for removal)
 
 - ``SensorConverter``
 - ``SensorConversionContext``

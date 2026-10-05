@@ -57,6 +57,8 @@ public struct SensorConversionContext: Sendable {
 
 
 /// Complete business identities of one emitted Sensor exchange graph.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorGraphIdentifiers: Hashable, Sendable {
     public let event: RoledIdentifier
     public let sourceRecord: RoledIdentifier
@@ -71,6 +73,8 @@ public struct SensorGraphIdentifiers: Hashable, Sendable {
 
 
 /// The typed primary FHIR resource emitted for a Sensor record.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public enum SensorPrimaryResource: Sendable {
     case observation(Observation)
     case recordingDocument(DocumentReference)
@@ -79,6 +83,8 @@ public enum SensorPrimaryResource: Sendable {
 
 /// Something an accepted Sensor record carried that its graph does not; each case is one registered
 /// `mobile-omission` rule.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public enum SensorConversionWarning: Hashable, Sendable {
     /// The context stated no time zone, so the effective element `field`, such as
     /// `Observation.effectivePeriod.start`, is serialized in UTC.
@@ -95,6 +101,8 @@ public enum SensorConversionWarning: Hashable, Sendable {
 
 
 /// One complete Sensor conversion graph and collection Bundle.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorConversion: Sendable {
     public let sourceIdentifier: Identifier
     public let sourceTypeIdentifier: String
@@ -114,6 +122,8 @@ public struct SensorConversion: Sendable {
 
 
 /// Explicit successes and failures from a batch conversion.
+///
+/// A candidate for removal together with ``SensorConverter``.
 public struct SensorBatchResult: Sendable {
     public let conversions: [SensorConversion]
     public let failures: [SensorRecordFailure]

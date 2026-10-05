@@ -36,7 +36,7 @@ public struct HostDevice: Hashable, Sendable {
     public let modelNumber: String?
 
     /// The token the host's event-scoped Device snapshot identity is minted from:
-    /// `<model number>|<operating-system version>`, such as `iPhone17,1|26.0`, the model empty when unknown.
+    /// `<model number>|<operating-system version>`, such as `iPhone17,1|26.0.0`, the model empty when unknown.
     public var sourceDeviceToken: String {
         "\(modelNumber ?? "")|\(operatingSystemVersion)"
     }
