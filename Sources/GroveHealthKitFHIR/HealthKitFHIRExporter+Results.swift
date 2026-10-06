@@ -103,7 +103,8 @@ extension HealthKitFHIRExporter {
 
         public let source: Source
         public let outcome: Outcome
-        /// What the record carried that its graph does not; each is a registered omission rule.
+        /// What the record carried that its graph does not; each is a registered omission rule. ``WarningReport``
+        /// summarizes them by kind across many exports.
         public let warnings: [ProducerDiagnostic]
 
         /// The graph, when one was produced.

@@ -174,6 +174,8 @@ A sample that cannot be exported is refused in place with a ``HealthKitConversio
 A graph represents a key only through the element the guide maps it to, on an output that has that element: a time zone on a heartbeat series is withheld, because a document has no element for it, and so is a key one source type reads stated on another.
 `HKMetadataKeyWasUserEntered` stated `false` is represented by omission and never reported, and a blood-pressure member's zone or manual entry that the record takes is represented as the record's own.
 An omission an option chose, such as `recordingDevice` `.omit`, is never a warning.
+Each export keeps its own warnings; to log a batch without a line per sample, add every export to one ``HealthKitFHIRExporter/WarningReport`` and log its description once.
+It names each kind with its HealthKit cause and how many samples of each type raised it.
 
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
 A deleted sample is taken back with ``HealthKitFHIRExporter/retract(_:at:receive:)``.
