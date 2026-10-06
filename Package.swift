@@ -26,8 +26,8 @@ let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOY
 // scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
 // armv7k slice (ITMS-90733) — so no watchOS-8 consumer could ever ship the FHIR stack anyway.
 // In the lowered configuration the FHIRModels dependency (and, transitively, every target whose
-// closure embeds it) is therefore unavailable on watchOS; everything else keeps the watchOS 9 floor.
-// The floor-build analyzer (Scripts/build-floor.sh) understands this convention: an *external*
+// closure embeds it) is therefore unavailable on watchOS; everything else keeps the watchOS 8 floor.
+// The floor-build analyzer (Scripts/build-floor.py) understands this convention: an *external*
 // product dependency carrying a platform-only condition marks its target as unsupported on the
 // excluded platforms.
 let fhirModelsCondition: TargetDependencyCondition? = isLoweredDeploymentTargetEnabled
@@ -2032,7 +2032,7 @@ targets += [
 ]
 #endif
 
-// Scripts/build-floor.sh selects the library targets supported by each platform. Expose them as one
+// Scripts/build-floor.py selects the library targets supported by each platform. Expose them as one
 // CI-only product so Xcode can build their combined dependency graph in a single invocation.
 if let floorBuildTargets = Context.environment["GROVE_FLOOR_BUILD_TARGETS"], !floorBuildTargets.isEmpty {
     precondition(isLoweredDeploymentTargetEnabled, "The deployment-floor product requires lowered deployment targets")

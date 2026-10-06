@@ -215,6 +215,12 @@ public struct SensorKitECGBatch: Sendable {
 
 
 /// A complete no-fetch SensorKit ECG hybrid input.
+///
+/// `startDate` may precede the first batch, because SensorKit dates the session's `.begin` marker
+/// separately from the first voltage chunk. Batch offsets and `durationSeconds` are measured from
+/// `startDate`; the converter measures the uniform series from the first batch, tolerates only
+/// floating-point representation noise in those offsets, and starts the emitted waveform at the
+/// first batch.
 public struct SensorKitECGRecord: Sendable {
     public let sourceRecordID: SensorKitSourceRecordID
     public let startDate: Date
