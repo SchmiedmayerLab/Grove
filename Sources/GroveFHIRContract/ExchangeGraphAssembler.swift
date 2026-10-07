@@ -68,8 +68,11 @@ package struct ExchangeGraphAssembler: Sendable {
         self.envelope = envelope
     }
 
-    /// Assembles, encodes and validates one event's graph.
-    package func assemble(_ draft: ExchangeGraphDraft) throws -> AssembledExchangeGraph {
+    /// Assembles, encodes and validates one event's graph, handing `onValidation` how long encoding and validating took.
+    package func assemble(
+        _ draft: ExchangeGraphDraft,
+        onValidation: ((Swift.Duration) -> Void)? = nil
+    ) throws -> AssembledExchangeGraph {
         guard !draft.outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
@@ -106,7 +109,7 @@ package struct ExchangeGraphAssembler: Sendable {
         entries.append(contentsOf: try devices.entries.map { try BundleEntry(identifier: $0.identity, resource: ResourceProxy(with: $0.resource)) })
         entries.append(try BundleEntry(identifier: provenanceNode.identifier, resource: ResourceProxy(with: provenance)))
         return AssembledExchangeGraph(
-            graph: try graph(entries: entries, draft: draft),
+            graph: try graph(entries: entries, draft: draft, onValidation: onValidation),
             identifiers: ExchangeGraphIdentifiers(
                 event: draft.event.identifier,
                 sourceRecord: draft.sourceRecord.identifier,
@@ -124,7 +127,7 @@ package struct ExchangeGraphAssembler: Sendable {
     }
 
     /// The validated graph of one event's entries, in the order given.
-    private func graph(entries: [BundleEntry], draft: ExchangeGraphDraft) throws -> ExchangeGraph {
+    private func graph(entries: [BundleEntry], draft: ExchangeGraphDraft, onValidation: ((Swift.Duration) -> Void)?) throws -> ExchangeGraph {
         var bundle = Bundle(
             entry: entries,
             identifier: draft.event.identifier.fhirIdentifier,
@@ -133,7 +136,13 @@ package struct ExchangeGraphAssembler: Sendable {
             type: FHIRPrimitive(.collection)
         )
         bundle.id = draft.bundleID?.primitive
-        return try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
+        guard let onValidation else {
+            return try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
+        }
+        let start = ContinuousClock.now
+        let graph = try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
+        onValidation(ContinuousClock.now - start)
+        return graph
     }
 }
 

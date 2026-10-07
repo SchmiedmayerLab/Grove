@@ -36,6 +36,8 @@ public final class HealthKitFHIRExporter: Sendable {
     let assembly: HealthKitAssembly
     /// What shapes every graph beside the frozen facts; it fingerprints each request.
     let context: ExchangeRequestContext
+    /// The totals ``throughput`` reports; `nil` unless ``Options/measuresThroughput`` is set.
+    let throughputRecorder: Throughput.Recorder?
 
     public convenience init(
         producer: ExchangeProducer,
@@ -75,6 +77,7 @@ public final class HealthKitFHIRExporter: Sendable {
             repositoryScope: repositoryScope,
             settings: options.fingerprintParts
         )
+        self.throughputRecorder = options.measuresThroughput ? Throughput.Recorder() : nil
     }
 
     /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
@@ -106,19 +109,29 @@ public final class HealthKitFHIRExporter: Sendable {
         at instant: Date = .now,
         receive: (Export) throws -> Void
     ) throws -> ExchangeProducer.Receipt {
+        // `nil` unless this exporter measures its throughput; then every phase below is timed.
+        let measurement = throughputRecorder.map(Throughput.Call.init)
+        defer {
+            measurement?.end()
+        }
         let plans = records.map { record in
             autoreleasepool {
-                Plan(record, exporter: self)
+                let start = measurement?.now
+                let plan = Plan(record, exporter: self)
+                measurement?.planned(plan.source.typeIdentifier, since: start)
+                return plan
             }
         }
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
         // later, and a retry of the call would mint both again.
         let firstPerKey = Dictionary(plans.flatMap(\.requests).map { ($0.key, $0) }) { first, _ in first }
         // Refusals alone need no event, and a call that reserves nothing never touches the ledger.
+        let reserveStart = measurement?.now
         let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
+        measurement?.reserved(since: reserveStart)
         for plan in plans {
             try autoreleasepool {
-                try deliver(plan, reserved: reserved, receive: receive)
+                try deliver(plan, reserved: reserved, measurement: measurement, receive: receive)
             }
         }
         return receipt
@@ -198,16 +211,35 @@ extension HealthKitFHIRExporter {
     private func deliver(
         _ plan: Plan,
         reserved: [ExchangeEventRequest: ExchangeEventReservation],
+        measurement: Throughput.Call?,
         receive: (Export) throws -> Void
     ) throws {
+        let start = measurement?.now
+        var validation = Swift.Duration.zero
+        var receiving = Swift.Duration.zero
+        // The caller's time is measured apart from the exporter's.
+        func hand(_ export: Export) throws {
+            guard let measurement else {
+                try receive(export)
+                return
+            }
+            let handStart = measurement.now
+            try receive(export)
+            let took = measurement.now - handStart
+            receiving += took
+            measurement.received(export, in: took)
+        }
+        defer {
+            measurement?.delivered(plan.source.typeIdentifier, since: start, validation: validation, receiving: receiving)
+        }
         guard let primary = plan.primary, let content = plan.content else {
             let refusal = HealthKitConversionError.unregisteredSourceType(plan.record.sample.sampleType.identifier)
-            try receive(Export(source: plan.source, outcome: .refused(refusal), warnings: []))
+            try hand(Export(source: plan.source, outcome: .refused(refusal), warnings: []))
             return
         }
         guard plan.requests.allSatisfy({ reserved[$0] != nil }) else {
             // An earlier input of this call named one of its records with other content and holds that key's event.
-            try receive(Export(source: plan.source, outcome: .refused(.conflictingDuplicate), warnings: []))
+            try hand(Export(source: plan.source, outcome: .refused(.conflictingDuplicate), warnings: []))
             return
         }
         // A refusal keeps its reservations held: they are released with the receipt, never mid-call, so a
@@ -215,15 +247,16 @@ extension HealthKitFHIRExporter {
         let conversions: [HealthKitAssembly.Conversion]
         do {
             conversions = try convert(plan, content: content, primary: primary, reserved: reserved)
+            validation = conversions.reduce(.zero) { $0 + $1.validation }
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
-            try receive(Export(source: plan.source, outcome: .refused(failure), warnings: []))
+            try hand(Export(source: plan.source, outcome: .refused(failure), warnings: []))
             return
         }
         // A policy that chose to emit nothing (an unauthorized route) leaves no conversion; that is not a refusal and
         // never warns.
         for conversion in conversions {
-            try receive(conversion.export)
+            try hand(conversion.export)
         }
     }
 

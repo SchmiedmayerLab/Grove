@@ -62,6 +62,8 @@ struct HealthKitAssembly: Sendable {
         /// The metadata keys the record, or an object it contains, carried that the graph does not represent, each once
         /// and sorted. The `mobile-omission.unmodeled-metadata` warning states only that there are some.
         let withheldMetadataKeys: [String]
+        /// How long encoding and validating the graph took; zero unless the exporter measures its throughput.
+        let validation: Swift.Duration
 
         /// The export that delivers this graph.
         var export: HealthKitFHIRExporter.Export {
@@ -166,14 +168,17 @@ struct HealthKitAssembly: Sendable {
             converterRole: request.converterRole,
             bundleID: request.bundleID
         )
-        let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts)).assemble(draft)
+        var validation = Swift.Duration.zero
+        let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts))
+            .assemble(draft, onValidation: options.measuresThroughput ? { validation += $0 } : nil)
         let withheld = metadata.withheldKeys(in: outputs)
         return Conversion(
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
             graph: assembled.graph,
             warnings: facts.warnings + metadataWarnings(for: metadata, outputs: outputs, withheld: withheld),
-            withheldMetadataKeys: withheld
+            withheldMetadataKeys: withheld,
+            validation: validation
         )
     }
 

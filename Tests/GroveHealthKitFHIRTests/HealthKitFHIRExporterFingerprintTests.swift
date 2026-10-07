@@ -211,8 +211,10 @@ struct HealthKitFHIRExporterFingerprintTests {
             configure(&options)
             return options
         }
+        // Options that change no graph byte stay out of the fingerprint, each named here on purpose.
+        let unfingerprinted: Set<String> = ["measuresThroughput"]
         for options in configurations {
-            let stored = Mirror(reflecting: options).children.map { child in
+            let stored = Mirror(reflecting: options).children.filter { !unfingerprinted.contains($0.label ?? "") }.map { child in
                 (property: child.label ?? "", parts: (child.value as? any ExchangeContextFingerprinted)?.fingerprintParts ?? [])
             }
             #expect(!stored.isEmpty)
