@@ -53,6 +53,31 @@ package enum ExchangeIdentity {
         _ value: Any,
         visit: ([String: Any]) throws(E) -> Void
     ) throws(E) {
+        // The native containers and strings `WireJSONEncoder` builds are told apart by their exact type, which is far
+        // cheaper than a failed cast; anything else, `JSONSerialization`'s objects among them, is cast.
+        let valueType = type(of: value)
+        if valueType == String.self {
+            return
+        }
+        if valueType == [String: Any].self {
+            // swiftlint:disable:next force_cast
+            let object = value as! [String: Any]
+            try visit(object)
+            for child in object.values {
+                try walkJSONObjects(child, visit: visit)
+            }
+            return
+        }
+        if valueType == [Any].self {
+            // swiftlint:disable:next force_cast
+            for child in value as! [Any] {
+                try walkJSONObjects(child, visit: visit)
+            }
+            return
+        }
+        if value is NSNumber || value is NSNull {
+            return
+        }
         if let object = value as? [String: Any] {
             try visit(object)
             for child in object.values {

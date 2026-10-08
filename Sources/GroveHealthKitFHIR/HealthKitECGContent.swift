@@ -27,7 +27,7 @@ import ModelsR4
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitECGContent: Sendable {
     /// An ECG record read once and validated: what the outputs state beside the sample's own facts.
-    struct Evidence {
+    struct Evidence: Sendable {
         /// The ECG.
         let electrocardiogram: HKElectrocardiogram
         /// The zone its instants are stated in: the one its metadata names, else UTC.

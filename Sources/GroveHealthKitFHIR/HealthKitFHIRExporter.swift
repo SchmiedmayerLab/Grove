@@ -80,8 +80,10 @@ public final class HealthKitFHIRExporter: Sendable {
         self.throughputRecorder = options.measuresThroughput ? Throughput.Recorder() : nil
     }
 
-    /// Converts samples in input order, calling `receive` once per produced graph or refusal as soon as
-    /// it is ready.
+    /// Converts samples, calling `receive` once per produced graph or refusal, in input order and on the calling thread.
+    ///
+    /// The graphs are built on every core, a bounded number at a time, so a large call keeps every core busy while
+    /// `receive` runs one export at a time.
     ///
     /// A record that cannot be converted is refused in place, and so is a record the call names again with
     /// other content (``HealthKitConversionError/conflictingDuplicate``): the first input of a record keeps
@@ -102,8 +104,8 @@ public final class HealthKitFHIRExporter: Sendable {
 
     /// ``export(_:at:receive:)`` for records that carry companion data.
     ///
-    /// Each record is planned first, then one reserve transaction covers every event the records need, then each
-    /// record is delivered in order.
+    /// Each record is planned first, then one reserve transaction covers every event the records need, then the records'
+    /// graphs are built on every core and handed to `receive` in input order, on the calling thread.
     public func export(
         records: some Collection<Record>,
         at instant: Date = .now,
@@ -114,12 +116,18 @@ public final class HealthKitFHIRExporter: Sendable {
         defer {
             measurement?.end()
         }
-        let plans = records.map { record in
+        let measuring = measurement != nil
+        let planned = Self.concurrentMap(Array(records)[...]) { record in
             autoreleasepool {
-                let start = measurement?.now
+                let start = measuring ? ContinuousClock.now : nil
                 let plan = Plan(record, exporter: self)
-                measurement?.planned(plan.source.typeIdentifier, since: start)
-                return plan
+                return (plan, start.map { ContinuousClock.now - $0 })
+            }
+        }
+        let plans = planned.map(\.0)
+        if let measurement {
+            for (plan, planning) in planned {
+                measurement.planned(plan.source.typeIdentifier, in: planning ?? .zero)
             }
         }
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
@@ -129,12 +137,72 @@ public final class HealthKitFHIRExporter: Sendable {
         let reserveStart = measurement?.now
         let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
         measurement?.reserved(since: reserveStart)
-        for plan in plans {
-            try autoreleasepool {
-                try deliver(plan, reserved: reserved, measurement: measurement, receive: receive)
+        // Chunks bound how many built graphs wait for `receive` at once.
+        var chunkStart = plans.startIndex
+        while chunkStart < plans.endIndex {
+            let chunk = plans[chunkStart..<min(chunkStart + Self.deliveryChunkSize, plans.endIndex)]
+            let built = Self.concurrentMap(chunk) { plan in
+                autoreleasepool {
+                    build(plan, reserved: reserved, measuring: measuring)
+                }
             }
+            for (plan, delivery) in zip(chunk, built) {
+                try hand(delivery, of: plan, measurement: measurement, receive: receive)
+            }
+            chunkStart = chunk.endIndex
         }
         return receipt
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter {
+    /// One slot per element of a concurrent map, each written by exactly one iteration before any is read.
+    private final class ConcurrentResults<Result>: @unchecked Sendable {
+        private let slots: UnsafeMutableBufferPointer<Result?>
+
+        init(count: Int) {
+            slots = .allocate(capacity: count)
+            slots.initialize(repeating: nil)
+        }
+
+        func store(_ result: Result, at index: Int) {
+            slots[index] = result
+        }
+
+        func collect() -> [Result] {
+            slots.map { slot in
+                guard let slot else {
+                    preconditionFailure("Every iteration of a concurrent map stores its result.")
+                }
+                return slot
+            }
+        }
+
+        deinit {
+            slots.deinitialize()
+            slots.deallocate()
+        }
+    }
+
+    /// The records built at once before their exports are handed over.
+    private static let deliveryChunkSize = 256
+
+    /// `transform` applied to every element, on every core for more than one element, in input order.
+    private static func concurrentMap<Element: Sendable, Result: Sendable>(
+        _ elements: ArraySlice<Element>,
+        _ transform: @Sendable (Element) -> Result
+    ) -> [Result] {
+        guard elements.count > 1 else {
+            return elements.map(transform)
+        }
+        let results = ConcurrentResults<Result>(count: elements.count)
+        let base = elements.startIndex
+        DispatchQueue.concurrentPerform(iterations: elements.count) { offset in
+            results.store(transform(elements[base + offset]), at: offset)
+        }
+        return results.collect()
     }
 }
 
@@ -145,9 +213,9 @@ extension HealthKitFHIRExporter {
     /// per sample it converts, its record and each registered ECG symptom, under what the policies resolved for that
     /// sample. Each event's fingerprint covers those answers and the record's companion data, and its graph is built
     /// from exactly them.
-    struct Plan {
+    struct Plan: Sendable {
         /// One sample's request and what the policies answered for it.
-        struct Event {
+        struct Event: Sendable {
             let request: ExchangeEventRequest
             let policies: ResolvedPolicies
         }
@@ -208,55 +276,64 @@ extension HealthKitFHIRExporter {
         }
     }
 
-    private func deliver(
+    /// What one record's delivery hands over: its exports, and what building them took when measured.
+    struct Delivery: Sendable {
+        let exports: [Export]
+        /// Building the record's graphs, validation included; zero unless measured.
+        let building: Swift.Duration
+        /// Validating them; zero unless measured.
+        let validation: Swift.Duration
+    }
+
+    /// The exports of one planned record, built without the caller: refusals in place, graphs otherwise.
+    private func build(
         _ plan: Plan,
         reserved: [ExchangeEventRequest: ExchangeEventReservation],
-        measurement: Throughput.Call?,
-        receive: (Export) throws -> Void
-    ) throws {
-        let start = measurement?.now
-        var validation = Swift.Duration.zero
-        var receiving = Swift.Duration.zero
-        // The caller's time is measured apart from the exporter's.
-        func hand(_ export: Export) throws {
-            guard let measurement else {
-                try receive(export)
-                return
-            }
-            let handStart = measurement.now
-            try receive(export)
-            let took = measurement.now - handStart
-            receiving += took
-            measurement.received(export, in: took)
-        }
-        defer {
-            measurement?.delivered(plan.source.typeIdentifier, since: start, validation: validation, receiving: receiving)
+        measuring: Bool
+    ) -> Delivery {
+        let start = measuring ? ContinuousClock.now : nil
+        func delivery(_ exports: [Export], validation: Swift.Duration = .zero) -> Delivery {
+            Delivery(exports: exports, building: start.map { ContinuousClock.now - $0 } ?? .zero, validation: validation)
         }
         guard let primary = plan.primary, let content = plan.content else {
             let refusal = HealthKitConversionError.unregisteredSourceType(plan.record.sample.sampleType.identifier)
-            try hand(Export(source: plan.source, outcome: .refused(refusal), warnings: []))
-            return
+            return delivery([Export(source: plan.source, outcome: .refused(refusal), warnings: [])])
         }
         guard plan.requests.allSatisfy({ reserved[$0] != nil }) else {
             // An earlier input of this call named one of its records with other content and holds that key's event.
-            try hand(Export(source: plan.source, outcome: .refused(.conflictingDuplicate), warnings: []))
-            return
+            return delivery([Export(source: plan.source, outcome: .refused(.conflictingDuplicate), warnings: [])])
         }
         // A refusal keeps its reservations held: they are released with the receipt, never mid-call, so a
         // standalone export of the same record in this call keeps its event.
-        let conversions: [HealthKitAssembly.Conversion]
         do {
-            conversions = try convert(plan, content: content, primary: primary, reserved: reserved)
-            validation = conversions.reduce(.zero) { $0 + $1.validation }
+            let conversions = try convert(plan, content: content, primary: primary, reserved: reserved)
+            // A policy that chose to emit nothing (an unauthorized route) leaves no conversion; that is not a refusal
+            // and never warns.
+            return delivery(conversions.map(\.export), validation: conversions.reduce(.zero) { $0 + $1.validation })
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
-            try hand(Export(source: plan.source, outcome: .refused(failure), warnings: []))
+            return delivery([Export(source: plan.source, outcome: .refused(failure), warnings: [])])
+        }
+    }
+
+    /// Hands one record's exports to the caller, whose time is measured apart from the exporter's.
+    private func hand(
+        _ delivery: Delivery,
+        of plan: Plan,
+        measurement: Throughput.Call?,
+        receive: (Export) throws -> Void
+    ) throws {
+        guard let measurement else {
+            for export in delivery.exports {
+                try receive(export)
+            }
             return
         }
-        // A policy that chose to emit nothing (an unauthorized route) leaves no conversion; that is not a refusal and
-        // never warns.
-        for conversion in conversions {
-            try hand(conversion.export)
+        measurement.built(plan.source.typeIdentifier, in: delivery.building, validation: delivery.validation)
+        for export in delivery.exports {
+            let handStart = measurement.now
+            try receive(export)
+            measurement.received(export, in: measurement.now - handStart)
         }
     }
 

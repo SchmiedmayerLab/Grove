@@ -26,18 +26,34 @@ extension ExchangeGraph {
 
         private let bundleJSON: Result<Any, any Error>
         private let resources: [ResourceSource]
+        /// Each entry's resource as the model holds it.
+        private let models: [ResourceProxy?]
         private var identifierCache: [Int: [Result<Identifier, any Error>]] = [:]
         private var typedIdentifierCache: [Int: Result<[RoledIdentifier], any Error>] = [:]
 
         /// - Parameters:
         ///   - bundle: The Bundle the passes validate.
         ///   - jsonData: The encoding of exactly `bundle`, when the caller already has it; `nil` encodes it here.
-        init(bundle: ModelsR4.Bundle, jsonData: Data?) {
-            let bundleJSON = Result<Any, any Error> {
-                try JSONSerialization.jsonObject(with: jsonData ?? JSONEncoder().encode(bundle))
-            }
+        convenience init(bundle: ModelsR4.Bundle, jsonData: Data?) {
+            self.init(bundle: bundle, bundleJSON: Result {
+                if let jsonData {
+                    return try JSONSerialization.jsonObject(with: jsonData)
+                }
+                return try Self.tree(of: bundle)
+            })
+        }
+
+        /// - Parameters:
+        ///   - bundle: The Bundle the passes validate.
+        ///   - tree: The JSON of exactly `bundle`, as ``WireJSONEncoder`` built it while encoding.
+        convenience init(bundle: ModelsR4.Bundle, tree: Any) {
+            self.init(bundle: bundle, bundleJSON: .success(tree))
+        }
+
+        private init(bundle: ModelsR4.Bundle, bundleJSON: Result<Any, any Error>) {
             let rawEntries = ((try? bundleJSON.get()) as? [String: Any])?["entry"] as? [Any]
             self.bundleJSON = bundleJSON
+            self.models = (bundle.entry ?? []).map(\.resource)
             self.resources = (bundle.entry ?? []).enumerated().map { index, entry in
                 guard let resource = entry.resource else {
                     return .absent
@@ -47,6 +63,30 @@ extension ExchangeGraph {
                     return .standalone(resource)
                 }
                 return .parsed(object)
+            }
+        }
+
+        /// The JSON of `value`: the tree ``WireJSONEncoder`` builds, whose native containers the passes read without
+        /// bridging, or `JSONSerialization`'s parse of `JSONEncoder`'s bytes for a value it cannot encode.
+        private static func tree(of value: some Encodable) throws -> Any {
+            if let (_, tree) = try WireJSONEncoder.encodeKeepingTree(value) {
+                return tree
+            }
+            return try JSONSerialization.jsonObject(with: JSONEncoder().encode(value))
+        }
+
+        /// The `identifier` array of the resource types a graph usually carries, as the model holds it; `nil` for any
+        /// other type, whose identifiers are decoded from the JSON.
+        private static func identifiers(of resource: ResourceProxy) -> [Identifier]? { // swiftlint:disable:this discouraged_optional_collection
+            switch resource {
+            case .observation(let resource): resource.identifier ?? []
+            case .device(let resource): resource.identifier ?? []
+            case .researchStudy(let resource): resource.identifier ?? []
+            case .researchSubject(let resource): resource.identifier ?? []
+            case .planDefinition(let resource): resource.identifier ?? []
+            case .patient(let resource): resource.identifier ?? []
+            case .provenance: []
+            default: nil
             }
         }
 
@@ -66,7 +106,7 @@ extension ExchangeGraph {
             case .parsed(let object):
                 return object
             case .standalone(let resource):
-                return try JSONSerialization.jsonObject(with: JSONEncoder().encode(resource))
+                return try Self.tree(of: resource)
             }
         }
 
@@ -78,15 +118,26 @@ extension ExchangeGraph {
             if let cached = identifierCache[index] {
                 return cached
             }
+            let identifiers: [Result<Identifier, any Error>]
+            if models.indices.contains(index), let model = models[index], let modelIdentifiers = Self.identifiers(of: model) {
+                // The JSON is the model's own encoding, and an Identifier decodes from its encoding to itself.
+                identifiers = modelIdentifiers.map { .success($0) }
+            } else {
+                identifiers = try decodedIdentifiers(at: index)
+            }
+            identifierCache[index] = identifiers
+            return identifiers
+        }
+
+        /// Each element of the resource's JSON `identifier` array, decoded as an Identifier, in order.
+        private func decodedIdentifiers(at index: Int) throws -> [Result<Identifier, any Error>] {
             let object = try resourceObject(at: index) as? [String: Any]
             let rawIdentifiers = object?["identifier"] as? [[String: Any]] ?? []
-            let identifiers = rawIdentifiers.map { rawIdentifier in
+            return rawIdentifiers.map { rawIdentifier in
                 Result<Identifier, any Error> {
                     try JSONDecoder().decode(Identifier.self, from: JSONSerialization.data(withJSONObject: rawIdentifier))
                 }
             }
-            identifierCache[index] = identifiers
-            return identifiers
         }
 
         /// The identifiers of the entry's resource whose `Identifier.type` carries a Grove identifier role.

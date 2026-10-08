@@ -16,6 +16,14 @@ import ModelsR4
 
 
 extension ExchangeGraph {
+    /// The catalog's Observation profile claims as the sets the check compares, built once.
+    private enum ObservationProfileSets {
+        static let exactModes = ProfileClaims.exactObservationProfileModes.map { Set(canonicalStrings($0)) }
+        static let single = Set(canonicalStrings(ProfileClaims.singleObservationProfiles))
+        static let shared = Set(canonicalStrings(ProfileClaims.sharedObservationProfiles))
+        static let adapters = Set(canonicalStrings(ProfileClaims.observationAdapterProfiles))
+    }
+
     /// The system of the Android package name a Health Connect data origin is identified by (health-connect guide).
     static let androidPackageNameSystem = "https://grovealliance.org/fhir/health-connect/NamingSystem/android-package-name"
 
@@ -110,20 +118,14 @@ extension ExchangeGraph {
         guard !profiles.isEmpty, direct.count == profiles.count else {
             throw .ruleViolation(.mobileOutputSemanticProfile)
         }
-        let exactModes = ProfileClaims.exactObservationProfileModes.map {
-            Set(canonicalStrings($0))
-        }
-        if exactModes.contains(direct) {
+        if ObservationProfileSets.exactModes.contains(direct) {
             return
         }
-        let singleProfiles = Set(canonicalStrings(ProfileClaims.singleObservationProfiles))
-        if profiles.count == 1, direct.isSubset(of: singleProfiles) {
+        if profiles.count == 1, direct.isSubset(of: ObservationProfileSets.single) {
             return
         }
-        let sharedProfiles = Set(canonicalStrings(ProfileClaims.sharedObservationProfiles))
-        let adapterProfiles = Set(canonicalStrings(ProfileClaims.observationAdapterProfiles))
-        let shared = direct.intersection(sharedProfiles)
-        let adapters = direct.intersection(adapterProfiles)
+        let shared = direct.intersection(ObservationProfileSets.shared)
+        let adapters = direct.intersection(ObservationProfileSets.adapters)
         guard shared.count == 1,
               direct == shared.union(adapters) else {
             throw .ruleViolation(.mobileOutputSemanticProfile)
