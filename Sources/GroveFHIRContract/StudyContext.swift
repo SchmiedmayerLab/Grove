@@ -29,6 +29,9 @@ package struct StudyContext: Sendable {
 
 
 extension StudyContext {
+    private static let patientType = FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.patient.rawValue))
+    private static let researchStudyType = FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.researchStudy.rawValue))
+
     /// The entry-node keyed study context the catalog recommends for the subject and known enrollments of one event,
     /// each node keyed in `identityScope`'s entry-node system.
     package init(
@@ -49,11 +52,9 @@ extension StudyContext {
                 nodeRole: StudyContextEntryNodeRole.patient.rawValue,
                 ordinal: 0
             )
-            patientEntry = try BundleEntry(identifier: key.identifier, resource: ResourceProxy(with: subject.bundledPatient))
-            subjectReference = Reference(
-                reference: try key.identifier.identifier.fullURLString.asFHIRStringPrimitive(),
-                type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.patient.rawValue))
-            )
+            let patientURL = try key.identifier.fullURLString
+            patientEntry = BundleEntry(identifier: key.identifier, fullURL: patientURL, resource: ResourceProxy(with: subject.bundledPatient))
+            subjectReference = Reference(reference: patientURL.asFHIRStringPrimitive(), type: Self.patientType)
         }
         let enrolled = try StudyContext(studies: studies, subjectReference: subjectReference, event: event, identityScope: identityScope)
         self.init(patient: patientEntry, entries: enrolled.entries, subjectReference: subjectReference, studyReferences: enrolled.studyReferences)
@@ -108,14 +109,11 @@ extension StudyContext {
             study: Reference(reference: studyURL.asFHIRStringPrimitive())
         )
         let entries = [
-            try BundleEntry(identifier: studyKey.identifier, resource: ResourceProxy(with: study)),
-            try BundleEntry(identifier: planKey.identifier, resource: ResourceProxy(with: plan)),
+            BundleEntry(identifier: studyKey.identifier, fullURL: studyURL, resource: ResourceProxy(with: study)),
+            BundleEntry(identifier: planKey.identifier, fullURL: planURL, resource: ResourceProxy(with: plan)),
             try BundleEntry(identifier: subjectKey.identifier, resource: ResourceProxy(with: researchSubject))
         ]
-        let reference = Reference(
-            reference: studyURL.asFHIRStringPrimitive(),
-            type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.researchStudy.rawValue))
-        )
+        let reference = Reference(reference: studyURL.asFHIRStringPrimitive(), type: Self.researchStudyType)
         return (entries, reference)
     }
 }

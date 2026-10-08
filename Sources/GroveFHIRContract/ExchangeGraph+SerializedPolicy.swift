@@ -101,16 +101,17 @@ extension ExchangeGraph {
     }
 
     static func containsContainedReference(_ value: Any) -> Bool {
-        if let object = value as? [String: Any] {
-            if let reference = object["reference"] as? String,
-               reference.hasPrefix("#") {
-                return true
+        struct ContainedReference: Error {}
+        do {
+            try ExchangeIdentity.walkJSONObjects(value) { object throws(ContainedReference) in
+                if let reference = object["reference"] as? String,
+                   reference.hasPrefix("#") {
+                    throw ContainedReference()
+                }
             }
-            return object.values.contains(where: containsContainedReference)
+            return false
+        } catch {
+            return true
         }
-        if let array = value as? [Any] {
-            return array.contains(where: containsContainedReference)
-        }
-        return false
     }
 }

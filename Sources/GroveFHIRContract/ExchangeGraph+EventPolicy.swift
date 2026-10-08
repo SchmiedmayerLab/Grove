@@ -82,34 +82,26 @@ extension ExchangeGraph {
 
     static func validateEntryNodeDigests(
         entries: [BundleEntry],
-        eventIdentifier: ExchangeEventIdentifier
+        eventIdentifier: ExchangeEventIdentifier,
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         var mintedPerNodeRole: [String: UInt64] = [:]
-        for (index, entry) in entries.enumerated() {
-            let keys = entry.extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
-            guard keys.count == 1,
-                  case .identifier(let identifier)? = keys.first?.value else {
+        for index in entries.indices {
+            guard let key = document.entryKey(at: index) else {
                 throw .ruleViolation(.mobileExchangeEntryNodeKey)
             }
-            let key: RoledIdentifier
-            do {
-                key = try RoledIdentifier(identifier)
-            } catch {
-                throw .ruleViolation(.mobileExchangeEntryNodeKey)
-            }
-            let location = "Bundle.entry[\(index)].extension.valueIdentifier"
             if key.role == .entryNode {
-                guard EntryNodeKey.claim(in: key) != nil else {
-                    throw diagnostic(.mobileExchangeEntryKeySelection, location: location)
+                guard let claim = EntryNodeKey.claim(in: key) else {
+                    throw diagnostic(.mobileExchangeEntryKeySelection, location: entryKeyLocation(index))
                 }
-                try validateEntryNodeOrdinal(key, location: location, mintedPerNodeRole: &mintedPerNodeRole)
+                try validateEntryNodeOrdinal(claim, atEntry: index, mintedPerNodeRole: &mintedPerNodeRole)
                 do {
-                    _ = try EntryNodeKey(key, event: eventIdentifier)
+                    _ = try EntryNodeKey(key, claim: claim, event: eventIdentifier)
                 } catch {
-                    throw diagnostic(.mobileExchangeEntryNodeDigest, location: "\(location).value")
+                    throw diagnostic(.mobileExchangeEntryNodeDigest, location: "\(entryKeyLocation(index)).value")
                 }
             } else if !ExchangeIdentity.isCanonicalOpaqueIdentifierValue(key.identifier.value) {
-                throw diagnostic(.mobileExchangeOpaqueResourceIdentity, location: location)
+                throw diagnostic(.mobileExchangeOpaqueResourceIdentity, location: entryKeyLocation(index))
             }
         }
     }
@@ -118,18 +110,20 @@ extension ExchangeGraph {
     /// back from the key, because the digest covers the ordinal the key itself states: a
     /// self-consistent key over a wrong ordinal would otherwise verify against its own claim.
     private static func validateEntryNodeOrdinal(
-        _ identifier: RoledIdentifier,
-        location: String,
+        _ claim: EntryNodeKey.Claim,
+        atEntry index: Int,
         mintedPerNodeRole: inout [String: UInt64]
     ) throws(ExchangeGraphError) {
-        guard let claim = EntryNodeKey.claim(in: identifier) else {
-            return
-        }
         let expected = mintedPerNodeRole[claim.nodeRole, default: 0]
         mintedPerNodeRole[claim.nodeRole] = expected + 1
         guard claim.ordinal.rawValue == String(expected) else {
-            throw diagnostic(.mobileExchangeEntryNodeOrdinal, location: "\(location).value")
+            throw diagnostic(.mobileExchangeEntryNodeOrdinal, location: "\(entryKeyLocation(index)).value")
         }
+    }
+
+    /// Where an entry states its key, for a diagnostic.
+    static func entryKeyLocation(_ index: Int) -> String {
+        "Bundle.entry[\(index)].extension.valueIdentifier"
     }
 
     static func validateActive(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
@@ -197,7 +191,7 @@ extension ExchangeGraph {
     private static func validatedActiveOutput(
         from entry: BundleEntry, at index: Int, document: ValidationDocument
     ) throws -> ActiveOutput? {
-        guard let key = try entryKey(entry) else {
+        guard let key = document.entryKey(at: index) else {
             throw ExchangeIdentityError.missingIdentifierSystem
         }
         let identifiers = try document.typedResourceIdentifiers(at: index)
@@ -407,7 +401,7 @@ extension ExchangeGraph {
                 rule: .mobileSupportDeviceProfile
             )
             try validateIdentifierRoles(atEntry: index, document: document, claim: claim, rule: .mobileDeviceRecordingDeviceDualIdentity)
-            guard let key = try? entryKey(entry) else {
+            guard let key = document.entryKey(at: index) else {
                 throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
             let identifiers = (try? document.typedResourceIdentifiers(at: index)) ?? []

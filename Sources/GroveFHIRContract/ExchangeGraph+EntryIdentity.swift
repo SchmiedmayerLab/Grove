@@ -86,7 +86,7 @@ extension ExchangeGraph {
         for (index, entry) in entries.enumerated() {
             let key = try entryKey(in: entry, index: index, document: document)
             guard keys.insert(key.identifier).inserted else {
-                throw diagnostic(.mobileExchangeDistinctEntryKey, location: "Bundle.entry[\(index)].extension.valueIdentifier")
+                throw diagnostic(.mobileExchangeDistinctEntryKey, location: entryKeyLocation(index))
             }
             guard let fullURL = entry.fullUrl?.value?.url.absoluteString,
                   resourceTypesByFullURL.updateValue(entry.resource?.resourceType ?? "", forKey: fullURL) == nil,
@@ -105,10 +105,7 @@ extension ExchangeGraph {
         guard entry.resource != nil else {
             throw .invalidEntries("Bundle entry has no resource")
         }
-        let entryKeys = entry.extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
-        guard entryKeys.count == 1,
-              case .identifier(let identifier)? = entryKeys.first?.value,
-              let key = try? RoledIdentifier(identifier),
+        guard let key = document.entryKey(at: index),
               allowedEntryKeyRoles.contains(key.role) else {
             throw .ruleViolation(.mobileExchangeEntryNodeKey)
         }
@@ -121,7 +118,7 @@ extension ExchangeGraph {
         let selected = identifierPriority.lazy.compactMap { role in typed.first { $0.role == role } }.first
         if key.role == .entryNode {
             guard selected == nil else {
-                throw diagnostic(.mobileExchangeEntryKeySelection, location: "Bundle.entry[\(index)].extension.valueIdentifier")
+                throw diagnostic(.mobileExchangeEntryKeySelection, location: entryKeyLocation(index))
             }
             return key
         }
@@ -129,7 +126,7 @@ extension ExchangeGraph {
             throw diagnostic(.mobileOutputSourceOutputRequired, location: "Bundle.entry[\(index)].resource.identifier")
         }
         guard selected == key else {
-            throw diagnostic(.mobileExchangeEntryKeySelection, location: "Bundle.entry[\(index)].extension.valueIdentifier")
+            throw diagnostic(.mobileExchangeEntryKeySelection, location: entryKeyLocation(index))
         }
         return key
     }

@@ -78,8 +78,10 @@ package struct ExchangeRequestContext: Sendable {
 
     /// The request of one event key with the record parts the key does not version.
     package func request(for key: ExchangeEventKey, recordParts: [String] = []) -> ExchangeEventRequest {
-        let digest = SHA256.hash(data: framedCallParts + Self.framed(recordParts))
-        return ExchangeEventRequest(key: key, fingerprint: Data(digest).base64URLEncodedStringWithoutPadding)
+        var hasher = SHA256()
+        hasher.update(data: framedCallParts)
+        hasher.update(data: Self.framed(recordParts))
+        return ExchangeEventRequest(key: key, fingerprint: Data(hasher.finalize()).base64URLEncodedStringWithoutPadding)
     }
 }
 

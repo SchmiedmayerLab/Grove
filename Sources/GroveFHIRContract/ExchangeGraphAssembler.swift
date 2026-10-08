@@ -104,12 +104,12 @@ package struct ExchangeGraphAssembler: Sendable {
             at: draft.instant
         )
 
-        var entries = try outputs.map { try BundleEntry(identifier: $0.identity, resource: $0.resource.proxy) }
+        var entries = outputs.map { BundleEntry(identifier: $0.identity, fullURL: $0.url, resource: $0.resource.proxy) }
         entries.append(contentsOf: studyContext.allEntries)
         entries.append(contentsOf: try devices.entries.map { try BundleEntry(identifier: $0.identity, resource: ResourceProxy(with: $0.resource)) })
         entries.append(try BundleEntry(identifier: provenanceNode.identifier, resource: ResourceProxy(with: provenance)))
         return AssembledExchangeGraph(
-            graph: try graph(entries: entries, draft: draft, onValidation: onValidation),
+            graph: try graph(entries: entries, draft: draft, timestamp: provenance.recorded, onValidation: onValidation),
             identifiers: ExchangeGraphIdentifiers(
                 event: draft.event.identifier,
                 sourceRecord: draft.sourceRecord.identifier,
@@ -126,13 +126,19 @@ package struct ExchangeGraphAssembler: Sendable {
         )
     }
 
-    /// The validated graph of one event's entries, in the order given.
-    private func graph(entries: [BundleEntry], draft: ExchangeGraphDraft, onValidation: ((Swift.Duration) -> Void)?) throws -> ExchangeGraph {
+    /// The validated graph of one event's entries, in the order given, stamped `timestamp`: the conversion instant, as
+    /// the conversion Provenance already records it.
+    private func graph(
+        entries: [BundleEntry],
+        draft: ExchangeGraphDraft,
+        timestamp: FHIRPrimitive<Instant>,
+        onValidation: ((Swift.Duration) -> Void)?
+    ) throws -> ExchangeGraph {
         var bundle = Bundle(
             entry: entries,
             identifier: draft.event.identifier.fhirIdentifier,
             meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant)),
+            timestamp: timestamp,
             type: FHIRPrimitive(.collection)
         )
         bundle.id = draft.bundleID?.primitive

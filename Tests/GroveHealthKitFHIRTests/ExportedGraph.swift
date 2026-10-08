@@ -103,6 +103,12 @@ struct ExportedGraph {
         }
         let provenanceEntry = entries.first { $0.resource?.get(if: Provenance.self) != nil }
         let provenance = try #require(provenanceEntry?.resource?.get(if: Provenance.self))
+        let provenanceKey = provenanceEntry?.extension?.first { $0.url == Canonicals.entryNodeKey }.flatMap { key -> Identifier? in
+            guard case .identifier(let identifier)? = key.value else {
+                return nil
+            }
+            return identifier
+        }
         let outputs = provenance.target.map(entry)
         let primary = outputs.first.flatMap(\.self)
         let application = entry(provenance.agent.first?.who)
@@ -116,7 +122,7 @@ struct ExportedGraph {
             primaryOutput: try #require(identity(primary, .sourceOutput)),
             applicationSnapshot: try #require(identity(application, .deviceSnapshot)),
             hostSnapshot: try #require(identity(entry(application?.resource?.get(if: Device.self)?.parent), .deviceSnapshot)),
-            provenance: try #require(try provenanceEntry.flatMap(ExchangeGraph.entryKey)),
+            provenance: try RoledIdentifier(try #require(provenanceKey)),
             childOutputs: outputs.dropFirst().compactMap { identity($0, .sourceOutput) },
             sourceArtifact: identity(primary, .sourceArtifact),
             recordingDeviceSnapshot: identity(recording, .deviceSnapshot),

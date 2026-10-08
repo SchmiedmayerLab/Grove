@@ -166,12 +166,11 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
             throw .invalidComponentCount(kind: kind.rawValue, expected: kind.componentCount, actual: components.count)
         }
         for (name, component) in zip(kind.componentNames, components) {
-            let path = "\(kind.rawValue).\(name)"
             guard !component.isEmpty else {
-                throw .emptyComponent(path)
+                throw .emptyComponent("\(kind.rawValue).\(name)")
             }
             guard !OpaqueIdentityKind.unsignedDecimalComponents.contains(name) || CanonicalNonnegativeDecimal.isCanonical(component) else {
-                throw .nonCanonicalPartIndex(path)
+                throw .nonCanonicalPartIndex("\(kind.rawValue).\(name)")
             }
         }
         if [.sourceRecord, .sourceOutput, .sourceArtifact].contains(kind), let adapterID = components.first {

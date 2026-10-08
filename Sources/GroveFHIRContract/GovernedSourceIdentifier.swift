@@ -24,13 +24,13 @@ public enum GovernedSourceIdentifierDisclosurePolicy: Hashable, Sendable {
             return nil
         }
         return Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue)),
+            system: system.uri,
             type: type.map { type in
                 CodeableConcept(coding: [
                     Coding(
                         code: type.code.asFHIRStringPrimitive(),
                         display: type.display?.asFHIRStringPrimitive(),
-                        system: FHIRPrimitive(FHIRURI(stringLiteral: type.system.rawValue))
+                        system: type.system.uri
                     )
                 ])
             },

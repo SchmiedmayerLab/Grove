@@ -329,7 +329,7 @@ struct ConversionThroughputBenchmark {
                 lap(0)
                 try ExchangeGraph.validateEntryResourcePolicy(kind: .active, entries: entries, document: document)
                 lap(1)
-                try ExchangeGraph.validateEntryNodeDigests(entries: entries, eventIdentifier: graph.eventIdentifier)
+                try ExchangeGraph.validateEntryNodeDigests(entries: entries, eventIdentifier: graph.eventIdentifier, document: document)
                 lap(2)
                 try ExchangeGraph.validateResourceIdentifiers(entries: entries, document: document)
                 lap(3)

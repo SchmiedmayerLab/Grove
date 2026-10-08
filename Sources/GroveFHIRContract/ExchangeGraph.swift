@@ -194,7 +194,7 @@ public struct ExchangeGraph: Sendable {
         try validateHeader(bundle, eventIdentifier: eventIdentifier)
         let entries = try validatedEntries(bundle, kind: kind)
         try validateEntryResourcePolicy(kind: kind, entries: entries, document: document)
-        try validateEntryNodeDigests(entries: entries, eventIdentifier: eventIdentifier)
+        try validateEntryNodeDigests(entries: entries, eventIdentifier: eventIdentifier, document: document)
         try validateEntryIdentities(entries: entries, document: document)
         try validateGovernedReferenceTargets(entries: entries, document: document)
         try validateLifecycle(kind: kind, entries: entries, document: document)
