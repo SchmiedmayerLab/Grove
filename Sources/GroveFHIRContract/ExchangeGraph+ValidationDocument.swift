@@ -28,8 +28,10 @@ extension ExchangeGraph {
         private let resources: [ResourceSource]
         /// Each entry's resource as the model holds it.
         private let models: [ResourceProxy?]
+        private let entries: [BundleEntry]
         private var identifierCache: [Int: [Result<Identifier, any Error>]] = [:]
         private var typedIdentifierCache: [Int: Result<[RoledIdentifier], any Error>] = [:]
+        private var entryKeyCache: [Int: RoledIdentifier?] = [:]
 
         /// - Parameters:
         ///   - bundle: The Bundle the passes validate.
@@ -53,7 +55,8 @@ extension ExchangeGraph {
         private init(bundle: ModelsR4.Bundle, bundleJSON: Result<Any, any Error>) {
             let rawEntries = ((try? bundleJSON.get()) as? [String: Any])?["entry"] as? [Any]
             self.bundleJSON = bundleJSON
-            self.models = (bundle.entry ?? []).map(\.resource)
+            self.entries = bundle.entry ?? []
+            self.models = entries.map(\.resource)
             self.resources = (bundle.entry ?? []).enumerated().map { index, entry in
                 guard let resource = entry.resource else {
                     return .absent
@@ -164,6 +167,21 @@ extension ExchangeGraph {
             }
             typedIdentifierCache[index] = result
             return try result.get()
+        }
+
+        /// The entry's key: its one `entry-node-key` extension's Grove-typed identifier, or `nil` when the entry
+        /// states none, several, or one that is not a well-formed Grove-typed identifier.
+        func entryKey(at index: Int) -> RoledIdentifier? {
+            if let cached = entryKeyCache[index] {
+                return cached
+            }
+            let extensions = entries[index].extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
+            var key: RoledIdentifier?
+            if extensions.count == 1, case .identifier(let identifier)? = extensions.first?.value {
+                key = try? RoledIdentifier(identifier)
+            }
+            entryKeyCache[index] = key
+            return key
         }
     }
 }

@@ -157,12 +157,4 @@ extension ExchangeGraph {
             false
         }
     }
-
-    static func entryKey(_ entry: BundleEntry) throws -> RoledIdentifier? {
-        guard let extensionValue = entry.extension?.first(where: { $0.url == Canonicals.entryNodeKey }),
-              case .identifier(let identifier)? = extensionValue.value else {
-            return nil
-        }
-        return try RoledIdentifier(identifier)
-    }
 }

@@ -195,7 +195,7 @@ extension Array where Element == DeviceVersion {
 extension String {
     /// The string, or `nil` when it is empty or holds nothing but whitespace.
     var nonBlank: String? {
-        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : self
+        isBlank ? nil : self
     }
 }
 

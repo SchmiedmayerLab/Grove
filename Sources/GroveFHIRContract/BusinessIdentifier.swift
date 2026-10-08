@@ -30,7 +30,7 @@ public struct BusinessIdentifier: Hashable, Sendable {
 
     public var fhirIdentifier: Identifier {
         Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue)),
+            system: system.uri,
             value: value.asFHIRStringPrimitive()
         )
     }

@@ -62,7 +62,7 @@ extension String {
 extension StringProtocol {
     /// Same result as `trimmingCharacters(in: .whitespacesAndNewlines).isEmpty`.
     /// Uses the same set as `CharacterSet.whitespacesAndNewlines` (Unicode White_Space + U+200B).
-    var isBlank: Bool {
+    package var isBlank: Bool {
         @specialized(where Self == String)
         @specialized(where Self == Substring)
         get {

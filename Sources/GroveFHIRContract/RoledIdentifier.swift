@@ -30,7 +30,7 @@ public struct RoledIdentifier: Hashable, Sendable {
 
     public var fhirIdentifier: Identifier {
         Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: identifier.system.rawValue)),
+            system: identifier.system.uri,
             type: CodeableConcept(coding: [
                 Coding(
                     code: role.rawValue.asFHIRStringPrimitive(),
@@ -80,9 +80,15 @@ public struct RoledIdentifier: Hashable, Sendable {
 extension BundleEntry {
     /// An exchange entry keyed by its complete identifier, at the deterministic fullUrl that identifier names.
     package init(identifier: RoledIdentifier, resource: ResourceProxy) throws(ExchangeIdentityError) {
+        self.init(identifier: identifier, fullURL: try identifier.fullURLString, resource: resource)
+    }
+
+    /// An exchange entry keyed by its complete identifier, at the fullUrl the caller already derived from it with
+    /// ``RoledIdentifier/fullURLString``.
+    package init(identifier: RoledIdentifier, fullURL: String, resource: ResourceProxy) {
         self.init(
             extension: [Extension(url: Canonicals.entryNodeKey, value: .identifier(identifier.fhirIdentifier))],
-            fullUrl: try identifier.fullURL,
+            fullUrl: FHIRPrimitive(FHIRURI(stringLiteral: fullURL)),
             resource: resource
         )
     }

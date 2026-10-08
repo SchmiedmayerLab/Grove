@@ -16,6 +16,9 @@ import Foundation
 
 /// The deterministic, event-scoped `n0:` key of an entry whose resource has no business identifier.
 package struct EntryNodeKey: Hashable, Sendable {
+    /// The node-role and ordinal a persisted key states, read before any digest verification.
+    typealias Claim = (nodeRole: String, ordinal: CanonicalNonnegativeDecimal)
+
     package let identifier: RoledIdentifier
     package let nodeRole: String
     package let ordinal: CanonicalNonnegativeDecimal
@@ -66,6 +69,14 @@ package struct EntryNodeKey: Hashable, Sendable {
         guard let claim = Self.claim(in: identifier) else {
             throw .invalidEntryNodeValue(identifier.identifier.value)
         }
+        try self.init(identifier, claim: claim, event: event)
+    }
+
+    /// Validates a persisted entry-node key whose ``claim(in:)`` the caller already read.
+    init(_ identifier: RoledIdentifier, claim: Claim, event: ExchangeEventIdentifier) throws(ExchangeIdentityError) {
+        guard identifier.role == .entryNode else {
+            throw .invalidEntryNodeRole
+        }
         let expected = try Self(
             system: identifier.identifier.system,
             event: event,
@@ -78,8 +89,8 @@ package struct EntryNodeKey: Hashable, Sendable {
         self = expected
     }
 
-    /// The node-role and ordinal a persisted key states, read before any digest verification.
-    static func claim(in identifier: RoledIdentifier) -> (nodeRole: String, ordinal: CanonicalNonnegativeDecimal)? {
+    /// The ``Claim`` a persisted key states, or `nil` when its value is not shaped like an entry-node key.
+    static func claim(in identifier: RoledIdentifier) -> Claim? {
         let fields = identifier.identifier.value.split(separator: ":", omittingEmptySubsequences: false)
         guard fields.count == 4,
               fields[0] == "n0",
