@@ -62,11 +62,11 @@ extension QuestionnaireFHIRExporter {
     ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
     ///   - receive: Called once per withdrawal, in input order.
     /// - Returns: The receipt to release once every graph is durably stored.
-    public func retract(
+    public nonisolated(nonsending) func retract(
         _ withdrawals: some Collection<Withdrawal>,
         at instant: Date = .now,
         receive: (Retraction) throws -> Void
-    ) throws -> ExchangeProducer.Receipt {
+    ) async throws -> ExchangeProducer.Receipt {
         let plans = withdrawals.map { RetractionPlan($0, exporter: self) }
         let planned = plans.compactMap { try? $0.content.get() }
         // One fingerprint per key and call, the first in input order, as for an export.

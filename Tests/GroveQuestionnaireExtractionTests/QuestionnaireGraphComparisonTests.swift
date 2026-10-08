@@ -171,9 +171,9 @@ struct QuestionnaireGraphComparisonTests {
     }
 
     /// The exporter's graph of `testCase`, under the baseline's event.
-    private static func graph(_ testCase: Case) throws -> ExchangeGraph {
+    private static func graph(_ testCase: Case) async throws -> ExchangeGraph {
         let exporter = try Fixtures.exporter(Fixtures.producer(pinning: Fixtures.producerInstance))
-        let (exports, _) = try Fixtures.collect(
+        let (exports, _) = try await Fixtures.collect(
             exporter,
             [try Self.record(for: testCase.name)],
             at: Date(timeIntervalSince1970: testCase.instant)
@@ -182,28 +182,28 @@ struct QuestionnaireGraphComparisonTests {
     }
 
     /// The wire bytes `row` pins: its case's graph, or the guide pair's retraction under the baseline's producer.
-    private static func bytes(of row: Revision) throws -> Data {
+    private static func bytes(of row: Revision) async throws -> Data {
         guard row.name == retraction else {
-            return try graph(#require(cases.first { $0.name == row.name })).json
+            return try await graph(#require(cases.first { $0.name == row.name })).json
         }
         let exporter = try Fixtures.exporter(Fixtures.producer(pinning: Fixtures.producerInstance))
         let withdrawnAt = Fixtures.instant.addingTimeInterval(86_400)
         var retractions: [QuestionnaireFHIRExporter.Retraction] = []
-        _ = try exporter.retract([.init(record: Fixtures.guideRecord(), withdrawnAt: withdrawnAt)], at: withdrawnAt) { retractions.append($0) }
+        _ = try await exporter.retract([.init(record: Fixtures.guideRecord(), withdrawnAt: withdrawnAt)], at: withdrawnAt) { retractions.append($0) }
         return try #require(retractions.first?.graph).json
     }
 
     @Test("The exporter's graph is the baseline with only the approved changes", arguments: Self.cases)
-    func matchesTheBaselineUpToTheApprovedChanges(_ testCase: Case) throws {
-        let graph = try Self.graph(testCase)
+    func matchesTheBaselineUpToTheApprovedChanges(_ testCase: Case) async throws {
+        let graph = try await Self.graph(testCase)
         let expected = try Self.applyingApprovedChanges(to: Self.baseline(testCase.name), testCase)
         #expect(try Self.canonical(JSONSerialization.jsonObject(with: graph.json)) == Self.canonical(expected))
     }
 
     @Test("Each row's bytes match its digest, whose revisions the code has reached", arguments: Self.revisions)
-    func bytesMatchTheirRevision(_ row: Revision) throws {
+    func bytesMatchTheirRevision(_ row: Revision) async throws {
         #expect(Set(Self.revisions.map(\.name)) == Set(Self.cases.map(\.name) + [Self.retraction]))
-        let digest = Data(SHA256.hash(data: try Self.bytes(of: row))).base64URLEncodedStringWithoutPadding
+        let digest = Data(SHA256.hash(data: try await Self.bytes(of: row))).base64URLEncodedStringWithoutPadding
         #expect(digest == row.digest, "\(row.name) changed to \(digest): update its row, with the bumped output revision if an output changed")
         #expect(row.assembler <= ExchangeGraphAssembler.outputRevision)
         #expect(row.questionnaire <= QuestionnaireExchangeProjection.outputRevision)

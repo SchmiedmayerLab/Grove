@@ -59,9 +59,9 @@ struct HealthKitFHIRCatalogConversionTests {
     }
 
     @Test("Every supported quantity row converts to its exact catalog contract", arguments: identifiers)
-    func supportedQuantityRowConverts(identifier: String) throws {
+    func supportedQuantityRowConverts(identifier: String) async throws {
         // A period metric needs a real interval; an instant metric is a zero-length sample.
-        guard case let (observation, contract)? = try convert(identifier, lasting: { $0.effective == .period ? 60 : 0 }) else {
+        guard case let (observation, contract)? = try await convert(identifier, lasting: { $0.effective == .period ? 60 : 0 }) else {
             return
         }
         #expect(observation.meta?.profile == contract.healthKitProfiles, "\(identifier) profile claim")
@@ -83,8 +83,8 @@ struct HealthKitFHIRCatalogConversionTests {
     }
 
     @Test("A minute-long sample of every supported quantity row states the effective its profile admits", arguments: identifiers)
-    func supportedQuantityRowStatesItsInterval(identifier: String) throws {
-        guard case let (observation, contract)? = try convert(identifier, lasting: { _ in 60 }) else {
+    func supportedQuantityRowStatesItsInterval(identifier: String) async throws {
+        guard case let (observation, contract)? = try await convert(identifier, lasting: { _ in 60 }) else {
             return
         }
         // Only a profile that fixes an instant states the start alone; a heart rate's distinct endpoints are a Period.
@@ -99,7 +99,7 @@ struct HealthKitFHIRCatalogConversionTests {
     private func convert(
         _ identifier: String,
         lasting interval: (MeasurementContract) -> TimeInterval
-    ) throws -> (Observation, MeasurementContract)? {
+    ) async throws -> (Observation, MeasurementContract)? {
         let plan = HealthKitContentPlan[try #require(HealthKitSourceType(rawValue: identifier))]
         let contract = try #require(plan.entry.measurements.first.flatMap { Self.contracts[$0.id] }, "\(identifier) names no contract")
         guard let unit = plan.unitBinding?.unit else {
@@ -123,7 +123,7 @@ struct HealthKitFHIRCatalogConversionTests {
             end: timestamp.addingTimeInterval(interval(contract)),
             metadata: requiredMetadata(for: identifier)
         )
-        return (try ExporterFixtures.export(sample, inputs).observation, contract)
+        return (try await ExporterFixtures.export(sample, inputs).observation, contract)
     }
 
     private func assertSourceAndValue(

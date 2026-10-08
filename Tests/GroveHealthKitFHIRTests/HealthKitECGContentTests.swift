@@ -172,20 +172,20 @@ struct HealthKitECGContentTests {
         (.inconclusiveOther, "inconclusiveOther"),
         (.unrecognized, "unrecognized")
     ])
-    func classificationsStateTheGuideCodes(_ classification: HKElectrocardiogram.Classification, _ code: String) throws {
+    func classificationsStateTheGuideCodes(_ classification: HKElectrocardiogram.Classification, _ code: String) async throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xC1, symptoms: [], classification: classification)
-        let conversion = try ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []))
+        let conversion = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []))
         let observations = conversion.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.compactMap(\.interpretation).map { $0.first?.coding?.map { $0.code?.value?.string } } == [[code]])
     }
 
     /// One record states one entry method: the ECG's own metadata marks its waveform and its average heart rate alike.
     @Test("A user-entered ECG states manual entry on the waveform and on its average heart rate")
-    func userEnteredECGMarksEveryOutput() throws {
+    func userEnteredECGMarksEveryOutput() async throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xC2, symptoms: [])
         let metadata = (record.electrocardiogram.metadata ?? [:]).merging([HKMetadataKeyWasUserEntered: true]) { _, new in new }
         let ecg = try StoredSampleFixtures.withMetadata(record.electrocardiogram, metadata)
-        let conversion = try ExporterFixtures.export(.electrocardiogram(ecg, voltages: record.voltageMeasurements, symptoms: []))
+        let conversion = try await ExporterFixtures.export(.electrocardiogram(ecg, voltages: record.voltageMeasurements, symptoms: []))
         let observations = conversion.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 2)
         for observation in observations {
@@ -387,7 +387,7 @@ struct HealthKitECGContentTests {
     }
 
     @Test("A symptom's warnings stay with its own graph and reach the set")
-    func symptomWarningsReachTheSet() throws {
+    func symptomWarningsReachTheSet() async throws {
         let start = Date(timeIntervalSince1970: 1_787_148_600)
         let facts = StoredSampleFixtures.SampleFacts(
             uuid: UUID(),
@@ -411,7 +411,7 @@ struct HealthKitECGContentTests {
             },
             symptoms: [symptom(.dizziness)]
         )
-        let set = try ExporterFixtures.export(record)
+        let set = try await ExporterFixtures.export(record)
         let symptomWarnings = [
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")
@@ -426,11 +426,11 @@ struct HealthKitECGContentTests {
 
     /// Each symptom is a source record of its own, so it converts under an event of its own beside the ECG's.
     @Test("Each correlated symptom converts under its own event")
-    func symptomEventsAreTheirOwn() throws {
+    func symptomEventsAreTheirOwn() async throws {
         let chest = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD1))
         let fatigue = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD2), type: .fatigue)
         let pair = try GoldenCase.electrocardiogramRecord(uuid: 0xD0, symptoms: [chest, fatigue])
-        let set = try ExporterFixtures.export(ExporterFixtures.electrocardiogram(pair, symptoms: [chest, fatigue]))
+        let set = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(pair, symptoms: [chest, fatigue]))
         #expect(set.companions.count == 2)
         let events = set.all.map(\.identifiers.event)
         #expect(Set(events).count == events.count)

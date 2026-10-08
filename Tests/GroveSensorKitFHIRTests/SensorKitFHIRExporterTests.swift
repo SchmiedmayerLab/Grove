@@ -61,11 +61,11 @@ struct SensorKitFHIRExporterTests {
     }
 
     @Test("One call reserves one event per record; a redelivery before release restates it even from a rebuilt producer")
-    func redeliveryReproducesEvents() throws {
+    func redeliveryReproducesEvents() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let exporter = try Fixtures.exporter(Fixtures.producer(storage: storage))
         let records = [Self.sleep(1), try Self.heartRate(2)]
-        let (first, receipt) = try Fixtures.collect(exporter, records)
+        let (first, receipt) = try await Fixtures.collect(exporter, records)
         #expect(Set(Self.sequences(first)) == ["1", "2"])
         #expect(first.map(\.source) == [Self.sourceID(1), Self.sourceID(2)])
 
@@ -75,17 +75,17 @@ struct SensorKitFHIRExporterTests {
             studies: [.test("study-a")],
             storage: storage
         ))
-        let (again, againReceipt) = try Fixtures.collect(rebuilt, records, at: Fixtures.instant.addingTimeInterval(3_600))
+        let (again, againReceipt) = try await Fixtures.collect(rebuilt, records, at: Fixtures.instant.addingTimeInterval(3_600))
         #expect(again.map(\.graph?.json) == first.map(\.graph?.json))
 
         receipt.release()
         againReceipt.release()
-        let (afterRelease, _) = try Fixtures.collect(rebuilt, [records[0]])
+        let (afterRelease, _) = try await Fixtures.collect(rebuilt, [records[0]])
         #expect(Self.sequences(afterRelease) == ["3"])
     }
 
     @Test("A refused record reserves nothing and the export continues in input order")
-    func refusalsDoNotEndTheExport() throws {
+    func refusalsDoNotEndTheExport() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let refused = SensorKitRecord.messagesUsage(SensorKitMessagesUsageRecord(
             sourceRecordID: Self.sourceID(3),
@@ -95,7 +95,7 @@ struct SensorKitFHIRExporterTests {
             totalOutgoingMessages: 1,
             totalUniqueContacts: 1
         ))
-        let (exports, _) = try Fixtures.collect(exporter, [refused, Self.sleep(4)])
+        let (exports, _) = try await Fixtures.collect(exporter, [refused, Self.sleep(4)])
         try #require(exports.count == 2)
         guard case .refused(let reason) = exports[0].outcome else {
             Issue.record("expected a refusal, got \(exports[0].outcome)")
@@ -107,21 +107,21 @@ struct SensorKitFHIRExporterTests {
     }
 
     @Test("A record named again with other content in one call is refused; named again exactly, it shares the event")
-    func duplicatesInOneCall() throws {
+    func duplicatesInOneCall() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        let (conflicting, _) = try Fixtures.collect(exporter, [Self.sleep(5), Self.sleep(5, hours: 7)])
+        let (conflicting, _) = try await Fixtures.collect(exporter, [Self.sleep(5), Self.sleep(5, hours: 7)])
         guard case .refused(.conflictingDuplicate) = conflicting[1].outcome else {
             Issue.record("expected a conflicting duplicate, got \(conflicting[1].outcome)")
             return
         }
         #expect(Self.sequences(conflicting) == ["1", nil])
-        let (exact, _) = try Fixtures.collect(exporter, [Self.sleep(6), Self.sleep(6)])
+        let (exact, _) = try await Fixtures.collect(exporter, [Self.sleep(6), Self.sleep(6)])
         #expect(exact[0].graph?.json == exact[1].graph?.json)
         #expect(Self.sequences(exact) == ["2", "2"])
     }
 
     @Test("Any content a graph states from the record or the call mints a new event under a held key")
-    func contentChangesMintNewEvents() throws {
+    func contentChangesMintNewEvents() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let exporter = try Fixtures.exporter(Fixtures.producer(storage: storage))
         var receipts: [ExchangeProducer.Receipt] = []
@@ -130,38 +130,38 @@ struct SensorKitFHIRExporterTests {
             through exporter: SensorKitFHIRExporter = exporter,
             timeZone: TimeZone? = nil,
             recordingDevice: RecordingDevice? = Fixtures.watch
-        ) throws -> String? {
-            let (exports, receipt) = try Fixtures.collect(exporter, [record], timeZone: timeZone, recordingDevice: recordingDevice)
+        ) async throws -> String? {
+            let (exports, receipt) = try await Fixtures.collect(exporter, [record], timeZone: timeZone, recordingDevice: recordingDevice)
             receipts.append(receipt)
             return exports.first?.graph?.eventIdentifier.sequence.rawValue
         }
         let base = try Self.heartRate(7)
-        #expect(try sequence(base) == "1")
-        #expect(try sequence(base) == "1")
-        #expect(try sequence(base, timeZone: TimeZone(identifier: "Europe/Berlin")) == "2")
-        #expect(try sequence(Self.heartRate(7, title: "Another title")) == "3")
-        #expect(try sequence(Self.heartRate(7, payload: .sidecar(path: "sensorkit/other.csv", bytes: Self.heartRateCSV))) == "4")
-        #expect(try sequence(Self.heartRate(7, payload: .inline(Self.heartRateCSV))) == "5")
+        #expect(try await sequence(base) == "1")
+        #expect(try await sequence(base) == "1")
+        #expect(try await sequence(base, timeZone: TimeZone(identifier: "Europe/Berlin")) == "2")
+        #expect(try await sequence(Self.heartRate(7, title: "Another title")) == "3")
+        #expect(try await sequence(Self.heartRate(7, payload: .sidecar(path: "sensorkit/other.csv", bytes: Self.heartRateCSV))) == "4")
+        #expect(try await sequence(Self.heartRate(7, payload: .inline(Self.heartRateCSV))) == "5")
         let otherBytes = Data("timestamp,value,confidence,device\n1787009400,73,3,Watch\n".utf8)
-        #expect(try sequence(Self.heartRate(7, payload: .sidecar(path: "sensorkit/heart-rate.csv", bytes: otherBytes))) == "6")
-        #expect(try sequence(base, recordingDevice: .test(stableUnitToken: "watch-42", name: "Renamed Watch")) == "7")
-        #expect(try sequence(base, recordingDevice: .test(stableUnitToken: "watch-43", name: "Example Watch")) == "8")
-        #expect(try sequence(base, recordingDevice: nil) == "9")
+        #expect(try await sequence(Self.heartRate(7, payload: .sidecar(path: "sensorkit/heart-rate.csv", bytes: otherBytes))) == "6")
+        #expect(try await sequence(base, recordingDevice: .test(stableUnitToken: "watch-42", name: "Renamed Watch")) == "7")
+        #expect(try await sequence(base, recordingDevice: .test(stableUnitToken: "watch-43", name: "Example Watch")) == "8")
+        #expect(try await sequence(base, recordingDevice: nil) == "9")
         // Each setting changes alone against the step before it, so no other change masks it.
         let otherVisitSystem = try Fixtures.exporter(
             Fixtures.producer(storage: storage),
             visitLocationIdentifierSystem: "https://study.example.org/fhir/NamingSystem/other-visit-location"
         )
-        #expect(try sequence(base, through: otherVisitSystem, recordingDevice: nil) == "10", "a setting the record's bytes do not show")
-        #expect(try sequence(base, recordingDevice: nil) == "11", "the key keeps only its latest content's event")
+        #expect(try await sequence(base, through: otherVisitSystem, recordingDevice: nil) == "10", "a setting the record's bytes do not show")
+        #expect(try await sequence(base, recordingDevice: nil) == "11", "the key keeps only its latest content's event")
         let disclosing = try Fixtures.exporter(Fixtures.producer(storage: storage), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
-        #expect(try sequence(base, through: disclosing, recordingDevice: nil) == "12")
+        #expect(try await sequence(base, through: disclosing, recordingDevice: nil) == "12")
     }
 
     @Test("One source-record identifier under two sensors names two records, each with its own event")
-    func sensorsKeepTheirOwnEvents() throws {
+    func sensorsKeepTheirOwnEvents() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        let (exports, _) = try Fixtures.collect(exporter, [Self.sleep(12), try Self.heartRate(12)])
+        let (exports, _) = try await Fixtures.collect(exporter, [Self.sleep(12), try Self.heartRate(12)])
         #expect(Set(Self.sequences(exports)) == ["1", "2"])
     }
 
@@ -194,7 +194,8 @@ struct SensorKitFHIRExporterTests {
         var options = SensorKitFHIRExporter.Options()
         for policy in [GovernedSourceIdentifierDisclosurePolicy.omit, .authorized(system: Fixtures.nativeSystem)] {
             options.nativeIdentifier = policy
-            let stored = Mirror(reflecting: options).children.map { child in
+            // How many child tasks build a call changes its speed, never its graphs.
+            let stored = Mirror(reflecting: options).children.filter { $0.label != "maximumConcurrency" }.map { child in
                 (property: child.label ?? "", parts: (child.value as? any ExchangeContextFingerprinted)?.fingerprintParts ?? [])
             }
             #expect(options.fingerprintParts.map(\.property) == stored.map(\.property))
@@ -224,11 +225,11 @@ struct SensorKitFHIRExporterTests {
     }
 
     @Test("Every converter-clock instant states the reservation's millisecond, kept on a redelivery")
-    func instantsAreTheReservationsMillisecond() throws {
+    func instantsAreTheReservationsMillisecond() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let instant = Fixtures.start.addingTimeInterval(20.123_456_7)
         let record = try Self.heartRate(9)
-        let (exports, _) = try Fixtures.collect(exporter, [record], at: instant)
+        let (exports, _) = try await Fixtures.collect(exporter, [record], at: instant)
         let graph = try #require(exports.first?.graph)
         let provenance = try graph.provenance
         #expect(graph.bundle.timestamp?.value?.description == "2026-08-17T23:30:20.123Z")
@@ -239,15 +240,15 @@ struct SensorKitFHIRExporterTests {
             return
         }
         #expect(occurred.value?.description == "2026-08-17T23:30:20.123Z")
-        let (again, _) = try Fixtures.collect(exporter, [record], at: instant.addingTimeInterval(60))
+        let (again, _) = try await Fixtures.collect(exporter, [record], at: instant.addingTimeInterval(60))
         #expect(again.first?.graph?.json == graph.json)
     }
 
     @Test("Study references follow an output's own statements; the wrist-temperature algorithm version follows them")
-    func studyContextOrder() throws {
+    func studyContextOrder() async throws {
         let studies: [StudyEnrollment] = try [.test("study-a"), .test("study-b")]
         let exporter = try Fixtures.exporter(Fixtures.producer(studies: studies))
-        let (exports, _) = try Fixtures.collect(exporter, [try Self.wristTemperature(10)], recordingDevice: nil)
+        let (exports, _) = try await Fixtures.collect(exporter, [try Self.wristTemperature(10)], recordingDevice: nil)
         let graph = try #require(exports.first?.graph)
         let observation = try #require(graph.observations.first)
         #expect(observation.extension?.map(\.url.value?.url.absoluteString) == [
@@ -263,13 +264,13 @@ struct SensorKitFHIRExporterTests {
     }
 
     @Test("An error in the receiver ends the call with the reservations kept")
-    func receiverErrorsPropagate() throws {
+    func receiverErrorsPropagate() async throws {
         struct Stop: Error {}
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        #expect(throws: Stop.self) {
-            try exporter.export([Self.sleep(11)], sourceTimeZone: Fixtures.timeZone) { _ in throw Stop() }
+        await #expect(throws: Stop.self) {
+            try await exporter.export([Self.sleep(11)], sourceTimeZone: Fixtures.timeZone) { _ in throw Stop() }
         }
-        let (again, _) = try Fixtures.collect(exporter, [Self.sleep(11)], recordingDevice: nil)
+        let (again, _) = try await Fixtures.collect(exporter, [Self.sleep(11)], recordingDevice: nil)
         #expect(Self.sequences(again) == ["1"])
     }
 

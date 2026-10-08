@@ -79,13 +79,13 @@ struct HealthKitSampleProjectionTests {
     }
 
     @Test("A sample from before the 1582 calendar reform converts and projects back onto its own instant")
-    func preReformSampleRoundTrips() throws {
+    func preReformSampleRoundTrips() async throws {
         let start = Date(timeIntervalSince1970: -14_831_769_600)
         let sample = try StoredSampleFixtures.stored(
             HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 70), start: start, end: start),
             uuid: GoldenFixtures.uuid(1)
         )
-        let projected = try ExporterFixtures.export(sample).graph.healthKitSamples()
+        let projected = try await ExporterFixtures.export(sample).graph.healthKitSamples()
         #expect(projected.failures.isEmpty)
         #expect(projected.conversions.map(\.startDate) == [start])
     }

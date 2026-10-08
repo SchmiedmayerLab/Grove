@@ -117,8 +117,8 @@ struct HealthKitSampleProjectionEffectiveTests {
     }
 
     @Test("A converted heart-rate interval reads back as the sample it came from, syncing under its minted identity")
-    func heartRateIntervalRoundTrips() throws {
-        let output = try #require(GoldenCase.all.first { $0.name == "heart-rate-interval" }).output()
+    func heartRateIntervalRoundTrips() async throws {
+        let output = try await #require(GoldenCase.all.first { $0.name == "heart-rate-interval" }).output()
         let projection = output.graph.healthKitSamples()
         #expect(projection.failures.isEmpty)
         let sample = try #require(projection.conversions.first)
@@ -225,8 +225,8 @@ struct HealthKitSampleProjectionEffectiveTests {
     }
 
     @Test("Every golden's Observations project or refuse without trapping, never for their effective", arguments: GoldenCase.all)
-    func goldenObservationsProject(_ goldenCase: GoldenCase) throws {
-        let graph = try goldenCase.output().graph
+    func goldenObservationsProject(_ goldenCase: GoldenCase) async throws {
+        let graph = try await goldenCase.output().graph
         let projection = graph.healthKitSamples()
         for failure in projection.failures {
             switch failure.error {

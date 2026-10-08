@@ -35,29 +35,29 @@ struct QuestionnaireFHIRExporterTests {
     }
 
     @Test("A redelivery before release restates the event, even from a producer rebuilt with new enrollments")
-    func redeliveryReproducesEvents() throws {
+    func redeliveryReproducesEvents() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let exporter = try Fixtures.exporter(Fixtures.producer(storage: storage))
-        let (first, receipt) = try Fixtures.collect(exporter, [try Fixtures.guideRecord()])
+        let (first, receipt) = try await Fixtures.collect(exporter, [try Fixtures.guideRecord()])
         #expect(Self.sequences(first) == ["1"])
         #expect(first.map(\.responseIdentifier) == ["home-vitals-2026-08-28"])
 
         let rebuilt = try Fixtures.exporter(Fixtures.producer(studies: [Fixtures.study("study-a")], storage: storage))
-        let (again, againReceipt) = try Fixtures.collect(rebuilt, [try Fixtures.guideRecord()], at: Fixtures.instant.addingTimeInterval(3_600))
+        let (again, againReceipt) = try await Fixtures.collect(rebuilt, [try Fixtures.guideRecord()], at: Fixtures.instant.addingTimeInterval(3_600))
         #expect(again.map(\.graph?.json) == first.map(\.graph?.json))
 
         receipt.release()
         againReceipt.release()
-        let (next, _) = try Fixtures.collect(rebuilt, [try Fixtures.guideRecord()])
+        let (next, _) = try await Fixtures.collect(rebuilt, [try Fixtures.guideRecord()])
         #expect(Self.sequences(next) == ["2"])
         #expect(next.first?.graph?.resourceTypes.contains("ResearchStudy") == true)
     }
 
     @Test("A refused record reserves nothing and the call goes on")
-    func refusalsDoNotEndTheCall() throws {
+    func refusalsDoNotEndTheCall() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let inProgress = try Fixtures.guideRecord { $0.status = FHIRPrimitive(.inProgress) }
-        let (exports, _) = try Fixtures.collect(exporter, [inProgress, try Fixtures.guideRecord()])
+        let (exports, _) = try await Fixtures.collect(exporter, [inProgress, try Fixtures.guideRecord()])
         guard case .refused(let refusal) = exports.first?.outcome else {
             Issue.record("the in-progress response was not refused")
             return
@@ -67,7 +67,7 @@ struct QuestionnaireFHIRExporterTests {
     }
 
     @Test("Identity and graph failures are refusals of their own record")
-    func identityAndGraphFailuresAreRefusals() throws {
+    func identityAndGraphFailuresAreRefusals() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let blankIdentifier = try Fixtures.guideRecord { $0.identifier = Identifier(system: $0.identifier?.system, value: "") }
         // A study reference the Bundle cannot resolve fails the graph's governed-reference rule.
@@ -80,7 +80,7 @@ struct QuestionnaireFHIRExporterTests {
                 )
             ]
         }
-        let (exports, _) = try Fixtures.collect(exporter, [blankIdentifier, foreignStudy, try Fixtures.guideRecord()])
+        let (exports, _) = try await Fixtures.collect(exporter, [blankIdentifier, foreignStudy, try Fixtures.guideRecord()])
         guard case .refused(.exchangeIdentity) = exports[0].outcome else {
             Issue.record("a blank response identifier is not an identity refusal: \(String(describing: exports[0].outcome))")
             return
@@ -93,21 +93,21 @@ struct QuestionnaireFHIRExporterTests {
     }
 
     @Test("A response named twice with other content keeps its first event; the same content shares it")
-    func duplicatesInOneCall() throws {
+    func duplicatesInOneCall() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        let (conflicting, _) = try Fixtures.collect(exporter, [try Fixtures.guideRecord(), try Self.amended()])
+        let (conflicting, _) = try await Fixtures.collect(exporter, [try Fixtures.guideRecord(), try Self.amended()])
         #expect(Self.sequences(conflicting) == ["1", nil])
         guard case .refused(.conflictingDuplicate) = conflicting.last?.outcome else {
             Issue.record("the amended duplicate was not refused")
             return
         }
-        let (repeated, _) = try Fixtures.collect(exporter, [try Fixtures.guideRecord(), try Fixtures.guideRecord()])
+        let (repeated, _) = try await Fixtures.collect(exporter, [try Fixtures.guideRecord(), try Fixtures.guideRecord()])
         #expect(Self.sequences(repeated) == ["1", "1"])
         #expect(repeated[0].graph?.json == repeated[1].graph?.json)
     }
 
     @Test("Another response or another revision of the instrument under a reserved response mints a new event")
-    func contentChangesMintNewEvents() throws {
+    func contentChangesMintNewEvents() async throws {
         let guide = try Fixtures.guideRecord()
         var questionnaire = guide.questionnaire
         questionnaire.title = "Home Vitals, revised wording"
@@ -115,8 +115,8 @@ struct QuestionnaireFHIRExporterTests {
         // Each change alone against the guide's reserved pair, so neither masks the other.
         for changed in [try Self.amended(), retitled] {
             let exporter = try Fixtures.exporter(Fixtures.producer())
-            let (first, _) = try Fixtures.collect(exporter, [guide])
-            let (again, _) = try Fixtures.collect(exporter, [changed])
+            let (first, _) = try await Fixtures.collect(exporter, [guide])
+            let (again, _) = try await Fixtures.collect(exporter, [changed])
             #expect(Self.sequences(first + again) == ["1", "2"])
         }
     }
@@ -140,7 +140,7 @@ struct QuestionnaireFHIRExporterTests {
     /// the offset the authored value had. Both forms are one request, so they must state one graph, even when the
     /// zone's offset at the conversion instant differs from the authored one.
     @Test("A response with a named zone and its decoded JSON restate one event byte for byte across a daylight-saving change")
-    func namedZoneAndItsJSONRestateOneEvent() throws {
+    func namedZoneAndItsJSONRestateOneEvent() async throws {
         let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
         // Authored in summer time, at +02:00; converted in December, when the zone is at +01:00.
         let authored = try DateTime(date: Date(timeIntervalSince1970: 1_787_931_120), timeZone: berlin)
@@ -153,8 +153,8 @@ struct QuestionnaireFHIRExporterTests {
         try #require(decoded.response.authored?.value?.timeZone != berlin, "decoding keeps only the stated offset")
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let december = Date(timeIntervalSince1970: 1_796_139_125)
-        let (first, _) = try Fixtures.collect(exporter, [named], at: december)
-        let (again, _) = try Fixtures.collect(exporter, [decoded], at: december.addingTimeInterval(60))
+        let (first, _) = try await Fixtures.collect(exporter, [named], at: december)
+        let (again, _) = try await Fixtures.collect(exporter, [decoded], at: december.addingTimeInterval(60))
         let graph = try #require(first.first?.graph)
         #expect(Self.sequences(again) == ["1"])
         #expect(again.first?.graph?.json == graph.json)
@@ -169,9 +169,9 @@ struct QuestionnaireFHIRExporterTests {
     }
 
     @Test("A logical subject bundles a Patient stating only the pseudonym")
-    func logicalSubjectBundlesThePseudonym() throws {
+    func logicalSubjectBundlesThePseudonym() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer(subject: .logical(Fixtures.pseudonym)))
-        let graph = try #require(try Fixtures.collect(exporter, [try Fixtures.guideRecord()]).exports.first?.graph)
+        let graph = try await #require(try Fixtures.collect(exporter, [try Fixtures.guideRecord()]).exports.first?.graph)
         let entry = try #require(graph.bundle.entry?.first)
         guard case .patient(let patient)? = entry.resource else {
             Issue.record("the first entry is not the Patient")
@@ -184,9 +184,9 @@ struct QuestionnaireFHIRExporterTests {
     }
 
     @Test("An enrolled participant's graph states the study context after the Patient and references it from every Observation")
-    func enrollmentsBecomeTheStudyContext() throws {
+    func enrollmentsBecomeTheStudyContext() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer(studies: [Fixtures.study("study-a"), Fixtures.study("study-b")]))
-        let graph = try #require(try Fixtures.collect(exporter, [try Fixtures.guideRecord()]).exports.first?.graph)
+        let graph = try await #require(try Fixtures.collect(exporter, [try Fixtures.guideRecord()]).exports.first?.graph)
         let study = ["ResearchStudy", "PlanDefinition", "ResearchSubject"]
         #expect(graph.resourceTypes == ["Patient"] + study + study + ["QuestionnaireResponse", "Device", "Device", "Observation", "Observation", "Provenance"])
         let entries = try #require(graph.bundle.entry)
@@ -216,13 +216,13 @@ struct QuestionnaireFHIRExporterTests {
     }
 
     @Test("An error in the receiver ends the call with the reservations kept")
-    func receiverErrorsPropagate() throws {
+    func receiverErrorsPropagate() async throws {
         struct Stop: Error {}
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        #expect(throws: Stop.self) {
-            try exporter.export([try Fixtures.guideRecord()], at: Fixtures.instant) { _ in throw Stop() }
+        await #expect(throws: Stop.self) {
+            try await exporter.export([try Fixtures.guideRecord()], at: Fixtures.instant) { _ in throw Stop() }
         }
-        let (again, _) = try Fixtures.collect(exporter, [try Fixtures.guideRecord()])
+        let (again, _) = try await Fixtures.collect(exporter, [try Fixtures.guideRecord()])
         #expect(Self.sequences(again) == ["1"])
     }
 

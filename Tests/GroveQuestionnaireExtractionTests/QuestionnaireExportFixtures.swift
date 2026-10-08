@@ -137,9 +137,9 @@ enum QuestionnaireExportFixtures {
         _ exporter: QuestionnaireFHIRExporter,
         _ records: [QuestionnaireFHIRExporter.Record],
         at instant: Date = instant
-    ) throws -> (exports: [QuestionnaireFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> (exports: [QuestionnaireFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [QuestionnaireFHIRExporter.Export] = []
-        let receipt = try exporter.export(records, at: instant) { exports.append($0) }
+        let receipt = try await exporter.export(records, at: instant) { exports.append($0) }
         return (exports, receipt)
     }
 

@@ -62,9 +62,9 @@ struct GroveSensorKitUsageSummaryTests {
     }
 
     @Test
-    func messagesUsageBuildsACountOnlySummaryLinkedToItsRecording() throws {
+    func messagesUsageBuildsACountOnlySummaryLinkedToItsRecording() async throws {
         let record = try Self.messagesUsage(nativeRecording: Self.native())
-        let graph = try SensorKitExporterFixtures.graph(.messagesUsage(record), recordingDevice: nil)
+        let graph = try await SensorKitExporterFixtures.graph(.messagesUsage(record), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
         let document = try #require(graph.recordingDocument)
         let entries = try #require(graph.bundle.entry)
@@ -94,9 +94,9 @@ struct GroveSensorKitUsageSummaryTests {
     }
 
     @Test
-    func messagesUsageWithoutARecordingOmitsTheDocumentAndLink() throws {
+    func messagesUsageWithoutARecordingOmitsTheDocumentAndLink() async throws {
         let record = try Self.messagesUsage(nativeRecording: nil)
-        let graph = try SensorKitExporterFixtures.graph(.messagesUsage(record), recordingDevice: nil)
+        let graph = try await SensorKitExporterFixtures.graph(.messagesUsage(record), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
 
         #expect(graph.recordingDocument == nil)
@@ -112,7 +112,7 @@ struct GroveSensorKitUsageSummaryTests {
     }
 
     @Test
-    func phoneUsageEmitsTheTotalCallDurationAsItsValue() throws {
+    func phoneUsageEmitsTheTotalCallDurationAsItsValue() async throws {
         let record = SensorKitPhoneUsageRecord(
             sourceRecordID: try Self.sourceID,
             timestamp: Self.start,
@@ -123,7 +123,7 @@ struct GroveSensorKitUsageSummaryTests {
             totalUniqueContacts: 4,
             nativeRecording: try Self.native()
         )
-        let graph = try SensorKitExporterFixtures.graph(.phoneUsage(record), recordingDevice: nil)
+        let graph = try await SensorKitExporterFixtures.graph(.phoneUsage(record), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
         let entries = try #require(graph.bundle.entry)
 
@@ -149,7 +149,7 @@ struct GroveSensorKitUsageSummaryTests {
     }
 
     @Test
-    func keyboardMetricsSummaryAlwaysLinksItsMandatoryRecording() throws {
+    func keyboardMetricsSummaryAlwaysLinksItsMandatoryRecording() async throws {
         let record = SensorKitKeyboardMetricsRecord(
             sourceRecordID: try Self.sourceID,
             timestamp: Self.start,
@@ -166,7 +166,7 @@ struct GroveSensorKitUsageSummaryTests {
             typingSpeed: 3.5,
             nativeRecording: try Self.native()
         )
-        let graph = try SensorKitExporterFixtures.graph(.keyboardMetrics(record), recordingDevice: nil)
+        let graph = try await SensorKitExporterFixtures.graph(.keyboardMetrics(record), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
         let entries = try #require(graph.bundle.entry)
 
@@ -201,7 +201,7 @@ struct GroveSensorKitUsageSummaryTests {
     }
 
     @Test
-    func invalidUsageSummariesFailClosed() throws {
+    func invalidUsageSummariesFailClosed() async throws {
         let zeroDuration = SensorKitMessagesUsageRecord(
             sourceRecordID: try Self.sourceID,
             timestamp: Self.start,
@@ -219,13 +219,13 @@ struct GroveSensorKitUsageSummaryTests {
             totalUniqueContacts: 1
         )
 
-        #expect(throws: SensorKitConversionError.invalidRecord(.invalidReportDuration(field: "duration"))) {
-            try SensorKitExporterFixtures.graph(.messagesUsage(zeroDuration))
+        await #expect(throws: SensorKitConversionError.invalidRecord(.invalidReportDuration(field: "duration"))) {
+            try await SensorKitExporterFixtures.graph(.messagesUsage(zeroDuration))
         }
-        #expect(throws: SensorKitConversionError.invalidRecord(
+        await #expect(throws: SensorKitConversionError.invalidRecord(
             .invalidReportCount(field: "incoming-messages", value: -1)
         )) {
-            try SensorKitExporterFixtures.graph(.messagesUsage(negativeCount))
+            try await SensorKitExporterFixtures.graph(.messagesUsage(negativeCount))
         }
     }
 }

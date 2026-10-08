@@ -41,6 +41,10 @@ extension HealthKitFHIRExporter {
         /// A deployment that still keys its receiver on `Bundle.id` can keep the old value there for the
         /// transition. See ``LegacyBundleID``.
         public var legacyBundleID: LegacyBundleID = .none
+        /// At most how many child tasks build one call's graphs at once; `nil`, the default, builds on one per active
+        /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports, so it
+        /// is not part of the request fingerprint.
+        public var maximumConcurrency: Int?
         /// Whether the exporter measures what its export calls cost, read through ``HealthKitFHIRExporter/throughput``.
         ///
         /// Off by default. Measuring is not part of any request's fingerprint, so it changes no event and no graph byte.

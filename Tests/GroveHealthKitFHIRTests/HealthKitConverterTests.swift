@@ -217,8 +217,8 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test("A valid sync pair is writer-scoped and omitted when its writer is unavailable")
-    func syncIdentityIsCarried() throws {
-        let plain = try ExporterFixtures.export(
+    func syncIdentityIsCarried() async throws {
+        let plain = try await ExporterFixtures.export(
             quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
             inputs
         )
@@ -228,7 +228,7 @@ struct HealthKitFHIRConverterTests {
 
         // The same logical measurement, saved twice: HealthKit replaces the first and the
         // replacement carries a new object UUID, so only the sync identity ties them together.
-        let first = try ExporterFixtures.export(
+        let first = try await ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
@@ -237,7 +237,7 @@ struct HealthKitFHIRConverterTests {
             ),
             inputs
         )
-        let revision = try ExporterFixtures.export(
+        let revision = try await ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
@@ -273,7 +273,7 @@ struct HealthKitFHIRConverterTests {
 
         // A stored sample names the writing application, so the pair is scoped to it: the identity is the one the
         // identity scope mints for that writer and record, and a UInt64 version survives as canonical decimal text.
-        let attributable = try ExporterFixtures.export(
+        let attributable = try await ExporterFixtures.export(
             attributedBodyMass([HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: NSNumber(value: UInt64.max)]),
             inputs
         )
@@ -286,7 +286,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test("HealthKit sync identifier and version are a strict nonnegative-integral pair")
-    func syncIdentityRejectsMalformedPairs() throws {
+    func syncIdentityRejectsMalformedPairs() async throws {
         let invalidIdentifier = HealthKitConversionError.invalidValue(.bodyMass, .invalidMetadataValue(.syncIdentifier))
         let invalidVersion = HealthKitConversionError.invalidValue(.bodyMass, .invalidMetadataValue(.syncVersion))
         var malformed: [([String: Any], HealthKitConversionError)] = [
@@ -301,8 +301,8 @@ struct HealthKitFHIRConverterTests {
         }
         for (metadata, refusal) in malformed {
             let sample = try attributedBodyMass(metadata)
-            #expect(throws: refusal, "\(metadata)") {
-                try ExporterFixtures.export(sample, inputs)
+            await #expect(throws: refusal, "\(metadata)") {
+                try await ExporterFixtures.export(sample, inputs)
             }
         }
     }
@@ -349,13 +349,13 @@ struct HealthKitFHIRConverterTests {
     /// The full-catalog matrix proves the profile, code, and lineage facts for every row; this
     /// hand-picked set exists for the source units it converts from and its exact decimal scaling.
     @Test("Every source unit normalizes to its contract unit and exact decimal", arguments: QuantityCase.allCases)
-    func normalizesSourceUnits(testCase: QuantityCase) throws {
+    func normalizesSourceUnits(testCase: QuantityCase) async throws {
         let sample = quantitySample(
             testCase.identifier,
             unit: testCase.sourceUnit,
             value: testCase.sourceValue
         )
-        let conversion = try ExporterFixtures.export(sample, inputs)
+        let conversion = try await ExporterFixtures.export(sample, inputs)
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = conversion.observation.value else {
                 return nil
@@ -401,11 +401,11 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test("Every percent type states its fraction in percent exactly, not as the binary64 product", arguments: percentCases)
-    func percentTypesStateTheExactPercent(testCase: PercentCase) throws {
+    func percentTypesStateTheExactPercent(testCase: PercentCase) async throws {
         #expect(testCase.fraction * 100 != Double(testCase.expected), "the product states \(testCase.expected) exactly too")
         let sample = quantitySample(testCase.type, unit: .percent(), value: testCase.fraction)
 
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
 
         guard case .quantity(let quantity) = observation.value else {
             Issue.record("a percent type states a quantity")
@@ -427,14 +427,14 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test("Every HealthKit sleep-stage value maps to the shared code system", arguments: SleepCase.allCases)
-    func sleepStage(testCase: SleepCase) throws {
+    func sleepStage(testCase: SleepCase) async throws {
         let sample = HKCategorySample(
             type: HKCategoryType(.sleepAnalysis),
             value: testCase.rawValue,
             start: timestamp,
             end: timestamp.addingTimeInterval(1_800)
         )
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let value: CodeableConcept = try #require({
             guard case .codeableConcept(let concept) = observation.value else {
                 return nil
@@ -456,7 +456,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func bloodPressureUsesBothRequiredComponents() throws {
+    func bloodPressureUsesBothRequiredComponents() async throws {
         let systolic = quantitySample(.bloodPressureSystolic, unit: .millimeterOfMercury(), value: 120)
         let diastolic = quantitySample(.bloodPressureDiastolic, unit: .millimeterOfMercury(), value: 80)
         let sample = HKCorrelation(
@@ -465,7 +465,7 @@ struct HealthKitFHIRConverterTests {
             end: timestamp.addingTimeInterval(60),
             objects: [systolic, diastolic]
         )
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == [
             Profile.groveMobileBloodPressure,
@@ -483,7 +483,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func graphHasCompleteDeterministicEntryIdentitiesAndNoSyntheticResourceIDs() throws {
+    func graphHasCompleteDeterministicEntryIdentitiesAndNoSyntheticResourceIDs() async throws {
         let sample = quantitySample(
             .heartRate,
             unit: .count().unitDivided(by: .minute()),
@@ -501,8 +501,8 @@ struct HealthKitFHIRConverterTests {
         )
         var gatewayInputs = inputs
         gatewayInputs.options.role = .gateway
-        let first = try ExporterFixtures.export(sample, gatewayInputs)
-        let second = try ExporterFixtures.export(sample, gatewayInputs)
+        let first = try await ExporterFixtures.export(sample, gatewayInputs)
+        let second = try await ExporterFixtures.export(sample, gatewayInputs)
         let entries = try #require(first.bundle.entry)
 
         #expect(first.bundle.id == nil)
@@ -548,7 +548,7 @@ struct HealthKitFHIRConverterTests {
     /// The exporter assigns no repository id but the transitional legacy `Bundle.id`, and a custom resolver names the
     /// recording Device's unit while the UDI stays undisclosed.
     @Test
-    func repositoryIDsAndAuthorizedDeviceNamespaceAreOnlyAppliedExplicitly() throws {
+    func repositoryIDsAndAuthorizedDeviceNamespaceAreOnlyAppliedExplicitly() async throws {
         let sample = quantitySample(
             .bodyMass,
             unit: .gramUnit(with: .kilo),
@@ -566,10 +566,10 @@ struct HealthKitFHIRConverterTests {
         )
         var explicitInputs = inputs
         explicitInputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: "test-recording-device"))
-        let unassigned = try ExporterFixtures.export(sample, explicitInputs)
+        let unassigned = try await ExporterFixtures.export(sample, explicitInputs)
         #expect(unassigned.bundle.id == nil)
         explicitInputs.options.legacyBundleID = .healthKitUUID
-        let conversion = try ExporterFixtures.export(sample, explicitInputs)
+        let conversion = try await ExporterFixtures.export(sample, explicitInputs)
 
         #expect(conversion.bundle.id?.value?.string == sample.uuid.uuidString)
         #expect(conversion.observation.id == nil)
@@ -583,7 +583,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func authorizedUDIDisclosureIsIndependentFromLocalIdentifierDisclosure() throws {
+    func authorizedUDIDisclosureIsIndependentFromLocalIdentifierDisclosure() async throws {
         let sample = quantitySample(
             .bodyMass,
             unit: .gramUnit(with: .kilo),
@@ -601,7 +601,7 @@ struct HealthKitFHIRConverterTests {
         )
         var authorizedInputs = inputs
         authorizedInputs.options.udi = .authorized
-        let conversion = try ExporterFixtures.export(sample, authorizedInputs)
+        let conversion = try await ExporterFixtures.export(sample, authorizedInputs)
 
         let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
@@ -609,8 +609,8 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func typedMetadataDoesNotInferUnknownFacts() throws {
-        let automatic = try ExporterFixtures.export(
+    func typedMetadataDoesNotInferUnknownFacts() async throws {
+        let automatic = try await ExporterFixtures.export(
             quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
             inputs
         )
@@ -619,7 +619,7 @@ struct HealthKitFHIRConverterTests {
         } != true)
         #expect(automatic.writer == nil)
 
-        let manual = try ExporterFixtures.export(
+        let manual = try await ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
@@ -635,8 +635,8 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func unmodelledMetadataAndExternalUUIDAreNotInventedAsFHIRComponents() throws {
-        let conversion = try ExporterFixtures.export(
+    func unmodelledMetadataAndExternalUUIDAreNotInventedAsFHIRComponents() async throws {
+        let conversion = try await ExporterFixtures.export(
             quantitySample(
                 .heartRate,
                 unit: .count().unitDivided(by: .minute()),
@@ -661,7 +661,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func nativeHealthKitUUIDDisclosureIsExplicitTypedAndPrimaryOnly() throws {
+    func nativeHealthKitUUIDDisclosureIsExplicitTypedAndPrimaryOnly() async throws {
         let sample = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
         let nativeSystem = IdentifierSystem("https://study.example/fhir/identifier/healthkit-object")
         let nativeType = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
@@ -670,14 +670,14 @@ struct HealthKitFHIRConverterTests {
             display: "HealthKit object UUID"
         )
 
-        let omitted = try ExporterFixtures.export(sample, inputs)
+        let omitted = try await ExporterFixtures.export(sample, inputs)
         #expect(omitted.observation.identifier?.contains {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         } != true)
 
         var disclosureInputs = inputs
         disclosureInputs.options.nativeIdentifier = .authorized(system: nativeSystem, type: nativeType)
-        let disclosed = try ExporterFixtures.export(sample, disclosureInputs)
+        let disclosed = try await ExporterFixtures.export(sample, disclosureInputs)
         let native = try #require(disclosed.observation.identifier?.first {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         })
@@ -739,8 +739,8 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func heartRateMetadataIsAllowlistedAndUnknownValuesFailClosed() throws {
-        let valid = try ExporterFixtures.export(
+    func heartRateMetadataIsAllowlistedAndUnknownValuesFailClosed() async throws {
+        let valid = try await ExporterFixtures.export(
             quantitySample(
                 .heartRate,
                 unit: .count().unitDivided(by: .minute()),
@@ -765,19 +765,19 @@ struct HealthKitFHIRConverterTests {
             value: 72,
             metadata: [HKMetadataKeyHeartRateMotionContext: NSNumber(value: 99)]
         )
-        #expect(throws: HealthKitConversionError.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext))) {
-            try ExporterFixtures.export(invalid, inputs)
+        await #expect(throws: HealthKitConversionError.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext))) {
+            try await ExporterFixtures.export(invalid, inputs)
         }
     }
 
     @Test
-    func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() throws {
+    func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() async throws {
         let sample = quantitySample(
             .bloodGlucose,
             unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)),
             value: 100
         )
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == [
             Profile.groveMobileBloodGlucoseUnspecifiedSpecimen,
@@ -917,15 +917,15 @@ struct HealthKitFHIRConverterTests {
 
     /// Step counts obey `grove-step-count-period-1`, which requires `end > start`.
     @Test
-    func periodMetricsRejectZeroLengthIntervals() {
+    func periodMetricsRejectZeroLengthIntervals() async {
         let sample = quantitySample(.stepCount, unit: .count(), value: 431, interval: 0)
-        #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
-            try ExporterFixtures.export(sample, inputs)
+        await #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
+            try await ExporterFixtures.export(sample, inputs)
         }
     }
 
     @Test("A point-in-time source keeps its instant as an equal-endpoint Period")
-    func periodMetricsAdmitZeroLengthPointInTimeSources() throws {
+    func periodMetricsAdmitZeroLengthPointInTimeSources() async throws {
         let dietaryEnergy = quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 650, interval: 0)
         // HealthKit gives every State of Mind a single date.
         let stateOfMind = HKStateOfMind(
@@ -937,7 +937,7 @@ struct HealthKitFHIRConverterTests {
         )
         #expect(stateOfMind.startDate == stateOfMind.endDate)
         for sample in [dietaryEnergy, stateOfMind] as [HKSample] {
-            let observation = try ExporterFixtures.export(sample, inputs).observation
+            let observation = try await ExporterFixtures.export(sample, inputs).observation
             guard case .period(let period) = observation.effective else {
                 Issue.record("\(sample.sampleType.identifier) must emit an effectivePeriod")
                 continue
@@ -1004,7 +1004,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func batchReportsEveryFailureWithoutDroppingRecords() throws {
+    func batchReportsEveryFailureWithoutDroppingRecords() async throws {
         let supported = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
         let deferred = HKCorrelation(
             type: HKCorrelationType(.food),
@@ -1013,7 +1013,7 @@ struct HealthKitFHIRConverterTests {
             objects: [quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 320)]
         )
         let (exporter, _) = try ExporterFixtures.exporter(inputs)
-        let (exports, _) = try ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
+        let (exports, _) = try await ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
         #expect(exports.compactMap(\.graph).count == 1)
         guard exports.count == 2, case .refused(let error) = exports[1].outcome else {
             Issue.record("The refused record keeps its source identity and typed reason")

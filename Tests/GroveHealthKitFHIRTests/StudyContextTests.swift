@@ -35,15 +35,15 @@ struct StudyContextTests {
     private static func conversion(
         subject: Subject = .testPatient,
         studies: [StudyEnrollment] = enrollments
-    ) throws -> ExportedRecord {
+    ) async throws -> ExportedRecord {
         var inputs = ExportInputs()
         inputs.subject = subject
         inputs.studies = studies
-        return try ExporterFixtures.export(sample, inputs)
+        return try await ExporterFixtures.export(sample, inputs)
     }
 
-    private static func graph(subject: Subject = .testPatient) throws -> ExchangeGraph {
-        try conversion(subject: subject).primary.graph
+    private static func graph(subject: Subject = .testPatient) async throws -> ExchangeGraph {
+        try await conversion(subject: subject).primary.graph
     }
 
     private static func bundleObject(_ graph: ExchangeGraph) throws -> [String: Any] {
@@ -80,8 +80,8 @@ struct StudyContextTests {
     }
 
     @Test("Every enrollment becomes its study, plan and subject entries, and every output names the studies")
-    func enrollmentBecomesStudyContext() throws {
-        let graph = try Self.graph()
+    func enrollmentBecomesStudyContext() async throws {
+        let graph = try await Self.graph()
         let entries = try #require(try Self.bundleObject(graph)["entry"] as? Entries)
         #expect(Self.resources(entries, ofType: "ResearchStudy").count == 2)
         #expect(Self.resources(entries, ofType: "PlanDefinition").count == 2)
@@ -97,8 +97,8 @@ struct StudyContextTests {
     }
 
     @Test("A bundled subject is the Patient entry every ResearchSubject links to")
-    func bundledSubjectIsThePatientEntry() throws {
-        let graph = try Self.graph(subject: .bundled(.test(.patient, "example"), Patient()))
+    func bundledSubjectIsThePatientEntry() async throws {
+        let graph = try await Self.graph(subject: .bundled(.test(.patient, "example"), Patient()))
         let entries = try #require(try Self.bundleObject(graph)["entry"] as? Entries)
         let patient = try #require(entries.first { ($0["resource"] as? [String: Any])?["resourceType"] as? String == "Patient" })
         let patientURL = try #require(patient["fullUrl"] as? String)
@@ -109,9 +109,9 @@ struct StudyContextTests {
     }
 
     @Test("Study relevance leaves the measurement and its identities unchanged", arguments: [0, 1, 2])
-    func studyRelevancePreservesTheMeasurement(studyCount: Int) throws {
-        let baseline = try Self.conversion(studies: [])
-        let conversion = try Self.conversion(studies: (0..<studyCount).map { StudyEnrollment.test("study-\($0)") })
+    func studyRelevancePreservesTheMeasurement(studyCount: Int) async throws {
+        let baseline = try await Self.conversion(studies: [])
+        let conversion = try await Self.conversion(studies: (0..<studyCount).map { StudyEnrollment.test("study-\($0)") })
         let studies = conversion.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(studies.count == studyCount)
         #expect(conversion.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
@@ -127,7 +127,7 @@ struct StudyContextTests {
     }
 
     @Test("Each enrollment keeps its own exact protocol revision")
-    func enrollmentsKeepTheirOwnProtocolRevision() throws {
+    func enrollmentsKeepTheirOwnProtocolRevision() async throws {
         let enrollments = try [("a", "2"), ("b", "4")].map { study, version in
             try StudyEnrollment(
                 study: .test(.researchStudy, study),
@@ -136,7 +136,7 @@ struct StudyContextTests {
                 enrollment: .test(.researchSubject, "enrollment-\(study)")
             )
         }
-        let entries = try #require(try Self.bundleObject(Self.conversion(studies: enrollments).primary.graph)["entry"] as? Entries)
+        let entries = try #require(try await Self.bundleObject(Self.conversion(studies: enrollments).primary.graph)["entry"] as? Entries)
         let plansByURL = Dictionary(uniqueKeysWithValues: entries.compactMap { entry -> (String, [String: Any])? in
             guard let resource = entry["resource"] as? [String: Any], resource["resourceType"] as? String == "PlanDefinition",
                   let fullURL = entry["fullUrl"] as? String else {
@@ -158,17 +158,17 @@ struct StudyContextTests {
     }
 
     @Test("A retry of the persisted context rebuilds the same event, study context included")
-    func retryPreservesTheStudyContext() throws {
-        let original = try Self.graph()
-        let retry = try Self.graph()
+    func retryPreservesTheStudyContext() async throws {
+        let original = try await Self.graph()
+        let retry = try await Self.graph()
         #expect(original.eventIdentifier == retry.eventIdentifier)
         #expect(original.isSemanticallyEqual(to: retry))
-        #expect(!original.isSemanticallyEqual(to: try Self.conversion(studies: [.test("a")]).primary.graph))
+        await #expect(!original.isSemanticallyEqual(to: try Self.conversion(studies: [.test("a")]).primary.graph))
     }
 
     @Test("A study without its ResearchSubject is refused")
-    func missingResearchSubjectIsRefused() throws {
-        let diagnostic = try Self.revalidate(Self.graph()) { entries in
+    func missingResearchSubjectIsRefused() async throws {
+        let diagnostic = try Self.revalidate(await Self.graph()) { entries in
             entries.filter { ($0["resource"] as? [String: Any])?["resourceType"] as? String != "ResearchSubject" }
         }
         #expect(diagnostic == ExchangeGraphRule.mobileSupportStudyContext.diagnostic)
@@ -176,24 +176,24 @@ struct StudyContextTests {
     }
 
     @Test("A PlanDefinition without its exact version is refused")
-    func unversionedPlanIsRefused() throws {
-        let diagnostic = try Self.revalidate(Self.graph()) { entries in
+    func unversionedPlanIsRefused() async throws {
+        let diagnostic = try Self.revalidate(await Self.graph()) { entries in
             Self.rewriting(entries, type: "PlanDefinition") { $0["version"] = nil }
         }
         #expect(diagnostic?.code == Self.studyContextRule)
     }
 
     @Test("A ResearchStudy without its protocol is refused")
-    func studyWithoutProtocolIsRefused() throws {
-        let diagnostic = try Self.revalidate(Self.graph()) { entries in
+    func studyWithoutProtocolIsRefused() async throws {
+        let diagnostic = try Self.revalidate(await Self.graph()) { entries in
             Self.rewriting(entries, type: "ResearchStudy") { $0["protocol"] = nil }
         }
         #expect(diagnostic?.code == Self.studyContextRule)
     }
 
     @Test("A ResearchSubject enrolling someone other than the graph's subject is refused")
-    func foreignIndividualIsRefused() throws {
-        let diagnostic = try Self.revalidate(Self.graph()) { entries in
+    func foreignIndividualIsRefused() async throws {
+        let diagnostic = try Self.revalidate(await Self.graph()) { entries in
             Self.rewriting(entries, type: "ResearchSubject") {
                 $0["individual"] = [
                     "type": "Patient",

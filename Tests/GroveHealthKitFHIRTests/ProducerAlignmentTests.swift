@@ -145,7 +145,7 @@ struct ProducerWarningTests {
     }
 
     @Test("An export reports exactly what the graph lost")
-    func conversionReportsOmissions() throws {
+    func conversionReportsOmissions() async throws {
         let unidentified = HKDevice(
             name: "Example Watch",
             manufacturer: "Example",
@@ -167,10 +167,10 @@ struct ProducerWarningTests {
             udiDeviceIdentifier: "udi-42"
         )
 
-        let lossy = try ExporterFixtures.export(Self.heartRate(device: unidentified, metadata: [:]))
+        let lossy = try await ExporterFixtures.export(Self.heartRate(device: unidentified, metadata: [:]))
         #expect(Set(lossy.warnings) == [Self.recordingDeviceOmitted, Self.effectiveDateTimeOffsetUnavailable])
 
-        let withheld = try ExporterFixtures.export(
+        let withheld = try await ExporterFixtures.export(
             Self.heartRate(
                 device: identified,
                 metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles", "com.example.zeta": "z", "com.example.custom": "x"]
@@ -178,7 +178,7 @@ struct ProducerWarningTests {
         )
         #expect(withheld.warnings == [Self.unmodeledMetadataWithheld])
 
-        let complete = try ExporterFixtures.export(
+        let complete = try await ExporterFixtures.export(
             Self.heartRate(device: identified, metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"])
         )
         #expect(complete.warnings.isEmpty, "the omitted UDI is the deployment's disclosure choice, not a loss")
@@ -188,7 +188,7 @@ struct ProducerWarningTests {
         (HKQuantityTypeIdentifier.stepCount, HKUnit.count()),
         (.heartRate, .count().unitDivided(by: .minute()))
     ])
-    func intervalReportsBothBounds(type: HKQuantityTypeIdentifier, unit: HKUnit) throws {
+    func intervalReportsBothBounds(type: HKQuantityTypeIdentifier, unit: HKUnit) async throws {
         let start = TestEvent.testInstant
         let interval = HKQuantitySample(
             type: HKQuantityType(type),
@@ -196,7 +196,7 @@ struct ProducerWarningTests {
             start: start,
             end: start.addingTimeInterval(60)
         )
-        let conversion = try ExporterFixtures.export(interval)
+        let conversion = try await ExporterFixtures.export(interval)
         #expect(conversion.warnings == [
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")
@@ -225,8 +225,8 @@ struct EffectiveTimeZoneTests {
     }
 
     @Test("Clock instants are UTC whatever zone the sample states, and only the effective time follows it")
-    func clockInstantsAreUTC() throws {
-        func conversion(_ zone: String) throws -> ExportedRecord {
+    func clockInstantsAreUTC() async throws {
+        func conversion(_ zone: String) async throws -> ExportedRecord {
             let sample = HKQuantitySample(
                 type: HKQuantityType(.heartRate),
                 quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
@@ -234,10 +234,10 @@ struct EffectiveTimeZoneTests {
                 end: Self.start,
                 metadata: [HKMetadataKeyTimeZone: zone]
             )
-            return try ExporterFixtures.export(sample)
+            return try await ExporterFixtures.export(sample)
         }
-        let pacific = try conversion("America/Los_Angeles")
-        let tokyo = try conversion("Asia/Tokyo")
+        let pacific = try await conversion("America/Los_Angeles")
+        let tokyo = try await conversion("Asia/Tokyo")
         for graph in [pacific, tokyo] {
             #expect(graph.bundle.timestamp?.value?.description == "2026-08-17T23:30:00Z")
             #expect(graph.provenance.recorded.value?.description == "2026-08-17T23:30:00Z")
@@ -273,10 +273,10 @@ struct ProducerSurfaceTests {
     )
 
     @Test("The writer and its host are graph nodes once the caller classifies an attributed sample's source as an application")
-    func writerNodes() throws {
+    func writerNodes() async throws {
         let attributed = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xC1), writer: GoldenFixtures.foreignWriter)
-        #expect(try ExporterFixtures.export(attributed).identifiers.writerSnapshot == nil)
-        let conversion = try ExporterFixtures.export(attributed, .applicationWriter)
+        await #expect(try ExporterFixtures.export(attributed).identifiers.writerSnapshot == nil)
+        let conversion = try await ExporterFixtures.export(attributed, .applicationWriter)
         #expect(conversion.identifiers.writerSnapshot != nil)
         #expect(conversion.identifiers.writerHostSnapshot != nil)
     }
@@ -309,12 +309,12 @@ struct ProducerSurfaceTests {
     }
 
     @Test("A gateway application is its own snapshot: never the writer and never given a repository id")
-    func gatewayApplicationSnapshot() throws {
+    func gatewayApplicationSnapshot() async throws {
         let gateway = ApplicationDevice.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1")
         var inputs = ExportInputs()
         inputs.options.role = .gatewayApplication(gateway)
         inputs.options.legacyBundleID = .healthKitUUID
-        let conversion = try ExporterFixtures.export(Self.heartRate, inputs)
+        let conversion = try await ExporterFixtures.export(Self.heartRate, inputs)
         let snapshot = try inputs.base.identityScope.deviceSnapshot(
             event: conversion.graph.eventIdentifier,
             role: .application,
@@ -328,17 +328,17 @@ struct ProducerSurfaceTests {
     }
 
     @Test("A gateway application that is the converting application states the converter as the gateway")
-    func gatewayApplicationEqualToTheConverter() throws {
+    func gatewayApplicationEqualToTheConverter() async throws {
         var named = ExportInputs()
         named.options.role = .gatewayApplication(named.converter)
         var gateway = ExportInputs()
         gateway.options.role = .gateway
-        let conversion = try ExporterFixtures.export(Self.heartRate, named)
-        #expect(conversion.graph.json == (try ExporterFixtures.export(Self.heartRate, gateway)).graph.json)
+        let conversion = try await ExporterFixtures.export(Self.heartRate, named)
+        await #expect(conversion.graph.json == (try ExporterFixtures.export(Self.heartRate, gateway)).graph.json)
     }
 
     @Test("The application and host snapshots are minted from the tokens the devices state")
-    func deviceTokensMintTheSnapshots() throws {
+    func deviceTokensMintTheSnapshots() async throws {
         let application = ApplicationDevice.test
         #expect(application.sourceDeviceToken == "org.grovealliance.test|1.0")
         #expect(ApplicationDevice.test(name: "Grove", bundleIdentifier: "org.grovealliance.test", version: "1.0", build: "7")
@@ -350,7 +350,7 @@ struct ProducerSurfaceTests {
         #expect(current.sourceDeviceToken == "\(current.modelNumber ?? "")|\(current.operatingSystemVersion)")
 
         let inputs = ExportInputs()
-        let conversion = try ExporterFixtures.export(Self.heartRate, inputs)
+        let conversion = try await ExporterFixtures.export(Self.heartRate, inputs)
         let identifiers = conversion.identifiers
         let scope = inputs.base.identityScope
         #expect(identifiers.applicationSnapshot == (try scope.deviceSnapshot(
@@ -382,33 +382,33 @@ struct ProducerSurfaceTests {
     }
 
     @Test("Retraction targets are typed and carry the native record identifier only under the disclosure policy")
-    func retractionTargets() throws {
+    func retractionTargets() async throws {
         let deletion = HealthKitFHIRExporter.Deletion(
             uuid: Self.heartRate.uuid,
             sourceType: .heartRate,
             deletedAfter: nil,
             detectedAt: TestEvent.testInstant
         )
-        func targets(_ inputs: ExportInputs) throws -> [Reference] {
-            let graph = try ExporterFixtures.retraction(deletion, inputs)
+        func targets(_ inputs: ExportInputs) async throws -> [Reference] {
+            let graph = try await ExporterFixtures.retraction(deletion, inputs)
             return try #require(graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first).target
         }
         func native(_ target: Reference) -> Extension.ValueX? {
             target.extension?.first { $0.url == Canonicals.retractionTargetNativeIdentifier }?.value
         }
-        let omitted = try targets(ExportInputs())
+        let omitted = try await targets(ExportInputs())
         #expect(omitted.map { $0.type?.value?.url.absoluteString } == [ResourceType.observation.rawValue])
         #expect(omitted.allSatisfy { native($0) == nil })
 
         let store: IdentifierSystem = "https://study.example.org/fhir/NamingSystem/healthkit-store"
         var inputs = ExportInputs()
         inputs.options.nativeIdentifier = .authorized(system: store)
-        let disclosed = try targets(inputs)
+        let disclosed = try await targets(inputs)
         let nativeIdentifier = try BusinessIdentifier(system: store, value: Self.heartRate.uuid.uuidString.lowercased())
         #expect(disclosed.map(native) == [.identifier(nativeIdentifier.fhirIdentifier)])
         #expect(disclosed.map(\.identifier) == omitted.map(\.identifier))
 
-        let graph = try ExporterFixtures.retraction(deletion, inputs)
+        let graph = try await ExporterFixtures.retraction(deletion, inputs)
         let provenance = try #require(graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         #expect(graph.bundle.timestamp?.value?.description == "2026-08-17T23:30:00Z")
         #expect(provenance.recorded.value?.description == "2026-08-17T23:30:00Z")
@@ -424,16 +424,16 @@ struct ProducerSurfaceTests {
     }
 
     @Test("A deletion reported for a sample type retracts every output of that type")
-    func retractionFromDeletedObject() throws {
+    func retractionFromDeletedObject() async throws {
         let type = try #require(HealthKitSourceType(HKQuantityType(.heartRate)))
         #expect(HealthKitSourceType(HKCategoryType(.sleepAnalysis)) == .sleepAnalysis)
-        let retraction = try ExporterFixtures.retraction(HealthKitFHIRExporter.Deletion(
+        let retraction = try await ExporterFixtures.retraction(HealthKitFHIRExporter.Deletion(
             uuid: Self.heartRate.uuid,
             sourceType: type,
             deletedAfter: nil,
             detectedAt: TestEvent.testInstant
         ))
-        let conversion = try ExporterFixtures.export(Self.heartRate)
+        let conversion = try await ExporterFixtures.export(Self.heartRate)
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         let targets = try provenance.target.map { try RoledIdentifier(#require($0.identifier)) }
         #expect(targets == [conversion.primary.identifiers.primaryOutput])

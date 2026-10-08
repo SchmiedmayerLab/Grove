@@ -99,11 +99,16 @@ enum ContentCorpusStore {
 
     /// Reads the lines of `data` whose zero-based number leaves `shard.index` modulo `shard.count`, one at a time,
     /// so the corpus is never held as parsed tokens all at once.
-    static func forEachLine(in data: Data, shard: (index: Int, count: Int) = (0, 1), _ body: (Line) throws -> Void) throws {
+    static func forEachLine(
+        in data: Data,
+        shard: (index: Int, count: Int) = (0, 1),
+        _ body: (Line) async throws -> Void
+    ) async throws {
         for (number, bytes) in rawLines(data) where (number - 1) % shard.count == shard.index {
-            try autoreleasepool {
-                try body(try line(bytes, number: number))
+            let parsed = try autoreleasepool {
+                try line(bytes, number: number)
             }
+            try await body(parsed)
         }
     }
 

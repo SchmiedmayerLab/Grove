@@ -120,13 +120,13 @@ struct HealthKitFHIRExporterWriterTests {
     private static func exports(
         _ exporter: HealthKitFHIRExporter,
         _ samples: [HKSample]
-    ) throws -> [UUID: HealthKitFHIRExporter.Export] {
-        let (exports, _) = try Fixtures.collect(exporter, samples: samples)
+    ) async throws -> [UUID: HealthKitFHIRExporter.Export] {
+        let (exports, _) = try await Fixtures.collect(exporter, samples: samples)
         return Dictionary(uniqueKeysWithValues: exports.map { ($0.source.uuid, $0) })
     }
 
     @Test("W1: by default an Apple per-device source states no writer, no author and no recording Device of its own")
-    func exporterDefaultStatesNoWriter() throws {
+    func exporterDefaultStatesNoWriter() async throws {
         let exporter = try Fixtures.exporter()
         guard case .omit = exporter.options.writer else {
             Issue.record("the default writer policy is \(exporter.options.writer), not omit")
@@ -135,7 +135,7 @@ struct HealthKitFHIRExporterWriterTests {
         let bare = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x31), writer: Self.watchSource)
         let declined = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x32), device: GoldenFixtures.watchWithoutUnitToken, writer: Self.watchSource)
         let resolved = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x33), device: GoldenFixtures.watch, writer: Self.watchSource)
-        let exports = try Self.exports(exporter, [bare, declined, resolved])
+        let exports = try await Self.exports(exporter, [bare, declined, resolved])
         let bundles = try [bare, declined, resolved].map { try #require(exports[$0.uuid]?.graph?.bundle) }
         for bundle in bundles {
             Self.statesNoWriter(bundle, source: Self.watchSource)
@@ -152,23 +152,23 @@ struct HealthKitFHIRExporterWriterTests {
     }
 
     @Test("W2: a listed bundle identifier states its application writer from the sample's own source revision; others state none")
-    func listedApplicationsStateTheirWriter() throws {
+    func listedApplicationsStateTheirWriter() async throws {
         let exporter = try Fixtures.exporter { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }
         let listed = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x41), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let unlisted = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x42), device: GoldenFixtures.watch, writer: Self.otherApplication)
         let watch = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x43), device: GoldenFixtures.watch, writer: Self.watchSource)
-        let exports = try Self.exports(exporter, [listed, unlisted, watch])
+        let exports = try await Self.exports(exporter, [listed, unlisted, watch])
         let listedExport = try #require(exports[listed.uuid])
         #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(listedExport.graph?.bundle)))
         Self.statesNoWriter(try #require(exports[unlisted.uuid]?.graph?.bundle), source: Self.otherApplication)
         Self.statesNoWriter(try #require(exports[watch.uuid]?.graph?.bundle), source: Self.watchSource)
         // The listed source exports exactly as it does with every source classified as an application.
-        let reference = try Fixtures.standalone(.sample(listed), as: listedExport.event, .applicationWriter)
+        let reference = try await Fixtures.standalone(.sample(listed), as: listedExport.event, .applicationWriter)
         #expect(listedExport.graph?.json == reference.graph.json)
     }
 
     @Test("W3: a classifying closure is asked per source; an application states the revision's values, an omission nothing")
-    func classifyingClosureDecidesPerSource() throws {
+    func classifyingClosureDecidesPerSource() async throws {
         let asked = AskedSources()
         let exporter = try Fixtures.exporter { options in
             options.writer = .classify { source in
@@ -178,14 +178,14 @@ struct HealthKitFHIRExporterWriterTests {
         }
         let classified = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x51), writer: GoldenFixtures.foreignWriter)
         let omitted = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x52), writer: Self.otherApplication)
-        let exports = try Self.exports(exporter, [classified, omitted])
+        let exports = try await Self.exports(exporter, [classified, omitted])
         #expect(asked.bundleIdentifiers.sorted() == [Self.otherApplication.bundleIdentifier, GoldenFixtures.foreignWriter.bundleIdentifier].sorted())
         #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(exports[classified.uuid]?.graph?.bundle)))
         Self.statesNoWriter(try #require(exports[omitted.uuid]?.graph?.bundle), source: Self.otherApplication)
     }
 
     @Test("A sample's writer-record identity and version travel whatever the writer policy says about its source")
-    func writerRecordTravelsUnderEveryWriterPolicy() throws {
+    func writerRecordTravelsUnderEveryWriterPolicy() async throws {
         let sample = try GoldenCase.attributedHeartRate(uuid: 0x61, writer: GoldenFixtures.foreignWriter, metadata: GoldenCase.syncMetadata)
         // The writing application's bundle identifier scopes the sync identifier, whether or not the caller classified it.
         let expected = try Fixtures.base.identityScope.writerRecord(
@@ -205,7 +205,7 @@ struct HealthKitFHIRExporterWriterTests {
             ("classified as an application", Fixtures.exporter { $0.writer = .classify { _ in .application } })
         ]
         for (policy, exporter) in exporters {
-            let bundle = try #require(try Self.exports(exporter, [sample])[sample.uuid]?.graph?.bundle)
+            let bundle = try await #require(try Self.exports(exporter, [sample])[sample.uuid]?.graph?.bundle)
             let observation = try #require(bundle.entry?.compactMap { $0.resource?.get(if: ModelsR4.Observation.self) }.first)
             let writerRecords = (observation.identifier ?? []).filter { (try? RoledIdentifier($0).role) == .writerRecord }
             #expect(writerRecords.map { $0.value?.value?.string } == [expected.value], "under \(policy)")

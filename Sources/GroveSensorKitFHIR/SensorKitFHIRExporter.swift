@@ -38,6 +38,9 @@ public final class SensorKitFHIRExporter: Sendable {
         /// Discloses the exact ``SensorKitSourceRecordID`` on each graph's designated primary output under a system
         /// you own; omitted by default. Grove's opaque identifiers stay the only graph keys.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
+        /// At most how many child tasks build one call's graphs at once; `nil`, the default, builds on one per active
+        /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports.
+        public var maximumConcurrency: Int?
 
         public init() {}
     }
@@ -132,26 +135,35 @@ public final class SensorKitFHIRExporter: Sendable {
     ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
     ///   - receive: Called once per record, in input order.
     /// - Returns: The receipt to release once every graph is durably stored and the batch acknowledged.
-    public func export(
+    public nonisolated(nonsending) func export(
         _ records: some Collection<SensorKitRecord>,
         sourceTimeZone: TimeZone,
         recordingDevice: RecordingDevice? = nil,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> ExchangeProducer.Receipt {
+    ) async throws -> ExchangeProducer.Receipt {
         let content = SensorKitConverter.ContentContext(
             sourceTimeZone: sourceTimeZone,
             visitLocationIdentifierSystem: visitLocationIdentifierSystem
         )
         let device = recordingDevice.map(SensorKitConverter.recordingDevice)
-        let plans = records.map { Plan($0, content: content, recordingDevice: device, exporter: self) }
+        let width = options.maximumConcurrency ?? ConcurrentBuild.defaultWidth
+        let plans = await ConcurrentBuild.map(Array(records)[...], width: width) { record in
+            autoreleasepool {
+                Plan(record, content: content, recordingDevice: device, exporter: self)
+            }
+        }
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
         // later, and a retry of the call would mint both again.
         let firstPerKey = Dictionary(plans.compactMap { try? $0.content.get().request }.map { ($0.key, $0) }) { first, _ in first }
         // Refusals alone need no event, and a call that reserves nothing never touches the ledger.
         let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
-        for plan in plans {
-            try receive(Export(source: plan.source, outcome: deliver(plan, reserved: reserved)))
+        try await ConcurrentBuild.forEach(plans, width: width) { plan in
+            autoreleasepool {
+                self.deliver(plan, reserved: reserved)
+            }
+        } hand: { plan, outcome in
+            try receive(Export(source: plan.source, outcome: outcome))
         }
         return receipt
     }

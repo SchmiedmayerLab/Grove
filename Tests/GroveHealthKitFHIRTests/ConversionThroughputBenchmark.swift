@@ -111,10 +111,10 @@ private struct ScenarioRun {
 
     /// Exports `samples` in one call through a fresh exporter of the scenario's style, as a deployment's first export
     /// of a batch: one ledger transaction, one autorelease pool per record.
-    func export(_ samples: [HKSample]) throws -> [HealthKitFHIRExporter.Export] {
+    func export(_ samples: [HKSample]) async throws -> [HealthKitFHIRExporter.Export] {
         var exports: [HealthKitFHIRExporter.Export] = []
         exports.reserveCapacity(samples.count)
-        _ = try scope.exporter(style: scenario.style).export(samples, at: TestEvent.testInstant) { exports.append($0) }
+        _ = try await scope.exporter(style: scenario.style).export(samples, at: TestEvent.testInstant) { exports.append($0) }
         return exports
     }
 }
@@ -171,7 +171,7 @@ struct ConversionThroughputBenchmark {
     }
 
     @Test
-    func baselineThroughput() throws {
+    func baselineThroughput() async throws {
         let report = BenchReport()
         defer { report.flush() }
         let count = BenchEnvironment.sampleCount
@@ -186,15 +186,15 @@ struct ConversionThroughputBenchmark {
 
         let scope = BenchScope()
         if let phase = BenchEnvironment.profile {
-            try runProfileLoop(phase: phase, scope: scope, report: report)
+            try await runProfileLoop(phase: phase, scope: scope, report: report)
             return
         }
         for scenario in Self.scenarios(count: count) where BenchEnvironment.only == nil || BenchEnvironment.only == scenario.name {
             var run = ScenarioRun(scenario: scenario, scope: scope, report: report)
-            guard try warmUp(&run) else {
+            guard try await warmUp(&run) else {
                 continue
             }
-            try measureConvert(&run)
+            try await measureConvert(&run)
             try measureEncode(&run)
             #if !GROVE_BENCH_NO_PASS_TIMING
             try measureValidationPasses(run)
@@ -203,7 +203,7 @@ struct ConversionThroughputBenchmark {
             try measureConstruction(run)
         }
         if BenchEnvironment.only == nil || BenchEnvironment.only == "concurrent" {
-            try runConcurrent(scope: scope, count: count, report: report)
+            try await runConcurrent(scope: scope, count: count, report: report)
         }
         let end = Memory.footprint()
         report.line("done footprintMB=\(Memory.megabytes(end.current)) lifetimePeakMB=\(Memory.megabytes(end.peak))")
@@ -211,31 +211,31 @@ struct ConversionThroughputBenchmark {
 
     /// First-use costs (catalog statics, Foundation coder caches) are reported, not averaged in. Returns false
     /// when the exporter refuses the scenario's input, after reporting what a refusal costs.
-    private func warmUp(_ run: inout ScenarioRun) throws -> Bool {
-        let first = try run.export([run.samples[0]])
+    private func warmUp(_ run: inout ScenarioRun) async throws -> Bool {
+        let first = try await run.export([run.samples[0]])
         if case .refused(let error)? = first.first?.outcome {
-            let refusalSeconds = try Stopwatch.seconds {
-                _ = try run.export(run.samples)
+            let refusalSeconds = try await Stopwatch.seconds {
+                _ = try await run.export(run.samples)
             }
             run.report.line("scenario=\(run.name) N=\(run.count) REFUSED error=\(error.diagnostic.code) "
                 + "at \(error.diagnostic.location) phase=refusal \(run.rate(refusalSeconds))")
             return false
         }
-        let coldSeconds = try Stopwatch.seconds {
-            _ = try run.export([run.samples[1]])
+        let coldSeconds = try await Stopwatch.seconds {
+            _ = try await run.export([run.samples[1]])
         }
-        _ = try run.export(Array(run.samples.prefix(Self.warmUpCount)))
+        _ = try await run.export(Array(run.samples.prefix(Self.warmUpCount)))
         run.report.line("scenario=\(run.name) N=\(run.count) secondCallMs=\(String(format: "%.2f", coldSeconds * 1_000))")
         return true
     }
 
     /// (a) export() total over the scenario in one call, results discarded; then a retained pass.
-    private func measureConvert(_ run: inout ScenarioRun) throws {
+    private func measureConvert(_ run: inout ScenarioRun) async throws {
         var convertRuns: [Double] = []
         let before = Memory.footprint()
         for _ in 0..<BenchEnvironment.runs {
-            convertRuns.append(try Stopwatch.seconds {
-                _ = try run.export(run.samples)
+            await convertRuns.append(try Stopwatch.seconds {
+                _ = try await run.export(run.samples)
             })
         }
         let after = Memory.footprint()
@@ -248,8 +248,8 @@ struct ConversionThroughputBenchmark {
             + "footprintAfterMB=\(Memory.megabytes(after.current)) lifetimePeakMB=\(Memory.megabytes(after.peak))")
 
         var exports: [HealthKitFHIRExporter.Export] = []
-        let retainedSeconds = try Stopwatch.seconds {
-            exports = try run.export(run.samples)
+        let retainedSeconds = try await Stopwatch.seconds {
+            exports = try await run.export(run.samples)
         }
         run.exports = exports
         try #require(run.graphs.count == run.count, "every sample of \(run.name) exports to a graph")
@@ -419,18 +419,18 @@ struct ConversionThroughputBenchmark {
     }
 
     /// Loops one phase over the deployment heart-rate workload so `sample`/Instruments can attach by pid.
-    private func runProfileLoop(phase: String, scope: BenchScope, report: BenchReport) throws {
+    private func runProfileLoop(phase: String, scope: BenchScope, report: BenchReport) async throws {
         let samples = SampleFactory.heartRate(
             count: 1_000,
             device: SampleFactory.watchWithoutUnitToken,
             metadata: [HKMetadataKeyHeartRateMotionContext: NSNumber(value: 1)]
         )
-        func export() throws -> [HealthKitFHIRExporter.Export] {
+        func export() async throws -> [HealthKitFHIRExporter.Export] {
             var exports: [HealthKitFHIRExporter.Export] = []
-            _ = try scope.exporter(style: .deployment).export(samples, at: TestEvent.testInstant) { exports.append($0) }
+            _ = try await scope.exporter(style: .deployment).export(samples, at: TestEvent.testInstant) { exports.append($0) }
             return exports
         }
-        let graphs = try export().compactMap(\.graph)
+        let graphs = try await export().compactMap(\.graph)
         report.line("profile phase=\(phase) pid=\(ProcessInfo.processInfo.processIdentifier) seconds=\(BenchEnvironment.profileSeconds)")
         let deadline = Date().addingTimeInterval(BenchEnvironment.profileSeconds)
         var iterations = 0
@@ -442,7 +442,7 @@ struct ConversionThroughputBenchmark {
                     }
                 }
             } else {
-                _ = try export()
+                _ = try await export()
             }
             iterations += samples.count
         }
@@ -451,7 +451,7 @@ struct ConversionThroughputBenchmark {
 
     /// Whether the exporter scales across threads: the same deployment heart-rate workload split over T threads, each
     /// exporting its share in one call through an exporter over its own ledger.
-    private func runConcurrent(scope: BenchScope, count: Int, report: BenchReport) throws {
+    private func runConcurrent(scope: BenchScope, count: Int, report: BenchReport) async throws {
         let samples = SampleFactory.heartRate(
             count: count,
             device: SampleFactory.watchWithoutUnitToken,
@@ -459,17 +459,21 @@ struct ConversionThroughputBenchmark {
         )
         for threads in [1, 2, 4, 6, 8] {
             let failures = ManagedFailureCount()
-            let seconds = Stopwatch.seconds {
-                DispatchQueue.concurrentPerform(iterations: threads) { thread in
-                    let share = stride(from: thread, to: count, by: threads).map { samples[$0] }
-                    do {
-                        _ = try scope.exporter(style: .deployment).export(share, at: TestEvent.testInstant) { export in
-                            if export.graph == nil {
+            let seconds = await Stopwatch.seconds {
+                await withTaskGroup(of: Void.self) { group in
+                    for thread in 0..<threads {
+                        let share = stride(from: thread, to: count, by: threads).map { samples[$0] }
+                        group.addTask {
+                            do {
+                                _ = try await scope.exporter(style: .deployment).export(share, at: TestEvent.testInstant) { export in
+                                    if export.graph == nil {
+                                        failures.increment()
+                                    }
+                                }
+                            } catch {
                                 failures.increment()
                             }
                         }
-                    } catch {
-                        failures.increment()
                     }
                 }
             }

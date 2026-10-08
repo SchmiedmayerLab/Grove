@@ -29,7 +29,7 @@ struct HealthKitFHIRExporterWarningReportTests {
     /// - a heart rate with a time zone carrying that key, and one with a time zone on a device without a token;
     /// - a heart rate with a time zone on a device with a token, which raises nothing;
     /// - a bare ECG, refused for want of its voltages.
-    static func exports() throws -> [HealthKitFHIRExporter.Export] {
+    static func exports() async throws -> [HealthKitFHIRExporter.Export] {
         let zoned = GoldenFixtures.timeZoneMetadata
         let steps = try StoredSampleFixtures.quantitySample(
             HKQuantityType(.stepCount),
@@ -58,7 +58,7 @@ struct HealthKitFHIRExporterWarningReportTests {
             try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x56), device: GoldenFixtures.watch),
             ecg
         ]
-        let (exports, _) = try ExporterFixtures.collect(ExporterFixtures.exporter(), samples: samples)
+        let (exports, _) = try await ExporterFixtures.collect(ExporterFixtures.exporter(), samples: samples)
         return exports
     }
 
@@ -72,8 +72,8 @@ struct HealthKitFHIRExporterWarningReportTests {
     }
 
     @Test("Each kind counts samples by type identifier and collects its locations; a clean sample and a refusal add nothing")
-    func kindsCountSamples() throws {
-        let exports = try Self.exports()
+    func kindsCountSamples() async throws {
+        let exports = try await Self.exports()
         try #require(exports.count == 7)
         #expect(exports[2].warnings == [
             ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata"),
@@ -106,7 +106,7 @@ struct HealthKitFHIRExporterWarningReportTests {
     }
 
     @Test("The description renders one block per kind, its types the most first, then by identifier")
-    func descriptionIsExact() throws {
+    func descriptionIsExact() async throws {
         let expected = [
             "mobile-omission.source-offset at Observation.effectiveDateTime, Observation.effectivePeriod.end, "
                 + "Observation.effectivePeriod.start",
@@ -120,17 +120,17 @@ struct HealthKitFHIRExporterWarningReportTests {
                 + "metadata keys its graph does not represent — 2 samples: HKQuantityTypeIdentifierHeartRate 1, "
                 + "HKQuantityTypeIdentifierStepCount 1"
         ]
-        let exports = try Self.exports()
+        let exports = try await Self.exports()
         #expect(Self.report(exports).description == expected.joined(separator: "\n"))
         #expect(Self.report(exports.reversed()).description == expected.joined(separator: "\n"), "independent of the order")
     }
 
     @Test("An empty report says so; counts group their thousands; an unknown code's cause is its reason")
-    func edgesRenderPlainly() throws {
+    func edgesRenderPlainly() async throws {
         var report = HealthKitFHIRExporter.WarningReport()
         #expect(report.isEmpty)
         #expect(report.description == "No warnings")
-        let exports = try Self.exports()
+        let exports = try await Self.exports()
         report.add(exports[5])
         report.add(exports[6])
         #expect(report.isEmpty, "a clean graph and a refusal raise nothing")

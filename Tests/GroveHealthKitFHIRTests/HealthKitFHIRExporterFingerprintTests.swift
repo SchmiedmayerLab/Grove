@@ -115,31 +115,31 @@ struct HealthKitFHIRExporterFingerprintTests {
 
     @Test("G3: an export reserves under its context's fingerprint; an equal context reuses the event and another does not")
     @available(*, deprecated, message: "Names the transitional legacy Bundle.id case")
-    func exportsReserveUnderTheirContextFingerprint() throws {
+    func exportsReserveUnderTheirContextFingerprint() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let contexts = try Self.contexts(storage: storage)
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let key = try #require(ExchangeEventKey.active(sample))
-        let (original, _) = try Fixtures.collect(contexts[0].1, samples: [sample])
+        let (original, _) = try await Fixtures.collect(contexts[0].1, samples: [sample])
         let stored = try #require(try storage.transaction { try $0.read(LedgerKey.event(key)) })
         let planned = HealthKitFHIRExporter.Plan(.sample(sample), exporter: contexts[0].1).primary?.request
         #expect(planned?.key == key)
         #expect(try EventEntry(decoding: stored, key: LedgerKey.event(key)).fingerprint == planned?.fingerprint)
-        let (unchanged, _) = try Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(storage: storage)), samples: [sample])
+        let (unchanged, _) = try await Fixtures.collect(try Fixtures.exporter(try Fixtures.producer(storage: storage)), samples: [sample])
         #expect(unchanged[0].event == original[0].event, "an equal context reuses the reservation")
-        let (changed, _) = try Fixtures.collect(contexts[1].1, samples: [sample])
+        let (changed, _) = try await Fixtures.collect(contexts[1].1, samples: [sample])
         #expect(changed[0].event != original[0].event, "\(contexts[1].0) reused an event")
     }
 
     @Test("A writer-policy change gives a reserved record a new sequence, never one handed out under another policy")
-    func writerPolicyChangeTakesANewSequence() throws {
+    func writerPolicyChangeTakesANewSequence() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(2), writer: GoldenFixtures.foreignWriter)
         let omitting = try Fixtures.exporter(storage: storage)
         let classifying = try Fixtures.exporter(storage: storage) { $0.writer = .applications([GoldenFixtures.foreignWriter.bundleIdentifier]) }
-        let (omitted, _) = try Fixtures.collect(omitting, samples: [sample])
-        let (stated, _) = try Fixtures.collect(classifying, samples: [sample])
-        let (reverted, _) = try Fixtures.collect(omitting, samples: [sample])
+        let (omitted, _) = try await Fixtures.collect(omitting, samples: [sample])
+        let (stated, _) = try await Fixtures.collect(classifying, samples: [sample])
+        let (reverted, _) = try await Fixtures.collect(omitting, samples: [sample])
         #expect([omitted, stated, reverted].map { $0.first?.sequence } == ["1", "2", "3"])
         #expect(stated.first?.graph?.json != omitted.first?.graph?.json, "the classified source states its writer")
     }
@@ -212,7 +212,7 @@ struct HealthKitFHIRExporterFingerprintTests {
             return options
         }
         // Options that change no graph byte stay out of the fingerprint, each named here on purpose.
-        let unfingerprinted: Set<String> = ["measuresThroughput"]
+        let unfingerprinted: Set<String> = ["maximumConcurrency", "measuresThroughput"]
         for options in configurations {
             let stored = Mirror(reflecting: options).children.filter { !unfingerprinted.contains($0.label ?? "") }.map { child in
                 (property: child.label ?? "", parts: (child.value as? any ExchangeContextFingerprinted)?.fingerprintParts ?? [])

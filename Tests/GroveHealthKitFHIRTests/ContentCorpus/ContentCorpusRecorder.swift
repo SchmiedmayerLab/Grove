@@ -40,18 +40,18 @@ enum ContentCorpusRecorder {
     private static let outputResourceTypes: Set<String> = [ResourceType.observation.rawValue, ResourceType.documentReference.rawValue]
 
     /// The corpus line's output for `input`; a vector the fixtures cannot rebuild throws instead.
-    static func output(for input: ContentCorpusInput) throws -> LosslessJSONValue {
+    static func output(for input: ContentCorpusInput) async throws -> LosslessJSONValue {
         switch input {
-        case .convert(let source): try render(try outcome(of: source))
-        case .roundTrip(let source): try roundTrip(source)
-        case let .retract(type, disclosure): try retraction(of: type, disclosure: disclosure)
+        case .convert(let source): try await render(try outcome(of: source))
+        case .roundTrip(let source): try await roundTrip(source)
+        case let .retract(type, disclosure): try await retraction(of: type, disclosure: disclosure)
         case .catalog(let projection): try ContentCorpusCatalog.projection(projection)
         case .reverse(let observation): reverse(try observation.decoded(as: Observation.self))
         }
     }
 
     /// Exports `source` as the record its payload takes.
-    static func outcome(of source: ContentCorpusSource) throws -> Outcome {
+    static func outcome(of source: ContentCorpusSource) async throws -> Outcome {
         let record: HealthKitFHIRExporter.Record
         switch source.record {
         case .electrocardiogram(let reading):
@@ -63,7 +63,7 @@ enum ContentCorpusRecorder {
         default:
             record = .sample(try ContentCorpusSamples.sample(source))
         }
-        let exports = try ExporterFixtures.exports(record, inputs(for: source))
+        let exports = try await ExporterFixtures.exports(record, inputs(for: source))
         if exports.count == 1, case .refused(let error) = exports[0].outcome {
             return .refused(error)
         }

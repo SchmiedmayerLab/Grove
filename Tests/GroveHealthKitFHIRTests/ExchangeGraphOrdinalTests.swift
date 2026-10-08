@@ -21,12 +21,12 @@ import Testing
 @Suite
 struct ExchangeGraphOrdinalTests {
     @Test("A self-consistent key minted at the wrong per-role ordinal is refused")
-    func misnumberedEntryNodeOrdinalIsRefused() throws {
+    func misnumberedEntryNodeOrdinalIsRefused() async throws {
         let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
         var inputs = ExportInputs()
         inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
         inputs.instant = timestamp
-        let conversion = try ExporterFixtures.export(
+        let conversion = try await ExporterFixtures.export(
             HKQuantitySample(
                 type: HKQuantityType(.heartRate),
                 quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),

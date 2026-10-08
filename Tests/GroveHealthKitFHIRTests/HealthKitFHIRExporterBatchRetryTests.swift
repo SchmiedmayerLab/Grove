@@ -50,7 +50,7 @@ struct HealthKitFHIRExporterBatchRetryTests {
     private typealias Fixtures = ExporterFixtures
 
     @Test("An exact retry of two deletions of one record with different bounds in one call redelivers both events")
-    func retryOfTwoBoundsInOneCallIsExact() throws {
+    func retryOfTwoBoundsInOneCallIsExact() async throws {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(storage: storage)
         let deletions = [
@@ -59,9 +59,9 @@ struct HealthKitFHIRExporterBatchRetryTests {
             // A control: another record under one fingerprint.
             Fixtures.deletion(0xC1, deletedAfter: GoldenFixtures.sampleStart)
         ]
-        let first = try Fixtures.retract(exporter, deletions)
+        let first = try await Fixtures.retract(exporter, deletions)
         _ = storage.take()
-        let retry = try Fixtures.retract(exporter, deletions)
+        let retry = try await Fixtures.retract(exporter, deletions)
         let writes = storage.take().writes
         try #require(first.retractions.count == 3 && retry.retractions.count == 3)
         #expect(first.retractions[0].event != first.retractions[1].event, "two bounds are two events")
@@ -74,7 +74,7 @@ struct HealthKitFHIRExporterBatchRetryTests {
     }
 
     @Test("A call naming one ECG under two symptom sets refuses the later one, and its exact retry reuses every event")
-    func retryOfTwoSymptomSetsInOneCallIsExact() throws {
+    func retryOfTwoSymptomSetsInOneCallIsExact() async throws {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(storage: storage)
         let one = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC3))
@@ -83,9 +83,9 @@ struct HealthKitFHIRExporterBatchRetryTests {
             try Fixtures.electrocardiogram(uuid: 0xC2, symptoms: [one]),
             try Fixtures.electrocardiogram(uuid: 0xC2, symptoms: [two, one])
         ]
-        let first = try Fixtures.collect(exporter, inputs)
+        let first = try await Fixtures.collect(exporter, inputs)
         _ = storage.take()
-        let retry = try Fixtures.collect(exporter, inputs)
+        let retry = try await Fixtures.collect(exporter, inputs)
         let writes = storage.take().writes
         let ecg = try #require(inputs.first?.sample.uuid)
         // The first input's ECG and its symptom, then the later input refused: one event per key and call.
@@ -105,15 +105,15 @@ struct HealthKitFHIRExporterBatchRetryTests {
     }
 
     @Test("A classify closure is consulted once per input naming a record, an ECG's symptoms included")
-    func classifierIsConsultedPerInput() throws {
+    func classifierIsConsultedPerInput() async throws {
         let classifier = CountingClassifier(flips: false)
         let exporter = try Fixtures.exporter { $0.writer = .classify { classifier.classify($0) } }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xC5), writer: GoldenFixtures.foreignWriter)
-        let twice = try Fixtures.collect(exporter, samples: [sample, sample])
+        let twice = try await Fixtures.collect(exporter, samples: [sample, sample])
         #expect(classifier.count == 2)
         #expect(twice.exports.count == 2 && twice.exports[0].event == twice.exports[1].event)
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC7))
-        let named = try Fixtures.collect(exporter, [Fixtures.electrocardiogram(uuid: 0xC6, symptoms: [symptom]), .sample(symptom)])
+        let named = try await Fixtures.collect(exporter, [Fixtures.electrocardiogram(uuid: 0xC6, symptoms: [symptom]), .sample(symptom)])
         // The ECG, its symptom inside the ECG's input, and the standalone symptom.
         #expect(classifier.count == 5)
         let symptomEvents = named.exports.filter { $0.source.uuid == symptom.uuid }.map(\.event)
@@ -125,14 +125,14 @@ struct HealthKitFHIRExporterBatchRetryTests {
     /// The later input names the symptom itself or correlates it with an ECG; either way it is refused, and no event is
     /// restated with another writer.
     @Test("A closure answering otherwise for a record the call named before refuses the later input", arguments: [false, true])
-    func changedAnswerWithinACallRefusesTheLaterInput(throughElectrocardiogram: Bool) throws {
+    func changedAnswerWithinACallRefusesTheLaterInput(throughElectrocardiogram: Bool) async throws {
         let classifier = CountingClassifier(flips: true)
         let exporter = try Fixtures.exporter { $0.writer = .classify { classifier.classify($0) } }
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC9))
         let later: HealthKitFHIRExporter.Record = try throughElectrocardiogram
             ? Fixtures.electrocardiogram(uuid: 0xC8, symptoms: [symptom])
             : .sample(symptom)
-        let (exports, receipt) = try Fixtures.collect(exporter, [.sample(symptom), later])
+        let (exports, receipt) = try await Fixtures.collect(exporter, [.sample(symptom), later])
         try #require(exports.count == 2)
         #expect(exports[0].graph != nil)
         guard case .refused(let reason) = exports[1].outcome else {

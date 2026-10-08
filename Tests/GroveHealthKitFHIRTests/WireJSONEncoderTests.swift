@@ -59,9 +59,9 @@ struct WireJSONEncoderTests {
     }
 
     @Test("Every golden graph's bytes are JSONEncoder's bytes, and its identifiers decode to the model's")
-    func goldenGraphsMatchJSONEncoder() throws {
+    func goldenGraphsMatchJSONEncoder() async throws {
         for goldenCase in GoldenCase.all {
-            let graph = try goldenCase.output().graph
+            let graph = try await goldenCase.output().graph
             #expect(graph.json == (try Self.reference.encode(graph.bundle)), "\(goldenCase.name)")
             let entries = try #require(
                 (try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])?["entry"] as? [[String: Any]]
@@ -116,8 +116,8 @@ struct WireJSONEncoderTests {
     }
 
     @Test("The tree states what the bytes parse to")
-    func treeMatchesTheBytes() throws {
-        let graph = try #require(GoldenCase.all.first).output().graph
+    func treeMatchesTheBytes() async throws {
+        let graph = try await #require(GoldenCase.all.first).output().graph
         let (json, tree) = try #require(try WireJSONEncoder.encodeKeepingTree(graph.bundle))
         let parsed = try JSONSerialization.jsonObject(with: json)
         #expect((tree as? NSObject)?.isEqual(parsed) == true)

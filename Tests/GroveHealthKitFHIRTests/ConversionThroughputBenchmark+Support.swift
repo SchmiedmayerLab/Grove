@@ -88,6 +88,13 @@ enum Stopwatch {
         try body()
         return Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000_000
     }
+
+    /// Seconds the asynchronous `body` took on the monotonic clock.
+    static func seconds(_ body: () async throws -> Void) async rethrows -> Double {
+        let start = DispatchTime.now().uptimeNanoseconds
+        try await body()
+        return Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000_000
+    }
 }
 
 

@@ -19,7 +19,7 @@ import Testing
 @Suite
 struct HealthKitClinicalFHIRRepresentationTests {
     @Test("Each admitted source release uses its versioned media type with byte-preserved payload")
-    func admittedClinicalFHIRRepresentationsAreExact() throws {
+    func admittedClinicalFHIRRepresentationsAreExact() async throws {
         #expect(HealthKitContract.admittedClinicalFHIRReleaseCodes == ["dstu2", "r4"])
         #expect(HealthKitContract.clinicalFHIRContentTypeByRelease == [
             "dstu2": "application/fhir+json; fhirVersion=1.0",
@@ -27,7 +27,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
         ])
         for sourceRelease in HealthKitContract.admittedClinicalFHIRReleaseCodes.sorted() {
             let payload = Data(" {\"resourceType\":\"Observation\",\"id\":\"\(sourceRelease)\"}\n".utf8)
-            let conversion = try makeConversion(releaseCode: sourceRelease, payload: payload)
+            let conversion = try await makeConversion(releaseCode: sourceRelease, payload: payload)
             let content = try #require(conversion.document.content.first)
             #expect(content.format?.code?.value?.string == HealthKitContract.clinicalFHIRPayloadFormatCode)
             #expect(
@@ -39,19 +39,19 @@ struct HealthKitClinicalFHIRRepresentationTests {
     }
 
     @Test("An unversioned FHIR JSON media type fails graph validation")
-    func clinicalFHIRContentTypeIsVersioned() throws {
-        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
-            try revalidate(try makeConversion(releaseCode: "dstu2"), contentType: "application/fhir+json")
+    func clinicalFHIRContentTypeIsVersioned() async throws {
+        await #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
+            try revalidate(try await makeConversion(releaseCode: "dstu2"), contentType: "application/fhir+json")
         }
     }
 
     @Test("A release outside the admitted DSTU2 and R4 set fails graph validation")
-    func unsupportedClinicalFHIRReleaseIsRejected() throws {
-        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
-            try revalidate(try makeConversion(releaseCode: "r4"), contentType: "application/fhir+json; fhirVersion=5.0")
+    func unsupportedClinicalFHIRReleaseIsRejected() async throws {
+        await #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
+            try revalidate(try await makeConversion(releaseCode: "r4"), contentType: "application/fhir+json; fhirVersion=5.0")
         }
-        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
-            try revalidate(try makeConversion(releaseCode: "r4"), contentType: nil)
+        await #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
+            try revalidate(try await makeConversion(releaseCode: "r4"), contentType: nil)
         }
     }
 
@@ -59,7 +59,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
     private func makeConversion(
         releaseCode: String,
         payload: Data = Data(#"{"resourceType":"Observation","id":"clinical"}"#.utf8)
-    ) throws -> ExportedRecord {
+    ) async throws -> ExportedRecord {
         let record = try StoredSampleFixtures.clinicalRecord(
             HKClinicalType(.labResultRecord),
             fhirVersion: releaseCode == "dstu2" ? .primaryDSTU2() : .primaryR4(),
@@ -74,7 +74,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
         )
         inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
         inputs.instant = Date(timeIntervalSince1970: 1_755_624_060)
-        return try ExporterFixtures.export(record, inputs)
+        return try await ExporterFixtures.export(record, inputs)
     }
 
     /// Validates `conversion`'s graph again with its document's attachment stating `contentType` instead.

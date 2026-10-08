@@ -72,24 +72,24 @@ struct ExchangeEnvelopeFixTests {
 
 
     @Test("A document graph under a distinct gateway application carries no gateway Device, as Observations alone name one")
-    func documentGraphsOmitTheGatewayApplication() throws {
+    func documentGraphsOmitTheGatewayApplication() async throws {
         let gateway = ApplicationDevice.test(name: "Cuff Companion", bundleIdentifier: "com.example.cuff", version: "3.1")
         var inputs = ExportInputs()
         inputs.options.role = .gatewayApplication(gateway)
-        let conversion = try ExporterFixtures.export(try Self.heartbeatSeries(uuid: 90), inputs)
+        let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 90), inputs)
         let snapshot = try inputs.base.identityScope.deviceSnapshot(
             event: conversion.graph.eventIdentifier,
             role: .application,
             sourceDeviceToken: gateway.sourceDeviceToken
         )
         #expect(conversion.graph.resource(Device.self, at: snapshot) == nil)
-        let assembled = try ExporterFixtures.export(try Self.heartbeatSeries(uuid: 90))
+        let assembled = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 90))
         #expect(conversion.graph.json == assembled.graph.json)
     }
 
     #if !os(watchOS)
     @Test("A document carries no writer-record identifier: the version that must travel with it has no carrier there")
-    func documentsCarryNoWriterRecord() throws {
+    func documentsCarryNoWriterRecord() async throws {
         var metadata = GoldenFixtures.timeZoneMetadata
         metadata[HKMetadataKeySyncIdentifier] = "document-1"
         metadata[HKMetadataKeySyncVersion] = 3
@@ -100,7 +100,7 @@ struct ExchangeEnvelopeFixTests {
             metadata: metadata
         )
         let stored = try StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(91), writer: GoldenFixtures.foreignWriter)
-        let conversion = try ExporterFixtures.export(stored)
+        let conversion = try await ExporterFixtures.export(stored)
         let roles = try conversion.document.identifier?.map { try RoledIdentifier($0).role } ?? []
         #expect(!roles.contains(.writerRecord))
         #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact])
@@ -110,7 +110,7 @@ struct ExchangeEnvelopeFixTests {
     /// The guide requires the pair be rejected on every HealthKit source record (mapping.md, logical identity and
     /// revisions), so a document refuses a malformed pair although it would not state the identity.
     @Test("A document refuses a malformed sync pair, as every HealthKit source record does")
-    func documentsRefuseAMalformedSyncPair() throws {
+    func documentsRefuseAMalformedSyncPair() async throws {
         let malformed: [[String: any Sendable]] = [
             [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeySyncIdentifier: "series-1"],
             [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeySyncIdentifier: "series-1", HKMetadataKeySyncVersion: 1.5]
@@ -120,15 +120,15 @@ struct ExchangeEnvelopeFixTests {
             facts.metadata = metadata
             let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
             let record = HealthKitFHIRExporter.Record.heartbeatSeries(series, beats: [HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false)])
-            #expect(throws: HealthKitConversionError.invalidValue(.heartbeatSeries, .invalidMetadataValue(.syncVersion))) {
-                try ExporterFixtures.export(record)
+            await #expect(throws: HealthKitConversionError.invalidValue(.heartbeatSeries, .invalidMetadataValue(.syncVersion))) {
+                try await ExporterFixtures.export(record)
             }
         }
     }
 
     @Test("Event instants are written in UTC at millisecond precision, without binary noise")
-    func eventInstantsAreMilliseconds() throws {
-        let conversion = try ExporterFixtures.export(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92)), Self.subMillisecondInputs)
+    func eventInstantsAreMilliseconds() async throws {
+        let conversion = try await ExporterFixtures.export(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92)), Self.subMillisecondInputs)
         #expect(conversion.bundle.timestamp?.value?.description == "2026-08-17T23:30:00.251Z")
         let provenance = try #require(conversion.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         #expect(provenance.recorded.value?.description == "2026-08-17T23:30:00.251Z")
@@ -142,24 +142,24 @@ struct ExchangeEnvelopeFixTests {
         var unstatable = ExportInputs()
         unstatable.instant = .distantPast
         let (exporter, _) = try ExporterFixtures.exporter(unstatable)
-        #expect(throws: ExchangeIdentityError.self) {
-            try ExporterFixtures.collect(exporter, samples: [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92))], at: .distantPast)
+        await #expect(throws: ExchangeIdentityError.self) {
+            try await ExporterFixtures.collect(exporter, samples: [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92))], at: .distantPast)
         }
     }
 
     @Test("A retraction states its bounds and its recording in UTC at millisecond precision, and a start before year 1 as year 1")
-    func retractionInstantsAreMilliseconds() throws {
-        func provenance(deletedAfter: Date?, detectedAt: Date) throws -> (bundle: ModelsR4.Bundle, provenance: Provenance) {
+    func retractionInstantsAreMilliseconds() async throws {
+        func provenance(deletedAfter: Date?, detectedAt: Date) async throws -> (bundle: ModelsR4.Bundle, provenance: Provenance) {
             let deletion = HealthKitFHIRExporter.Deletion(
                 uuid: GoldenFixtures.uuid(96),
                 sourceType: .heartRate,
                 deletedAfter: deletedAfter,
                 detectedAt: detectedAt
             )
-            let bundle = try ExporterFixtures.retraction(deletion, Self.subMillisecondInputs).bundle
+            let bundle = try await ExporterFixtures.retraction(deletion, Self.subMillisecondInputs).bundle
             return (bundle, try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first))
         }
-        let bounded = try provenance(
+        let bounded = try await provenance(
             deletedAfter: Date(timeIntervalSince1970: 1_787_005_800.0004),
             detectedAt: Date(timeIntervalSince1970: 1_787_009_400.9996)
         )
@@ -191,7 +191,7 @@ struct ExchangeEnvelopeFixTests {
             return
         }
         #expect(instant.value?.description == "2026-08-17T23:30:00.252Z")
-        guard case .period(let clamped)? = try provenance(deletedAfter: .distantPast, detectedAt: GoldenFixtures.conversionInstant).provenance.occurred else {
+        guard case .period(let clamped)? = try await provenance(deletedAfter: .distantPast, detectedAt: GoldenFixtures.conversionInstant).provenance.occurred else {
             Issue.record("A retraction with bounds occurs over a period")
             return
         }
@@ -228,13 +228,13 @@ struct ExchangeEnvelopeFixTests {
     }
 
     @Test("A document's date is the event instant in UTC at millisecond precision")
-    func documentDateIsMilliseconds() throws {
-        let conversion = try ExporterFixtures.export(try Self.heartbeatSeries(uuid: 97), Self.subMillisecondInputs)
+    func documentDateIsMilliseconds() async throws {
+        let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 97), Self.subMillisecondInputs)
         #expect(conversion.document.date?.value?.description == "2026-08-17T23:30:00.251Z")
     }
 
     @Test("A route deletion is retracted only while routes are disclosed")
-    func routeRetractionFollowsTheRoutePolicy() throws {
+    func routeRetractionFollowsTheRoutePolicy() async throws {
         let deletion = HealthKitFHIRExporter.Deletion(
             uuid: GoldenFixtures.uuid(93),
             sourceType: .workoutRoute,
@@ -242,24 +242,24 @@ struct ExchangeEnvelopeFixTests {
             detectedAt: GoldenFixtures.conversionInstant
         )
         var omitted: [HealthKitFHIRExporter.Retraction] = []
-        _ = try Self.exporter().retract([deletion], at: GoldenFixtures.conversionInstant) { omitted.append($0) }
+        _ = try await Self.exporter().retract([deletion], at: GoldenFixtures.conversionInstant) { omitted.append($0) }
         guard case .nothingToRetract? = omitted.first?.outcome else {
             Issue.record("An undisclosed route was never exported, so there is nothing to retract")
             return
         }
         var authorized: [HealthKitFHIRExporter.Retraction] = []
-        _ = try Self.exporter { $0.route = .authorized }.retract([deletion], at: GoldenFixtures.conversionInstant) { authorized.append($0) }
+        _ = try await Self.exporter { $0.route = .authorized }.retract([deletion], at: GoldenFixtures.conversionInstant) { authorized.append($0) }
         #expect(authorized.first?.graph?.kind == .retraction)
     }
 
     @Test("Under gatewayForOwnWrites only a sample written by the converting build is mediated by it")
-    func gatewayForOwnWritesMatchesTheBuild() throws {
+    func gatewayForOwnWritesMatchesTheBuild() async throws {
         let application = GoldenFixtures.selfConverter(version: "1.0", build: "42")
         let exporter = try Self.exporter(application: application) { $0.role = .gatewayForOwnWrites }
         let sameBuild = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(94), writer: GoldenFixtures.selfWriter(revisionVersion: "42"))
         let olderBuild = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(95), writer: GoldenFixtures.selfWriter(revisionVersion: "41"))
         var exports: [HealthKitFHIRExporter.Export] = []
-        _ = try exporter.export([sameBuild, olderBuild], at: GoldenFixtures.conversionInstant) { exports.append($0) }
+        _ = try await exporter.export([sameBuild, olderBuild], at: GoldenFixtures.conversionInstant) { exports.append($0) }
         func statesGateway(_ export: HealthKitFHIRExporter.Export) -> Bool {
             let observation = export.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first
             return observation?.extension?.contains { $0.url == Canonicals.gatewayDevice } == true
@@ -290,11 +290,11 @@ struct ExchangeEnvelopeFixTests {
 
     /// Spec F2: a gateway no output names is no snapshot, so a writer whose token equals it gets its own entries.
     @Test("A writer equal to a gateway no output names is its own snapshot and author, beside its own host")
-    func writerEqualToAnUnnamedGatewayIsItsOwnSnapshot() throws {
+    func writerEqualToAnUnnamedGatewayIsItsOwnSnapshot() async throws {
         var inputs = ExportInputs.applicationWriter
         inputs.options.role = .gatewayApplication(.test(name: "Cuff Companion", bundleIdentifier: "org.example.writer", version: "42"))
         inputs.sequence = 99
-        let document = try ExporterFixtures.export(try Self.heartbeatSeries(uuid: 99), inputs)
+        let document = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 99), inputs)
         let writer = try #require(document.writer)
         let writerHost = try #require(document.identifiers.writerHostSnapshot)
         #expect(writer.deviceName?.first?.name.value?.string == "Example Writer")
@@ -303,7 +303,7 @@ struct ExchangeEnvelopeFixTests {
         #expect(author?.who.reference?.value?.string == (try document.identifiers.writerSnapshot?.fullURLString))
         // On an Observation, which names the gateway, the same writer is the gateway's entry.
         inputs.sequence = 100_099
-        let observation = try ExporterFixtures.export(GoldenCase.attributedHeartRate(uuid: 0x99, writer: GoldenFixtures.foreignWriter), inputs)
+        let observation = try await ExporterFixtures.export(GoldenCase.attributedHeartRate(uuid: 0x99, writer: GoldenFixtures.foreignWriter), inputs)
         #expect(observation.writer?.deviceName?.first?.name.value?.string == "Cuff Companion")
         #expect(observation.identifiers.writerHostSnapshot == nil)
         let gateway = observation.observation.extension?.first { $0.url == Canonicals.gatewayDevice }
