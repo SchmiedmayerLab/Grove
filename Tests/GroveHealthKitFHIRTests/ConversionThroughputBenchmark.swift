@@ -325,7 +325,7 @@ struct ConversionThroughputBenchmark {
                     passNanoseconds[pass] += now - mark
                     mark = now
                 }
-                let document = ExchangeGraph.ValidationDocument(bundle: bundle, jsonData: data)
+                let document = ExchangeGraph.ValidationDocument(bundle: bundle, jsonData: nil)
                 lap(0)
                 try ExchangeGraph.validateEntryResourcePolicy(kind: .active, entries: entries, document: document)
                 lap(1)

@@ -61,9 +61,9 @@ public struct ExchangeGraph: Sendable {
         bundle: ModelsR4.Bundle
     ) throws(ExchangeGraphError) {
         self.json = try Self.drainingTemporaries { () throws(ExchangeGraphError) in
-            let json: Data
+            let encoded: (json: Data, tree: Any?)
             do {
-                json = try Self.wireEncoder.encode(bundle)
+                encoded = try Self.wireEncoding(of: bundle)
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
@@ -71,9 +71,10 @@ public struct ExchangeGraph: Sendable {
                 kind: kind,
                 eventIdentifier: eventIdentifier,
                 bundle: bundle,
-                document: ValidationDocument(bundle: bundle, jsonData: json)
+                document: encoded.tree.map { ValidationDocument(bundle: bundle, tree: $0) }
+                    ?? ValidationDocument(bundle: bundle, jsonData: encoded.json)
             )
-            return json
+            return encoded.json
         }
         self.kind = kind
         self.eventIdentifier = eventIdentifier
@@ -100,6 +101,15 @@ public struct ExchangeGraph: Sendable {
         }
         self.kind = kind
         self.json = json
+    }
+
+    /// The canonical encoding of `bundle`: ``WireJSONEncoder``'s bytes, which are `wireEncoder`'s, written directly, and
+    /// the JSON they state, or `nil` when `wireEncoder` wrote them.
+    static func wireEncoding(of bundle: ModelsR4.Bundle) throws -> (json: Data, tree: Any?) {
+        guard let (json, tree) = try WireJSONEncoder.encodeKeepingTree(bundle) else {
+            return (try wireEncoder.encode(bundle), nil)
+        }
+        return (json, tree)
     }
 
     private static func decodeValidated(

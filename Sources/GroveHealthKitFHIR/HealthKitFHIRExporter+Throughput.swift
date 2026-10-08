@@ -18,8 +18,8 @@ import Synchronization
 extension HealthKitFHIRExporter {
     /// What this exporter's export calls cost since it was created, measured under ``Options/measuresThroughput``.
     ///
-    /// Phase times are summed over every call, so with concurrent calls they add up to more than ``busy``, the
-    /// wall-clock time during which at least one call ran. Retractions are not measured.
+    /// Phase times are summed over every call and over the cores a call plans and builds its records on, so they add
+    /// up to more than ``busy``, the wall-clock time during which at least one call ran. Retractions are not measured.
     public struct Throughput: Sendable, CustomStringConvertible {
         /// The time spent in each phase of the export calls.
         public struct Phases: Sendable, Equatable {
@@ -205,11 +205,7 @@ extension HealthKitFHIRExporter.Throughput {
             signpost = Recorder.signposter.beginInterval("export", id: Recorder.signposter.makeSignpostID())
         }
 
-        func planned(_ type: String, since start: ContinuousClock.Instant?) {
-            guard let start else {
-                return
-            }
-            let duration = now - start
+        func planned(_ type: String, in duration: Duration) {
             measured.records += 1
             measured.phases.plan += duration
             measured.sourceTypes[type, default: .init()].records += 1
@@ -223,15 +219,12 @@ extension HealthKitFHIRExporter.Throughput {
             measured.phases.reserve += now - start
         }
 
-        /// One record's delivery: everything but its validation and the caller's `receive` is assembly.
-        func delivered(_ type: String, since start: ContinuousClock.Instant?, validation: Duration, receiving: Duration) {
-            guard let start else {
-                return
-            }
-            let assembly = now - start - validation - receiving
+        /// One record's graphs built in `building`, of which `validation` validated them; the rest is assembly.
+        func built(_ type: String, in building: Duration, validation: Duration) {
+            let assembly = building - validation
             measured.phases.assemble += assembly
             measured.phases.validate += validation
-            measured.sourceTypes[type, default: .init()].duration += assembly + validation
+            measured.sourceTypes[type, default: .init()].duration += building
         }
 
         func received(_ export: HealthKitFHIRExporter.Export, in duration: Duration) {

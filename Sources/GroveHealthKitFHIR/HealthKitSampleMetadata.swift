@@ -154,7 +154,7 @@ struct MetadataComponentRule: Sendable {
 /// manual-entry flag decide when it states them; otherwise the members state the zone every member naming one names,
 /// and manual entry only when every member states it.
 @available(iOS 18, macOS 15, watchOS 11, *)
-struct HealthKitSampleMetadata {
+struct HealthKitSampleMetadata: @unchecked Sendable { // The values are HealthKit's immutable property-list objects.
     /// The sample's metadata, empty when it states none.
     let values: [String: Any]
     /// The metadata of each member of the correlation, in no particular order; empty unless the rule reads members.
