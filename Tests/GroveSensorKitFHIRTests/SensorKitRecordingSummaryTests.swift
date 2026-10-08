@@ -59,12 +59,12 @@ struct GroveSensorKitRecordingSummaryTests {
     }
 
     @Test
-    func sleepSessionAssertsItsIntervalAndLength() throws {
+    func sleepSessionAssertsItsIntervalAndLength() async throws {
         let record = SensorKitSleepSessionRecord(
             sourceRecordID: try Self.sourceID,
             session: DateInterval(start: Self.start.addingTimeInterval(-28_800), end: Self.start)
         )
-        let graph = try SensorKitExporterFixtures.graph(.sleepSession(record), recordingDevice: nil)
+        let graph = try await SensorKitExporterFixtures.graph(.sleepSession(record), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
 
         #expect(observation.meta?.profile == [Self.profile("sensorkit-sleep-session-observation")])
@@ -94,8 +94,8 @@ struct GroveSensorKitRecordingSummaryTests {
     }
 
     @Test
-    func accelerometerSummaryLinksTheMandatoryRecording() throws {
-        let graph = try SensorKitExporterFixtures.graph(.accelerometer(Self.accelerometerRecord()), recordingDevice: nil)
+    func accelerometerSummaryLinksTheMandatoryRecording() async throws {
+        let graph = try await SensorKitExporterFixtures.graph(.accelerometer(Self.accelerometerRecord()), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
         let document = try #require(graph.recordingDocument)
         let entries = try #require(graph.bundle.entry)
@@ -117,7 +117,7 @@ struct GroveSensorKitRecordingSummaryTests {
     }
 
     @Test
-    func ppgSummaryLinksTheMandatoryRecording() throws {
+    func ppgSummaryLinksTheMandatoryRecording() async throws {
         let payload = try SensorKitPPGTestSupport.recording(start: Self.start).encoded()
         let record = try SensorKitPPGRecord(
             sourceRecordID: try Self.sourceID,
@@ -128,7 +128,7 @@ struct GroveSensorKitRecordingSummaryTests {
                 admission: .callerAuthorizedOpaquePayload
             )
         )
-        let graph = try SensorKitExporterFixtures.graph(.ppg(record), recordingDevice: nil)
+        let graph = try await SensorKitExporterFixtures.graph(.ppg(record), recordingDevice: nil)
         let observation = try #require(graph.observations.first)
         let document = try #require(graph.recordingDocument)
         let entries = try #require(graph.bundle.entry)

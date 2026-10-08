@@ -83,10 +83,10 @@ struct SensorKitGoldenCase: Sendable, CustomTestStringConvertible {
 
     /// The case's graph as checked in: its Bundle with sorted members, pretty-printed and without escaped slashes,
     /// the same tokens as the wire bytes `ExchangeGraph.json` encodes, so a change diffs by line.
-    func checkedInBytes() throws -> Data {
+    func checkedInBytes() async throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        return try encoder.encode(SensorKitExporterFixtures.graph(record()).bundle)
+        return try encoder.encode(await SensorKitExporterFixtures.graph(record()).bundle)
     }
 }
 
@@ -146,8 +146,8 @@ struct SensorKitGoldenTests {
     }
 
     @Test("A SensorKit graph matches its checked-in golden", arguments: SensorKitGoldenCase.all)
-    func matchesItsGolden(_ goldenCase: SensorKitGoldenCase) throws {
-        let bytes = try goldenCase.checkedInBytes()
+    func matchesItsGolden(_ goldenCase: SensorKitGoldenCase) async throws {
+        let bytes = try await goldenCase.checkedInBytes()
         if let directory = Self.outputDirectory {
             let resolved = directory.resolvingSymlinksInPath()
             try #require(!resolved.path.hasPrefix(Self.checkout.path + "/"), "\(resolved.path) lies inside the checkout")

@@ -44,10 +44,10 @@ struct DocumentContextMergeTests {
     }
 
     @Test("An exported HealthKit document states exactly the study references as its context")
-    func healthKitDocumentContextIsTheStudies() throws {
+    func healthKitDocumentContextIsTheStudies() async throws {
         let record = try Self.record()
         let producer = try ExporterFixtures.producer(studies: Self.enrollments, storage: ExchangeProducer.InMemoryStorage())
-        let (exports, _) = try ExporterFixtures.collect(
+        let (exports, _) = try await ExporterFixtures.collect(
             try ExporterFixtures.exporter(producer),
             [.heartbeatSeries(record.series, beats: record.heartbeats)]
         )

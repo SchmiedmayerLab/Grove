@@ -91,8 +91,8 @@ struct GoldenOutline: Codable, Equatable {
 @Suite
 struct GoldenGraphTests {
     @Test(.enabled(if: !GoldenStore.resources.isGenerating), arguments: GoldenCase.all)
-    func matchesCheckedInGolden(_ goldenCase: GoldenCase) throws {
-        let output = try goldenCase.output()
+    func matchesCheckedInGolden(_ goldenCase: GoldenCase) async throws {
+        let output = try await goldenCase.output()
         let actual = try LosslessJSONValue(parsing: output.graph.json)
         let expected = try LosslessJSONValue(parsing: GoldenStore.data(named: goldenCase.name))
         let outline = try #require(GoldenStore.outlines()[goldenCase.name], "no outline is pinned for \(goldenCase.name)")
@@ -131,14 +131,14 @@ struct GoldenGraphTests {
     /// this is also the regeneration: each case's sorted-member JSON and the outlines are written there, and the run
     /// fails, as it compared nothing.
     @Test
-    func everyCaseIsDeterministicAndPinnable() throws {
+    func everyCaseIsDeterministicAndPinnable() async throws {
         var outlines: [String: GoldenOutline] = [:]
         var events: [String: String] = [:]
         for goldenCase in GoldenCase.all {
-            let output = try goldenCase.output()
+            let output = try await goldenCase.output()
             let graph = output.graph
             let wire = try LosslessJSONValue(parsing: graph.json)
-            let again = try goldenCase.output()
+            let again = try await goldenCase.output()
             #expect(try LosslessJSONValue(parsing: again.graph.json) == wire, "\(goldenCase.name) is not deterministic")
             #expect(again.renderedWarnings == output.renderedWarnings, "\(goldenCase.name) does not warn deterministically")
             let sorted = try GoldenStore.encoder.encode(graph.bundle)
@@ -161,11 +161,11 @@ struct GoldenGraphTests {
     /// (The old converter refused every workout: its segment children claimed a profile the Provenance contract
     /// does not admit.)
     @Test(arguments: [false, true])
-    func workoutsExportTheSessionAlone(withEvents: Bool) throws {
+    func workoutsExportTheSessionAlone(withEvents: Bool) async throws {
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
         var inputs = ExportInputs()
         inputs.sequence = 200
-        let conversion = try ExporterFixtures.export(workout, inputs)
+        let conversion = try await ExporterFixtures.export(workout, inputs)
         let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 1)
         #expect(observations.first?.hasMember == nil)
@@ -176,14 +176,14 @@ struct GoldenGraphTests {
 
     /// F1: a workout's retraction names exactly the outputs its addition emitted, recomputed from its type and UUID.
     @Test
-    func workoutRetractionIsExact() throws {
+    func workoutRetractionIsExact() async throws {
         #expect(HealthKitContentPlan[.workout].outputs.map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA2))
         var inputs = ExportInputs()
         inputs.sequence = 202
-        let conversion = try ExporterFixtures.export(workout, inputs)
+        let conversion = try await ExporterFixtures.export(workout, inputs)
         inputs.sequence = 203
-        let retraction = try ExporterFixtures.retraction(
+        let retraction = try await ExporterFixtures.retraction(
             HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant),
             inputs
         )
@@ -195,15 +195,15 @@ struct GoldenGraphTests {
     /// The pinned guide has no source-record retraction scope (an IG gap; owner decision: keep): a deletion cannot tell
     /// whether an ECG stated an average heart rate, so its retraction always names the child, emitted or not.
     @Test
-    func ecgRetractionNamesTheAverageHeartRateChildAlways() throws {
+    func ecgRetractionNamesTheAverageHeartRateChildAlways() async throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xA4, symptoms: [], averageHeartRate: nil)
         let ecg = record.electrocardiogram
         var inputs = ExportInputs()
         inputs.sequence = 204
-        let conversion = try ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []), inputs).primary
+        let conversion = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []), inputs).primary
         #expect(conversion.identifiers.childOutputs.isEmpty, "an ECG without an average emits no child")
         inputs.sequence = 205
-        let retraction = try ExporterFixtures.retraction(
+        let retraction = try await ExporterFixtures.retraction(
             HealthKitFHIRExporter.Deletion(uuid: ecg.uuid, sourceType: .electrocardiogram, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant),
             inputs
         )
@@ -224,14 +224,14 @@ struct GoldenGraphTests {
     /// A writer classified as an application whose bundle identifier is not one is a refusal; a writer with a blank
     /// name is merely no writer (`writer-blank-name-with-sync-identity` pins that graph).
     @Test
-    func invalidWriterBundleIdentifierIsRefused() throws {
+    func invalidWriterBundleIdentifierIsRefused() async throws {
         var writer = GoldenFixtures.foreignWriter
         writer.bundleIdentifier = "not a bundle id"
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xA1), writer: writer)
         var inputs = ExportInputs.applicationWriter
         inputs.sequence = 201
-        #expect(throws: HealthKitConversionError.sourceApplicationInvalid) {
-            try ExporterFixtures.export(sample, inputs)
+        await #expect(throws: HealthKitConversionError.sourceApplicationInvalid) {
+            try await ExporterFixtures.export(sample, inputs)
         }
     }
 

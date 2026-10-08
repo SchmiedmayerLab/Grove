@@ -127,9 +127,9 @@ struct HealthKitBloodPressureMemberTests {
     }
 
     @Test("The correlation's Boolean decides manual entry; otherwise every member must state true", arguments: entryCases)
-    func manualEntry(_ expected: EntryCase) throws {
+    func manualEntry(_ expected: EntryCase) async throws {
         #expect(try Self.bridge(Self.pressure(expected.parts)).wasUserEntered == expected.wasUserEntered)
-        let observation = try Self.export(Self.pressure(expected.parts)).observation
+        let observation = try await Self.export(Self.pressure(expected.parts)).observation
         let methods = observation.extension?.filter { $0.url == Canonicals.recordingMethod } ?? []
         #expect(methods.count == (expected.wasUserEntered ? 1 : 0))
     }
@@ -144,8 +144,8 @@ struct HealthKitBloodPressureMemberTests {
 
 extension HealthKitBloodPressureMemberTests {
     @Test("Members agreeing on a zone state the effective time in it, as the correlation's own zone would")
-    func memberZoneStatesTheEffectiveTime() throws {
-        let stated = try Self.export(Self.pressure(Parts(Self.zone(Self.pacific)))).observation.effective
+    func memberZoneStatesTheEffectiveTime() async throws {
+        let stated = try await Self.export(Self.pressure(Parts(Self.zone(Self.pacific)))).observation.effective
         guard case .dateTime(let local)? = stated else {
             Issue.record("a blood-pressure correlation states a dateTime")
             return
@@ -153,14 +153,14 @@ extension HealthKitBloodPressureMemberTests {
         #expect(local.value?.description == "2026-08-17T15:30:00-07:00")
         #expect(local.extension == [Extension(url: Canonicals.timezone, value: .code(Self.pacific.asFHIRStringPrimitive()))])
         for parts in [Parts(systolic: Self.zone(Self.pacific), diastolic: Self.zone(Self.pacific)), Parts(diastolic: Self.zone(Self.pacific))] {
-            let conversion = try Self.export(Self.pressure(parts))
+            let conversion = try await Self.export(Self.pressure(parts))
             #expect(conversion.observation.effective == stated, "\(parts.testDescription)")
             #expect(conversion.warnings.isEmpty, "\(parts.testDescription)")
         }
     }
 
     @Test("Members that name no zone or disagree leave the effective time in UTC, reported")
-    func disagreeingMembersStayInUTC() throws {
+    func disagreeingMembersStayInUTC() async throws {
         let offset = ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectiveDateTime")
         // Disagreeing members' zones are no zone the graph names, so they are reported as withheld (spec F10).
         let cases: [(Parts, withheld: [String])] = [
@@ -169,7 +169,7 @@ extension HealthKitBloodPressureMemberTests {
         ]
         for (parts, withheld) in cases {
             let warnings = withheld.isEmpty ? [offset] : [Self.unmodeled, offset]
-            let conversion = try Self.export(Self.pressure(parts))
+            let conversion = try await Self.export(Self.pressure(parts))
             guard case .dateTime(let utc)? = conversion.observation.effective else {
                 Issue.record("a blood-pressure correlation states a dateTime")
                 continue
@@ -182,17 +182,17 @@ extension HealthKitBloodPressureMemberTests {
     }
 
     @Test("A member zone the conversion consults and HealthKit does not know refuses the record")
-    func invalidMemberZoneRefuses() throws {
+    func invalidMemberZoneRefuses() async throws {
         let pressure = try Self.pressure(Parts(systolic: Self.zone("Not/A-Time-Zone"), diastolic: Self.zone(Self.pacific)))
-        let refusal = try #require(throws: HealthKitConversionError.self) {
-            try Self.export(pressure)
+        let refusal = try await #require(throws: HealthKitConversionError.self) {
+            try await Self.export(pressure)
         }
         #expect(refusal == .invalidValue(.bloodPressure, .unsupportedMetadataValue(.timeZone)))
         #expect(refusal.diagnostic.code == "mobile-input.unsupported-source-value")
     }
 
     @Test("Members' keys join the correlation's, each once, unless the record carries the equal value")
-    func memberKeysJoinTheUnmodeledWarning() throws {
+    func memberKeysJoinTheUnmodeledWarning() async throws {
         let parts = Parts(
             [HKMetadataKeyTimeZone: Self.pacific, "com.example.y": "correlation"],
             systolic: ["com.example.x": "systolic", "com.example.y": "systolic", HKMetadataKeyTimeZone: Self.pacific],
@@ -200,14 +200,17 @@ extension HealthKitBloodPressureMemberTests {
         )
         let keys = ["com.example.x", "com.example.y", HKMetadataKeyHeartRateMotionContext, HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion]
         #expect(try Self.withheldKeys(Self.pressure(parts)) == keys.sorted())
-        #expect(try Self.export(Self.pressure(parts)).warnings == [Self.unmodeled])
+        await #expect(try Self.export(Self.pressure(parts)).warnings == [Self.unmodeled])
     }
 
     @Test("A member's sync pair is never the record's writer identity")
-    func memberSyncPairIsNotWriterIdentity() throws {
+    func memberSyncPairIsNotWriterIdentity() async throws {
         let synced = Parts(Self.zone(Self.pacific), systolic: [HKMetadataKeySyncIdentifier: "member-1", HKMetadataKeySyncVersion: 1])
-        let conversion = try Self.export(Self.pressure(synced, writer: GoldenFixtures.foreignWriter), writer: .application)
-        let unsynced = try Self.export(Self.pressure(Parts(Self.zone(Self.pacific)), writer: GoldenFixtures.foreignWriter), writer: .application)
+        let conversion = try await Self.export(Self.pressure(synced, writer: GoldenFixtures.foreignWriter), writer: .application)
+        let unsynced = try await Self.export(
+            Self.pressure(Parts(Self.zone(Self.pacific)), writer: GoldenFixtures.foreignWriter),
+            writer: .application
+        )
         #expect(try Self.withheldKeys(Self.pressure(synced, writer: GoldenFixtures.foreignWriter), writer: .application)
             == [HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion].sorted())
         #expect(conversion.warnings == [Self.unmodeled])
@@ -263,8 +266,8 @@ extension HealthKitBloodPressureMemberTests {
     }
 
     /// The export of `sample` under the default inputs, its source classified as `writer`.
-    static func export(_ sample: HKSample, writer: HealthKitFHIRExporter.WriterPolicy.Classification = .omit) throws -> ExportedRecord {
-        try ExporterFixtures.export(sample, inputs(writer: writer))
+    static func export(_ sample: HKSample, writer: HealthKitFHIRExporter.WriterPolicy.Classification = .omit) async throws -> ExportedRecord {
+        try await ExporterFixtures.export(sample, inputs(writer: writer))
     }
 
     /// The metadata keys the graph of `sample` withholds, its source classified as `writer`.

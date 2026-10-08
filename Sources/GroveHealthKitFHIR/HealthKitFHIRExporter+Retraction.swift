@@ -28,12 +28,14 @@ extension HealthKitFHIRExporter {
     /// same ledger generation made, never one from after a `resetLedger()`, and one a live export still holds
     /// only once that export finishes. A call with nothing to retract forgets nothing. The call ends early
     /// for the same reasons as ``export(_:at:receive:)``: an unstatable `instant`, a `LedgerError`
-    /// (recovered by `ExchangeProducer.resetLedger()`), and errors of the ledger's storage or of `receive`.
-    public func retract(
+    /// (recovered by `ExchangeProducer.resetLedger()`), errors of the ledger's storage or of `receive`, and
+    /// cancellation between chunks.
+    public nonisolated(nonsending) func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
         receive: (Retraction) throws -> Void
-    ) throws -> ExchangeProducer.Receipt {
+    ) async throws -> ExchangeProducer.Receipt {
+        let deletions = Array(deletions)
         let requests = deletions.map { deletion in
             isRetractable(deletion) ? context.request(for: .retraction(deletion)) : nil
         }
@@ -42,21 +44,30 @@ extension HealthKitFHIRExporter {
             at: instant,
             forgetting: deletions.map { ExchangeEventKey.active(type: $0.sourceType, uuid: $0.uuid) }
         )
-        for (deletion, request) in zip(deletions, requests) {
-            guard let request, let reservation = reserved[request] else {
-                try receive(Retraction(deletion: deletion, outcome: .nothingToRetract))
-                continue
+        let reservations = zip(deletions, requests).map { deletion, request in
+            (deletion: deletion, reservation: request.flatMap { reserved[$0] })
+        }
+        try await ConcurrentBuild.forEach(reservations, width: options.maximumConcurrency ?? ConcurrentBuild.defaultWidth) { job in
+            autoreleasepool {
+                self.outcome(of: job.deletion, reservation: job.reservation)
             }
-            // A refusal keeps its reservation held until the receipt is released, never mid-call.
-            let outcome: Retraction.Outcome
-            do {
-                outcome = .graph(try retraction(of: deletion, reservation: reservation))
-            } catch {
-                outcome = .refused(HealthKitConversionError(conversionFailure: error, source: deletion.sourceType))
-            }
-            try receive(Retraction(deletion: deletion, outcome: outcome))
+        } hand: { job, outcome in
+            try receive(Retraction(deletion: job.deletion, outcome: outcome))
         }
         return receipt
+    }
+
+    /// The outcome of one deletion: nothing to retract without a reservation, else its retraction graph or why it has
+    /// none. A refusal keeps its reservation held until the receipt is released, never mid-call.
+    private func outcome(of deletion: Deletion, reservation: ExchangeEventReservation?) -> Retraction.Outcome {
+        guard let reservation else {
+            return .nothingToRetract
+        }
+        do {
+            return .graph(try retraction(of: deletion, reservation: reservation))
+        } catch {
+            return .refused(HealthKitConversionError(conversionFailure: error, source: deletion.sourceType))
+        }
     }
 
     /// Whether a deletion names outputs this exporter can have emitted. A type without outputs never emitted any,

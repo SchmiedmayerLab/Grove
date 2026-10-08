@@ -30,12 +30,12 @@ struct ContentCorpusTests {
 
     /// The tokens a checked-in line's vector converts to now, checking that every emitted output is cataloged, or
     /// nil when this platform cannot rebuild the vector's record.
-    private static func reproduction(of line: ContentCorpusStore.Line, uncataloged: inout [String]) throws -> LosslessJSONValue? {
+    private static func reproduction(of line: ContentCorpusStore.Line, uncataloged: inout [String]) async throws -> LosslessJSONValue? {
         do {
             guard case .convert(let source) = line.input else {
-                return try ContentCorpusRecorder.output(for: line.input)
+                return try await ContentCorpusRecorder.output(for: line.input)
             }
-            let outcome = try ContentCorpusRecorder.outcome(of: source)
+            let outcome = try await ContentCorpusRecorder.outcome(of: source)
             uncataloged += try ContentCorpusInvariants.uncatalogedOutputs(of: outcome, source: source).map { "\(line.id): \($0)" }
             return try ContentCorpusRecorder.render(outcome)
         } catch ContentCorpusSamples.RebuildError.unavailableHere {
@@ -47,12 +47,12 @@ struct ContentCorpusTests {
     /// CDA documents) is skipped; every other vector must rebuild, convert to the pinned tokens, and print as the
     /// pinned bytes, which also catches what token equality cannot see (canonically equivalent strings).
     @Test(.enabled(if: !ContentCorpusStore.isGenerating), arguments: 0..<shards)
-    func everyLineIsReproduced(shard: Int) throws {
+    func everyLineIsReproduced(shard: Int) async throws {
         var drifted: [String] = []
         var uncataloged: [String] = []
         var count = 0
-        try ContentCorpusStore.forEachLine(in: ContentCorpusStore.checkedIn(), shard: (shard, Self.shards)) { line in
-            guard let actual = try Self.reproduction(of: line, uncataloged: &uncataloged) else {
+        try await ContentCorpusStore.forEachLine(in: ContentCorpusStore.checkedIn(), shard: (shard, Self.shards)) { line in
+            guard let actual = try await Self.reproduction(of: line, uncataloged: &uncataloged) else {
                 return
             }
             count += 1
@@ -93,20 +93,18 @@ struct ContentCorpusTests {
     /// writes nothing when a vector converts nondeterministically, or when the regeneration drops or duplicates an
     /// id or restates an input `GROVE_CONTENT_CORPUS_ALLOW_RESTATED_INPUTS` does not admit. Regenerate on macOS.
     @Test(.enabled(if: ContentCorpusStore.isGenerating))
-    func corpusRegenerates() throws {
+    func corpusRegenerates() async throws {
         #if os(watchOS)
         Issue.record("regenerate the corpus on macOS: watchOS has no clinical records to rebuild")
         #else
         var lines: [String] = []
         var nondeterministic: [String] = []
         for vector in ContentCorpusGrid.vectors {
-            try autoreleasepool {
-                let output = try ContentCorpusRecorder.output(for: vector.input)
-                if try ContentCorpusRecorder.output(for: vector.input) != output {
-                    nondeterministic.append(vector.id)
-                }
-                lines.append(try ContentCorpusStore.line(vector, output: output))
+            let output = try await ContentCorpusRecorder.output(for: vector.input)
+            if try await ContentCorpusRecorder.output(for: vector.input) != output {
+                nondeterministic.append(vector.id)
             }
+            lines.append(try ContentCorpusStore.line(vector, output: output))
         }
         try #require(nondeterministic.isEmpty, "vectors that do not convert deterministically: \(nondeterministic)")
         let changes = try ContentCorpusChanges(checkedIn: ContentCorpusStore.checkedIn(), regenerated: lines)

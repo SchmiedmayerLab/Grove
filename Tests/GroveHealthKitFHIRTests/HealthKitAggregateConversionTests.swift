@@ -98,9 +98,9 @@ struct HealthKitFHIRAggregateConversionTests {
     }
 
     @Test("Windowed aggregates carry their fixed aggregation method", arguments: methodCases)
-    func aggregateMethod(testCase: MethodCase) throws {
+    func aggregateMethod(testCase: MethodCase) async throws {
         let sample = quantitySample(testCase.identifier, unit: testCase.unit, value: testCase.value)
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let method = try #require(testCase.measurement.method)
         let coding = try #require(observation.method?.coding?.first)
 
@@ -111,10 +111,10 @@ struct HealthKitFHIRAggregateConversionTests {
     }
 
     @Test("A point measurement asserts no aggregation method")
-    func pointMeasurementsHaveNoMethod() throws {
+    func pointMeasurementsHaveNoMethod() async throws {
         let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72, interval: 0)
-        let observation = try ExporterFixtures.export(sample, inputs).observation
-        let resting = try ExporterFixtures.export(
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
+        let resting = try await ExporterFixtures.export(
             quantitySample(.restingHeartRate, unit: .count().unitDivided(by: .minute()), value: 58),
             inputs
         ).observation
@@ -137,7 +137,7 @@ struct HealthKitFHIRAggregateConversionTests {
     }
 
     @Test("Sleeping breathing disturbances pass HealthKit's per-hour rate through unchanged")
-    func sessionRatePassesPlatformRateThrough() throws {
+    func sessionRatePassesPlatformRateThrough() async throws {
         // HealthKit stores this type as events per hour already; a night-long sample must not be divided again.
         let sample = quantitySample(
             .appleSleepingBreathingDisturbances,
@@ -145,7 +145,7 @@ struct HealthKitFHIRAggregateConversionTests {
             value: 4.2,
             interval: 7 * 3_600
         )
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = observation.value else {
                 return nil
@@ -164,14 +164,14 @@ struct HealthKitFHIRAggregateConversionTests {
         "Insulin delivery retains its delivery reason as a component",
         arguments: [HKInsulinDeliveryReason.basal, .bolus]
     )
-    func insulinDeliveryReasonIsRetained(reason: HKInsulinDeliveryReason) throws {
+    func insulinDeliveryReasonIsRetained(reason: HKInsulinDeliveryReason) async throws {
         let sample = quantitySample(
             .insulinDelivery,
             unit: .internationalUnit(),
             value: 4.5,
             metadata: [HKMetadataKeyInsulinDeliveryReason: NSNumber(value: reason.rawValue)]
         )
-        let observation = try ExporterFixtures.export(sample, inputs).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let component = try #require(observation.component?.first)
         let expected = reason == .basal ? "basal" : "bolus"
 

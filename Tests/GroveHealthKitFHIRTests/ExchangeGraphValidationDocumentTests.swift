@@ -32,14 +32,14 @@ struct ExchangeGraphValidationDocumentTests {
     private static let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
     private static let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
 
-    private static func conversions(_ scenario: Scenario) throws -> ExportedRecord {
+    private static func conversions(_ scenario: Scenario) async throws -> ExportedRecord {
         switch scenario {
         case .heartRate:
-            return try ExporterFixtures.export(heartRateSample(), inputs())
+            return try await ExporterFixtures.export(heartRateSample(), inputs())
         case .heartRateWithStudies:
-            return try ExporterFixtures.export(heartRateSample(), inputs(studies: [.test("a"), .test("b")]))
+            return try await ExporterFixtures.export(heartRateSample(), inputs(studies: [.test("a"), .test("b")]))
         case .gatewayHeartRateWithDevice:
-            return try ExporterFixtures.export(
+            return try await ExporterFixtures.export(
                 heartRateSample(device: HKDevice(
                     name: "Band",
                     manufacturer: "Example Device Company",
@@ -62,7 +62,7 @@ struct ExchangeGraphValidationDocumentTests {
                     end: dates.end
                 )
             }
-            return try ExporterFixtures.export(
+            return try await ExporterFixtures.export(
                 HKCorrelation(
                     type: HKCorrelationType(.bloodPressure),
                     start: dates.start,
@@ -130,8 +130,8 @@ struct ExchangeGraphValidationDocumentTests {
     }
 
     @Test("An entry's resource in the parsed Bundle is the standalone encode of that resource", arguments: Scenario.allCases)
-    func parsedEntryResourceIsTheStandaloneEncode(scenario: Scenario) throws {
-        for graph in try Self.conversions(scenario).all.map(\.graph) {
+    func parsedEntryResourceIsTheStandaloneEncode(scenario: Scenario) async throws {
+        for graph in try await Self.conversions(scenario).all.map(\.graph) {
             try Self.expectSharedJSONMatchesStandaloneEncodes(graph)
         }
     }
@@ -144,23 +144,31 @@ struct ExchangeGraphValidationDocumentTests {
         "Building a graph leaves no Foundation temporaries in the caller's autorelease pool",
         .disabled(if: ProcessInfo.processInfo.environment["CI"] != nil, "Process-wide heap measurement is too noisy on shared CI runners")
     )
-    func graphValidationDrainsItsOwnTemporaries() throws {
+    func graphValidationDrainsItsOwnTemporaries() async throws {
         let (exporter, _) = try ExporterFixtures.exporter(Self.inputs())
         let sample = Self.heartRateSample()
-        let stored = try ExportedRecord(ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp).exports).graph.json
+        let stored = try ExportedRecord(await ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp).exports).graph.json
         let iterations = 500
-        let round = { () throws -> Int in
-            try autoreleasepool {
-                let before = Self.liveHeapBytes()
+        // Exports build their graphs on child tasks, each record in its own pool; re-validation runs on this task, in
+        // the one pool the round holds, as a caller's batch would.
+        let round = { () async throws -> Int in
+            let before = Self.liveHeapBytes()
+            for _ in 0..<iterations {
+                _ = try await ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp)
+            }
+            return try autoreleasepool {
                 for _ in 0..<iterations {
-                    _ = try ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp)
                     _ = try ExchangeGraph(validating: stored, kind: .active)
                 }
                 return Self.liveHeapBytes() - before
             }
         }
-        _ = try round()
-        let retained = try (0..<2).map { _ in try round() }.min() ?? .max
+        _ = try await round()
+        var rounds: [Int] = []
+        for _ in 0..<2 {
+            rounds.append(try await round())
+        }
+        let retained = rounds.min() ?? .max
         #expect(retained < 8 << 20, "\(retained) bytes stayed in the caller's pool over \(iterations) conversions")
     }
 }

@@ -40,7 +40,7 @@ struct SensorConformanceFixtureTests {
     }
 
     @Test
-    func writeSharedSensorFixtures() throws {
+    func writeSharedSensorFixtures() async throws {
         let timestamp = Date(timeIntervalSince1970: 1_787_009_400)
         let rotation = SensorKitRotationRateRecord(
             sourceRecordID: try Self.sourceID("754cdecc-6733-4610-935b-f19425cff68e"),
@@ -185,7 +185,7 @@ struct SensorConformanceFixtureTests {
                     version: "0.5.0"
                 )
             )
-            let exports = try SensorKitExporterFixtures.collect(
+            let exports = try await SensorKitExporterFixtures.collect(
                 SensorKitExporterFixtures.exporter(producer),
                 [entry.record],
                 timeZone: SensorKitExporterFixtures.timeZone,

@@ -73,8 +73,8 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("Model and version facts alone never claim a physical Device instance")
-    func unknownPhysicalUnitIsOmitted() throws {
-        let conversion = try ExporterFixtures.export(sample(watch()), inputs())
+    func unknownPhysicalUnitIsOmitted() async throws {
+        let conversion = try await ExporterFixtures.export(sample(watch()), inputs())
 
         #expect(conversion.recordingDevice == nil)
         #expect(conversion.identifiers.recordingDeviceSnapshot == nil)
@@ -82,8 +82,8 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("The converting application has one clear typed bundle id and one opaque snapshot")
-    func converterApplicationIdentity() throws {
-        let conversion = try ExporterFixtures.export(sample(watch()), inputs())
+    func converterApplicationIdentity() async throws {
+        let conversion = try await ExporterFixtures.export(sample(watch()), inputs())
         let application = conversion.converterApplication
         let identifiers = try #require(application.identifier)
         let bundleIdentifier = try #require(identifiers.first(where: {
@@ -102,8 +102,8 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("A governed stable token emits stable-unit and immutable-snapshot identifiers")
-    func emitsBothTypedIdentifiers() throws {
-        let conversion = try ExporterFixtures.export(
+    func emitsBothTypedIdentifiers() async throws {
+        let conversion = try await ExporterFixtures.export(
             sample(watch()),
             inputs(stableUnitToken: "watch-unit-7")
         )
@@ -116,12 +116,12 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("Firmware changes create a new snapshot without changing the physical-unit identity")
-    func firmwareChangesDoNotMutateHistory() throws {
-        let before = try ExporterFixtures.export(
+    func firmwareChangesDoNotMutateHistory() async throws {
+        let before = try await ExporterFixtures.export(
             sample(watch(firmware: "11.2")),
             inputs(eventOffset: 0, stableUnitToken: "watch-unit-7")
         )
-        let after = try ExporterFixtures.export(
+        let after = try await ExporterFixtures.export(
             sample(watch(firmware: "11.3"), offset: 600),
             inputs(eventOffset: 1, stableUnitToken: "watch-unit-7")
         )
@@ -134,12 +134,12 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("Stable physical identity is scoped to the subject")
-    func stableIdentityIsSubjectScoped() throws {
-        let mine = try ExporterFixtures.export(
+    func stableIdentityIsSubjectScoped() async throws {
+        let mine = try await ExporterFixtures.export(
             sample(watch()),
             inputs(subjectID: "1a2b3c", eventOffset: 0, stableUnitToken: "watch-unit-7")
         )
-        let yours = try ExporterFixtures.export(
+        let yours = try await ExporterFixtures.export(
             sample(watch()),
             inputs(subjectID: "9z8y7x", eventOffset: 1, stableUnitToken: "watch-unit-7")
         )
@@ -150,8 +150,8 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("A HealthKit local identifier can supply the stable source token")
-    func localIdentifierSuppliesStableEvidence() throws {
-        let conversion = try ExporterFixtures.export(
+    func localIdentifierSuppliesStableEvidence() async throws {
+        let conversion = try await ExporterFixtures.export(
             sample(watch(localIdentifier: "healthkit-device-42")),
             inputs()
         )
@@ -161,9 +161,9 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("An unclassified source keeps the recording Device its HKDevice names, and the Provenance names no author")
-    func unclassifiedSourceKeepsTheRecordingDevice() throws {
+    func unclassifiedSourceKeepsTheRecordingDevice() async throws {
         let attributed = try StoredSampleFixtures.stored(sample(watch()), uuid: GoldenFixtures.uuid(0xB7), writer: GoldenFixtures.foreignWriter)
-        let conversion = try ExporterFixtures.export(attributed, inputs(stableUnitToken: "watch-unit-7", writer: .omit))
+        let conversion = try await ExporterFixtures.export(attributed, inputs(stableUnitToken: "watch-unit-7", writer: .omit))
         let recordingDevice = try #require(conversion.identifiers.recordingDeviceSnapshot)
 
         #expect(conversion.writer == nil)
@@ -173,8 +173,8 @@ struct HealthKitFHIRDeviceIdentityTests {
     }
 
     @Test("Validation refuses an Observation.device that resolves to a snapshot other than the recording Device")
-    func observationDeviceResolvesOnlyToTheRecordingDevice() throws {
-        let conversion = try ExporterFixtures.export(sample(watch()), inputs(stableUnitToken: "watch-unit-7"))
+    func observationDeviceResolvesOnlyToTheRecordingDevice() async throws {
+        let conversion = try await ExporterFixtures.export(sample(watch()), inputs(stableUnitToken: "watch-unit-7"))
         let graph = conversion.graph
         let entries = try #require(graph.bundle.entry)
         let index = try #require(entries.firstIndex { $0.resource?.get(if: Observation.self) != nil })

@@ -97,11 +97,11 @@ public final class QuestionnaireFHIRExporter: Sendable {
     ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
     ///   - receive: Called once per record, in input order.
     /// - Returns: The receipt to release once every graph is durably stored.
-    public func export(
+    public nonisolated(nonsending) func export(
         _ records: some Collection<Record>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> ExchangeProducer.Receipt {
+    ) async throws -> ExchangeProducer.Receipt {
         let plans = records.map { Plan($0, exporter: self) }
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
         // later, and a retry of the call would mint both again.

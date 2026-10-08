@@ -30,13 +30,13 @@ extension GoldenCase {
     /// state the corpus's beats and fixes.
     static let documents: [GoldenCase] = [
         GoldenCase("electrocardiogram", sequence: 60) { sequence in
-            try electrocardiogram(uuid: 60, sequence: sequence, symptom: nil, index: 0)
+            try await electrocardiogram(uuid: 60, sequence: sequence, symptom: nil, index: 0)
         },
         GoldenCase("electrocardiogram-with-symptom", sequence: 61) { sequence in
-            try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 0)
+            try await electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 0)
         },
         GoldenCase("electrocardiogram-symptom-companion", sequence: 61) { sequence in
-            try electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 1)
+            try await electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 1)
         },
         GoldenCase("heartbeat-series", sequence: 62) { sequence in
             let series = try StoredSampleFixtures.seriesSample(
@@ -44,7 +44,7 @@ extension GoldenCase {
                 sampleType: HKSeriesType.heartbeat(),
                 facts: seriesFacts(uuid: 62, duration: 2)
             )
-            return try GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)), sequence: sequence)
+            return try await GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)), sequence: sequence)
         },
         GoldenCase("workout-route", sequence: 63) { sequence in
             let route = try StoredSampleFixtures.seriesSample(
@@ -54,7 +54,7 @@ extension GoldenCase {
             )
             var inputs = ExportInputs()
             inputs.options.route = .authorized
-            return try GoldenFixtures.export(.workoutRoute(route, locations: routeLocations), sequence: sequence, inputs)
+            return try await GoldenFixtures.export(.workoutRoute(route, locations: routeLocations), sequence: sequence, inputs)
         }
     ] + clinicalDocuments
 
@@ -62,21 +62,21 @@ extension GoldenCase {
     /// deleted context API could state an exact deletion instant; HealthKit reports none, so the exporter states bounds.)
     static let retractions: [GoldenCase] = [
         GoldenCase("retraction-heart-rate", sequence: 80) { sequence in
-            try retraction(of: .heartRate, uuid: 80, sequence: sequence)
+            try await retraction(of: .heartRate, uuid: 80, sequence: sequence)
         },
         GoldenCase("retraction-heart-rate-native-identifier", sequence: 81) { sequence in
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
-            return try retraction(of: .heartRate, uuid: 81, sequence: sequence, deletedAfter: GoldenFixtures.sampleStart, inputs)
+            return try await retraction(of: .heartRate, uuid: 81, sequence: sequence, deletedAfter: GoldenFixtures.sampleStart, inputs)
         },
         GoldenCase("retraction-electrocardiogram", sequence: 82) { sequence in
-            try retraction(of: .electrocardiogram, uuid: 82, sequence: sequence)
+            try await retraction(of: .electrocardiogram, uuid: 82, sequence: sequence)
         },
         GoldenCase("retraction-blood-pressure", sequence: 83) { sequence in
-            try retraction(of: .bloodPressure, uuid: 83, sequence: sequence)
+            try await retraction(of: .bloodPressure, uuid: 83, sequence: sequence)
         },
         GoldenCase("retraction-workout", sequence: 84) { sequence in
-            try retraction(of: .workout, uuid: 84, sequence: sequence)
+            try await retraction(of: .workout, uuid: 84, sequence: sequence)
         }
     ]
 
@@ -92,7 +92,7 @@ extension GoldenCase {
                 end: GoldenFixtures.sampleStart.addingTimeInterval(1),
                 metadata: GoldenFixtures.timeZoneMetadata
             )
-            return try GoldenFixtures.export(StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(64)), sequence: sequence)
+            return try await GoldenFixtures.export(StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(64)), sequence: sequence)
         }
     ]
     #endif
@@ -126,12 +126,12 @@ extension GoldenCase {
     /// correlated symptom: the ECG's own graph first, then the symptom's.
     ///
     /// The symptom's own event takes `sequence + 100`, the only second sequence any case states.
-    static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?, index: Int) throws -> GoldenOutput {
+    static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?, index: Int) async throws -> GoldenOutput {
         let symptoms = try symptom.map { [try Self.symptom(uuid: $0)] } ?? []
         var inputs = ExportInputs()
         inputs.symptomSequences = [sequence + 100]
         let record = try ExporterFixtures.electrocardiogram(electrocardiogramRecord(uuid: ordinal, symptoms: symptoms), symptoms: symptoms)
-        return try GoldenFixtures.export(record, sequence: sequence, inputs, index: index, of: 1 + symptoms.count)
+        return try await GoldenFixtures.export(record, sequence: sequence, inputs, index: index, of: 1 + symptoms.count)
     }
 
     /// The retraction of the record of `type` with the `ordinal` UUID, deleted after `deletedAfter` when known and
@@ -142,7 +142,7 @@ extension GoldenCase {
         sequence: UInt64,
         deletedAfter: Date? = nil,
         _ inputs: ExportInputs = ExportInputs()
-    ) throws -> GoldenOutput {
+    ) async throws -> GoldenOutput {
         var inputs = inputs
         inputs.sequence = sequence
         let deletion = HealthKitFHIRExporter.Deletion(
@@ -152,7 +152,7 @@ extension GoldenCase {
             detectedAt: GoldenFixtures.conversionInstant
         )
         let (exporter, _) = try ExporterFixtures.exporter(inputs)
-        let (retractions, _) = try ExporterFixtures.retract(exporter, [deletion])
+        let (retractions, _) = try await ExporterFixtures.retract(exporter, [deletion])
         return try GoldenOutput(ExporterGolden.single(retractions))
     }
 

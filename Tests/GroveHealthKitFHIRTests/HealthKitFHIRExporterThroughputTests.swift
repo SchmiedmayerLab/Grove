@@ -31,23 +31,23 @@ struct HealthKitFHIRExporterThroughputTests {
     }
 
     @Test("An exporter measures nothing unless asked, and measuring changes no graph byte")
-    func measuringChangesNoByte() throws {
+    func measuringChangesNoByte() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let plain = try ExporterFixtures.exporter(storage: storage)
         #expect(plain.throughput == nil)
-        let (plainExports, receipt) = try ExporterFixtures.collect(plain, samples: try Self.samples())
+        let (plainExports, receipt) = try await ExporterFixtures.collect(plain, samples: try Self.samples())
         // The exact retry before the release reproduces every event, so equal bytes show measuring is not fingerprinted.
         let measuring = try ExporterFixtures.exporter(storage: storage) { $0.measuresThroughput = true }
-        let (measuredExports, _) = try ExporterFixtures.collect(measuring, samples: try Self.samples())
+        let (measuredExports, _) = try await ExporterFixtures.collect(measuring, samples: try Self.samples())
 
         #expect(measuredExports.map(\.graph?.json) == plainExports.map(\.graph?.json))
         receipt.release()
     }
 
     @Test("A measuring exporter counts records, graphs, refusals and bytes per type, times every phase and adds up calls")
-    func countsAndTimes() throws {
+    func countsAndTimes() async throws {
         let exporter = try ExporterFixtures.exporter { $0.measuresThroughput = true }
-        let (exports, _) = try ExporterFixtures.collect(exporter, samples: try Self.samples())
+        let (exports, _) = try await ExporterFixtures.collect(exporter, samples: try Self.samples())
         let throughput = try #require(exporter.throughput)
 
         #expect(throughput.calls == 1)
@@ -67,7 +67,7 @@ struct HealthKitFHIRExporterThroughputTests {
         #expect(throughput.phases.validate > .zero)
         #expect(throughput.busy > .zero)
 
-        _ = try ExporterFixtures.collect(exporter, samples: [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x64))])
+        _ = try await ExporterFixtures.collect(exporter, samples: [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x64))])
         let twice = try #require(exporter.throughput)
         #expect(twice.calls == 2)
         #expect(twice.records == 4)
@@ -75,10 +75,10 @@ struct HealthKitFHIRExporterThroughputTests {
     }
 
     @Test("The report states the totals, then each type by record count")
-    func report() throws {
+    func report() async throws {
         #expect(HealthKitFHIRExporter.Throughput().description == "No HealthKit export measured")
         let exporter = try ExporterFixtures.exporter { $0.measuresThroughput = true }
-        _ = try ExporterFixtures.collect(exporter, samples: try Self.samples())
+        _ = try await ExporterFixtures.collect(exporter, samples: try Self.samples())
         let lines = try #require(exporter.throughput).description.split(separator: "\n").map(String.init)
 
         try #require(lines.count == 4)

@@ -179,9 +179,9 @@ enum ExporterFixtures {
         _ exporter: HealthKitFHIRExporter,
         _ records: [HealthKitFHIRExporter.Record],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
-        let receipt = try exporter.export(records: records, at: instant) { exports.append($0) }
+        let receipt = try await exporter.export(records: records, at: instant) { exports.append($0) }
         return (exports, receipt)
     }
 
@@ -189,17 +189,17 @@ enum ExporterFixtures {
         _ exporter: HealthKitFHIRExporter,
         samples: [HKSample],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
-        try collect(exporter, samples.map { .sample($0) }, at: instant)
+    ) async throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
+        try await collect(exporter, samples.map { .sample($0) }, at: instant)
     }
 
     static func retract(
         _ exporter: HealthKitFHIRExporter,
         _ deletions: [HealthKitFHIRExporter.Deletion],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (retractions: [HealthKitFHIRExporter.Retraction], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> (retractions: [HealthKitFHIRExporter.Retraction], receipt: ExchangeProducer.Receipt) {
         var retractions: [HealthKitFHIRExporter.Retraction] = []
-        let receipt = try exporter.retract(deletions, at: instant) { retractions.append($0) }
+        let receipt = try await exporter.retract(deletions, at: instant) { retractions.append($0) }
         return (retractions, receipt)
     }
 
@@ -245,7 +245,10 @@ extension ExporterFixtures {
     /// and its symptoms reserved together take their sequences in no fixed order. Reserving each request on its own
     /// first, in the record's order, numbers them as stated; the export then finds every reservation under its own
     /// request and reuses it.
-    static func exports(_ record: HealthKitFHIRExporter.Record, _ inputs: ExportInputs = ExportInputs()) throws -> [HealthKitFHIRExporter.Export] {
+    static func exports(
+        _ record: HealthKitFHIRExporter.Record,
+        _ inputs: ExportInputs = ExportInputs()
+    ) async throws -> [HealthKitFHIRExporter.Export] {
         let (exporter, storage) = try exporter(inputs)
         let requests = HealthKitFHIRExporter.Plan(record, exporter: exporter).requests
         if requests.count > 1 {
@@ -259,26 +262,26 @@ extension ExporterFixtures {
             }
         }
         var exports: [HealthKitFHIRExporter.Export] = []
-        _ = try exporter.export(records: [record], at: inputs.instant) { exports.append($0) }
+        _ = try await exporter.export(records: [record], at: inputs.instant) { exports.append($0) }
         return exports
     }
 
     /// Every graph one call exports for `record`, read back; a refusal is thrown as the exporter reported it.
-    static func export(_ record: HealthKitFHIRExporter.Record, _ inputs: ExportInputs = ExportInputs()) throws -> ExportedRecord {
-        try ExportedRecord(exports(record, inputs))
+    static func export(_ record: HealthKitFHIRExporter.Record, _ inputs: ExportInputs = ExportInputs()) async throws -> ExportedRecord {
+        try ExportedRecord(await exports(record, inputs))
     }
 
     /// Every graph one call exports for `sample`, read back; a refusal is thrown as the exporter reported it.
-    static func export(_ sample: HKSample, _ inputs: ExportInputs = ExportInputs()) throws -> ExportedRecord {
-        try export(.sample(sample), inputs)
+    static func export(_ sample: HKSample, _ inputs: ExportInputs = ExportInputs()) async throws -> ExportedRecord {
+        try await export(.sample(sample), inputs)
     }
 
     /// The retraction graph of `deletion` under `inputs`, its event numbered ``ExportInputs/recordSequence``; a refusal is
     /// thrown as the exporter reported it.
-    static func retraction(_ deletion: HealthKitFHIRExporter.Deletion, _ inputs: ExportInputs = ExportInputs()) throws -> ExchangeGraph {
+    static func retraction(_ deletion: HealthKitFHIRExporter.Deletion, _ inputs: ExportInputs = ExportInputs()) async throws -> ExchangeGraph {
         let (exporter, _) = try exporter(inputs)
         var retractions: [HealthKitFHIRExporter.Retraction] = []
-        _ = try exporter.retract([deletion], at: inputs.instant) { retractions.append($0) }
+        _ = try await exporter.retract([deletion], at: inputs.instant) { retractions.append($0) }
         guard let retraction = retractions.first else {
             throw ExportFixtureError.nothingExported
         }
@@ -298,17 +301,17 @@ extension ExporterFixtures {
         _ record: HealthKitFHIRExporter.Record,
         as event: ExchangeEventIdentifier?,
         _ inputs: ExportInputs = ExportInputs()
-    ) throws -> ExportedRecord {
+    ) async throws -> ExportedRecord {
         let (exporter, storage) = try exporter(inputs)
         try handOut(try #require(event), from: storage)
-        return try ExportedRecord(collect(exporter, [record], at: inputs.instant).exports)
+        return try ExportedRecord(await collect(exporter, [record], at: inputs.instant).exports)
     }
 
     /// The retraction graph `deletion` takes on its own, through a fresh ledger that hands out exactly `event`.
-    static func standalone(_ deletion: HealthKitFHIRExporter.Deletion, as event: ExchangeEventIdentifier?) throws -> ExchangeGraph? {
+    static func standalone(_ deletion: HealthKitFHIRExporter.Deletion, as event: ExchangeEventIdentifier?) async throws -> ExchangeGraph? {
         let (exporter, storage) = try exporter(ExportInputs())
         try handOut(try #require(event), from: storage)
-        return try retract(exporter, [deletion], at: deletion.detectedAt).retractions.first?.graph
+        return try await retract(exporter, [deletion], at: deletion.detectedAt).retractions.first?.graph
     }
 
     /// Makes the ledger behind `storage` hand out `sequence` next under the test context's producer instance.

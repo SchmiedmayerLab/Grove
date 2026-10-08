@@ -79,9 +79,9 @@ enum SensorKitExporterFixtures {
         timeZone: TimeZone? = nil,
         recordingDevice: RecordingDevice? = watch,
         at instant: Date = instant
-    ) throws -> (exports: [SensorKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> (exports: [SensorKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [SensorKitFHIRExporter.Export] = []
-        let receipt = try exporter.export(
+        let receipt = try await exporter.export(
             records,
             sourceTimeZone: timeZone ?? Self.timeZone,
             recordingDevice: recordingDevice,
@@ -95,9 +95,9 @@ enum SensorKitExporterFixtures {
         _ record: SensorKitRecord,
         nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit,
         recordingDevice: RecordingDevice? = watch
-    ) throws -> ExchangeGraph {
+    ) async throws -> ExchangeGraph {
         let exporter = try exporter(producer(), nativeIdentifier: nativeIdentifier)
-        let exports = try collect(exporter, [record], recordingDevice: recordingDevice).exports
+        let exports = try await collect(exporter, [record], recordingDevice: recordingDevice).exports
         guard exports.count == 1 else {
             throw CocoaError(.featureUnsupported)
         }

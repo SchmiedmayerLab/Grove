@@ -104,7 +104,7 @@ struct ConformanceFixtureTests {
     ]
 
     @Test
-    func writeConformanceFixtures() throws {
+    func writeConformanceFixtures() async throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
 
@@ -186,8 +186,8 @@ struct ConformanceFixtureTests {
                 metadata: sourceMetadata
             )
         }
-        func add(_ name: String, _ sample: HKSample) throws {
-            fixtures[name] = try ExporterFixtures.export(sample, inputs).bundle
+        func add(_ name: String, _ sample: HKSample) async throws {
+            fixtures[name] = try await ExporterFixtures.export(sample, inputs).bundle
         }
 
         func addQuantityVector(
@@ -197,9 +197,9 @@ struct ConformanceFixtureTests {
             sourceValue: (Double) -> Double = { $0 },
             interval: TimeInterval = 60,
             metadata: [String: Any] = [:]
-        ) throws {
+        ) async throws {
             let fixture = try vector(id)
-            try add(id, quantity(
+            try await add(id, quantity(
                 type,
                 unit,
                 sourceValue(try normalizedQuantity(fixture)),
@@ -209,43 +209,43 @@ struct ConformanceFixtureTests {
             ))
         }
 
-        try addQuantityVector("active-energy", type: .activeEnergyBurned, unit: .kilocalorie())
-        try addQuantityVector("basal-body-temperature", type: .basalBodyTemperature, unit: .degreeCelsius())
-        try addQuantityVector("basal-energy", type: .basalEnergyBurned, unit: .kilocalorie())
-        try addQuantityVector(
+        try await addQuantityVector("active-energy", type: .activeEnergyBurned, unit: .kilocalorie())
+        try await addQuantityVector("basal-body-temperature", type: .basalBodyTemperature, unit: .degreeCelsius())
+        try await addQuantityVector("basal-energy", type: .basalEnergyBurned, unit: .kilocalorie())
+        try await addQuantityVector(
             "blood-glucose-unspecified-specimen",
             type: .bloodGlucose,
             unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
         )
-        try addQuantityVector(
+        try await addQuantityVector(
             "body-fat-percentage",
             type: .bodyFatPercentage,
             unit: .percent(),
             sourceValue: { $0 / 100 }
         )
-        try addQuantityVector("body-height", type: .height, unit: .meterUnit(with: .centi))
-        try addQuantityVector("dietary-energy", type: .dietaryEnergyConsumed, unit: .kilocalorie())
-        try addQuantityVector(
+        try await addQuantityVector("body-height", type: .height, unit: .meterUnit(with: .centi))
+        try await addQuantityVector("dietary-energy", type: .dietaryEnergyConsumed, unit: .kilocalorie())
+        try await addQuantityVector(
             "resting-heart-rate",
             type: .restingHeartRate,
             unit: .count().unitDivided(by: .minute())
         )
-        try add("body-mass-index", quantity(
+        try await add("body-mass-index", quantity(
             .bodyMassIndex,
             .count(),
             22.1,
             effective: .dateTime("2026-08-20T08:17:00-07:00")
         ))
-        try addQuantityVector("body-temperature", type: .bodyTemperature, unit: .degreeCelsius())
-        try addQuantityVector(
+        try await addQuantityVector("body-temperature", type: .bodyTemperature, unit: .degreeCelsius())
+        try await addQuantityVector(
             "body-weight",
             type: .bodyMass,
             unit: .gramUnit(with: .kilo),
             metadata: [HKMetadataKeyWasUserEntered: true]
         )
-        try addQuantityVector("distance", type: .distanceWalkingRunning, unit: .meter())
+        try await addQuantityVector("distance", type: .distanceWalkingRunning, unit: .meter())
         // The guide's heart-rate vector is a point: a heart rate whose start and end differ states a Period.
-        try addQuantityVector(
+        try await addQuantityVector(
             "heart-rate",
             type: .heartRate,
             unit: .count().unitDivided(by: .minute()),
@@ -254,18 +254,18 @@ struct ConformanceFixtureTests {
                 HKMetadataKeyHeartRateMotionContext: NSNumber(value: 1)
             ]
         )
-        try addQuantityVector(
+        try await addQuantityVector(
             "oxygen-saturation",
             type: .oxygenSaturation,
             unit: .percent(),
             sourceValue: { $0 / 100 }
         )
-        try addQuantityVector(
+        try await addQuantityVector(
             "respiratory-rate",
             type: .respiratoryRate,
             unit: .count().unitDivided(by: .minute())
         )
-        try addQuantityVector("step-count", type: .stepCount, unit: .count())
+        try await addQuantityVector("step-count", type: .stepCount, unit: .count())
 
         func category(
             _ type: HKCategoryTypeIdentifier,
@@ -292,40 +292,40 @@ struct ConformanceFixtureTests {
             value: Int,
             expecting code: String,
             metadata: [String: Any] = [:]
-        ) throws {
+        ) async throws {
             let fixture = try vector(id)
             guard case .codeableConcept(let vectorCode) = fixture.result, vectorCode == code else {
                 throw FixtureError.unexpectedResult(fixture.id)
             }
-            try add(id, category(type, value, effective: fixture.effective, metadata: metadata))
+            try await add(id, category(type, value, effective: fixture.effective, metadata: metadata))
         }
 
-        try addCodedVector(
+        try await addCodedVector(
             "cervical-mucus-quality",
             type: .cervicalMucusQuality,
             value: HKCategoryValueCervicalMucusQuality.dry.rawValue,
             expecting: "dry"
         )
-        try addCodedVector(
+        try await addCodedVector(
             "intermenstrual-bleeding",
             type: .intermenstrualBleeding,
             value: HKCategoryValue.notApplicable.rawValue,
             expecting: "present"
         )
-        try addCodedVector(
+        try await addCodedVector(
             "menstruation-flow",
             type: .menstrualFlow,
             value: HKCategoryValueVaginalBleeding.unspecified.rawValue,
             expecting: "unspecified",
             metadata: [HKMetadataKeyMenstrualCycleStart: true]
         )
-        try addCodedVector(
+        try await addCodedVector(
             "ovulation-test-result",
             type: .ovulationTestResult,
             value: HKCategoryValueOvulationTestResult.negative.rawValue,
             expecting: "negative"
         )
-        try addCodedVector(
+        try await addCodedVector(
             "sexual-activity",
             type: .sexualActivity,
             value: HKCategoryValue.notApplicable.rawValue,
@@ -339,7 +339,7 @@ struct ConformanceFixtureTests {
             throw FixtureError.unexpectedResult(workout.id)
         }
         let workoutDates = try dates(workout)
-        try add("workout", HKWorkout(
+        try await add("workout", HKWorkout(
             activityType: .running,
             start: workoutDates.start,
             end: workoutDates.end,
@@ -353,7 +353,7 @@ struct ConformanceFixtureTests {
         // A source the caller classifies as an application: its writer Device, its host and the Provenance author.
         var writerInputs = inputs
         writerInputs.options.writer = .classify { _ in .application }
-        fixtures["heart-rate-classified-writer"] = try ExporterFixtures.export(
+        fixtures["heart-rate-classified-writer"] = try await ExporterFixtures.export(
             StoredSampleFixtures.stored(
                 quantity(.heartRate, .count().unitDivided(by: .minute()), 64, effective: .dateTime("2026-08-20T08:25:00-07:00")),
                 uuid: UUID(uuidString: "6C4B1D1E-0000-4000-8000-0000000000F1") ?? UUID(),
@@ -363,7 +363,7 @@ struct ConformanceFixtureTests {
         ).bundle
 
         let mindfulness = try vector("mindfulness-session")
-        try add("mindfulness-session", category(
+        try await add("mindfulness-session", category(
             .mindfulSession,
             HKCategoryValue.notApplicable.rawValue,
             effective: mindfulness.effective
@@ -372,7 +372,7 @@ struct ConformanceFixtureTests {
         // The graded-symptom and stand-hour families own no Mobile vector, so their fixtures state
         // their own exact source facts for the guide validator.
         let symptomStart = try instant("2026-08-20T09:00:00-07:00")
-        try add("symptom-headache", HKCategorySample(
+        try await add("symptom-headache", HKCategorySample(
             type: HKCategoryType(.headache),
             value: HKCategoryValueSeverity.moderate.rawValue,
             start: symptomStart,
@@ -381,7 +381,7 @@ struct ConformanceFixtureTests {
             metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
         ))
         let standHourStart = try instant("2026-08-20T10:00:00-07:00")
-        try add("apple-stand-hour", HKCategorySample(
+        try await add("apple-stand-hour", HKCategorySample(
             type: HKCategoryType(.appleStandHour),
             value: HKCategoryValueAppleStandHour.stood.rawValue,
             start: standHourStart,
@@ -396,7 +396,7 @@ struct ConformanceFixtureTests {
             throw FixtureError.unexpectedResult(sleepStage.id)
         }
         let sleepDates = try dates(sleepStage)
-        try add("sleep-stage", HKCategorySample(
+        try await add("sleep-stage", HKCategorySample(
             type: HKCategoryType(.sleepAnalysis),
             value: HKCategoryValueSleepAnalysis.asleepCore.rawValue,
             start: sleepDates.start,
@@ -427,7 +427,7 @@ struct ConformanceFixtureTests {
             diastolicValue,
             effective: .dateTime(bloodPressureInstant)
         )
-        try add("blood-pressure", HKCorrelation(
+        try await add("blood-pressure", HKCorrelation(
             type: HKCorrelationType(.bloodPressure),
             start: bloodPressureDates.start,
             end: bloodPressureDates.end,
@@ -440,7 +440,7 @@ struct ConformanceFixtureTests {
         var ecgInputs = inputs
         ecgInputs.options.role = .assembler
         ecgInputs.studies = [.test("study-a"), .test("study-b")]
-        let studyQuantity = try ExporterFixtures.export(
+        let studyQuantity = try await ExporterFixtures.export(
             quantity(
                 .heartRate,
                 .count().unitDivided(by: .minute()),
@@ -480,7 +480,7 @@ struct ConformanceFixtureTests {
         let voltages = try [(0.250, 0.125), (0.252, 0.250), (0.254, -0.125), (0.256, 0)].map { offset, millivolts in
             try StoredSampleFixtures.voltageMeasurement(offset: offset, millivolts: millivolts)
         }
-        let ecgConversion = try ExporterFixtures.export(.electrocardiogram(ecg, voltages: voltages, symptoms: []), ecgInputs)
+        let ecgConversion = try await ExporterFixtures.export(.electrocardiogram(ecg, voltages: voltages, symptoms: []), ecgInputs)
         let ecgObservation = ecgConversion.observation
         let ecgStudies = ecgObservation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(ecgStudies.map(\.value) == quantityStudies.map(\.value))
@@ -556,7 +556,7 @@ struct ConformanceFixtureTests {
         let validatedGoldens = Self.validatedGoldens.subtracting(GoldenCase.unavailableHere)
         #expect(Set(GoldenCase.all.map(\.name)).isSuperset(of: validatedGoldens))
         for goldenCase in GoldenCase.all where validatedGoldens.contains(goldenCase.name) {
-            try goldenCase.output().graph.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
+            try await goldenCase.output().graph.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
         }
         #expect(fixtures.count == 29)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))

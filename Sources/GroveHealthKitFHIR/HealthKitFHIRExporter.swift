@@ -80,10 +80,11 @@ public final class HealthKitFHIRExporter: Sendable {
         self.throughputRecorder = options.measuresThroughput ? Throughput.Recorder() : nil
     }
 
-    /// Converts samples, calling `receive` once per produced graph or refusal, in input order and on the calling thread.
+    /// Converts samples, calling `receive` once per produced graph or refusal, in input order and on the calling task.
     ///
-    /// The graphs are built on every core, a bounded number at a time, so a large call keeps every core busy while
-    /// `receive` runs one export at a time.
+    /// The call runs where its caller runs, on the caller's actor if it has one, so `receive` may capture the caller's
+    /// state. The graphs are built on child tasks, at most ``Options/maximumConcurrency`` at once and a bounded number of
+    /// records at a time, so a large call keeps that many cores busy while `receive` takes one export at a time.
     ///
     /// A record that cannot be converted is refused in place, and so is a record the call names again with
     /// other content (``HealthKitConversionError/conflictingDuplicate``): the first input of a record keeps
@@ -92,32 +93,33 @@ public final class HealthKitFHIRExporter: Sendable {
     ///   `ExchangeIdentityError.invalidInstant` before the ledger is touched;
     /// - the producer's ledger throws `ExchangeProducer.LedgerError` when a stored entry is corrupt or
     ///   from a later layout, and `ExchangeProducer.resetLedger()` always recovers;
-    /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and the reservations made
-    ///   stay for the redelivery.
-    public func export<Samples: Collection>(
+    /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and so is the `CancellationError` a
+    ///   cancelled task stops with between chunks; the reservations made stay for the redelivery.
+    public nonisolated(nonsending) func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> ExchangeProducer.Receipt where Samples.Element: HKSample {
-        try export(records: samples.map { Record.sample($0) }, at: instant, receive: receive)
+    ) async throws -> ExchangeProducer.Receipt where Samples.Element: HKSample {
+        try await export(records: samples.map { Record.sample($0) }, at: instant, receive: receive)
     }
 
     /// ``export(_:at:receive:)`` for records that carry companion data.
     ///
-    /// Each record is planned first, then one reserve transaction covers every event the records need, then the records'
-    /// graphs are built on every core and handed to `receive` in input order, on the calling thread.
-    public func export(
+    /// The records are planned first, then one reserve transaction covers every event they need, then their graphs are
+    /// built and handed to `receive` in input order, on the calling task.
+    public nonisolated(nonsending) func export(
         records: some Collection<Record>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
-    ) throws -> ExchangeProducer.Receipt {
+    ) async throws -> ExchangeProducer.Receipt {
         // `nil` unless this exporter measures its throughput; then every phase below is timed.
         let measurement = throughputRecorder.map(Throughput.Call.init)
         defer {
             measurement?.end()
         }
         let measuring = measurement != nil
-        let planned = Self.concurrentMap(Array(records)[...]) { record in
+        let width = options.maximumConcurrency ?? ConcurrentBuild.defaultWidth
+        let planned = await ConcurrentBuild.map(Array(records)[...], width: width) { record in
             autoreleasepool {
                 let start = measuring ? ContinuousClock.now : nil
                 let plan = Plan(record, exporter: self)
@@ -137,72 +139,14 @@ public final class HealthKitFHIRExporter: Sendable {
         let reserveStart = measurement?.now
         let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
         measurement?.reserved(since: reserveStart)
-        // Chunks bound how many built graphs wait for `receive` at once.
-        var chunkStart = plans.startIndex
-        while chunkStart < plans.endIndex {
-            let chunk = plans[chunkStart..<min(chunkStart + Self.deliveryChunkSize, plans.endIndex)]
-            let built = Self.concurrentMap(chunk) { plan in
-                autoreleasepool {
-                    build(plan, reserved: reserved, measuring: measuring)
-                }
+        try await ConcurrentBuild.forEach(plans, width: width) { plan in
+            autoreleasepool {
+                self.build(plan, reserved: reserved, measuring: measuring)
             }
-            for (plan, delivery) in zip(chunk, built) {
-                try hand(delivery, of: plan, measurement: measurement, receive: receive)
-            }
-            chunkStart = chunk.endIndex
+        } hand: { plan, delivery in
+            try hand(delivery, of: plan, measurement: measurement, receive: receive)
         }
         return receipt
-    }
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitFHIRExporter {
-    /// One slot per element of a concurrent map, each written by exactly one iteration before any is read.
-    private final class ConcurrentResults<Result>: @unchecked Sendable {
-        private let slots: UnsafeMutableBufferPointer<Result?>
-
-        init(count: Int) {
-            slots = .allocate(capacity: count)
-            slots.initialize(repeating: nil)
-        }
-
-        func store(_ result: Result, at index: Int) {
-            slots[index] = result
-        }
-
-        func collect() -> [Result] {
-            slots.map { slot in
-                guard let slot else {
-                    preconditionFailure("Every iteration of a concurrent map stores its result.")
-                }
-                return slot
-            }
-        }
-
-        deinit {
-            slots.deinitialize()
-            slots.deallocate()
-        }
-    }
-
-    /// The records built at once before their exports are handed over.
-    private static let deliveryChunkSize = 256
-
-    /// `transform` applied to every element, on every core for more than one element, in input order.
-    private static func concurrentMap<Element: Sendable, Result: Sendable>(
-        _ elements: ArraySlice<Element>,
-        _ transform: @Sendable (Element) -> Result
-    ) -> [Result] {
-        guard elements.count > 1 else {
-            return elements.map(transform)
-        }
-        let results = ConcurrentResults<Result>(count: elements.count)
-        let base = elements.startIndex
-        DispatchQueue.concurrentPerform(iterations: elements.count) { offset in
-            results.store(transform(elements[base + offset]), at: offset)
-        }
-        return results.collect()
     }
 }
 

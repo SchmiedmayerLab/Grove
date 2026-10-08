@@ -91,11 +91,11 @@ struct HealthKitUnitBindingTests {
             code: "mg/dL"
         )
     ])
-    func convertsFromAnotherUnit(_ conversion: UnitConversionCase) throws {
+    func convertsFromAnotherUnit(_ conversion: UnitConversionCase) async throws {
         let sample = try GoldenFixtures.quantity(conversion.type, HKQuantity(unit: conversion.unit, doubleValue: conversion.value), uuid: GoldenFixtures.uuid(0xC8))
         var inputs = ExportInputs()
         inputs.sequence = 900
-        let graph = try ExporterFixtures.export(sample, inputs).graph
+        let graph = try await ExporterFixtures.export(sample, inputs).graph
         let quantity = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements?.first?["resource"]?["valueQuantity"]
         #expect(quantity?["value"] == .number(conversion.lexeme))
         #expect(quantity?["code"]?.text == conversion.code)

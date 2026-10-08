@@ -49,13 +49,13 @@ struct HealthKitEffectiveIntervalTests {
     }
 
     /// The export of `sample` under the default inputs.
-    private static func export(_ sample: HKSample) throws -> ExportedRecord {
-        try ExporterFixtures.export(sample)
+    private static func export(_ sample: HKSample) async throws -> ExportedRecord {
+        try await ExporterFixtures.export(sample)
     }
 
     /// The lexemes the export of `sample` states as its effective: one for an instant, start and end for a Period.
-    private static func effective(of sample: HKSample) throws -> [String?] {
-        switch try export(sample).observation.effective {
+    private static func effective(of sample: HKSample) async throws -> [String?] {
+        switch try await export(sample).observation.effective {
         case .dateTime(let instant): [instant.value?.description]
         case .period(let period): [period.start?.value?.description, period.end?.value?.description]
         default: []
@@ -63,8 +63,8 @@ struct HealthKitEffectiveIntervalTests {
     }
 
     @Test("A minute-long heart rate in a named zone states a Period, each bound in the zone with its extension")
-    func heartRateIntervalIsAPeriod() throws {
-        let conversion = try Self.export(Self.heartRate(to: 60, metadata: Self.losAngeles))
+    func heartRateIntervalIsAPeriod() async throws {
+        let conversion = try await Self.export(Self.heartRate(to: 60, metadata: Self.losAngeles))
         guard case .period(let period)? = conversion.observation.effective else {
             Issue.record("A heart rate whose start and end differ must state an effectivePeriod")
             return
@@ -79,14 +79,14 @@ struct HealthKitEffectiveIntervalTests {
     }
 
     @Test("A heart rate is a point exactly when its start and end state the same wire millisecond")
-    func heartRatePointIsJudgedOnWireMilliseconds() throws {
-        #expect(try Self.effective(of: Self.heartRate(to: 0)) == ["2026-08-19T14:10:00Z"])
+    func heartRatePointIsJudgedOnWireMilliseconds() async throws {
+        await #expect(try Self.effective(of: Self.heartRate(to: 0)) == ["2026-08-19T14:10:00Z"])
         // 0.3 ms that both round down to the base millisecond.
-        #expect(try Self.effective(of: Self.heartRate(to: 0.0003)) == ["2026-08-19T14:10:00Z"])
+        await #expect(try Self.effective(of: Self.heartRate(to: 0.0003)) == ["2026-08-19T14:10:00Z"])
         // 0.8 ms that both round up to the next millisecond.
-        #expect(try Self.effective(of: Self.heartRate(from: 0.0006, to: 0.0014)) == ["2026-08-19T14:10:00.001Z"])
+        await #expect(try Self.effective(of: Self.heartRate(from: 0.0006, to: 0.0014)) == ["2026-08-19T14:10:00.001Z"])
         // 0.3 ms across a half millisecond: the wire states two instants, so a Period.
-        #expect(try Self.effective(of: Self.heartRate(from: 0.0004, to: 0.0007)) == ["2026-08-19T14:10:00Z", "2026-08-19T14:10:00.001Z"])
+        await #expect(try Self.effective(of: Self.heartRate(from: 0.0004, to: 0.0007)) == ["2026-08-19T14:10:00Z", "2026-08-19T14:10:00.001Z"])
     }
 
     @Test(
@@ -96,8 +96,8 @@ struct HealthKitEffectiveIntervalTests {
             (.heartRateVariabilitySDNN, .secondUnit(with: .milli))
         ]
     )
-    func instantOnlyIntervalStatesItsStart(type: HKQuantityTypeIdentifier, unit: HKUnit) throws {
-        let conversion = try Self.export(Self.quantity(type, unit: unit, to: 60, metadata: Self.losAngeles))
+    func instantOnlyIntervalStatesItsStart(type: HKQuantityTypeIdentifier, unit: HKUnit) async throws {
+        let conversion = try await Self.export(Self.quantity(type, unit: unit, to: 60, metadata: Self.losAngeles))
         guard case .dateTime(let instant)? = conversion.observation.effective else {
             Issue.record("\(type.rawValue) fixes effectiveDateTime")
             return
@@ -107,7 +107,7 @@ struct HealthKitEffectiveIntervalTests {
     }
 
     @Test("A coded instant-only measurement's interval states its start alone")
-    func codedInstantOnlyIntervalStatesItsStart() throws {
+    func codedInstantOnlyIntervalStatesItsStart() async throws {
         var metadata: [String: Any] = Self.losAngeles
         metadata[HKMetadataKeyMenstrualCycleStart] = true
         let flow = HKCategorySample(
@@ -117,8 +117,8 @@ struct HealthKitEffectiveIntervalTests {
             end: Self.start.addingTimeInterval(60),
             metadata: metadata
         )
-        let conversion = try Self.export(flow)
-        #expect(try Self.effective(of: flow) == ["2026-08-19T07:10:00-07:00"])
+        let conversion = try await Self.export(flow)
+        await #expect(try Self.effective(of: flow) == ["2026-08-19T07:10:00-07:00"])
         #expect(conversion.warnings.isEmpty)
     }
 
@@ -141,16 +141,16 @@ struct HealthKitEffectiveIntervalTests {
     }
 
     @Test("A non-zero Period is judged on the wire: endpoints that round to one millisecond are refused")
-    func nonZeroPeriodIsJudgedOnWireMilliseconds() throws {
-        #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
-            try Self.export(Self.quantity(.stepCount, unit: .count(), to: 0.0003))
+    func nonZeroPeriodIsJudgedOnWireMilliseconds() async throws {
+        await #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
+            try await Self.export(Self.quantity(.stepCount, unit: .count(), to: 0.0003))
         }
         let steps = EffectiveRule(MeasurementCatalog.stepCount)
         let dietaryEnergy = EffectiveRule(MeasurementCatalog.dietaryEnergy)
         let end = Self.start.addingTimeInterval(0.0003)
         #expect(try steps.admitsPeriod(from: Self.start, to: end) == false)
         #expect(try dietaryEnergy.admitsPeriod(from: Self.start, to: end))
-        #expect(try Self.effective(of: Self.quantity(.dietaryEnergyConsumed, unit: .kilocalorie(), to: 0.0003))
+        await #expect(try Self.effective(of: Self.quantity(.dietaryEnergyConsumed, unit: .kilocalorie(), to: 0.0003))
             == ["2026-08-19T14:10:00Z", "2026-08-19T14:10:00Z"])
     }
 }

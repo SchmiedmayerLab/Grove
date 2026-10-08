@@ -25,9 +25,9 @@ struct QuestionnaireFHIRExporterRetractionTests {
         _ exporter: QuestionnaireFHIRExporter,
         _ withdrawals: [QuestionnaireFHIRExporter.Withdrawal],
         at instant: Date = withdrawnAt
-    ) throws -> (retractions: [QuestionnaireFHIRExporter.Retraction], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> (retractions: [QuestionnaireFHIRExporter.Retraction], receipt: ExchangeProducer.Receipt) {
         var retractions: [QuestionnaireFHIRExporter.Retraction] = []
-        let receipt = try exporter.retract(withdrawals, at: instant) { retractions.append($0) }
+        let receipt = try await exporter.retract(withdrawals, at: instant) { retractions.append($0) }
         return (retractions, receipt)
     }
 
@@ -36,11 +36,11 @@ struct QuestionnaireFHIRExporterRetractionTests {
     }
 
     @Test("A retraction targets exactly the Observations the export emitted, under their source-output identities")
-    func targetsTheExportedObservations() throws {
+    func targetsTheExportedObservations() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let record = try Fixtures.guideRecord()
-        let exported = try #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
-        let (retractions, _) = try Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)])
+        let exported = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
+        let (retractions, _) = try await Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)])
         #expect(retractions.map(\.responseIdentifier) == ["home-vitals-2026-08-28"])
         let graph = try #require(retractions.first?.graph)
         #expect(graph.kind == .retraction)
@@ -62,43 +62,43 @@ struct QuestionnaireFHIRExporterRetractionTests {
     }
 
     @Test("An exact retry before release restates the retraction; another instant or a release mints a new event")
-    func retryBeforeReleaseRestatesTheEvent() throws {
+    func retryBeforeReleaseRestatesTheEvent() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let withdrawal = QuestionnaireFHIRExporter.Withdrawal(record: try Fixtures.guideRecord(), withdrawnAt: Self.withdrawnAt)
-        let (first, receipt) = try Self.retract(exporter, [withdrawal])
+        let (first, receipt) = try await Self.retract(exporter, [withdrawal])
         let event = try #require(first.first?.graph?.eventIdentifier)
-        let (again, againReceipt) = try Self.retract(exporter, [withdrawal], at: Self.withdrawnAt.addingTimeInterval(60))
+        let (again, againReceipt) = try await Self.retract(exporter, [withdrawal], at: Self.withdrawnAt.addingTimeInterval(60))
         #expect(again.map(\.graph?.json) == first.map(\.graph?.json))
 
         let reported = QuestionnaireFHIRExporter.Withdrawal(record: withdrawal.record, withdrawnAt: Self.withdrawnAt.addingTimeInterval(1))
-        let later = try Self.retract(exporter, [reported]).retractions
+        let later = try await Self.retract(exporter, [reported]).retractions
         #expect(later.first?.graph.map(\.eventIdentifier) != event)
 
         receipt.release()
         againReceipt.release()
-        let next = try Self.retract(exporter, [withdrawal]).retractions
+        let next = try await Self.retract(exporter, [withdrawal]).retractions
         #expect(next.first?.graph.map(\.eventIdentifier) != event)
     }
 
     @Test("Releasing a retraction forgets the active reservation an unreleased export left behind")
-    func releaseForgetsTheActiveReservation() throws {
+    func releaseForgetsTheActiveReservation() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let record = try Fixtures.guideRecord()
         // Each export's receipt lapses unreleased, as a call that threw does, and leaves its event for the redelivery.
-        let exported = try #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
-        let redelivered = try #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
+        let exported = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
+        let redelivered = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
         #expect(redelivered.eventIdentifier == exported.eventIdentifier)
 
-        try Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)]).receipt.release()
-        let after = try #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
+        try await Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)]).receipt.release()
+        let after = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
         #expect(after.eventIdentifier != exported.eventIdentifier, "the released retraction forgot the export's event")
     }
 
     @Test("A pair the export refuses is refused alike, reserves nothing, and the call goes on")
-    func refusedPairReservesNothing() throws {
+    func refusedPairReservesNothing() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let inProgress = try Fixtures.guideRecord { $0.status = FHIRPrimitive(.inProgress) }
-        let (retractions, _) = try Self.retract(exporter, [
+        let (retractions, _) = try await Self.retract(exporter, [
             .init(record: inProgress, withdrawnAt: Self.withdrawnAt),
             .init(record: try Fixtures.guideRecord(), withdrawnAt: Self.withdrawnAt)
         ])

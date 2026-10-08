@@ -60,8 +60,8 @@ struct ExporterCompanionFingerprintTests {
     private static func primary(
         _ exporter: HealthKitFHIRExporter,
         _ record: HealthKitFHIRExporter.Record
-    ) throws -> HealthKitFHIRExporter.Export {
-        let (exports, _) = try Fixtures.collect(exporter, [record])
+    ) async throws -> HealthKitFHIRExporter.Export {
+        let (exports, _) = try await Fixtures.collect(exporter, [record])
         return try #require(exports.first)
     }
 
@@ -85,7 +85,7 @@ struct ExporterCompanionFingerprintTests {
     }
 
     @Test("Beats: one changed beat under a reserved heartbeat series takes a new sequence")
-    func changedBeatTakesANewSequence() throws {
+    func changedBeatTakesANewSequence() async throws {
         let exporter = try Fixtures.exporter()
         let series = try StoredSampleFixtures.seriesSample(
             HKHeartbeatSeriesSample.self,
@@ -94,14 +94,14 @@ struct ExporterCompanionFingerprintTests {
         )
         var changedBeats = Self.beats
         changedBeats[1] = HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.85, precededByGap: false)
-        let original = try Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
-        let exact = try Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
-        let changed = try Self.primary(exporter, .heartbeatSeries(series, beats: changedBeats))
+        let original = try await Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
+        let exact = try await Self.primary(exporter, .heartbeatSeries(series, beats: Self.beats))
+        let changed = try await Self.primary(exporter, .heartbeatSeries(series, beats: changedBeats))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
     @Test("Locations: one changed location under a reserved workout route takes a new sequence")
-    func changedLocationTakesANewSequence() throws {
+    func changedLocationTakesANewSequence() async throws {
         let exporter = try Fixtures.exporter { $0.route = .authorized }
         let route = try StoredSampleFixtures.seriesSample(
             HKWorkoutRoute.self,
@@ -121,75 +121,75 @@ struct ExporterCompanionFingerprintTests {
             speedAccuracy: moved.speedAccuracy,
             timestamp: moved.timestamp
         )
-        let original = try Self.primary(exporter, .workoutRoute(route, locations: GoldenCase.routeLocations))
-        let exact = try Self.primary(exporter, .workoutRoute(route, locations: GoldenCase.routeLocations))
-        let changed = try Self.primary(exporter, .workoutRoute(route, locations: changedLocations))
+        let original = try await Self.primary(exporter, .workoutRoute(route, locations: GoldenCase.routeLocations))
+        let exact = try await Self.primary(exporter, .workoutRoute(route, locations: GoldenCase.routeLocations))
+        let changed = try await Self.primary(exporter, .workoutRoute(route, locations: changedLocations))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
     /// The stored-sample fixtures state the voltages, so the ECG arrives as the public `.electrocardiogram` record, whose
     /// record parts state its symptoms and voltages.
     @Test("Voltages: one changed voltage under a reserved ECG takes a new sequence")
-    func changedVoltageTakesANewSequence() throws {
+    func changedVoltageTakesANewSequence() async throws {
         let exporter = try Fixtures.exporter()
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xF2, symptoms: [])
         var changedVoltages = record.voltageMeasurements
         changedVoltages[1] = try StoredSampleFixtures.voltageMeasurement(offset: changedVoltages[1].timeSinceSampleStart, millivolts: 0.375)
-        let original = try Self.primary(exporter, Fixtures.electrocardiogram(record, symptoms: []))
-        let exact = try Self.primary(exporter, Fixtures.electrocardiogram(record, symptoms: []))
-        let changed = try Self.primary(exporter, .electrocardiogram(record.electrocardiogram, voltages: changedVoltages, symptoms: []))
+        let original = try await Self.primary(exporter, Fixtures.electrocardiogram(record, symptoms: []))
+        let exact = try await Self.primary(exporter, Fixtures.electrocardiogram(record, symptoms: []))
+        let changed = try await Self.primary(exporter, .electrocardiogram(record.electrocardiogram, voltages: changedVoltages, symptoms: []))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
     /// Two exporters over one ledger, as before and after an app update that changed what its resolver returns.
     @Test("Custom resolver: a resolver naming another device under a reserved record takes a new sequence")
-    func changedCustomResolverTakesANewSequence() throws {
+    func changedCustomResolverTakesANewSequence() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let before = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
         let after = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-b")) }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF3), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
-        let original = try Self.primary(before, .sample(sample))
-        let exact = try Self.primary(before, .sample(sample))
-        let changed = try Self.primary(after, .sample(sample))
+        let original = try await Self.primary(before, .sample(sample))
+        let exact = try await Self.primary(before, .sample(sample))
+        let changed = try await Self.primary(after, .sample(sample))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
     @Test("Custom resolver: a resolver naming the same unit otherwise under a reserved record takes a new sequence")
-    func renamedCustomResolverTakesANewSequence() throws {
+    func renamedCustomResolverTakesANewSequence() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let before = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
         let after = try Fixtures.exporter(storage: storage) {
             $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a", name: "Left Wrist"))
         }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF4), device: GoldenFixtures.watch)
-        let original = try Self.primary(before, .sample(sample))
-        let exact = try Self.primary(before, .sample(sample))
-        let changed = try Self.primary(after, .sample(sample))
+        let original = try await Self.primary(before, .sample(sample))
+        let exact = try await Self.primary(before, .sample(sample))
+        let changed = try await Self.primary(after, .sample(sample))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
     @Test("Classify: a closure classifying a reserved record's source otherwise takes a new sequence")
-    func changedClassificationTakesANewSequence() throws {
+    func changedClassificationTakesANewSequence() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let before = try Fixtures.exporter(storage: storage) { $0.writer = .classify { _ in .application } }
         let after = try Fixtures.exporter(storage: storage) { $0.writer = .classify { _ in .omit } }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF5), writer: GoldenFixtures.foreignWriter)
-        let original = try Self.primary(before, .sample(sample))
-        let exact = try Self.primary(before, .sample(sample))
-        let changed = try Self.primary(after, .sample(sample))
+        let original = try await Self.primary(before, .sample(sample))
+        let exact = try await Self.primary(before, .sample(sample))
+        let changed = try await Self.primary(after, .sample(sample))
         try Self.expectNoReuse(original: original, exact: exact, changed: changed)
     }
 
     /// What is fingerprinted is what is emitted: a resolver consulted again for the graph would state `unit-b` under the
     /// event fingerprinted for `unit-a`, which a fixed `unit-a` resolver would then reuse with other bytes.
     @Test("Custom resolver: consulted once per input, so the graph states the device its fingerprint covers")
-    func customResolverIsConsultedOncePerInput() throws {
+    func customResolverIsConsultedOncePerInput() async throws {
         let storage = ExchangeProducer.InMemoryStorage()
         let changing = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FirstAnswerResolver()) }
         let fixed = try Fixtures.exporter(storage: storage) { $0.recordingDevice = .custom(FixedUnitResolver(token: "unit-a")) }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xF6), device: GoldenFixtures.watch)
-        let first = try Self.primary(changing, .sample(sample))
-        let again = try Self.primary(fixed, .sample(sample))
+        let first = try await Self.primary(changing, .sample(sample))
+        let again = try await Self.primary(fixed, .sample(sample))
         #expect(again.event == first.event, "both fingerprint unit-a")
         #expect(again.graph?.json == first.graph?.json, "the first graph states unit-a, the device it was fingerprinted under")
     }

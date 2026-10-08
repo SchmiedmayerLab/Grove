@@ -42,9 +42,9 @@ struct HealthKitFHIRExporterTests {
         _ exporter: HealthKitFHIRExporter,
         _ samples: [HKSample],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
         var exports: [HealthKitFHIRExporter.Export] = []
-        let receipt = try exporter.export(samples, at: instant) { exports.append($0) }
+        let receipt = try await exporter.export(samples, at: instant) { exports.append($0) }
         return (exports, receipt)
     }
 
@@ -54,14 +54,14 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("Graphs equal the ones each record exports to alone under the same event, with the same warnings")
-    func graphsEqualReference() throws {
+    func graphsEqualReference() async throws {
         let exporter = try Self.exporter()
         let withDevice = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let withoutToken = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(2), device: GoldenFixtures.watchWithoutUnitToken)
-        let (exports, _) = try Self.collect(exporter, [withDevice, withoutToken])
+        let (exports, _) = try await Self.collect(exporter, [withDevice, withoutToken])
         try #require(exports.count == 2)
-        let first = try ExporterFixtures.standalone(.sample(withDevice), as: exports[0].event)
-        let second = try ExporterFixtures.standalone(.sample(withoutToken), as: exports[1].event)
+        let first = try await ExporterFixtures.standalone(.sample(withDevice), as: exports[0].event)
+        let second = try await ExporterFixtures.standalone(.sample(withoutToken), as: exports[1].event)
         #expect(exports[0].graph?.json == first.graph.json)
         #expect(exports[1].graph?.json == second.graph.json)
         #expect(exports[0].source == HealthKitFHIRExporter.Export.Source(uuid: GoldenFixtures.uuid(1), typeIdentifier: HKQuantityTypeIdentifier.heartRate.rawValue))
@@ -75,20 +75,20 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("A redelivery before release reproduces the same bytes; after release it is a new event")
-    func redeliveryReproducesEvents() throws {
+    func redeliveryReproducesEvents() async throws {
         let exporter = try Self.exporter()
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(3))
-        let (first, receipt) = try Self.collect(exporter, [sample])
-        let (again, _) = try Self.collect(exporter, [sample], at: GoldenFixtures.conversionInstant.addingTimeInterval(3_600))
+        let (first, receipt) = try await Self.collect(exporter, [sample])
+        let (again, _) = try await Self.collect(exporter, [sample], at: GoldenFixtures.conversionInstant.addingTimeInterval(3_600))
         #expect(first[0].graph?.json == again[0].graph?.json)
         receipt.release()
-        let (afterRelease, _) = try Self.collect(exporter, [sample])
+        let (afterRelease, _) = try await Self.collect(exporter, [sample])
         #expect(afterRelease[0].sequence == "2")
         #expect(afterRelease[0].graph?.json != first[0].graph?.json)
     }
 
     @Test("An unconvertible record is refused in place, holds its reservation until the receipt is released, and the export continues")
-    func refusalsDoNotEndTheExport() throws {
+    func refusalsDoNotEndTheExport() async throws {
         let storage = LedgerCountingStorage()
         let exporter = try Self.exporter(storage: storage)
         let ecg = try StoredSampleFixtures.seriesSample(
@@ -97,7 +97,7 @@ struct HealthKitFHIRExporterTests {
             facts: GoldenCase.seriesFacts(uuid: 4, duration: 30)
         )
         let heartRate = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(5))
-        let (exports, receipt) = try Self.collect(exporter, [ecg, heartRate])
+        let (exports, receipt) = try await Self.collect(exporter, [ecg, heartRate])
         try #require(exports.count == 2)
         guard case .refused(let reason) = exports[0].outcome else {
             Issue.record("expected a refusal, got \(exports[0].outcome)")
@@ -109,12 +109,12 @@ struct HealthKitFHIRExporterTests {
         // Nothing is released mid-call: the refused ECG keeps its reservation until the receipt is released.
         let ecgKey = try #require(ExchangeEventKey.active(ecg))
         #expect(try storage.holdsReservation(for: ecgKey))
-        let (retry, retryReceipt) = try Self.collect(exporter, [ecg])
+        let (retry, retryReceipt) = try await Self.collect(exporter, [ecg])
         guard case .refused = retry[0].outcome else {
             Issue.record("expected a refusal")
             return
         }
-        let (next, _) = try Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(6))])
+        let (next, _) = try await Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(6))])
         #expect(next[0].sequence == "3", "the refused ECG's redelivery reused its reservation")
         receipt.release()
         retryReceipt.release()
@@ -122,7 +122,7 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("A refusal reports the registry's most specific reason, and the export continues")
-    func refusalsReportTheirRegisteredReason() throws {
+    func refusalsReportTheirRegisteredReason() async throws {
         let start = GoldenFixtures.sampleStart
         // A Period measurement over a minute, so the value is checked, not the effective time.
         let fractionalSteps = try StoredSampleFixtures.stored(
@@ -159,7 +159,7 @@ struct HealthKitFHIRExporterTests {
             (.notYetConvertible(.visionPrescription), notYetConvertible)
         ]
         let samples: [HKSample] = [fractionalSteps, food, audiogram, prescription, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))]
-        let (exports, _) = try Self.collect(try Self.exporter(), samples)
+        let (exports, _) = try await Self.collect(try Self.exporter(), samples)
         try #require(exports.count == expected.count + 1)
         for (export, (error, diagnostic)) in zip(exports, expected) {
             guard case .refused(let reason) = export.outcome else {
@@ -173,7 +173,7 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("The omit policies state nothing and never warn; the legacy Bundle.id keeps the HealthKit UUID")
-    func policiesApply() throws {
+    func policiesApply() async throws {
         let exporter = try Self.exporter { options in
             options.recordingDevice = .omit
             options.writer = .omit
@@ -183,7 +183,7 @@ struct HealthKitFHIRExporterTests {
             options.role = .gatewayForOwnWrites
         }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(9), device: GoldenFixtures.watchWithoutUnitToken, writer: GoldenFixtures.foreignWriter)
-        let (exports, _) = try Self.collect(exporter, [sample])
+        let (exports, _) = try await Self.collect(exporter, [sample])
         let bundle = try #require(exports[0].graph?.bundle)
         #expect(exports[0].warnings.isEmpty)
         #expect(bundle.id?.value?.string == GoldenFixtures.uuid(9).uuidString)
@@ -196,7 +196,7 @@ struct HealthKitFHIRExporterTests {
         referenceInputs.options.udi = .authorized
         referenceInputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
         referenceInputs.options.role = .gatewayForOwnWrites
-        let reference = try ExporterFixtures.standalone(.sample(sample), as: exports[0].event, referenceInputs)
+        let reference = try await ExporterFixtures.standalone(.sample(sample), as: exports[0].event, referenceInputs)
         // Only `Bundle.id` differs from the graph under the default device, writer and Bundle.id policies.
         var expected = reference.graph.bundle
         expected.id = GoldenFixtures.uuid(9).uuidString.asFHIRStringPrimitive()
@@ -204,19 +204,19 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("The UDI an HKDevice supplies reaches its recording Device only under Options.udi .authorized")
-    func udiFollowsItsOption() throws {
+    func udiFollowsItsOption() async throws {
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13), device: GoldenFixtures.watch)
-        func carriedUDIs(_ udi: HealthKitFHIRExporter.Disclosure) throws -> [String] {
-            let (exports, _) = try Self.collect(Self.exporter { $0.udi = udi }, [sample])
+        func carriedUDIs(_ udi: HealthKitFHIRExporter.Disclosure) async throws -> [String] {
+            let (exports, _) = try await Self.collect(Self.exporter { $0.udi = udi }, [sample])
             let devices = exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
             return devices.flatMap { $0.udiCarrier ?? [] }.compactMap { $0.deviceIdentifier?.value?.string }
         }
-        #expect(try carriedUDIs(.authorized) == ["(01)00844588003288"])
-        #expect(try carriedUDIs(.omit).isEmpty)
+        await #expect(try carriedUDIs(.authorized) == ["(01)00844588003288"])
+        await #expect(try carriedUDIs(.omit).isEmpty)
     }
 
     @Test("Both bounds of an effective Period keep their milliseconds in the source's offset")
-    func effectivePeriodKeepsMilliseconds() throws {
+    func effectivePeriodKeepsMilliseconds() async throws {
         let start = GoldenFixtures.sampleStart.addingTimeInterval(0.2514)
         let steps = HKQuantitySample(
             type: HKQuantityType(.stepCount),
@@ -226,7 +226,7 @@ struct HealthKitFHIRExporterTests {
             metadata: GoldenFixtures.timeZoneMetadata
         )
         let sample = try StoredSampleFixtures.stored(steps, uuid: GoldenFixtures.uuid(14))
-        let (exports, _) = try Self.collect(Self.exporter(), [sample])
+        let (exports, _) = try await Self.collect(Self.exporter(), [sample])
         let observation = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
         guard case .period(let period)? = observation.effective else {
             Issue.record("A step count is effective over a Period")
@@ -245,7 +245,7 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("Retractions take their own events and recompute the targets a retraction of each deletion alone computes")
-    func retractionsMatchReference() throws {
+    func retractionsMatchReference() async throws {
         let exporter = try Self.exporter()
         let detectedAt = GoldenFixtures.conversionInstant
         let deletions = [
@@ -254,7 +254,7 @@ struct HealthKitFHIRExporterTests {
             HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(12), sourceType: .bloodPressure, deletedAfter: nil, detectedAt: detectedAt)
         ]
         var retractions: [HealthKitFHIRExporter.Retraction] = []
-        let receipt = try exporter.retract(deletions, at: detectedAt) { retractions.append($0) }
+        let receipt = try await exporter.retract(deletions, at: detectedAt) { retractions.append($0) }
         try #require(retractions.count == 3)
         // Outcomes arrive in input order; the systolic component never emitted outputs.
         guard case .nothingToRetract = retractions[1].outcome else {
@@ -264,28 +264,28 @@ struct HealthKitFHIRExporterTests {
         #expect(retractions.map(\.deletion) == deletions)
         #expect(Set(retractions.compactMap(\.sequence)) == ["1", "2"])
         for (retraction, deletion) in [(retractions[0], deletions[0]), (retractions[2], deletions[2])] {
-            let reference = try ExporterFixtures.standalone(deletion, as: retraction.event)
+            let reference = try await ExporterFixtures.standalone(deletion, as: retraction.event)
             #expect(retraction.graph?.json == reference?.json)
         }
         receipt.release()
-        let (afterRelease, _) = try Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13))])
+        let (afterRelease, _) = try await Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13))])
         #expect(afterRelease[0].sequence == "3")
     }
 
     @Test("Deletions of types without outputs touch no ledger; a skewed lower bound is dropped, Bundle.id follows the legacy policy")
-    func retractionBoundsAndLedger() throws {
+    func retractionBoundsAndLedger() async throws {
         let storage = LedgerCountingStorage()
         let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, storage: storage)
         let detectedAt = GoldenFixtures.conversionInstant
         var retractions: [HealthKitFHIRExporter.Retraction] = []
-        _ = try exporter.retract(
+        _ = try await exporter.retract(
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(20), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt)],
             at: detectedAt
         ) { retractions.append($0) }
         #expect(storage.take().transactions == 0)
-        _ = try exporter.export([HKSample](), at: detectedAt) { _ in }
+        _ = try await exporter.export([HKSample](), at: detectedAt) { _ in }
         #expect(storage.take().transactions == 0)
-        _ = try exporter.retract(
+        _ = try await exporter.retract(
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(21), sourceType: .heartRate, deletedAfter: detectedAt + 60, detectedAt: detectedAt)],
             at: detectedAt
         ) { retractions.append($0) }
@@ -301,23 +301,23 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("F1: an exported workout is its session alone, and its retraction targets exactly that session")
-    func workoutExportAndRetraction() throws {
+    func workoutExportAndRetraction() async throws {
         let exporter = try Self.exporter()
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA3))
-        let (exports, _) = try Self.collect(exporter, [workout])
+        let (exports, _) = try await Self.collect(exporter, [workout])
         let observations = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) })
         try #require(observations.count == 1)
         let session = try #require(observations[0].identifier?.first { (try? RoledIdentifier($0).role) == .sourceOutput }?.value?.value?.string)
         var retractions: [HealthKitFHIRExporter.Retraction] = []
         let deletion = HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant)
-        _ = try exporter.retract([deletion], at: GoldenFixtures.conversionInstant) { retractions.append($0) }
+        _ = try await exporter.retract([deletion], at: GoldenFixtures.conversionInstant) { retractions.append($0) }
         let provenance = try #require(retractions.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == [session])
     }
 
     /// One refusal per record, chosen in a fixed order whatever the options: content, then writer, then sync pair.
     @Test("A record with several faults reports its content first, then its writer, then its sync pair")
-    func refusalOrderIsContentWriterSyncPair() throws {
+    func refusalOrderIsContentWriterSyncPair() async throws {
         let exporter = try Self.exporter { $0.writer = .classify { _ in .application } }
         var writer = GoldenFixtures.foreignWriter
         writer.bundleIdentifier = "not a bundle id"
@@ -328,7 +328,7 @@ struct HealthKitFHIRExporterTests {
             try heartRate(0xD1, [HKMetadataKeyHeartRateMotionContext: 99, HKMetadataKeySyncIdentifier: "half"]),
             try heartRate(0xD2, [HKMetadataKeySyncIdentifier: "half"])
         ]
-        let (exports, _) = try Self.collect(exporter, samples)
+        let (exports, _) = try await Self.collect(exporter, samples)
         let reasons = exports.map { export -> HealthKitConversionError? in
             guard case .refused(let reason) = export.outcome else {
                 return nil
@@ -339,14 +339,14 @@ struct HealthKitFHIRExporterTests {
     }
 
     @Test("An export shares one receipt; an error in the receiver ends the call with the reservations kept")
-    func receiverErrorsPropagate() throws {
+    func receiverErrorsPropagate() async throws {
         struct Stop: Error {}
         let exporter = try Self.exporter()
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(14))
-        #expect(throws: Stop.self) {
-            try exporter.export([sample]) { _ in throw Stop() }
+        await #expect(throws: Stop.self) {
+            try await exporter.export([sample]) { _ in throw Stop() }
         }
-        let (again, _) = try Self.collect(exporter, [sample])
+        let (again, _) = try await Self.collect(exporter, [sample])
         #expect(again[0].sequence == "1")
     }
 }

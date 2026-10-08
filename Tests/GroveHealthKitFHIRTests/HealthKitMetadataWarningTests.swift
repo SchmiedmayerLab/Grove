@@ -195,14 +195,14 @@ struct HealthKitMetadataWarningTests {
     }
 
     @Test("The withheld-metadata diagnostic is located at the source's metadata, also as the exporter reports it")
-    func withheldMetadataIsLocatedAtTheMetadata() throws {
+    func withheldMetadataIsLocatedAtTheMetadata() async throws {
         let series = try StoredSampleFixtures.seriesSample(
             HKHeartbeatSeriesSample.self,
             sampleType: HKSeriesType.heartbeat(),
             facts: GoldenCase.seriesFacts(uuid: 0xFB, duration: 2)
         )
         let beats = ContentCorpusGrid.heartbeats.map(\.heartbeat)
-        let (exports, _) = try ExporterFixtures.collect(ExporterFixtures.exporter(), [.heartbeatSeries(series, beats: beats)])
+        let (exports, _) = try await ExporterFixtures.collect(ExporterFixtures.exporter(), [.heartbeatSeries(series, beats: beats)])
         try #require(exports.count == 1)
         #expect(exports[0].warnings == [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")])
     }

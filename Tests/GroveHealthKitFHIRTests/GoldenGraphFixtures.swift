@@ -54,18 +54,18 @@ struct GoldenOutput: Sendable {
 struct GoldenCase: Sendable, CustomTestStringConvertible {
     let name: String
     let sequence: UInt64
-    private let produce: @Sendable (UInt64) throws -> GoldenOutput
+    private let produce: @Sendable (UInt64) async throws -> GoldenOutput
 
     var testDescription: String { name }
 
-    init(_ name: String, sequence: UInt64, produce: @escaping @Sendable (_ sequence: UInt64) throws -> GoldenOutput) {
+    init(_ name: String, sequence: UInt64, produce: @escaping @Sendable (_ sequence: UInt64) async throws -> GoldenOutput) {
         self.name = name
         self.sequence = sequence
         self.produce = produce
     }
 
-    func output() throws -> GoldenOutput {
-        try produce(sequence)
+    func output() async throws -> GoldenOutput {
+        try await produce(sequence)
     }
 }
 
@@ -127,10 +127,10 @@ enum GoldenFixtures {
         _ inputs: ExportInputs = ExportInputs(),
         index: Int = 0,
         of count: Int = 1
-    ) throws -> GoldenOutput {
+    ) async throws -> GoldenOutput {
         var inputs = inputs
         inputs.sequence = sequence
-        let exports = try ExporterFixtures.exports(record, inputs)
+        let exports = try await ExporterFixtures.exports(record, inputs)
         guard exports.count == count else {
             throw GoldenCaseError.unexpectedCompanions(exports.count - 1)
         }
@@ -138,8 +138,8 @@ enum GoldenFixtures {
     }
 
     /// The one graph `sample` exports to under `inputs`, its event numbered `sequence`.
-    static func export(_ sample: HKSample, sequence: UInt64, _ inputs: ExportInputs = ExportInputs()) throws -> GoldenOutput {
-        try export(.sample(sample), sequence: sequence, inputs)
+    static func export(_ sample: HKSample, sequence: UInt64, _ inputs: ExportInputs = ExportInputs()) async throws -> GoldenOutput {
+        try await export(.sample(sample), sequence: sequence, inputs)
     }
 
     /// A 72 bpm heart rate; `end` stays the start instant unless a case states an interval.

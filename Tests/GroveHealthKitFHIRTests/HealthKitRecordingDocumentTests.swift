@@ -148,9 +148,9 @@ struct HealthKitRecordingDocumentTests {
     }
 
     @Test("A beat series is carried as a recording document, not reduced to a value")
-    func beatSeriesGraphCarriesThePublishedContract() throws {
+    func beatSeriesGraphCarriesThePublishedContract() async throws {
         let payload = try Self.beatIntervals(Self.heartbeats)
-        let conversion = try ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
+        let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
         let document = conversion.document
 
         #expect(document.meta?.profile == [
@@ -177,8 +177,8 @@ struct HealthKitRecordingDocumentTests {
     }
 
     @Test("The document states its HealthKit source type and its conversion event")
-    func documentGraphStatesItsSourceAndProvenance() throws {
-        let conversion = try ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
+    func documentGraphStatesItsSourceAndProvenance() async throws {
+        let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
 
         let coding = try #require(conversion.document.type?.coding?.first)
         #expect(coding.system?.value?.url.absoluteString
@@ -205,13 +205,13 @@ struct HealthKitRecordingDocumentTests {
     }
 
     @Test("A route is omitted under the default disclosure policy")
-    func routeIsOmittedByDefault() throws {
-        #expect(try ExporterFixtures.exports(try Self.workoutRoute(Self.locations), inputs()).isEmpty)
+    func routeIsOmittedByDefault() async throws {
+        await #expect(try ExporterFixtures.exports(try Self.workoutRoute(Self.locations), inputs()).isEmpty)
     }
 
     @Test("An authorized route is written in the registry's column schema")
-    func authorizedRouteIsCarried() throws {
-        let conversion = try ExporterFixtures.export(try Self.workoutRoute(Self.locations), inputs(route: .authorized))
+    func authorizedRouteIsCarried() async throws {
+        let conversion = try await ExporterFixtures.export(try Self.workoutRoute(Self.locations), inputs(route: .authorized))
         let payload = try #require(conversion.document.content.first?.attachment.data?.value?.data())
 
         // The second fix reports no altitude, speed, or course, and each unavailable reading is an
@@ -225,9 +225,9 @@ struct HealthKitRecordingDocumentTests {
     }
 
     @Test("An authorized route with no fixes fails closed")
-    func emptyAuthorizedRouteFailsClosed() {
-        #expect(throws: HealthKitConversionError.invalidValue(.workoutRoute, .emptyRecordingSeries)) {
-            try ExporterFixtures.export(try Self.workoutRoute([]), inputs(route: .authorized))
+    func emptyAuthorizedRouteFailsClosed() async {
+        await #expect(throws: HealthKitConversionError.invalidValue(.workoutRoute, .emptyRecordingSeries)) {
+            try await ExporterFixtures.export(try Self.workoutRoute([]), inputs(route: .authorized))
         }
     }
 
@@ -236,7 +236,7 @@ struct HealthKitRecordingDocumentTests {
     /// cannot be empty, for every fix, so the route cannot be carried; no registered input rule names that reason, so
     /// it is reported unclassified. An omitted route is never read.
     @Test("An authorized route with an invalid coordinate fails closed")
-    func invalidCoordinateFailsClosed() throws {
+    func invalidCoordinateFailsClosed() async throws {
         let invalid = CLLocation(
             coordinate: CLLocationCoordinate2D(latitude: 37.4275, longitude: -122.1697),
             altitude: 30.5,
@@ -245,17 +245,17 @@ struct HealthKitRecordingDocumentTests {
             timestamp: Self.seriesStart
         )
         let record = try Self.workoutRoute([invalid, Self.locations[1]])
-        let refusal = try #require(throws: HealthKitConversionError.self) {
-            try ExporterFixtures.export(record, inputs(route: .authorized))
+        let refusal = try await #require(throws: HealthKitConversionError.self) {
+            try await ExporterFixtures.export(record, inputs(route: .authorized))
         }
         #expect(refusal == HealthKitConversionError(conversionFailure: WorkoutRouteFailure.invalidCoordinate, source: .workoutRoute))
         #expect(refusal.diagnostic == ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: "Bundle"))
-        #expect(try ExporterFixtures.exports(record, inputs()).isEmpty)
+        await #expect(try ExporterFixtures.exports(record, inputs()).isEmpty)
     }
 
     #if !os(watchOS)
     @Test("A CDA document is carried byte for byte under its own media type")
-    func clinicalDocumentIsBytePreserved() throws {
+    func clinicalDocumentIsBytePreserved() async throws {
         let bytes = Data(Self.clinicalDocumentXML.utf8)
         let sample = try HKCDADocumentSample(
             data: bytes,
@@ -264,7 +264,7 @@ struct HealthKitRecordingDocumentTests {
             metadata: nil
         )
 
-        let conversion = try ExporterFixtures.export(sample, inputs())
+        let conversion = try await ExporterFixtures.export(sample, inputs())
         let content = try #require(conversion.document.content.first)
 
         #expect(content.format?.code?.value?.string == "clinical-document")
@@ -288,11 +288,11 @@ struct HealthKitRecordingDocumentTests {
 
 extension HealthKitRecordingDocumentTests {
     @Test("Study relevance preserves recording bytes and identities", arguments: [0, 1, 2])
-    func studyRelevancePreservesRecording(studyCount: Int) throws {
+    func studyRelevancePreservesRecording(studyCount: Int) async throws {
         let record = try Self.heartbeatSeries()
         let studies = (0..<studyCount).map { StudyEnrollment.test("study-\($0)") }
-        let baseline = try ExporterFixtures.export(record, inputs())
-        let conversion = try ExporterFixtures.export(record, inputs(studies: studies))
+        let baseline = try await ExporterFixtures.export(record, inputs())
+        let conversion = try await ExporterFixtures.export(record, inputs(studies: studies))
         #expect(conversion.document.context?.related?.count ?? 0 == studyCount)
         #expect(conversion.document.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
         #expect(conversion.identifiers == baseline.identifiers)

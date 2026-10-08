@@ -40,9 +40,9 @@ extension ContentCorpusRecorder {
     ///
     /// HealthKit raises an uncatchable exception when asked to create a sample after 4000 or shorter than its type's
     /// minimum duration, so such a source is refused here instead of projected.
-    static func roundTrip(_ source: ContentCorpusSource) throws -> LosslessJSONValue {
+    static func roundTrip(_ source: ContentCorpusSource) async throws -> LosslessJSONValue {
         try requireProjectable(source)
-        let outcome = try outcome(of: source)
+        let outcome = try await outcome(of: source)
         guard case .converted(let exports) = outcome else {
             return try render(outcome)
         }
@@ -58,7 +58,7 @@ extension ContentCorpusRecorder {
 
     /// The retraction of a deleted record of `type`: the targets its graph names, or why it names none. Routes are
     /// disclosed, so a route deletion names its targets too; a type without outputs has nothing to retract.
-    static func retraction(of type: String, disclosure: ContentCorpusDisclosure?) throws -> LosslessJSONValue {
+    static func retraction(of type: String, disclosure: ContentCorpusDisclosure?) async throws -> LosslessJSONValue {
         guard let sourceType = HealthKitSourceType(rawValue: type) else {
             throw ContentCorpusSamples.RebuildError.unknownType(type)
         }
@@ -76,7 +76,7 @@ extension ContentCorpusRecorder {
         )
         let graph: ExchangeGraph
         do {
-            graph = try ExporterFixtures.retraction(deletion, inputs)
+            graph = try await ExporterFixtures.retraction(deletion, inputs)
         } catch ExportFixtureError.nothingToRetract {
             return .object(["nothingToRetract": .boolean(true)])
         } catch let error as HealthKitConversionError {
