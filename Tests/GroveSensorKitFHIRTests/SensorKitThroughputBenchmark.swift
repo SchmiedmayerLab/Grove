@@ -64,12 +64,13 @@ struct SensorKitThroughputBenchmark {
     }
 
     private enum Written {
-        case tabular(Data, DateInterval)
+        /// The bytes, their period and, for an accelerometer recording, the summary its check read.
+        case tabular(Data, DateInterval, SensorKitAccelerometerRecord.Summary?)
         case ppg(SensorKitPreparedPPGRecording)
 
         var byteCount: Int {
             switch self {
-            case let .tabular(data, _): data.count
+            case let .tabular(data, _, _): data.count
             case let .ppg(prepared): prepared.data.count
             }
         }
@@ -198,12 +199,14 @@ extension SensorKitThroughputBenchmark {
                     .timestamp(timestamp), .text(String(row + 1)), .number(values[row * 3]), .number(values[row * 3 + 1]),
                     .number(values[row * 3 + 2]), .text(watch)
                 ]
-            } record: { sourceRecordID, nativeRecording, _ in
-                .accelerometer(try SensorKitAccelerometerRecord(sourceRecordID: sourceRecordID, nativeRecording: nativeRecording))
+            } record: { sourceRecordID, nativeRecording, _, summary in
+                .accelerometer(try summary.map {
+                    SensorKitAccelerometerRecord(sourceRecordID: sourceRecordID, nativeRecording: nativeRecording, summary: $0)
+                } ?? SensorKitAccelerometerRecord(sourceRecordID: sourceRecordID, nativeRecording: nativeRecording))
             },
             tabular("heartRate", records: 4, rows: 3_600, format: .heartRateSamples, interval: 1) { row, timestamp in
                 [.timestamp(timestamp), .number(60 + 40 * abs(values[row])), .integer(row % 4), .text(watch)]
-            } record: { sourceRecordID, nativeRecording, period in
+            } record: { sourceRecordID, nativeRecording, period, _ in
                 .raw(try SensorKitRawRecord(
                     sourceRecordID: sourceRecordID,
                     sourceToken: "SRSensor.heartRate",
@@ -216,7 +219,7 @@ extension SensorKitThroughputBenchmark {
                     .timestamp(timestamp), .number(500 * abs(values[row * 2])), .text("frontTop"), .number(abs(values[row * 2])),
                     .number(abs(values[row * 2 + 1])), .text("iPhone17,2")
                 ]
-            } record: { sourceRecordID, nativeRecording, period in
+            } record: { sourceRecordID, nativeRecording, period, _ in
                 .raw(try SensorKitRawRecord(
                     sourceRecordID: sourceRecordID,
                     sourceToken: "SRSensor.ambientLightSensor",
@@ -229,7 +232,7 @@ extension SensorKitThroughputBenchmark {
                     .timestamp(timestamp), .number(33 + values[row]), .number(0.1 + abs(values[row + 1]) / 10),
                     .text(row.isMultiple(of: 7) ? "inMotion" : "")
                 ]
-            } record: { sourceRecordID, nativeRecording, _ in
+            } record: { sourceRecordID, nativeRecording, _, _ in
                 .wristTemperature(try SensorKitWristTemperatureRecord(
                     sourceRecordID: sourceRecordID,
                     algorithmVersion: "1.0",
@@ -248,7 +251,9 @@ extension SensorKitThroughputBenchmark {
         format: RegisteredRecordingFormat,
         interval: TimeInterval,
         row: @escaping (Int, Date) -> [RecordingCSVWriter.Field],
-        record: @escaping (SensorKitSourceRecordID, SensorKitNativeRecording, DateInterval) throws -> SensorKitRecord
+        record: @escaping (
+            SensorKitSourceRecordID, SensorKitNativeRecording, DateInterval, SensorKitAccelerometerRecord.Summary?
+        ) throws -> SensorKitRecord
     ) -> Scenario {
         Scenario(name: name, records: records, rows: rows) { index in
             let first = start.addingTimeInterval(Double(index * rows) * interval)
@@ -257,10 +262,16 @@ extension SensorKitThroughputBenchmark {
                 try writer.append(row(offset, first.addingTimeInterval(Double(offset) * interval)))
             }
             let data = writer.data()
-            try format.validatePayload(data)
-            return .tabular(data, DateInterval(start: first, duration: Double(rows - 1) * interval))
+            // An accelerometer recording's check also reads its summary.
+            var summary: SensorKitAccelerometerRecord.Summary?
+            if format == .triaxialAccelerationSamples {
+                summary = try SensorKitAccelerometerRecord.Summary(RecordingCSVReader(data, format: format))
+            } else {
+                try format.validatePayload(data)
+            }
+            return .tabular(data, DateInterval(start: first, duration: Double(rows - 1) * interval), summary)
         } record: { index, written in
-            guard case let .tabular(data, period) = written else {
+            guard case let .tabular(data, period, summary) = written else {
                 throw CocoaError(.featureUnsupported)
             }
             // The tabular recording validated these bytes when it was written, so it hands them on unchecked.
@@ -270,7 +281,7 @@ extension SensorKitThroughputBenchmark {
                 payload: .sidecar(path: "sensorkit/\(name)-\(index).csv", bytes: data),
                 admission: .callerAuthorizedOpaquePayload
             ) { _ in }
-            return try record(sourceRecordID(index), nativeRecording, period)
+            return try record(sourceRecordID(index), nativeRecording, period, summary)
         }
     }
 
