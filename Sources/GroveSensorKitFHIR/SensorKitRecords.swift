@@ -111,6 +111,28 @@ public struct SensorKitNativeRecording: Sendable {
         payload: Payload,
         admission: SensorRawPayloadAdmission
     ) throws {
+        try self.init(
+            title: title,
+            format: format,
+            contentType: contentType,
+            payload: payload,
+            admission: admission
+        ) { bytes throws(RegisteredRecordingPayloadError) in
+            try format.validatePayload(bytes)
+        }
+    }
+
+    /// ``init(title:format:contentType:payload:admission:)`` with `validatePayload` in place of the format's own
+    /// payload check, for bytes this module produced: one it already checked needs no second parse, and a PPG
+    /// recording's strict decode is kept for its summary.
+    init(
+        title: String,
+        format: RegisteredRecordingFormat,
+        contentType: String? = nil,
+        payload: Payload,
+        admission: SensorRawPayloadAdmission,
+        validatePayload: (Data) throws(RegisteredRecordingPayloadError) -> Void
+    ) throws {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SensorKitRecordError.invalidAttachmentTitle
         }
@@ -126,7 +148,7 @@ public struct SensorKitNativeRecording: Sendable {
             throw SensorKitRecordError.invalidSidecarPath(path)
         }
         do {
-            try format.validatePayload(bytes)
+            try validatePayload(bytes)
         } catch {
             throw SensorKitRecordError.invalidRegisteredPayload(format: format, reason: error)
         }
