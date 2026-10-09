@@ -62,18 +62,14 @@ extension String {
 extension StringProtocol {
     /// Same result as `trimmingCharacters(in: .whitespacesAndNewlines).isEmpty`.
     /// Uses the same set as `CharacterSet.whitespacesAndNewlines` (Unicode White_Space + U+200B).
-    package var isBlank: Bool {
-        @specialized(where Self == String)
-        @specialized(where Self == Substring)
-        get {
-            unicodeScalars.allSatisfy {
-                switch $0.value {
-                case 0x09...0x0D, 0x20, 0x85, 0xA0, 0x1680, 0x2000...0x200B,
-                    0x2028, 0x2029, 0x202F, 0x205F, 0x3000:
-                    true
-                default:
-                    false
-                }
+    @inlinable package var isBlank: Bool {
+        unicodeScalars.allSatisfy {
+            switch $0.value {
+            case 0x09...0x0D, 0x20, 0x85, 0xA0, 0x1680, 0x2000...0x200B,
+                0x2028, 0x2029, 0x202F, 0x205F, 0x3000:
+                true
+            default:
+                false
             }
         }
     }
