@@ -69,7 +69,7 @@ extension ExchangeGraph {
                     throw ExchangeGraphError.invalidEntries("Bundle entry resource is not an object")
                 }
                 guard object["contained"] == nil,
-                      !containsContainedReference(object) else {
+                      try !document.resourceObjects(at: index).contains(where: refersToContainedResource) else {
                     throw ExchangeGraphError.ruleViolation(.mobileExchangeContainedResourceProhibited)
                 }
             } catch let error as ExchangeGraphError {

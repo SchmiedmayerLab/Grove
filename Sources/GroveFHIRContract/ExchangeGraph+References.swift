@@ -278,10 +278,7 @@ extension ExchangeGraph {
             return
         }
         do {
-            guard let object = try document.resourceObject(at: entryIndex) else {
-                return
-            }
-            try validateGovernedExtensions(in: object, context: context)
+            try validateGovernedExtensions(in: document.resourceObjects(at: entryIndex), context: context)
         } catch let error as ExchangeGraphError {
             throw error
         } catch {
@@ -290,13 +287,13 @@ extension ExchangeGraph {
     }
 
     static func validateGovernedExtensions(
-        in value: Any,
+        in objects: [[String: Any]],
         context: ReferenceResolutionContext
     ) throws(ExchangeGraphError) {
-        try ExchangeIdentity.walkJSONObjects(value) { object throws(ExchangeGraphError) in
+        for object in objects {
             guard let url = object["url"] as? String,
                   let expected = governedExtensionTargets[url] else {
-                return
+                continue
             }
             guard let rawReference = object["valueReference"] as? [String: Any] else {
                 throw .ruleViolation(.mobileExchangeReferenceShape)

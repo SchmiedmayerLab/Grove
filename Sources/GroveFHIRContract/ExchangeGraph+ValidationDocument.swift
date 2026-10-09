@@ -32,6 +32,7 @@ extension ExchangeGraph {
         private var identifierCache: [Int: [Result<Identifier, any Error>]] = [:]
         private var typedIdentifierCache: [Int: Result<[RoledIdentifier], any Error>] = [:]
         private var entryKeyCache: [Int: RoledIdentifier?] = [:]
+        private var objectCache: [Int: Result<[[String: Any]], any Error>] = [:]
 
         /// - Parameters:
         ///   - bundle: The Bundle the passes validate.
@@ -98,6 +99,41 @@ extension ExchangeGraph {
             try bundleJSON.get()
         }
 
+        /// Every JSON object of the whole Bundle, as ``ExchangeIdentity/walkJSONObjects(_:visit:)`` would visit them,
+        /// with each entry's resource contributing its ``resourceObjects(at:)``.
+        func bundleObjects() throws -> [[String: Any]] {
+            let bundle = try bundleObject()
+            var objects: [[String: Any]] = []
+            guard let object = bundle as? [String: Any], let rawEntries = object["entry"] as? [Any] else {
+                ExchangeIdentity.walkJSONObjects(bundle) { objects.append($0) }
+                return objects
+            }
+            objects.append(object)
+            for (key, value) in object where key != "entry" {
+                ExchangeIdentity.walkJSONObjects(value) { objects.append($0) }
+            }
+            for (index, rawEntry) in rawEntries.enumerated() {
+                guard let entry = rawEntry as? [String: Any] else {
+                    ExchangeIdentity.walkJSONObjects(rawEntry) { objects.append($0) }
+                    continue
+                }
+                objects.append(entry)
+                for (key, value) in entry where key != "resource" {
+                    ExchangeIdentity.walkJSONObjects(value) { objects.append($0) }
+                }
+                guard let resource = entry["resource"] else {
+                    continue
+                }
+                // A parsed resource is this very object; anything else is walked where it sits.
+                if resources.indices.contains(index), case .parsed = resources[index] {
+                    objects += try resourceObjects(at: index)
+                } else {
+                    ExchangeIdentity.walkJSONObjects(resource) { objects.append($0) }
+                }
+            }
+            return objects
+        }
+
         /// The parsed JSON of the resource of the entry at `index` of `Bundle.entry`, or `nil` if it has none.
         func resourceObject(at index: Int) throws -> Any? {
             guard resources.indices.contains(index) else {
@@ -111,6 +147,24 @@ extension ExchangeGraph {
             case .standalone(let resource):
                 return try Self.tree(of: resource)
             }
+        }
+
+        /// Every JSON object of the resource of the entry at `index`, the resource first, in the order
+        /// ``ExchangeIdentity/walkJSONObjects(_:visit:)`` visits them; empty when the entry has no resource. Walked once
+        /// per graph for every pass that looks at all of a resource's objects.
+        func resourceObjects(at index: Int) throws -> [[String: Any]] {
+            if let cached = objectCache[index] {
+                return try cached.get()
+            }
+            let result = Result<[[String: Any]], any Error> {
+                var objects: [[String: Any]] = []
+                if let resource = try resourceObject(at: index) {
+                    ExchangeIdentity.walkJSONObjects(resource) { objects.append($0) }
+                }
+                return objects
+            }
+            objectCache[index] = result
+            return try result.get()
         }
 
         /// Each element of the resource's `identifier` array, decoded as an Identifier, in order.

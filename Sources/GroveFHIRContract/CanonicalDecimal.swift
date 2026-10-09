@@ -26,7 +26,7 @@ package struct CanonicalNonnegativeDecimal: Hashable, Sendable, CustomStringConv
         self.rawValue = String(value)
     }
 
-    static func isCanonical(_ value: String) -> Bool {
+    static func isCanonical(_ value: some StringProtocol) -> Bool {
         guard let first = value.utf8.first else {
             return false
         }

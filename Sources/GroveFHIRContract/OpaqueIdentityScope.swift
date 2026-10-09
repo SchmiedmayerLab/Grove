@@ -150,7 +150,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         )
     }
 
-    static func isValidKeyID(_ keyID: String) -> Bool {
+    static func isValidKeyID(_ keyID: some StringProtocol) -> Bool {
         !keyID.isEmpty && keyID.utf8.allSatisfy {
             $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E || $0 == 0x5F
         }
