@@ -806,7 +806,8 @@ var targets: [Target] = [
         name: "GroveFHIRContract",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux]))
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
+            .target(name: "ThreadLocal")
         ],
         exclude: targetExcludes("GroveFHIRContract"),
         swiftSettings: defaultSwiftSettings,

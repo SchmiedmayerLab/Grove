@@ -11,6 +11,7 @@
 
 package import Foundation
 package import ModelsR4
+import ThreadLocal
 
 
 /// Builds the one exchange graph shape the HealthKit and SensorKit adapters emit: outputs decorated with the
@@ -304,7 +305,7 @@ extension ExchangeGraphAssembler {
         }
     }
 
-    private static let conversionTimes = PerThread { ConversionTimes() }
+    @ThreadLocal private static var conversionTimes: ConversionTimes = .init()
 
     /// The conversion Provenance as every exchange graph states it: the transform activity, the converting application as
     /// the assembler agent, the source record as the entity, with the writer that authored it when the graph names one, and
@@ -330,7 +331,7 @@ extension ExchangeGraphAssembler {
         at instant: Date,
         occurredOffset: TimeZone = .utc
     ) throws -> Provenance {
-        let times = try conversionTimes.current.forms(of: instant, occurredOffset: occurredOffset)
+        let times = try conversionTimes.forms(of: instant, occurredOffset: occurredOffset)
         var entity = ProvenanceEntity(role: FHIRPrimitive(.source), what: Reference(identifier: source.identifier.fhirIdentifier))
         entity.agent = authorURL.map { url in
             [ProvenanceAgent(

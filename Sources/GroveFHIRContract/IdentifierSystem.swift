@@ -8,6 +8,7 @@
 
 import Foundation
 package import ModelsR4
+import ThreadLocal
 
 
 /// The namespace half of a FHIR business identifier: an absolute ASCII RFC 3986 URI naming whose numbering
@@ -26,7 +27,7 @@ public struct IdentifierSystem: Hashable, Sendable {
 
     /// The systems that validated so far: a deployment states the same few systems in every graph, so each thread parses
     /// each once.
-    private static let validated = PerThread { ValidatedSystems() }
+    @ThreadLocal private static var validated: ValidatedSystems = .init()
 
     public let rawValue: String
     /// ``rawValue`` as the `Identifier.system` that states it, parsed once.
@@ -35,7 +36,7 @@ public struct IdentifierSystem: Hashable, Sendable {
     /// Validates a namespace that is not known until runtime — read from configuration, a server
     /// response, or a deployment property list.
     public init(_ rawValue: String) throws(ExchangeIdentityError) {
-        let validated = Self.validated.current
+        let validated = Self.validated
         if let uri = validated.uri(for: rawValue) {
             self.rawValue = rawValue
             self.uri = uri
