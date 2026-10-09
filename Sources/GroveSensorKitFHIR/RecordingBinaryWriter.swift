@@ -23,16 +23,16 @@ public struct RecordingBinaryWriter: ~Copyable {
         case duplicateSetValue
     }
 
-    private var bytes: Data
+    private var bytes: [UInt8]
 
     /// Creates an empty writer.
     public init() {
-        bytes = Data()
+        bytes = []
     }
 
     /// The bytes written so far.
     public consuming func data() -> Data {
-        bytes
+        Data(bytes)
     }
 
     /// Unsigned LEB128.
@@ -70,9 +70,8 @@ public struct RecordingBinaryWriter: ~Copyable {
 
     /// A varint UTF-8 byte count, then the bytes.
     public mutating func writeString(_ value: String) {
-        let utf8 = Array(value.utf8)
-        writeVarint(UInt64(utf8.count))
-        bytes.append(contentsOf: utf8)
+        writeVarint(UInt64(value.utf8.count))
+        bytes.append(contentsOf: value.utf8)
     }
 
     /// A presence byte, then the value when present.
@@ -99,6 +98,11 @@ public struct RecordingBinaryWriter: ~Copyable {
         _ elements: [Element],
         element: (inout Self, Element) throws -> Void
     ) throws {
+        // Elements already strictly ascending are their own canonical form: no duplicate, nothing to sort.
+        if zip(elements, elements.dropFirst()).allSatisfy({ $0 < $1 }) {
+            try writeArray(elements, element: element)
+            return
+        }
         guard Set(elements).count == elements.count else {
             throw WriterError.duplicateSetValue
         }

@@ -9,6 +9,20 @@
 public import ModelsR4
 
 
+/// A semantic role carried in `Identifier.type` for Grove exchange identifiers.
+public enum GroveIdentifierRole: String, CaseIterable, Hashable, Sendable {
+    case sourceRecord = "source-record"
+    case sourceOutput = "source-output"
+    case writerRecord = "writer-record"
+    case sourceArtifact = "source-artifact"
+    case sourceContext = "source-context"
+    case recordingDevice = "recording-device"
+    case deviceSnapshot = "device-snapshot"
+    case event
+    case entryNode = "entry-node"
+}
+
+
 /// A business identifier together with the Grove role it carries in `Identifier.type`.
 public struct RoledIdentifier: Hashable, Sendable {
     public let identifier: BusinessIdentifier
@@ -16,7 +30,7 @@ public struct RoledIdentifier: Hashable, Sendable {
 
     public var fhirIdentifier: Identifier {
         Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: identifier.system.rawValue)),
+            system: identifier.system.uri,
             type: CodeableConcept(coding: [
                 Coding(
                     code: role.rawValue.asFHIRStringPrimitive(),
@@ -59,5 +73,23 @@ public struct RoledIdentifier: Hashable, Sendable {
             throw .invalidIdentifierRole(rawRole)
         }
         self.init(identifier: try BusinessIdentifier(identifier), role: role)
+    }
+}
+
+
+extension BundleEntry {
+    /// An exchange entry keyed by its complete identifier, at the deterministic fullUrl that identifier names.
+    package init(identifier: RoledIdentifier, resource: ResourceProxy) throws(ExchangeIdentityError) {
+        self.init(identifier: identifier, fullURL: try identifier.fullURLString, resource: resource)
+    }
+
+    /// An exchange entry keyed by its complete identifier, at the fullUrl the caller already derived from it with
+    /// ``RoledIdentifier/fullURLString``.
+    package init(identifier: RoledIdentifier, fullURL: String, resource: ResourceProxy) {
+        self.init(
+            extension: [Extension(url: Canonicals.entryNodeKey, value: .identifier(identifier.fhirIdentifier))],
+            fullUrl: FHIRPrimitive(FHIRURI(stringLiteral: fullURL)),
+            resource: resource
+        )
     }
 }

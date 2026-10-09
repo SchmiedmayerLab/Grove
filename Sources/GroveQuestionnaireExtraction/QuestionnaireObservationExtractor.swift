@@ -7,11 +7,11 @@
 //
 
 import Foundation
-import GroveFHIRContract
+public import GroveFHIRContract
 import ModelsR4
 
 
-/// Why a response cannot be projected into measurements.
+/// Why a response produced no exchange graph: its extraction, an identity it needs, or the graph's validation failed.
 ///
 /// Every refusal names the exact defect: a projection that guesses is worse than none, so an
 /// instrument or response that leaves the extractor guessing does not project.
@@ -51,6 +51,19 @@ public enum ObservationExtractionError: Error, Equatable, Sendable {
     /// The instrument marks nothing for extraction, or the response answers none of the marked
     /// items, so there is no exchange event to state.
     case noExtractableMeasurements
+    /// The export call named the response earlier with other content. The first input keeps the response's event;
+    /// each later one that differs is refused, so an exact retry of the call reproduces every event.
+    case conflictingDuplicate
+    /// An identity could not be minted: an event-scoped one such as an entry-node key, or a deterministic one such as
+    /// the response's source-record identity.
+    case exchangeIdentity(ExchangeIdentityError)
+    /// The projected graph does not satisfy the exchange contract.
+    case exchangeGraph(ExchangeGraphError)
+    /// A dependency raised a failure this domain does not model, named by type.
+    ///
+    /// Only the type is carried: a failing FHIR date describes itself with the exact instant it
+    /// could not convert, and that instant identifies a participant.
+    case unexpectedConversionFailure(String)
 }
 
 

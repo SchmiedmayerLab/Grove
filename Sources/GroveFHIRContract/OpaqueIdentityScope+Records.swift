@@ -8,12 +8,15 @@
 
 extension OpaqueIdentityScope {
     /// Mints the identity of one native source record; its output and artifact identities extend it.
+    ///
+    /// Public so an app can name the outputs an exporter minted for a record, for example to check the targets of a
+    /// retraction; the exporters mint every other identity themselves.
     public func sourceRecord(
         adapterID: String,
         sourceType: String,
         repositoryScope: BusinessIdentifier,
         nativeRecordID: String
-    ) throws(OpaqueIdentityError) -> SourceRecordIdentity {
+    ) throws(ExchangeIdentityError) -> SourceRecordIdentity {
         try SourceRecordIdentity(
             scope: self,
             components: [
@@ -26,14 +29,15 @@ extension OpaqueIdentityScope {
         )
     }
 
-    /// Mints the identity of one provider-owned record; its output and artifact identities extend it.
-    public func providerRecord(
-        providerCode: GroveProviderCode,
+    /// Mints the identity of one provider-owned record; its output and artifact identities extend it under the
+    /// provider identity kinds.
+    package func providerRecord(
+        providerCode: ProviderCode,
         sourceType: String,
         providerScope: BusinessIdentifier,
         nativeRecordID: String
-    ) throws(OpaqueIdentityError) -> ProviderRecordIdentity {
-        try ProviderRecordIdentity(
+    ) throws(ExchangeIdentityError) -> SourceRecordIdentity {
+        try SourceRecordIdentity(
             scope: self,
             components: [
                 providerCode.rawValue,
@@ -41,15 +45,16 @@ extension OpaqueIdentityScope {
                 providerScope.system.rawValue,
                 providerScope.value,
                 nativeRecordID
-            ]
+            ],
+            isProviderRecord: true
         )
     }
 
     /// Identifies the logical record the writer application assigned, when the platform supplies it.
-    public func writerRecord(
+    package func writerRecord(
         writerApplication: BusinessIdentifier,
         writerRecordID: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(
             kind: .writerRecord,
             components: [
@@ -64,12 +69,12 @@ extension OpaqueIdentityScope {
     ///
     /// For example, HealthKit medication statements and dose events use this identity for the
     /// same `HKHealthConceptIdentifier` without disclosing that platform identifier on the wire.
-    public func sourceContext(
+    package func sourceContext(
         adapterID: String,
         contextType: String,
         repositoryScope: BusinessIdentifier,
         nativeContextID: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try validateCodeToken(contextType, field: "source-context.context-type")
         return try identifier(
             kind: .sourceContext,
@@ -88,7 +93,7 @@ extension OpaqueIdentityScope {
         kind: OpaqueIdentityKind,
         role: String,
         discriminator: String
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try validateCodeToken(role, field: "\(kind.rawValue).output-role")
         return try identifier(kind: kind, components: record + [role, discriminator])
     }
@@ -98,7 +103,7 @@ extension OpaqueIdentityScope {
         kind: OpaqueIdentityKind,
         formatCode: String,
         partIndex: CanonicalNonnegativeDecimal
-    ) throws(OpaqueIdentityError) -> RoledIdentifier {
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(kind: kind, components: record + [formatCode, partIndex.rawValue])
     }
 }

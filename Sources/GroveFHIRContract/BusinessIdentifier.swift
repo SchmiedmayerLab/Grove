@@ -20,12 +20,17 @@ public import ModelsR4
 /// The strings are kept as configured instead of round-tripping through `Foundation.URL`, whose
 /// normalization could change the bytes the UUIDv5 algorithm names.
 public struct BusinessIdentifier: Hashable, Sendable {
+    /// The bytes of ``ExchangeContract/fullURLNamespace``, parsed once.
+    private static let fullURLNamespaceBytes: Data? = UUID(uuidString: ExchangeContract.fullURLNamespace).map { namespace in
+        withUnsafeBytes(of: namespace.uuid) { Data($0) }
+    }
+
     public let system: IdentifierSystem
     public let value: String
 
     public var fhirIdentifier: Identifier {
         Identifier(
-            system: FHIRPrimitive(FHIRURI(stringLiteral: system.rawValue)),
+            system: system.uri,
             value: value.asFHIRStringPrimitive()
         )
     }
@@ -39,39 +44,23 @@ public struct BusinessIdentifier: Hashable, Sendable {
 
     package var fullURLString: String {
         get throws(ExchangeIdentityError) {
-            guard let namespace = UUID(uuidString: ExchangeContract.fullURLNamespace) else {
+            guard let namespace = Self.fullURLNamespaceBytes else {
                 throw .invalidNamespace(ExchangeContract.fullURLNamespace)
             }
-            let namespaceBytes = withUnsafeBytes(of: namespace.uuid) { Array($0) }
-            let digest = Insecure.SHA1.hash(data: Data(namespaceBytes) + (try canonicalNameData))
-            var bytes = Array(digest.prefix(16))
+            var hash = Insecure.SHA1()
+            hash.update(data: namespace)
+            hash.update(data: try canonicalNameData)
+            var bytes = Array(hash.finalize().prefix(16))
             bytes[6] = (bytes[6] & 0x0f) | 0x50
             bytes[8] = (bytes[8] & 0x3f) | 0x80
-            let hex = bytes.map { String(format: "%02x", $0) }
-            let uuid = [
-                hex[0...3].joined(),
-                hex[4...5].joined(),
-                hex[6...7].joined(),
-                hex[8...9].joined(),
-                hex[10...15].joined()
-            ].joined(separator: "-")
-            return "urn:uuid:\(uuid)"
+            return Self.uuidURN(bytes)
         }
     }
 
     /// The length-framed UUID-v5 name bytes of this identifier.
     package var canonicalNameData: Data {
         get throws(ExchangeIdentityError) {
-            do {
-                return try LengthFramedUTF8.encode([system.rawValue, value])
-            } catch {
-                switch error {
-                case .componentTooLarge(let byteCount):
-                    throw .identityComponentTooLarge(byteCount)
-                default:
-                    throw .identityFramingFailure
-                }
-            }
+            try Data(lengthFramedUTF8: [system.rawValue, value])
         }
     }
 
@@ -99,13 +88,36 @@ public struct BusinessIdentifier: Hashable, Sendable {
         self.system = system
         self.value = value
     }
+
+    /// `urn:uuid:` and the 16 bytes as lowercase hex in the 8-4-4-4-12 grouping.
+    private static func uuidURN(_ bytes: [UInt8]) -> String {
+        let hexDigits = Array("0123456789abcdef".utf8)
+        let prefix = Array("urn:uuid:".utf8)
+        return String(unsafeUninitializedCapacity: prefix.count + 36) { buffer in
+            var index = 0
+            for byte in prefix {
+                buffer[index] = byte
+                index += 1
+            }
+            for (offset, byte) in bytes.enumerated() {
+                if offset == 4 || offset == 6 || offset == 8 || offset == 10 {
+                    buffer[index] = UInt8(ascii: "-")
+                    index += 1
+                }
+                buffer[index] = hexDigits[Int(byte >> 4)]
+                buffer[index + 1] = hexDigits[Int(byte & 0x0f)]
+                index += 2
+            }
+            return index
+        }
+    }
 }
 
 
 extension BusinessIdentifier {
     /// Creates an identifier-only logical Reference with an explicit target resource type.
     ///
-    /// Grove conversion contexts use this shape when the referenced resource does not travel in
+    /// Grove exchange graphs use this shape when the referenced resource does not travel in
     /// the same Bundle. Literal references remain reserved for resolvable Bundle entries.
     public func reference(to resourceType: ResourceType) -> Reference {
         Reference(

@@ -1,0 +1,11 @@
+#
+# This source file is part of the Grove open-source project
+#
+# SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+# The HealthKit content corpus is recorded by its tests (see ContentCorpusStore): review a regeneration through the
+# content-corpus.changes.txt it writes beside the corpus, not through this file's one-line-per-vector diff.
+Tests/GroveHealthKitFHIRTests/Resources/ContentCorpus/content-corpus.jsonl linguist-generated=true

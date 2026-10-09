@@ -9,352 +9,116 @@
 #if canImport(HealthKit)
 
 public import GroveFHIRContract
-import HealthKit
+public import HealthKit
 public import ModelsR4
 
-// The public row/value types precede the catalog that publishes them so generated data stays readable.
-// swiftlint:disable file_types_order
 
-
-/// One measurement and its exact direct profile claims in the HealthKit adapter matrix.
-public struct HealthKitMeasurementContract: Sendable {
-    public let id: String
-    public let profiles: [FHIRPrimitive<Canonical>]
-}
-
-
-struct HealthKitFHIRObservationContract: Sendable {
-    static let bodyMassIndex = HealthKitFHIRObservationContract(
-        measurement: HealthKitMeasurementContract(
-            id: "body-mass-index",
-            profiles: HealthKitContract.bodyMassIndexProfiles
-        ),
-        code: CodingContract(system: "http://loinc.org", code: "39156-5"),
-        requiredCodings: [],
-        quantity: QuantityContract(
-            system: "http://unitsofmeasure.org",
-            code: "kg/m2",
-            unit: "kg/m2"
-        ),
-        effective: .dateTime
-    )
-
-    let measurement: HealthKitMeasurementContract
-    let code: CodingContract
-    let requiredCodings: [CodingContract]
-    let quantity: QuantityContract?
-    let components: [ComponentContract]
-    let resultCodeSystem: String?
-    let measurementResultCodes: [ResultCodeContract]
-    let method: MethodContract?
-    let effective: MeasurementEffective
-
-    var id: String { measurement.id }
-    var profiles: [FHIRPrimitive<Canonical>] { measurement.profiles }
-
-    init(shared: MeasurementContract) {
-        let profiles: [FHIRPrimitive<Canonical>]
-        if ProfileClaims.singleObservationProfiles.contains(shared.profile) {
-            profiles = [shared.profile]
-        } else {
-            profiles = ProfileClaims.observation(
-                sharedMeasurement: shared.profile,
-                adapter: Profile.healthkitObservation
-            )
-        }
-        self.measurement = HealthKitMeasurementContract(
-            id: shared.id,
-            profiles: profiles
-        )
-        self.code = shared.code
-        self.requiredCodings = shared.requiredCodings
-        self.quantity = shared.quantity
-        self.components = shared.components
-        self.resultCodeSystem = shared.resultCodeSystem
-        self.measurementResultCodes = shared.resultCodes
-        self.method = shared.method
-        self.effective = shared.effective
-    }
-
-    private init(
-        measurement: HealthKitMeasurementContract,
-        code: CodingContract,
-        requiredCodings: [CodingContract] = [],
-        quantity: QuantityContract?,
-        components: [ComponentContract] = [],
-        resultCodeSystem: String? = nil,
-        effective: MeasurementEffective
-    ) {
-        self.measurement = measurement
-        self.code = code
-        self.requiredCodings = requiredCodings
-        self.quantity = quantity
-        self.components = components
-        self.resultCodeSystem = resultCodeSystem
-        self.measurementResultCodes = []
-        self.method = nil
-        self.effective = effective
-    }
-}
-
-
-/// One output a source type's conversion mints, and how a retraction names it.
-public struct HealthKitOutput: Hashable, Sendable {
-    public let role: String
-    public let discriminator: String
-    public let resourceType: ResourceType
-    public let retractionRole: RetractionTargetRole
-}
-
-
-/// One authoritative row in the HealthKit implementation matrix.
-public struct HealthKitCatalogEntry: Sendable {
-    public let sourceTypeIdentifier: String
-    public let title: String
-    /// The one selected contract, or all candidate contracts when source facts cannot select one.
-    public let measurements: [HealthKitMeasurementContract]
-    public let implementationStatus: HealthKitImplementationStatus
-    public let requirement: String?
-}
-
-
-/// Closed, fail-closed catalog used by ``HealthKitConverter``.
+/// Closed, fail-closed catalog used by ``HealthKitFHIRExporter``.
 ///
 /// This catalog alone determines whether the public API may claim a Grove profile.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitCatalog {
     /// Every platform identifier in the frozen HealthKit inventory, including characteristics
-    /// and other non-sample identifiers that are outside this converter's input type. The
+    /// and other non-sample identifiers that are outside the exporter's input type. The
     /// sleep-duration aggregate lives in the catalog's derivedAggregates, not in these rows.
-    /// A consumer can render this directly as the implementation coverage matrix.
-    public static let entries: [HealthKitCatalogEntry] = HealthKitContract.rows.map { row in
-        HealthKitCatalogEntry(
-            sourceTypeIdentifier: row.sourceTypeIdentifier,
-            title: row.title,
-            measurements: measurements(for: row),
-            implementationStatus: row.implementationStatus,
-            requirement: row.requirement
-        )
-    }
+    /// The statuses state the guide's contract, not this producer's coverage.
+    public static let entries: [Entry] = HealthKitContentPlan.all.map(\.entry)
 
-    /// Bulk export converts tens of thousands of samples, so the row lookup is a hashed
-    /// index rather than a scan over every platform identifier.
-    private static let entriesBySourceTypeIdentifier = Dictionary(
-        uniqueKeysWithValues: entries.map { ($0.sourceTypeIdentifier, $0) }
-    )
-
-    /// Every output the converter mints for one source type, in the order the graph emits them.
+    /// Every unit this adapter binds, as the pair of spellings the same quantity carries.
     ///
-    /// A caller holding only a source type — a deletion, whose sample is already gone — names
-    /// the exact outputs an addition minted. Workout segments are absent: their discriminators come
-    /// from the deleted sample's own events.
-    public static func outputs(for type: HealthKitSourceType) -> [HealthKitOutput] {
-        switch type {
-        case .electrocardiogram:
-            return [
-                HealthKitOutput(
-                    role: "electrocardiogram", discriminator: "single", resourceType: .observation, retractionRole: .primaryOutput
-                ),
-                HealthKitOutput(
-                    role: "average-heart-rate", discriminator: "single", resourceType: .observation, retractionRole: .childOutput
-                )
-            ]
-        case .heartbeatSeries, .workoutRoute:
-            return [
-                HealthKitOutput(
-                    role: "native-recording", discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact
-                )
-            ]
-        case .cda, .allergyRecord, .clinicalNoteRecord, .conditionRecord, .coverageRecord, .immunizationRecord,
-             .labResultRecord, .medicationRecord, .procedureRecord, .vitalSignRecord:
-            return [
-                HealthKitOutput(
-                    role: "clinical-record", discriminator: "single", resourceType: .documentReference, retractionRole: .sourceArtifact
-                )
-            ]
-        default:
-            guard let binding = binding(forSourceTypeIdentifier: type.rawValue) else {
+    /// UCUM and HealthKit disagree on how to spell a unit, and HealthKit cannot parse UCUM at all:
+    /// `HKUnit(from: "Cel")` raises rather than returning degrees Celsius, and the same holds for
+    /// the annotation units, the rate units, and `dB[SPL]`. A consumer that has a contract's UCUM
+    /// code and needs the HealthKit unit therefore cannot derive one from the other, which is why
+    /// the correspondence is published rather than left to be rediscovered.
+    /// One binding per distinct pair of spellings: several measurements share a UCUM code while
+    /// naming it differently for display — `/min` is `beats/minute`, `breaths/minute`, and
+    /// `revolutions/minute` — and a consumer holding any of those spellings needs the same unit.
+    ///
+    /// The bindings are the content plans' own, in inventory row order: every quantity read in its contract's unit,
+    /// then the blood-pressure panel's members, whose unit no scalar quantity binds although the adapter consumes and
+    /// emits it.
+    public static let unitBindings: [UnitBinding] = {
+        let members = HealthKitContentPlan.all.flatMap { plan -> [UnitBinding] in
+            guard case .observation(let observation) = plan.route, case .bloodPressure(let members) = observation.value else {
                 return []
             }
-            // A workout's session totals share their source record with the segments hanging off it.
-            let output = HealthKitOutput(
-                role: binding.contract.id,
-                discriminator: type == .workout ? "session" : "single",
-                resourceType: .observation,
-                retractionRole: .primaryOutput
-            )
-            return [output]
+            return members.map(\.binding)
         }
+        var seen: Set<String> = []
+        return (HealthKitContentPlan.all.compactMap(\.unitBinding) + members).filter { binding in
+            seen.insert("\(binding.ucumCode)\u{0}\(binding.displayUnit)").inserted
+        }
+    }()
+
+    /// Each binding's unit under its UCUM code and under its display unit; a later binding wins a shared spelling.
+    private static let unitsBySpelling: [String: HKUnit] = unitBindings.reduce(into: [:]) { units, binding in
+        units[binding.ucumCode] = binding.unit
+        units[binding.displayUnit] = binding.unit
     }
 
-    static func primaryOutput(for type: HealthKitSourceType) -> HealthKitOutput? {
-        outputs(for: type).first { $0.retractionRole == .primaryOutput }
+    /// Each binding's unit under its UCUM code; the first binding wins a shared code.
+    private static let unitsByUCUMCode: [String: HKUnit] = unitBindings.reduce(into: [:]) { units, binding in
+        units[binding.ucumCode] = units[binding.ucumCode] ?? binding.unit
     }
 
-    static func binding(for sample: HKSample) -> HealthKitFHIRBinding? {
-        if sample is HKWorkout {
-            return .workout
-        }
-        if sample is HKStateOfMind {
-            return .stateOfMind
-        }
-        return binding(forSourceTypeIdentifier: sample.sampleType.identifier)
+    /// The HealthKit unit a UCUM code names, or `nil` when this adapter binds no measurement to it.
+    ///
+    /// There is deliberately no inverse. A HealthKit unit does not determine a UCUM code: every
+    /// annotation unit this adapter binds — steps, flights, strokes, and the rest — is `count` in
+    /// HealthKit, so answering the other direction would have to pick one arbitrarily. A caller
+    /// holding a measurement already has its code on the contract.
+    public static func unit(forUCUMCode code: String) -> HKUnit? {
+        unitsByUCUMCode[code]
     }
 
-    static func binding(forSourceTypeIdentifier identifier: String) -> HealthKitFHIRBinding? {
-        if identifier == HKCorrelationTypeIdentifier.bloodPressure.rawValue {
-            return .bloodPressure
-        }
-        if identifier == HKWorkoutType.workoutType().identifier {
-            return .workout
-        }
-        if identifier == HKSampleType.stateOfMindType().identifier {
-            return .stateOfMind
-        }
-        return quantityBinding(for: identifier)
-            ?? categoryBinding(for: identifier)
-            ?? assessmentBinding(for: identifier)
-    }
-
-    /// A multi-measurement row pairs each measurement with its own semantic profile; the
-    /// remaining rows carry exactly the complete profile list of their one measurement.
-    private static func measurements(for row: HealthKitContractRow) -> [HealthKitMeasurementContract] {
-        if row.measurementIDs.count > 1, row.measurementIDs.count == row.profiles.count {
-            return zip(row.measurementIDs, row.profiles).map { id, profile in
-                HealthKitMeasurementContract(id: id, profiles: [profile])
-            }
-        }
-        return row.measurementIDs.map { id in
-            HealthKitMeasurementContract(id: id, profiles: row.profiles)
-        }
-    }
-
-    private static func assessmentBinding(for identifier: String) -> HealthKitFHIRBinding? {
-        switch HKScoredAssessmentTypeIdentifier(rawValue: identifier) {
-        case .GAD7:
-            .assessmentScore(HealthKitMeasurementCatalog.gad7Assessment)
-        case .PHQ9:
-            .assessmentScore(HealthKitMeasurementCatalog.phq9Assessment)
-        default:
-            nil
-        }
+    /// The HealthKit unit a UCUM code or a contract's display unit names.
+    public static func unit(forUnitSpelling spelling: String) -> HKUnit? {
+        unitsBySpelling[spelling]
     }
 
     /// The inventory row of a source type; every generated type has one.
-    public static subscript(type: HealthKitSourceType) -> HealthKitCatalogEntry {
-        guard let entry = entriesBySourceTypeIdentifier[type.rawValue] else {
-            preconditionFailure("The HealthKit inventory row for \(type.rawValue) is generated from the same catalog.")
-        }
-        return entry
+    public static subscript(type: HealthKitSourceType) -> Entry {
+        HealthKitContentPlan[type].entry
     }
-}
-
-
-/// The closed HealthKit category-value enumeration one coded binding absorbs.
-enum HealthKitFHIRCategoryValueAbsorption: Sendable {
-    case appetiteChanges
-    case appleStandHour
-    case cervicalMucusQuality
-    case contraceptive
-    case ovulationTestResult
-    case pregnancyTestResult
-    case progesteroneTestResult
-    case vaginalBleeding
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-enum HealthKitFHIRBinding: Sendable {
-    case quantity(HealthKitFHIRObservationContract, unit: HKUnit)
-    case percent(HealthKitFHIRObservationContract)
-    case sessionRate(HealthKitFHIRObservationContract)
-    case sessionDuration(HealthKitFHIRObservationContract)
-    case assessmentScore(HealthKitFHIRObservationContract)
-    case severity(HealthKitFHIRObservationContract)
-    case presence(HealthKitFHIRObservationContract)
-    case categoryValue(HealthKitFHIRObservationContract, absorption: HealthKitFHIRCategoryValueAbsorption)
-    case fixedCode(HealthKitFHIRObservationContract)
-    /// A device notification whose HealthKit value selects one published result code.
-    ///
-    /// The notification's own value set is the shared result code list; there is no separate adapter
-    /// source vocabulary to absorb, because the source type coding already carries the lineage.
-    case notification(HealthKitFHIRObservationContract, values: [Int: String])
-    case sexualActivity
-    case bloodPressure
-    case sleepStage
-    case workout
-    case stateOfMind
-
-    var contract: HealthKitFHIRObservationContract {
-        switch self {
-        case .quantity(let contract, _),
-             .percent(let contract),
-             .sessionRate(let contract),
-             .sessionDuration(let contract),
-             .assessmentScore(let contract),
-             .severity(let contract),
-             .presence(let contract),
-             .categoryValue(let contract, _),
-             .fixedCode(let contract),
-             .notification(let contract, _):
-            contract
-        case .sexualActivity:
-            HealthKitFHIRObservationContract(shared: MeasurementCatalog.sexualActivity)
-        case .bloodPressure:
-            HealthKitFHIRObservationContract(shared: MeasurementCatalog.bloodPressure)
-        case .sleepStage:
-            HealthKitFHIRObservationContract(shared: MeasurementCatalog.sleepStage)
-        case .workout:
-            HealthKitFHIRObservationContract(shared: MeasurementCatalog.workout)
-        case .stateOfMind:
-            HealthKitFHIRObservationContract(shared: HealthKitMeasurementCatalog.stateOfMind)
+extension HealthKitCatalog {
+    /// One row of the guide's HealthKit status matrix: what the guide admits, not what this producer emits.
+    public struct Entry: Sendable {
+        /// One measurement and its exact direct profile claims.
+        public struct Measurement: Sendable {
+            public let id: String
+            public let profiles: [FHIRPrimitive<Canonical>]
         }
+
+        public let sourceTypeIdentifier: String
+        public let title: String
+        /// The one selected contract, or all candidate contracts when source facts cannot select one.
+        public let measurements: [Measurement]
+        public let implementationStatus: HealthKitImplementationStatus
+        public let requirement: String?
     }
 
-    static func quantity(_ shared: MeasurementContract, unit: HKUnit) -> Self {
-        .quantity(HealthKitFHIRObservationContract(shared: shared), unit: unit)
-    }
-
-    static func percent(_ shared: MeasurementContract) -> Self {
-        .percent(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func sessionRate(_ shared: MeasurementContract) -> Self {
-        .sessionRate(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func sessionDuration(_ shared: MeasurementContract) -> Self {
-        .sessionDuration(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func assessmentScore(_ shared: MeasurementContract) -> Self {
-        .assessmentScore(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func severity(_ shared: MeasurementContract) -> Self {
-        .severity(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func presence(_ shared: MeasurementContract) -> Self {
-        .presence(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func categoryValue(
-        _ shared: MeasurementContract,
-        absorption: HealthKitFHIRCategoryValueAbsorption
-    ) -> Self {
-        .categoryValue(HealthKitFHIRObservationContract(shared: shared), absorption: absorption)
-    }
-
-    static func fixedCode(_ shared: MeasurementContract) -> Self {
-        .fixedCode(HealthKitFHIRObservationContract(shared: shared))
-    }
-
-    static func notification(_ shared: MeasurementContract, values: [Int: String] = [:]) -> Self {
-        .notification(HealthKitFHIRObservationContract(shared: shared), values: values)
+    /// One measurement's unit, as UCUM states it and as HealthKit spells it.
+    public struct UnitBinding: Sendable {
+        /// The UCUM code the Grove measurement contract binds, such as `Cel`.
+        public let ucumCode: String
+        /// The display unit the contract states, such as `beats/minute`.
+        public let displayUnit: String
+        /// The HealthKit unit the adapter reads and writes the measurement in.
+        public let unit: HKUnit
     }
 }
 
-// swiftlint:enable file_types_order
+
+extension HealthKitSourceType {
+    /// The inventory row of a sample type, such as the one a deletion was reported for.
+    public init?(_ sampleType: HKSampleType) {
+        self.init(rawValue: sampleType.identifier)
+    }
+}
 
 #endif

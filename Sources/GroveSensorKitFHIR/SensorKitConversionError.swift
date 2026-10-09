@@ -13,12 +13,11 @@ public import GroveFHIRContract
 public enum SensorKitConversionError: Error, Equatable, Sendable {
     case invalidRecord(SensorKitRecordError)
     case invalidIdentity(String)
-    case repositoryIDWithoutStructuredOutput
-    case repositoryIDWithoutRawOutput
-    case repositoryIDWithoutRecordingDevice
     case payloadTooLarge(byteCount: Int)
+    /// The export call named the record earlier with other content. The first input keeps the record's event;
+    /// each later one that differs is refused, so an exact retry of the call reproduces every event.
+    case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
-    case opaqueIdentity(OpaqueIdentityError)
     case exchangeGraph(ExchangeGraphError)
     /// A dependency raised a failure this domain does not model, named by type.
     ///
@@ -34,12 +33,9 @@ public enum SensorKitConversionError: Error, Equatable, Sendable {
             return error.diagnostic
         case .exchangeIdentity(let error):
             return error.diagnostic
-        case .opaqueIdentity(let error):
-            return error.diagnostic
         case .payloadTooLarge:
             return ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.diagnostic
-        case .invalidIdentity, .repositoryIDWithoutStructuredOutput, .repositoryIDWithoutRawOutput,
-             .repositoryIDWithoutRecordingDevice, .unexpectedConversionFailure:
+        case .invalidIdentity, .conflictingDuplicate, .unexpectedConversionFailure:
             return ExchangeGraphRule.mobileInputUnclassified.diagnostic
         }
     }
@@ -57,8 +53,6 @@ extension SensorKitConversionError {
             self = .invalidRecord(error)
         case let error as ExchangeIdentityError:
             self = .exchangeIdentity(error)
-        case let error as OpaqueIdentityError:
-            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
         default:

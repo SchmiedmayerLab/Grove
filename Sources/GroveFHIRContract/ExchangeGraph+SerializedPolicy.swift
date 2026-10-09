@@ -12,10 +12,10 @@ import ModelsR4
 
 extension ExchangeGraph {
     static func validateSerializedEntryPolicy(
-        kind: ExchangeGraphKind,
-        data: Data
+        kind: Kind,
+        json: Result<Any, any Error>
     ) throws(ExchangeGraphError) {
-        let root = try serializedBundleObject(data)
+        let root = try serializedBundleObject(json)
         let activeTypes = ExchangeContract.activeOutputResourceTypes
             .union(ExchangeContract.activeSupportingResourceTypes)
             .union([ExchangeContract.activeLifecycleResourceType])
@@ -32,10 +32,10 @@ extension ExchangeGraph {
         }
     }
 
-    private static func serializedBundleObject(_ data: Data) throws(ExchangeGraphError) -> [String: Any] {
+    private static func serializedBundleObject(_ json: Result<Any, any Error>) throws(ExchangeGraphError) -> [String: Any] {
         let root: [String: Any]
         do {
-            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            guard let object = try json.get() as? [String: Any] else {
                 throw ExchangeGraphError.invalidEntries("Bundle is not a JSON object")
             }
             root = object
@@ -49,7 +49,7 @@ extension ExchangeGraph {
 
     private static func validateSerializedEntry(
         _ entry: [String: Any],
-        kind: ExchangeGraphKind,
+        kind: Kind,
         activeTypes: Set<String>
     ) throws(ExchangeGraphError) {
         guard let resource = entry["resource"] as? [String: Any],
@@ -101,16 +101,21 @@ extension ExchangeGraph {
     }
 
     static func containsContainedReference(_ value: Any) -> Bool {
-        if let object = value as? [String: Any] {
-            if let reference = object["reference"] as? String,
-               reference.hasPrefix("#") {
-                return true
+        struct ContainedReference: Error {}
+        do {
+            try ExchangeIdentity.walkJSONObjects(value) { object throws(ContainedReference) in
+                if refersToContainedResource(object) {
+                    throw ContainedReference()
+                }
             }
-            return object.values.contains(where: containsContainedReference)
+            return false
+        } catch {
+            return true
         }
-        if let array = value as? [Any] {
-            return array.contains(where: containsContainedReference)
-        }
-        return false
+    }
+
+    /// Whether `object` is a Reference to a contained resource (`#id`).
+    static func refersToContainedResource(_ object: [String: Any]) -> Bool {
+        (object["reference"] as? String)?.hasPrefix("#") == true
     }
 }

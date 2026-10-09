@@ -12,28 +12,29 @@ import ModelsR4
 
 extension ExchangeGraph {
     static func validateSupportingConnectivity(
-        entries: [BundleEntry]
+        entries: [BundleEntry],
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
-        let resourcePairs: [(String, ResourceProxy)] = entries.compactMap { entry in
+        let resourcePairs: [(String, (resource: ResourceProxy, index: Int))] = entries.enumerated().compactMap { index, entry in
             guard let fullURL = entry.fullUrl?.value?.url.absoluteString,
                   let resource = entry.resource else {
                 return nil
             }
-            return (fullURL, resource)
+            return (fullURL, (resource, index))
         }
-        let resourcesByFullURL = [String: ResourceProxy](
+        let entriesByFullURL = [String: (resource: ResourceProxy, index: Int)](
             uniqueKeysWithValues: resourcePairs
         )
+        let resourcesByFullURL = entriesByFullURL.mapValues(\.resource)
         var adjacency = [String: Set<String>](
             uniqueKeysWithValues: resourcesByFullURL.keys.map { ($0, Set<String>()) }
         )
         do {
-            for (fullURL, resource) in resourcesByFullURL {
-                let data = try JSONEncoder().encode(resource)
-                let object = try JSONSerialization.jsonObject(with: data)
-                var references: Set<String> = []
-                collectLiteralReferences(in: object, into: &references)
-                for reference in references where resourcesByFullURL[reference] != nil {
+            for (fullURL, entry) in entriesByFullURL {
+                for object in try document.resourceObjects(at: entry.index) {
+                    guard let reference = object["reference"] as? String, resourcesByFullURL[reference] != nil else {
+                        continue
+                    }
                     adjacency[fullURL, default: []].insert(reference)
                     adjacency[reference, default: []].insert(fullURL)
                 }
@@ -61,29 +62,17 @@ extension ExchangeGraph {
         }
     }
 
-    static func collectLiteralReferences(
-        in value: Any,
-        into references: inout Set<String>
-    ) {
-        var collected: Set<String> = []
-        ExchangeIdentity.walkJSONObjects(value) { object in
-            if let reference = object["reference"] as? String {
-                collected.insert(reference)
-            }
-        }
-        references.formUnion(collected)
-    }
-
     static func validateAdapterOnlyOutputProfile(
-        _ resource: ResourceProxy
+        _ resource: ResourceProxy,
+        entryIndex: Int,
+        document: ValidationDocument
     ) throws(ExchangeGraphError) {
         guard let expected = ProfileClaims.adapterOnlyOutputProfiles[resource.resourceType],
               let expectedProfile = expected.value?.url.absoluteString else {
             return
         }
         do {
-            let data = try JSONEncoder().encode(resource)
-            let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let object = try document.resourceObject(at: entryIndex) as? [String: Any]
             let meta = object?["meta"] as? [String: Any]
             let profiles = meta?["profile"] as? [String]
             guard profiles == [expectedProfile] else {
@@ -152,13 +141,5 @@ extension ExchangeGraph {
         default:
             false
         }
-    }
-
-    static func entryKey(_ entry: BundleEntry) throws -> RoledIdentifier? {
-        guard let extensionValue = entry.extension?.first(where: { $0.url == Canonicals.entryNodeKey }),
-              case .identifier(let identifier)? = extensionValue.value else {
-            return nil
-        }
-        return try RoledIdentifier(identifier)
     }
 }

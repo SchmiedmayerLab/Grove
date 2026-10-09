@@ -30,9 +30,9 @@ extension ExchangeGraph {
 
     /// A bundled study context is complete: every ResearchStudy names its exact-revision PlanDefinition,
     /// exactly one ResearchSubject links the graph's subject to it, and each entry sits under its own role.
-    static func validateStudyContext(entries: [BundleEntry]) throws(ExchangeGraphError) {
+    static func validateStudyContext(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
         var nodes: [String: StudyNode] = [:]
-        for entry in entries {
+        for (index, entry) in entries.enumerated() {
             guard let role = studyContextRole(of: entry) else {
                 continue
             }
@@ -41,7 +41,7 @@ extension ExchangeGraph {
                   resource.resourceType == role.resourceType else {
                 throw .ruleViolation(.mobileSupportStudyContext)
             }
-            nodes[fullURL] = StudyNode(role: role, object: try jsonObject(of: resource))
+            nodes[fullURL] = StudyNode(role: role, object: try jsonObject(at: index, document: document))
         }
         let studies = nodes.filter { $0.value.role == .researchStudy }
         let plans = nodes.filter { $0.value.role == .planDefinition }
@@ -56,13 +56,14 @@ extension ExchangeGraph {
                 throw .ruleViolation(.mobileSupportStudyContext)
             }
         }
-        let subject = try outputSubject(in: entries)
+        let subject = try outputSubject(in: entries, document: document)
         var enrolled: Set<String> = []
         for researchSubject in nodes.values where researchSubject.role == .researchSubject {
             guard let studyURL = (researchSubject.object["study"] as? [String: Any])?["reference"] as? String,
                   studies[studyURL] != nil,
                   let individual = researchSubject.object["individual"] as? [String: Any],
-                  try canonicalJSON(individual) == subject,
+                  let subject,
+                  try sameCanonicalJSON(individual, subject),
                   enrolled.insert(studyURL).inserted else {
                 throw .ruleViolation(.mobileSupportStudyContext)
             }
@@ -86,26 +87,82 @@ extension ExchangeGraph {
     }
 
     /// What the first output states as its subject, the reference every ResearchSubject must repeat.
-    private static func outputSubject(in entries: [BundleEntry]) throws(ExchangeGraphError) -> Data? {
-        for entry in entries {
+    private static func outputSubject(
+        in entries: [BundleEntry],
+        document: ValidationDocument
+    ) throws(ExchangeGraphError) -> [String: Any]? { // swiftlint:disable:this discouraged_optional_collection
+        for (index, entry) in entries.enumerated() {
             guard let resource = entry.resource,
                   ExchangeContract.activeOutputResourceTypes.contains(resource.resourceType) else {
                 continue
             }
-            guard let subject = try jsonObject(of: resource)["subject"] as? [String: Any] else {
-                return nil
-            }
-            return try canonicalJSON(subject)
+            return try jsonObject(at: index, document: document)["subject"] as? [String: Any]
         }
         return nil
     }
 
-    private static func jsonObject(of resource: ResourceProxy) throws(ExchangeGraphError) -> [String: Any] {
+    private static func jsonObject(at index: Int, document: ValidationDocument) throws(ExchangeGraphError) -> [String: Any] {
         do {
-            return try JSONSerialization.jsonObject(with: try JSONEncoder().encode(resource)) as? [String: Any] ?? [:]
+            return try document.resourceObject(at: index) as? [String: Any] ?? [:]
         } catch {
             throw .invalidEntries(String(reflecting: type(of: error)))
         }
+    }
+
+    /// Whether `lhs` and `rhs` serialize to the same sorted-keys JSON. Strings, objects with ASCII keys, arrays and nulls
+    /// are compared in place; a number or a non-ASCII key falls back to comparing the serializations.
+    private static func sameCanonicalJSON(_ lhs: [String: Any], _ rhs: [String: Any]) throws(ExchangeGraphError) -> Bool {
+        if let same = equalInPlace(lhs, rhs) {
+            return same
+        }
+        return try canonicalJSON(lhs) == canonicalJSON(rhs)
+    }
+
+    /// Whether two JSON values serialize alike, or `nil` for a pair this does not decide: strings compare by their
+    /// UTF-8 bytes, as their serializations do, and object keys only when all are ASCII, whose equality is exact.
+    private static func equalInPlace(_ lhs: Any, _ rhs: Any) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        switch (lhs, rhs) {
+        case let (lhs as String, rhs as String):
+            lhs.utf8.elementsEqual(rhs.utf8)
+        case let (lhs as [String: Any], rhs as [String: Any]):
+            equalObjectsInPlace(lhs, rhs)
+        case let (lhs as [Any], rhs as [Any]):
+            lhs.count == rhs.count ? equalAllInPlace(zip(lhs, rhs)) : false
+        case (is NSNull, is NSNull):
+            true
+        default:
+            nil
+        }
+    }
+
+    // swiftlint:disable:next discouraged_optional_boolean
+    private static func equalObjectsInPlace(_ lhs: [String: Any], _ rhs: [String: Any]) -> Bool? {
+        let isASCII = { (key: String) in key.utf8.allSatisfy { $0 < 0x80 } }
+        guard lhs.keys.allSatisfy(isASCII), rhs.keys.allSatisfy(isASCII) else {
+            return nil
+        }
+        guard lhs.count == rhs.count else {
+            return false
+        }
+        var pairs: [(Any, Any)] = []
+        for (key, value) in lhs {
+            guard let other = rhs[key] else {
+                return false
+            }
+            pairs.append((value, other))
+        }
+        return equalAllInPlace(pairs)
+    }
+
+    /// `false` or `nil` for the first pair that is not equal in place, `true` when every pair is.
+    private static func equalAllInPlace(_ pairs: some Sequence<(Any, Any)>) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        for (lhs, rhs) in pairs {
+            let same = equalInPlace(lhs, rhs)
+            if same != true {
+                return same
+            }
+        }
+        return true
     }
 
     private static func canonicalJSON(_ object: [String: Any]) throws(ExchangeGraphError) -> Data {

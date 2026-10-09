@@ -10,12 +10,6 @@
 
 // swiftlint:disable all
 
-/// Generated canonical constants for the Grove recording-format registry.
-public enum RecordingFormatContract {
-    public static let recordingFormatCodeSystem = "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
-}
-
-
 /// A payload format published by the Grove recording-format registry.
 ///
 /// The whole registry is projected, not only the formats one adapter admits, so the type
@@ -38,6 +32,9 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     case triaxialAccelerationSamples = "triaxial-acceleration-samples"
     case triaxialRotationSamples = "triaxial-rotation-samples"
     case wristTemperatureSamples = "wrist-temperature-samples"
+
+    /// The CodeSystem every registered format's code belongs to.
+    package static let codeSystem = "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
 
     /// The media types the registry admits for this format.
     ///

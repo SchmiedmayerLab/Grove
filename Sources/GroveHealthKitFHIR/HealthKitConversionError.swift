@@ -13,142 +13,37 @@ public import GroveFHIRContract
 import HealthKit
 
 
-/// A fail-closed reason why caller-supplied HealthKit ECG evidence was rejected.
-public enum HealthKitECGEvidenceFailure: Hashable, Sendable {
-    /// An ECG reached the sample entry point; its voltages and symptoms travel through the ECG record.
-    case evidenceRequired
-    case invalidSourcePeriod
-    case invalidReportedVoltageCount(Int)
-    case voltageCountMismatch(reported: Int, supplied: Int)
-    case insufficientVoltageMeasurements
-    case invalidOffset(index: Int)
-    case nonUniformOffset(index: Int)
-    case missingLeadVoltage(index: Int)
-    case invalidLeadVoltage(index: Int)
-    case invalidAverageHeartRate
-    case invalidSamplingFrequency
-    case samplingFrequencyMismatch
-    case unsupportedClassification(Int)
-    case unsupportedSymptomsStatus(Int)
-    case symptomsRequired
-    case unexpectedSymptoms
-    case unsupportedSymptomType(String)
-    case duplicateSymptomSource(UUID)
-    /// One context per correlated symptom sample, in the record's order.
-    case symptomContextCountMismatch(symptoms: Int, contexts: Int)
-    /// A companion context names a different subject, repository scope or identity scope.
-    case mismatchedSymptomContext
-    case invalidSymptomOutputIdentity
-    case duplicateSymptomOutputIdentity
-    case duplicateSymptomEventIdentity
-    case unsupportedAlgorithmVersion(Int)
-}
-
-
-/// A HealthKit metadata key the adapter reads.
-public enum HealthKitMetadataField: Hashable, Sendable, CaseIterable {
-    case timeZone
-    case syncIdentifier
-    case syncVersion
-    case wasUserEntered
-    case heartRateMotionContext
-    case insulinDeliveryReason
-    case menstrualCycleStart
-    case sexualActivityProtectionUsed
-    case appleECGAlgorithmVersion
-
-    /// The typed allowlist: every key the adapter models.
-    static let keys = Set(allCases.map(\.key))
-
-    public var key: String {
-        switch self {
-        case .timeZone: HKMetadataKeyTimeZone
-        case .syncIdentifier: HKMetadataKeySyncIdentifier
-        case .syncVersion: HKMetadataKeySyncVersion
-        case .wasUserEntered: HKMetadataKeyWasUserEntered
-        case .heartRateMotionContext: HKMetadataKeyHeartRateMotionContext
-        case .insulinDeliveryReason: HKMetadataKeyInsulinDeliveryReason
-        case .menstrualCycleStart: HKMetadataKeyMenstrualCycleStart
-        case .sexualActivityProtectionUsed: HKMetadataKeySexualActivityProtectionUsed
-        case .appleECGAlgorithmVersion: HKMetadataKeyAppleECGAlgorithmVersion
-        }
-    }
-}
-
-
-/// Why a source value did not fit its published mapping.
-public enum HealthKitValueFailure: Error, Hashable, Sendable {
-    /// The value's shape is not what the selected mapping requires.
-    case shapeInvalid
-    case outsideDomain
-    /// An enumeration value with no published mapping.
-    case unsupportedValue(Int)
-    case unsupportedMetadataValue(HealthKitMetadataField)
-    case invalidMetadataValue(HealthKitMetadataField)
-    case requiredMetadataMissing(HealthKitMetadataField)
-    /// A panel is missing one of its catalog components, named by the component id.
-    case requiredComponentMissing(component: String)
-    case effectivePeriodInvalid
-    case emptyRecordingSeries
-    case recordingPayloadTooLarge(byteCount: Int)
-    /// The selected contract states no normative code for the value.
-    case missingNormativeCode
-}
-
-
-/// Why a clinical record or CDA document could not be carried.
-public enum HealthKitClinicalRecordFailure: Hashable, Sendable {
-    /// No resource or document bytes, which a query that excludes document data returns.
-    case empty
-    /// The payload is not one FHIR JSON resource envelope.
-    case undecodable
-    /// A FHIR release other than DSTU2 or R4.
-    case unsupportedRelease
-    case unreadableAttachment
-}
-
-
-/// A failure raised by something this domain does not model, kept as it was raised.
+/// A fail-closed refusal of one HealthKit record by ``HealthKitFHIRExporter``; every case reports one registry code.
 ///
-/// Only the type is compared: a failing FHIR date conversion describes itself with the exact
-/// instant it could not convert, and that instant identifies a participant.
-public struct HealthKitDependencyFailure: Error, Equatable, Sendable {
-    public let underlying: any Error
-
-    public init(underlying: any Error) {
-        self.underlying = underlying
-    }
-
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        String(reflecting: type(of: lhs.underlying)) == String(reflecting: type(of: rhs.underlying))
-    }
-}
-
-
-/// A fail-closed refusal from the HealthKit conversion facade; every case reports one registry code.
+/// A record with several faults is refused for the first in this order, whatever the options: its source type, then
+/// whether the export call named it before with other content, then its content (values, units, effective times),
+/// then what it states about its origin (its recording device, its writer, its sync identifier and version). A content
+/// fault thus reads the same under every writer policy.
 public enum HealthKitConversionError: Error, Equatable, Sendable {
     /// The identifier is not in the adapter inventory at all.
     case unregisteredSourceType(String)
-    case unsupportedSourceType(HealthKitSourceType)
     case intentionallyUnsupported(HealthKitSourceType, reason: String)
+    /// The catalog admits the type, but this producer version emits no graph for it.
     case notYetConvertible(HealthKitSourceType)
-    /// Admitted only as a platform-exclusive recording document, which this entry point does not emit.
+    /// Admitted only as a platform-exclusive recording document, which a bare sample of the type does not carry.
     case platformExclusiveSourceType(HealthKitSourceType)
     /// A blood pressure component converts only inside its admitting correlation.
     case componentRequiresCorrelation(HealthKitSourceType)
-    case invalidValue(HealthKitSourceType, HealthKitValueFailure)
-    case ecgEvidence(HealthKitECGEvidenceFailure)
-    case clinicalRecord(HealthKitClinicalRecordFailure)
+    case invalidValue(HealthKitSourceType, ValueFailure)
+    case ecgEvidence(ECGEvidenceFailure)
+    case clinicalRecord(ClinicalRecordFailure)
     /// A source revision classified as an application carries no valid Apple bundle identifier.
     case sourceApplicationInvalid
-    /// A repository id was supplied for a node this record's graph does not contain.
-    case repositoryIDWithoutNode(ExchangeGraphNode)
-    /// A disclosed native identifier system reuses one of the deployment's Grove identity systems.
-    case reservedIdentifierSystem
+    /// The export call named the record, or an ECG's symptom, earlier with other content: other companion data, or
+    /// other answers from a policy closure. The first input keeps the record's event; each later one that differs is
+    /// refused, so an exact retry of the call reproduces every event.
+    case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
-    case opaqueIdentity(OpaqueIdentityError)
     case exchangeGraph(ExchangeGraphError)
-    case dependency(HealthKitDependencyFailure)
+    /// A failure raised by something this domain does not model, named by its type alone: a failing FHIR date
+    /// conversion describes itself with the exact instant it could not convert, and that instant identifies a
+    /// participant.
+    case dependency(String)
 
     /// The registered diagnostic; a refusal the registry does not name reports `mobile-input.unclassified`.
     public var diagnostic: ProducerDiagnostic {
@@ -157,8 +52,6 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
             return error.diagnostic
         case .exchangeIdentity(let error):
             return error.diagnostic
-        case .opaqueIdentity(let error):
-            return error.diagnostic
         default:
             return rule.diagnostic(at: location)
         }
@@ -166,7 +59,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
 
     private var rule: ExchangeGraphRule {
         switch self {
-        case .unregisteredSourceType, .unsupportedSourceType: .mobileInputUnsupportedSourceType
+        case .unregisteredSourceType: .mobileInputUnsupportedSourceType
         case .intentionallyUnsupported: .mobileInputIntentionallyUnsupportedSourceType
         case .notYetConvertible: .mobileInputNotYetConvertible
         case .platformExclusiveSourceType: .mobileInputPlatformExclusiveSourceType
@@ -175,7 +68,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .ecgEvidence: .healthkitInputEcgEvidence
         case .clinicalRecord(let failure): failure.rule
         case .sourceApplicationInvalid: .healthkitInputSourceApplicationInvalid
-        case .repositoryIDWithoutNode, .reservedIdentifierSystem, .exchangeIdentity, .opaqueIdentity, .dependency:
+        case .conflictingDuplicate, .exchangeIdentity, .dependency:
             .mobileInputUnclassified
         case .exchangeGraph(let error): ExchangeGraphRule(rawValue: error.diagnostic.code) ?? .mobileExchangeUnclassified
         }
@@ -183,21 +76,126 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
 
     private var location: String {
         switch self {
-        case .unregisteredSourceType, .unsupportedSourceType, .intentionallyUnsupported, .notYetConvertible,
+        case .unregisteredSourceType, .intentionallyUnsupported, .notYetConvertible,
              .platformExclusiveSourceType, .componentRequiresCorrelation:
             "HKSample.sampleType"
         case .invalidValue(_, let failure): failure.location
         case .ecgEvidence: "HKElectrocardiogram"
         case .clinicalRecord: "HKClinicalRecord.fhirResource"
         case .sourceApplicationInvalid: "HKSourceRevision.source.bundleIdentifier"
-        case .repositoryIDWithoutNode, .reservedIdentifierSystem: "HealthKitConversionContext"
-        case .exchangeIdentity, .opaqueIdentity, .exchangeGraph, .dependency: "Bundle"
+        case .conflictingDuplicate: "HKSample"
+        case .exchangeIdentity, .exchangeGraph, .dependency: "Bundle"
         }
     }
 }
 
 
-extension HealthKitValueFailure {
+extension HealthKitConversionError {
+    /// A fail-closed reason why caller-supplied HealthKit ECG evidence was rejected.
+    public enum ECGEvidenceFailure: Hashable, Sendable {
+        /// An ECG was exported as a bare sample; its voltages and symptoms travel in its
+        /// ``HealthKitFHIRExporter/Record/electrocardiogram(_:voltages:symptoms:)`` record.
+        case evidenceRequired
+        case invalidSourcePeriod
+        case invalidReportedVoltageCount(Int)
+        case voltageCountMismatch(reported: Int, supplied: Int)
+        case insufficientVoltageMeasurements
+        case invalidOffset(index: Int)
+        case nonUniformOffset(index: Int)
+        case missingLeadVoltage(index: Int)
+        case invalidLeadVoltage(index: Int)
+        case invalidAverageHeartRate
+        case invalidSamplingFrequency
+        case samplingFrequencyMismatch
+        case unsupportedClassification(Int)
+        case unsupportedSymptomsStatus(Int)
+        case symptomsRequired
+        case unexpectedSymptoms
+        case unsupportedSymptomType(String)
+        case duplicateSymptomSource(UUID)
+        case unsupportedAlgorithmVersion(Int)
+    }
+
+    /// A HealthKit metadata key the adapter reads.
+    public enum MetadataField: Hashable, Sendable, CaseIterable {
+        case timeZone
+        case syncIdentifier
+        case syncVersion
+        case wasUserEntered
+        case heartRateMotionContext
+        case insulinDeliveryReason
+        case menstrualCycleStart
+        case sexualActivityProtectionUsed
+        case appleECGAlgorithmVersion
+
+        public var key: String {
+            switch self {
+            case .timeZone: HKMetadataKeyTimeZone
+            case .syncIdentifier: HKMetadataKeySyncIdentifier
+            case .syncVersion: HKMetadataKeySyncVersion
+            case .wasUserEntered: HKMetadataKeyWasUserEntered
+            case .heartRateMotionContext: HKMetadataKeyHeartRateMotionContext
+            case .insulinDeliveryReason: HKMetadataKeyInsulinDeliveryReason
+            case .menstrualCycleStart: HKMetadataKeyMenstrualCycleStart
+            case .sexualActivityProtectionUsed: HKMetadataKeySexualActivityProtectionUsed
+            case .appleECGAlgorithmVersion: HKMetadataKeyAppleECGAlgorithmVersion
+            }
+        }
+
+        /// Whether a graph that was built carries `value` under this key as a source type's own content reads it
+        /// (``MetadataRule/contentFields``): the heart-rate motion context (a metadata component) and the ECG algorithm
+        /// version (the waveform's method) only as a number, as their readers drop any other value; the insulin
+        /// delivery reason, menstrual cycle start and sexual-activity protection always, as their readers refuse what
+        /// they do not carry. The time zone, manual entry and the sync pair are no type's content: the graph's outputs
+        /// show whether they are carried, so here they are not, and a caller that asks keeps them reported.
+        func readerAccepts(_ value: Any) -> Bool {
+            switch self {
+            case .heartRateMotionContext, .appleECGAlgorithmVersion:
+                (value as? NSNumber) != nil
+            case .insulinDeliveryReason, .menstrualCycleStart, .sexualActivityProtectionUsed:
+                true
+            case .timeZone, .syncIdentifier, .syncVersion, .wasUserEntered:
+                false
+            }
+        }
+    }
+
+    /// Why a source value did not fit its published mapping.
+    public enum ValueFailure: Error, Hashable, Sendable {
+        /// The value's shape is not what the selected mapping requires.
+        case shapeInvalid
+        /// A numeric value is nonfinite, outside the contract's inclusive value domain, or fractional where only
+        /// integers are admitted.
+        case outsideDomain
+        /// An enumeration value with no published mapping.
+        case unsupportedValue(Int)
+        case unsupportedMetadataValue(MetadataField)
+        case invalidMetadataValue(MetadataField)
+        case requiredMetadataMissing(MetadataField)
+        /// A panel is missing one of its catalog components, named by the component id.
+        case requiredComponentMissing(component: String)
+        /// The effective time is not a valid FHIR date-time, or its period is reversed, or empty where the
+        /// measurement requires a duration.
+        case effectivePeriodInvalid
+        case emptyRecordingSeries
+        case recordingPayloadTooLarge(byteCount: Int)
+        /// The selected contract states no normative code for the value.
+        case missingNormativeCode
+    }
+
+    /// Why a clinical record or CDA document could not be carried.
+    public enum ClinicalRecordFailure: Hashable, Sendable {
+        /// No resource or document bytes, which a query that excludes document data returns.
+        case empty
+        /// The payload is not one FHIR JSON resource envelope.
+        case undecodable
+        /// A FHIR release other than DSTU2 or R4.
+        case unsupportedRelease
+    }
+}
+
+
+extension HealthKitConversionError.ValueFailure {
     var rule: ExchangeGraphRule {
         switch self {
         case .shapeInvalid, .invalidMetadataValue, .missingNormativeCode: .mobileInputValueShapeInvalid
@@ -224,13 +222,12 @@ extension HealthKitValueFailure {
 }
 
 
-extension HealthKitClinicalRecordFailure {
+extension HealthKitConversionError.ClinicalRecordFailure {
     var rule: ExchangeGraphRule {
         switch self {
         case .empty: .healthkitInputClinicalRecordEmpty
         case .undecodable: .mobileInputValueShapeInvalid
         case .unsupportedRelease: .healthkitInputClinicalReleaseUnsupported
-        case .unreadableAttachment: .mobileInputUnclassified
         }
     }
 }
@@ -242,17 +239,32 @@ extension HealthKitConversionError {
         switch error {
         case let error as HealthKitConversionError:
             self = error
-        case let failure as HealthKitValueFailure:
-            self = source.map { .invalidValue($0, failure) } ?? .dependency(HealthKitDependencyFailure(underlying: failure))
+        case let failure as ValueFailure:
+            self = source.map { .invalidValue($0, failure) } ?? Self(dependency: failure)
         case let error as ExchangeIdentityError:
             self = .exchangeIdentity(error)
-        case let error as OpaqueIdentityError:
-            self = .opaqueIdentity(error)
         case let error as ExchangeGraphError:
             self = .exchangeGraph(error)
         default:
-            self = .dependency(HealthKitDependencyFailure(underlying: error))
+            self = Self(dependency: error)
         }
+    }
+
+    /// Narrows a failure to build a deleted record's retraction event to this published domain; the event's own checks,
+    /// such as a deletion bound no FHIR dateTime can state, are refused as a dependency. (The exporter already refuses a
+    /// reserved native identifier system when it is configured.)
+    init(_ error: RetractionEvent.ValidationError) {
+        self = switch error {
+        case .exchangeIdentity(let error): .exchangeIdentity(error)
+        case .exchangeGraph(let error): .exchangeGraph(error)
+        case .emptyTargets, .duplicateTarget, .invalidSourceRecord, .reservedIdentifierSystem, .invalidInstant, .invalidOccurrencePeriod:
+            Self(dependency: error)
+        }
+    }
+
+    /// A ``dependency(_:)`` refusal naming the type of `error`, never its description.
+    init(dependency error: any Error) {
+        self = .dependency(String(reflecting: type(of: error)))
     }
 }
 

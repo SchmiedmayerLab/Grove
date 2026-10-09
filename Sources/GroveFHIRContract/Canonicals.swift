@@ -13,19 +13,15 @@ public import ModelsR4
 // swiftlint:disable missing_docs
 /// Non-profile canonical URLs shared by Grove's R4 producer implementations.
 ///
-/// Profile URLs and the measurement matrix are generated in ``Profile`` and
-/// ``MeasurementCatalog``. This type centralizes extensions, terminology, and
-/// adapter identity systems that are also normative but are not listed as profiles in
+/// Profile URLs are generated in ``Profile``, and the canonical ``root`` beside it. This type centralizes
+/// extensions, terminology, and adapter identity systems that are also normative but are not listed as profiles in
 /// the package graph catalog.
 public enum Canonicals {
-    public static let root = ContractVersion.canonicalRoot
-
     // MARK: Mobile
 
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")
     public static let recordingMethodCodeSystem = uri("/mobile/CodeSystem/grove-recording-method")
     public static let sleepStageCodeSystem = uri("/mobile/CodeSystem/grove-sleep-stage")
-    public static let workoutActivityCodeSystem = uri("/mobile/CodeSystem/grove-workout-activity")
     public static let workoutSegmentTypeCodeSystem = uri("/mobile/CodeSystem/grove-workout-segment-type")
     public static let workoutStatisticCodeSystem = uri("/mobile/CodeSystem/grove-workout-statistic")
     public static let mobileMeasurementCodeSystem = uri("/mobile/CodeSystem/grove-mobile-measurement")
@@ -51,10 +47,7 @@ public enum Canonicals {
     /// than one platform produces the same complete identifier.
     public static let writerRecordIdentifierSystem = "\(root)/mobile/NamingSystem/grove-writer-record-id"
     public static let writerRecordVersion = uri("/mobile/StructureDefinition/grove-writer-record-version")
-    public static let appleBundleIdentifier: FHIRPrimitive<FHIRURI> =
-        FHIRPrimitive(FHIRURI(stringLiteral: appleBundleIdentifierSystem))
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
-    public static let healthKitSourceType = HealthKitContract.sourceTypeCodeSystem
     public static let healthKitSourceTypeExtension = HealthKitContract.sourceTypeExtension
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")

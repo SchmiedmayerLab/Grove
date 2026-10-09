@@ -1,0 +1,249 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+#if canImport(HealthKit)
+
+import GroveFHIRContract
+import HealthKit
+import ModelsR4
+
+
+/// The parts of a workout session's Observation that every workout shares, compiled from the workout contract: what
+/// each activity reports, and the components of the statistics HealthKit keeps.
+///
+/// A session reports its active duration first, then each statistic HealthKit recorded, in a fixed order: the totals,
+/// then the heart-rate statistics. A statistic HealthKit did not record is absent, never zero.
+@available(iOS 18, macOS 15, watchOS 11, *)
+struct HealthKitWorkoutContent: Sendable {
+    /// What a workout of one activity reports.
+    struct Activity: Sendable {
+        /// The value: the shared activity's coding, then the exact HealthKit case's, or the shared `other` alone for
+        /// a case the table does not name.
+        let value: CodeableConcept
+        /// The distance type HealthKit records the activity's distance under.
+        let distance: HKQuantityTypeIdentifier
+    }
+
+    /// One statistic HealthKit keeps for a workout, what it reads, and the component it becomes.
+    struct Statistic: Sendable {
+        /// Which quantity type's statistics a statistic reads.
+        enum Source: Sendable {
+            /// The statistics of this quantity type.
+            case quantityType(HKQuantityTypeIdentifier)
+            /// The statistics of the distance type the workout's activity records.
+            case activityDistance
+        }
+
+        /// The quantity type whose statistics it reads.
+        let source: Source
+        /// The statistic it reads of them (the total, average, maximum or minimum), or `nil` when HealthKit kept none.
+        let read: @Sendable (HKStatistics) -> HKQuantity?
+        /// The component.
+        let template: ComponentTemplate
+        /// The unit the statistic is read in.
+        let unit: HKUnit
+
+        /// The quantity type the statistic reads for a workout of `activity`.
+        func quantityType(of activity: Activity) -> HKQuantityTypeIdentifier {
+            switch source {
+            case .quantityType(let quantityType): quantityType
+            case .activityDistance: activity.distance
+            }
+        }
+    }
+
+    /// The statistics a session reports, in order, by contract component: the totals, then the heart-rate average,
+    /// maximum and minimum.
+    private static let statisticReadings: KeyValuePairs<String, (source: Statistic.Source, read: @Sendable (HKStatistics) -> HKQuantity?)> = [
+        "distance-sum": (.activityDistance, { $0.sumQuantity() }),
+        "active-energy-sum": (.quantityType(.activeEnergyBurned), { $0.sumQuantity() }),
+        "step-count-sum": (.quantityType(.stepCount), { $0.sumQuantity() }),
+        "flights-climbed-sum": (.quantityType(.flightsClimbed), { $0.sumQuantity() }),
+        "swimming-stroke-count-sum": (.quantityType(.swimmingStrokeCount), { $0.sumQuantity() }),
+        "heart-rate-avg": (.quantityType(.heartRate), { $0.averageQuantity() }),
+        "heart-rate-max": (.quantityType(.heartRate), { $0.maximumQuantity() }),
+        "heart-rate-min": (.quantityType(.heartRate), { $0.minimumQuantity() })
+    ]
+
+    /// What each activity the table names reports, by raw value.
+    let activities: [UInt: Activity]
+    /// What an activity the table does not name reports: the shared `other`, and walking and running distance.
+    let otherActivity: Activity
+    /// The active duration's component, always reported.
+    let activeDuration: ComponentTemplate
+    /// The statistics, in the order the session reports them.
+    let statistics: [Statistic]
+
+    /// The content of the workout contract, whose activity vocabulary must admit every shared code the table states.
+    init(_ contract: MeasurementContract) throws(HealthKitContentDefect) {
+        guard let system = contract.resultCodeSystem else {
+            throw HealthKitContentDefect("states no activity CodeSystem")
+        }
+        var activities: [UInt: Activity] = [:]
+        for row in Self.activityTable {
+            let shared = try Coding(row.shared, system: system, admittedBy: contract.allowedValues)
+            let platform = Coding(row.name, system: Canonicals.healthKitWorkoutActivity)
+            activities[row.raw] = Activity(value: CodeableConcept(coding: [shared, platform]), distance: row.distance)
+        }
+        self.activities = activities
+        let other = try Coding("other", system: system, admittedBy: contract.allowedValues)
+        otherActivity = Activity(value: CodeableConcept(coding: [other]), distance: .distanceWalkingRunning)
+        activeDuration = try contract.quantityComponent("active-duration").template
+        statistics = try Self.statisticReadings.map { id, read throws(HealthKitContentDefect) in
+            let (template, quantity) = try contract.quantityComponent(id)
+            return Statistic(source: read.source, read: read.read, template: template, unit: try quantity.binding().unit)
+        }
+    }
+
+    /// What a workout of the activity with raw value `raw` reports.
+    func activity(_ raw: UInt) -> Activity {
+        activities[raw] ?? otherActivity
+    }
+
+    /// Sets a session's components, then its activity, on `observation`: the active duration, then each statistic
+    /// HealthKit recorded. Statistics of one quantity type (the heart-rate average, maximum and minimum) share its lookup.
+    func apply(to observation: inout Observation, workout: HKWorkout) throws {
+        let activity = self.activity(workout.workoutActivityType.rawValue)
+        var components = [try activeDuration.component(workout.duration)]
+        var recorded: (type: HKQuantityTypeIdentifier, statistics: HKStatistics?)?
+        for statistic in statistics {
+            let type = statistic.quantityType(of: activity)
+            if recorded?.type != type {
+                recorded = (type, workout.statistics(for: HKQuantityType(type)))
+            }
+            if let quantity = recorded?.statistics.flatMap(statistic.read) {
+                components.append(try statistic.template.component(quantity.doubleValue(for: statistic.unit)))
+            }
+        }
+        observation.component = components
+        observation.value = .codeableConcept(activity.value)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitWorkoutContent {
+    /// One row of the activity table: a HealthKit case, its exact name, the shared activity it reports as and the
+    /// distance type it records.
+    struct ActivityRow: Sendable {
+        /// The raw value.
+        let raw: UInt
+        /// The exact HealthKit case name, kept beside the shared code so nothing the shared vocabulary collapses is lost.
+        let name: String
+        /// The shared activity the case reports as; `other` when the shared vocabulary does not name it.
+        let shared: String
+        /// The distance type the activity records: `HKWorkout.statistics(for:)` has none for any other.
+        let distance: HKQuantityTypeIdentifier
+    }
+
+    /// Every HealthKit workout activity, by case name. The shared vocabulary names 28 activities and HealthKit 84, so
+    /// related cases collapse onto one shared code and the rest report as `other`. The three cases HealthKit deprecated
+    /// but keeps readable in older workouts (14, 15 and 30) are stated by raw value.
+    static let activityTable = [
+        ActivityRow(.americanFootball, name: "americanFootball", shared: "american-football"),
+        ActivityRow(.archery, name: "archery"),
+        ActivityRow(.australianFootball, name: "australianFootball"),
+        ActivityRow(.badminton, name: "badminton", shared: "badminton"),
+        ActivityRow(.barre, name: "barre", shared: "dancing"),
+        ActivityRow(.baseball, name: "baseball", shared: "baseball"),
+        ActivityRow(.basketball, name: "basketball", shared: "basketball"),
+        ActivityRow(.bowling, name: "bowling"),
+        ActivityRow(.boxing, name: "boxing", shared: "boxing"),
+        ActivityRow(.cardioDance, name: "cardioDance", shared: "dancing"),
+        ActivityRow(.climbing, name: "climbing"),
+        ActivityRow(.cooldown, name: "cooldown"),
+        ActivityRow(.coreTraining, name: "coreTraining", shared: "strength-training"),
+        ActivityRow(.cricket, name: "cricket"),
+        ActivityRow(.crossCountrySkiing, name: "crossCountrySkiing", shared: "skiing", distance: .distanceCrossCountrySkiing),
+        ActivityRow(.crossTraining, name: "crossTraining"),
+        ActivityRow(.curling, name: "curling"),
+        ActivityRow(.cycling, name: "cycling", shared: "cycling", distance: .distanceCycling),
+        ActivityRow(raw: 14, name: "dance", shared: "dancing", distance: .distanceWalkingRunning),
+        ActivityRow(raw: 15, name: "danceInspiredTraining", shared: "dancing", distance: .distanceWalkingRunning),
+        ActivityRow(.discSports, name: "discSports"),
+        ActivityRow(.downhillSkiing, name: "downhillSkiing", shared: "skiing", distance: .distanceDownhillSnowSports),
+        ActivityRow(.elliptical, name: "elliptical", shared: "elliptical"),
+        ActivityRow(.equestrianSports, name: "equestrianSports"),
+        ActivityRow(.fencing, name: "fencing"),
+        ActivityRow(.fishing, name: "fishing"),
+        ActivityRow(.fitnessGaming, name: "fitnessGaming"),
+        ActivityRow(.flexibility, name: "flexibility"),
+        ActivityRow(.functionalStrengthTraining, name: "functionalStrengthTraining", shared: "strength-training"),
+        ActivityRow(.golf, name: "golf", shared: "golf"),
+        ActivityRow(.gymnastics, name: "gymnastics"),
+        ActivityRow(.handCycling, name: "handCycling", shared: "cycling", distance: .distanceCycling),
+        ActivityRow(.handball, name: "handball"),
+        ActivityRow(.highIntensityIntervalTraining, name: "highIntensityIntervalTraining", shared: "high-intensity-interval-training"),
+        ActivityRow(.hiking, name: "hiking", shared: "hiking"),
+        ActivityRow(.hockey, name: "hockey"),
+        ActivityRow(.hunting, name: "hunting"),
+        ActivityRow(.jumpRope, name: "jumpRope"),
+        ActivityRow(.kickboxing, name: "kickboxing", shared: "boxing"),
+        ActivityRow(.lacrosse, name: "lacrosse"),
+        ActivityRow(.martialArts, name: "martialArts", shared: "martial-arts"),
+        ActivityRow(.mindAndBody, name: "mindAndBody"),
+        ActivityRow(.mixedCardio, name: "mixedCardio"),
+        ActivityRow(raw: 30, name: "mixedMetabolicCardioTraining", shared: "other", distance: .distanceWalkingRunning),
+        ActivityRow(.other, name: "other"),
+        ActivityRow(.paddleSports, name: "paddleSports", distance: .distancePaddleSports),
+        ActivityRow(.pickleball, name: "pickleball"),
+        ActivityRow(.pilates, name: "pilates", shared: "pilates"),
+        ActivityRow(.play, name: "play"),
+        ActivityRow(.preparationAndRecovery, name: "preparationAndRecovery"),
+        ActivityRow(.racquetball, name: "racquetball"),
+        ActivityRow(.rowing, name: "rowing", shared: "rowing", distance: .distanceRowing),
+        ActivityRow(.rugby, name: "rugby"),
+        ActivityRow(.running, name: "running", shared: "running"),
+        ActivityRow(.sailing, name: "sailing", distance: .distancePaddleSports),
+        ActivityRow(.skatingSports, name: "skatingSports", distance: .distanceSkatingSports),
+        ActivityRow(.snowboarding, name: "snowboarding", shared: "snowboarding", distance: .distanceDownhillSnowSports),
+        ActivityRow(.snowSports, name: "snowSports", distance: .distanceDownhillSnowSports),
+        ActivityRow(.soccer, name: "soccer", shared: "soccer"),
+        ActivityRow(.socialDance, name: "socialDance", shared: "dancing"),
+        ActivityRow(.softball, name: "softball", shared: "baseball"),
+        ActivityRow(.squash, name: "squash", shared: "squash"),
+        ActivityRow(.stairClimbing, name: "stairClimbing", shared: "stair-climbing"),
+        ActivityRow(.stairs, name: "stairs", shared: "stair-climbing"),
+        ActivityRow(.stepTraining, name: "stepTraining", shared: "stair-climbing"),
+        ActivityRow(.surfingSports, name: "surfingSports", distance: .distancePaddleSports),
+        ActivityRow(.swimBikeRun, name: "swimBikeRun"),
+        ActivityRow(.swimming, name: "swimming", shared: "swimming", distance: .distanceSwimming),
+        ActivityRow(.tableTennis, name: "tableTennis", shared: "table-tennis"),
+        ActivityRow(.taiChi, name: "taiChi", shared: "martial-arts"),
+        ActivityRow(.tennis, name: "tennis", shared: "tennis"),
+        ActivityRow(.trackAndField, name: "trackAndField"),
+        ActivityRow(.traditionalStrengthTraining, name: "traditionalStrengthTraining", shared: "strength-training"),
+        ActivityRow(.transition, name: "transition"),
+        ActivityRow(.underwaterDiving, name: "underwaterDiving"),
+        ActivityRow(.volleyball, name: "volleyball", shared: "volleyball"),
+        ActivityRow(.walking, name: "walking", shared: "walking"),
+        ActivityRow(.waterFitness, name: "waterFitness", shared: "swimming"),
+        ActivityRow(.waterPolo, name: "waterPolo"),
+        ActivityRow(.waterSports, name: "waterSports", shared: "swimming"),
+        ActivityRow(.wheelchairRunPace, name: "wheelchairRunPace", shared: "running", distance: .distanceWheelchair),
+        ActivityRow(.wheelchairWalkPace, name: "wheelchairWalkPace", shared: "walking", distance: .distanceWheelchair),
+        ActivityRow(.wrestling, name: "wrestling", shared: "martial-arts"),
+        ActivityRow(.yoga, name: "yoga", shared: "yoga")
+    ]
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitWorkoutContent.ActivityRow {
+    /// A current activity: reported as `other` and recording walking and running distance unless it states otherwise.
+    init(
+        _ activity: HKWorkoutActivityType,
+        name: String,
+        shared: String = "other",
+        distance: HKQuantityTypeIdentifier = .distanceWalkingRunning
+    ) {
+        self.init(raw: activity.rawValue, name: name, shared: shared, distance: distance)
+    }
+}
+
+#endif

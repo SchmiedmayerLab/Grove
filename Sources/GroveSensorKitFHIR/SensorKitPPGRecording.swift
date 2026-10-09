@@ -47,30 +47,33 @@ public struct SensorKitPPGRecording: Equatable, Sendable {
 
     /// Timing and counts derived from the exact records represented by the payload.
     public var summary: Summary? {
-        var instants: [Date] = []
-        instants.reserveCapacity(
-            records.count
-                + records.lazy.map(\.opticalSamples.count).reduce(0, +)
-                + records.lazy.map(\.accelerometerSamples.count).reduce(0, +)
-        )
-        for record in records {
-            instants.append(record.instant)
-            instants.append(contentsOf: record.opticalSamples.map {
-                record.startDate.addingTimeInterval(Double($0.nanosecondsSinceStart) / 1_000_000_000)
-            })
-            instants.append(contentsOf: record.accelerometerSamples.map {
-                record.startDate.addingTimeInterval(Double($0.nanosecondsSinceStart) / 1_000_000_000)
-            })
+        var start: Date?
+        var end: Date?
+        var opticalSampleCount = 0
+        var accelerometerSampleCount = 0
+        func include(_ instant: Date) {
+            start = start.map { Swift.min($0, instant) } ?? instant
+            end = end.map { Swift.max($0, instant) } ?? instant
         }
-        guard let start = instants.min(), let end = instants.max(),
-              start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite else {
+        for record in records {
+            include(record.instant)
+            for sample in record.opticalSamples {
+                include(record.startDate.addingTimeInterval(Double(sample.nanosecondsSinceStart) / 1_000_000_000))
+            }
+            for sample in record.accelerometerSamples {
+                include(record.startDate.addingTimeInterval(Double(sample.nanosecondsSinceStart) / 1_000_000_000))
+            }
+            opticalSampleCount += record.opticalSamples.count
+            accelerometerSampleCount += record.accelerometerSamples.count
+        }
+        guard let start, let end, start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite else {
             return nil
         }
         return Summary(
             coverage: DateInterval(start: start, end: end),
             recordCount: records.count,
-            opticalSampleCount: records.lazy.map(\.opticalSamples.count).reduce(0, +),
-            accelerometerSampleCount: records.lazy.map(\.accelerometerSamples.count).reduce(0, +)
+            opticalSampleCount: opticalSampleCount,
+            accelerometerSampleCount: accelerometerSampleCount
         )
     }
 
@@ -291,15 +294,24 @@ public struct SensorKitPreparedPPGRecording: Sendable {
         location: SensorKitRecordingLocation,
         admission: SensorRawPayloadAdmission
     ) throws -> SensorKitRecord {
+        // One strict decode is both the payload check the native recording runs and the source of the summary.
+        var decoded: SensorKitPPGRecording?
         let nativeRecording = try SensorKitNativeRecording(
             title: title,
             format: format,
             payload: location.payload(bytes: data),
             admission: admission
-        )
+        ) { bytes throws(RegisteredRecordingPayloadError) in
+            do {
+                decoded = try SensorKitPPGRecording(data: bytes)
+            } catch {
+                throw .invalidPhotoplethysmogramPayload
+            }
+        }
         return .ppg(try SensorKitPPGRecord(
             sourceRecordID: sourceRecordID,
-            nativeRecording: nativeRecording
+            nativeRecording: nativeRecording,
+            decoded: decoded
         ))
     }
 }

@@ -81,8 +81,30 @@ struct ConformanceFixtureTests {
         )
     }
 
+    /// The goldens whose shapes no fixture above covers: the workout session, every shape the fix round added, and
+    /// the walking-steadiness notification's occurrence component.
+    /// `exporter-deployment-state-of-mind` is left out: its negative valence fails the pinned guide's own
+    /// `healthkit-state-of-mind-value-domain-1` in the HL7 validator, which rejects every negative value although the
+    /// invariant admits -1 through 1, an IG defect.
+    private static let validatedGoldens: Set<String> = [
+        "workout-session",
+        "workout-session-context",
+        "writer-non-ascii-name",
+        "gad7-assessment",
+        "exporter-default-apple-watch-heart-rate",
+        "exporter-default-apple-watch-heart-rate-without-unit-token",
+        "exporter-deployment-own-heart-rate",
+        "exporter-deployment-electrocardiogram",
+        "exporter-deployment-electrocardiogram-symptom",
+        "exporter-deployment-blood-pressure",
+        "exporter-deployment-retraction",
+        "exporter-clinical-record-r4",
+        "exporter-clinical-record-dstu2",
+        "walking-steadiness-notification"
+    ]
+
     @Test
-    func writeConformanceFixtures() throws {
+    func writeConformanceFixtures() async throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
 
@@ -103,13 +125,16 @@ struct ConformanceFixtureTests {
             try #require(MobileSemanticVectorFixtures.all.first { $0.id == id })
         }
 
+        // A dateTime vector's source is a minute-long interval unless stated otherwise: an instant-only measurement
+        // must still state the vector's instant, its start.
         func dates(
-            _ effective: MobileSemanticVectorFixture.Effective
+            _ effective: MobileSemanticVectorFixture.Effective,
+            interval: TimeInterval = 60
         ) throws -> (start: Date, end: Date) {
             switch effective {
             case .dateTime(let value):
                 let start = try instant(value)
-                return (start, start.addingTimeInterval(60))
+                return (start, start.addingTimeInterval(interval))
             case let .period(start, end):
                 return (try instant(start), try instant(end))
             }
@@ -130,27 +155,26 @@ struct ConformanceFixtureTests {
 
         let contextTime = try instant("2026-08-20T12:00:00-07:00")
 
-        let context = HealthKitConversionContext(
-            subject: Self.subject,
-            converter: ApplicationDevice.test(
-                name: "Grove Conformance Fixture",
-                bundleIdentifier: "org.grovealliance.conformance-fixture",
-                version: "0.5.0"
-            ),
-            graphIdentifierSystem: "https://grovealliance.org/fhir/testing/identifiers/conformance-graph",
-            converterWasGateway: true,
-            conversionInstant: contextTime
+        var inputs = ExportInputs()
+        inputs.subject = Self.subject
+        inputs.converter = ApplicationDevice.test(
+            name: "Grove Conformance Fixture",
+            bundleIdentifier: "org.grovealliance.conformance-fixture",
+            version: "0.5.0"
         )
-        let converter = HealthKitConverter()
+        inputs.graphIdentifierSystem = "https://grovealliance.org/fhir/testing/identifiers/conformance-graph"
+        inputs.instant = contextTime
+        inputs.options.role = .gateway
         var fixtures: [String: ModelsR4.Bundle] = [:]
         func quantity(
             _ type: HKQuantityTypeIdentifier,
             _ unit: HKUnit,
             _ value: Double,
             effective: MobileSemanticVectorFixture.Effective,
+            interval: TimeInterval = 60,
             metadata: [String: Any] = [:]
         ) throws -> HKQuantitySample {
-            let period = try dates(effective)
+            let period = try dates(effective, interval: interval)
             var sourceMetadata = metadata
             sourceMetadata[HKMetadataKeyTimeZone] = Self.sourceTimeZoneIdentifier
             return HKQuantitySample(
@@ -162,8 +186,8 @@ struct ConformanceFixtureTests {
                 metadata: sourceMetadata
             )
         }
-        func add(_ name: String, _ sample: HKSample) throws {
-            fixtures[name] = try converter.convert(sample, context: context).bundle
+        func add(_ name: String, _ sample: HKSample) async throws {
+            fixtures[name] = try await ExporterFixtures.export(sample, inputs).bundle
         }
 
         func addQuantityVector(
@@ -171,73 +195,77 @@ struct ConformanceFixtureTests {
             type: HKQuantityTypeIdentifier,
             unit: HKUnit,
             sourceValue: (Double) -> Double = { $0 },
+            interval: TimeInterval = 60,
             metadata: [String: Any] = [:]
-        ) throws {
+        ) async throws {
             let fixture = try vector(id)
-            try add(id, quantity(
+            try await add(id, quantity(
                 type,
                 unit,
                 sourceValue(try normalizedQuantity(fixture)),
                 effective: fixture.effective,
+                interval: interval,
                 metadata: metadata
             ))
         }
 
-        try addQuantityVector("active-energy", type: .activeEnergyBurned, unit: .kilocalorie())
-        try addQuantityVector("basal-body-temperature", type: .basalBodyTemperature, unit: .degreeCelsius())
-        try addQuantityVector("basal-energy", type: .basalEnergyBurned, unit: .kilocalorie())
-        try addQuantityVector(
+        try await addQuantityVector("active-energy", type: .activeEnergyBurned, unit: .kilocalorie())
+        try await addQuantityVector("basal-body-temperature", type: .basalBodyTemperature, unit: .degreeCelsius())
+        try await addQuantityVector("basal-energy", type: .basalEnergyBurned, unit: .kilocalorie())
+        try await addQuantityVector(
             "blood-glucose-unspecified-specimen",
             type: .bloodGlucose,
             unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
         )
-        try addQuantityVector(
+        try await addQuantityVector(
             "body-fat-percentage",
             type: .bodyFatPercentage,
             unit: .percent(),
             sourceValue: { $0 / 100 }
         )
-        try addQuantityVector("body-height", type: .height, unit: .meterUnit(with: .centi))
-        try addQuantityVector("dietary-energy", type: .dietaryEnergyConsumed, unit: .kilocalorie())
-        try addQuantityVector(
+        try await addQuantityVector("body-height", type: .height, unit: .meterUnit(with: .centi))
+        try await addQuantityVector("dietary-energy", type: .dietaryEnergyConsumed, unit: .kilocalorie())
+        try await addQuantityVector(
             "resting-heart-rate",
             type: .restingHeartRate,
             unit: .count().unitDivided(by: .minute())
         )
-        try add("body-mass-index", quantity(
+        try await add("body-mass-index", quantity(
             .bodyMassIndex,
             .count(),
             22.1,
             effective: .dateTime("2026-08-20T08:17:00-07:00")
         ))
-        try addQuantityVector("body-temperature", type: .bodyTemperature, unit: .degreeCelsius())
-        try addQuantityVector(
+        try await addQuantityVector("body-temperature", type: .bodyTemperature, unit: .degreeCelsius())
+        try await addQuantityVector(
             "body-weight",
             type: .bodyMass,
             unit: .gramUnit(with: .kilo),
             metadata: [HKMetadataKeyWasUserEntered: true]
         )
-        try addQuantityVector("distance", type: .distanceWalkingRunning, unit: .meter())
-        try addQuantityVector(
+        try await addQuantityVector("distance", type: .distanceWalkingRunning, unit: .meter())
+        // The guide's heart-rate vector is a point: a heart rate whose start and end differ states a Period.
+        try await addQuantityVector(
             "heart-rate",
             type: .heartRate,
             unit: .count().unitDivided(by: .minute()),
+            interval: 0,
             metadata: [
                 HKMetadataKeyHeartRateMotionContext: NSNumber(value: 1)
             ]
         )
-        try addQuantityVector(
+        try await addQuantityVector(
             "oxygen-saturation",
             type: .oxygenSaturation,
             unit: .percent(),
             sourceValue: { $0 / 100 }
         )
-        try addQuantityVector(
+        try await addQuantityVector(
             "respiratory-rate",
             type: .respiratoryRate,
             unit: .count().unitDivided(by: .minute())
         )
-        try addQuantityVector("step-count", type: .stepCount, unit: .count())
+        try await addQuantityVector("step-count", type: .stepCount, unit: .count())
 
         func category(
             _ type: HKCategoryTypeIdentifier,
@@ -264,40 +292,40 @@ struct ConformanceFixtureTests {
             value: Int,
             expecting code: String,
             metadata: [String: Any] = [:]
-        ) throws {
+        ) async throws {
             let fixture = try vector(id)
             guard case .codeableConcept(let vectorCode) = fixture.result, vectorCode == code else {
                 throw FixtureError.unexpectedResult(fixture.id)
             }
-            try add(id, category(type, value, effective: fixture.effective, metadata: metadata))
+            try await add(id, category(type, value, effective: fixture.effective, metadata: metadata))
         }
 
-        try addCodedVector(
+        try await addCodedVector(
             "cervical-mucus-quality",
             type: .cervicalMucusQuality,
             value: HKCategoryValueCervicalMucusQuality.dry.rawValue,
             expecting: "dry"
         )
-        try addCodedVector(
+        try await addCodedVector(
             "intermenstrual-bleeding",
             type: .intermenstrualBleeding,
             value: HKCategoryValue.notApplicable.rawValue,
             expecting: "present"
         )
-        try addCodedVector(
+        try await addCodedVector(
             "menstruation-flow",
             type: .menstrualFlow,
             value: HKCategoryValueVaginalBleeding.unspecified.rawValue,
             expecting: "unspecified",
             metadata: [HKMetadataKeyMenstrualCycleStart: true]
         )
-        try addCodedVector(
+        try await addCodedVector(
             "ovulation-test-result",
             type: .ovulationTestResult,
             value: HKCategoryValueOvulationTestResult.negative.rawValue,
             expecting: "negative"
         )
-        try addCodedVector(
+        try await addCodedVector(
             "sexual-activity",
             type: .sexualActivity,
             value: HKCategoryValue.notApplicable.rawValue,
@@ -305,8 +333,37 @@ struct ConformanceFixtureTests {
             metadata: [HKMetadataKeySexualActivityProtectionUsed: true]
         )
 
+        // Spec F1: the workout session, its one output, from the guide's workout vector; its lap is withheld.
+        let workout = try vector("workout")
+        guard case .codeableConcept("running") = workout.result else {
+            throw FixtureError.unexpectedResult(workout.id)
+        }
+        let workoutDates = try dates(workout)
+        try await add("workout", HKWorkout(
+            activityType: .running,
+            start: workoutDates.start,
+            end: workoutDates.end,
+            workoutEvents: [HKWorkoutEvent(type: .lap, dateInterval: DateInterval(start: workoutDates.start, duration: 900), metadata: nil)],
+            totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: 420),
+            totalDistance: HKQuantity(unit: .meter(), doubleValue: 7_500),
+            device: Self.device,
+            metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
+        ))
+
+        // A source the caller classifies as an application: its writer Device, its host and the Provenance author.
+        var writerInputs = inputs
+        writerInputs.options.writer = .classify { _ in .application }
+        fixtures["heart-rate-classified-writer"] = try await ExporterFixtures.export(
+            StoredSampleFixtures.stored(
+                quantity(.heartRate, .count().unitDivided(by: .minute()), 64, effective: .dateTime("2026-08-20T08:25:00-07:00")),
+                uuid: UUID(uuidString: "6C4B1D1E-0000-4000-8000-0000000000F1") ?? UUID(),
+                writer: GoldenFixtures.foreignWriter
+            ),
+            writerInputs
+        ).bundle
+
         let mindfulness = try vector("mindfulness-session")
-        try add("mindfulness-session", category(
+        try await add("mindfulness-session", category(
             .mindfulSession,
             HKCategoryValue.notApplicable.rawValue,
             effective: mindfulness.effective
@@ -315,7 +372,7 @@ struct ConformanceFixtureTests {
         // The graded-symptom and stand-hour families own no Mobile vector, so their fixtures state
         // their own exact source facts for the guide validator.
         let symptomStart = try instant("2026-08-20T09:00:00-07:00")
-        try add("symptom-headache", HKCategorySample(
+        try await add("symptom-headache", HKCategorySample(
             type: HKCategoryType(.headache),
             value: HKCategoryValueSeverity.moderate.rawValue,
             start: symptomStart,
@@ -324,7 +381,7 @@ struct ConformanceFixtureTests {
             metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
         ))
         let standHourStart = try instant("2026-08-20T10:00:00-07:00")
-        try add("apple-stand-hour", HKCategorySample(
+        try await add("apple-stand-hour", HKCategorySample(
             type: HKCategoryType(.appleStandHour),
             value: HKCategoryValueAppleStandHour.stood.rawValue,
             start: standHourStart,
@@ -339,7 +396,7 @@ struct ConformanceFixtureTests {
             throw FixtureError.unexpectedResult(sleepStage.id)
         }
         let sleepDates = try dates(sleepStage)
-        try add("sleep-stage", HKCategorySample(
+        try await add("sleep-stage", HKCategorySample(
             type: HKCategoryType(.sleepAnalysis),
             value: HKCategoryValueSleepAnalysis.asleepCore.rawValue,
             start: sleepDates.start,
@@ -370,7 +427,7 @@ struct ConformanceFixtureTests {
             diastolicValue,
             effective: .dateTime(bloodPressureInstant)
         )
-        try add("blood-pressure", HKCorrelation(
+        try await add("blood-pressure", HKCorrelation(
             type: HKCorrelationType(.bloodPressure),
             start: bloodPressureDates.start,
             end: bloodPressureDates.end,
@@ -380,79 +437,50 @@ struct ConformanceFixtureTests {
         ))
 
         let ecgStart = try instant("2026-08-20T08:20:00-07:00")
-        let ecgContext = HealthKitConversionContext(
-            subject: Self.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: contextTime,
-            studies: [.test("study-a"), .test("study-b")]
-        )
-        let studyQuantity = try converter.convert(
+        var ecgInputs = inputs
+        ecgInputs.options.role = .assembler
+        ecgInputs.studies = [.test("study-a"), .test("study-b")]
+        let studyQuantity = try await ExporterFixtures.export(
             quantity(
                 .heartRate,
                 .count().unitDivided(by: .minute()),
                 72,
                 effective: .dateTime("2026-08-20T08:20:00-07:00")
             ),
-            context: ecgContext
+            ecgInputs
         )
         fixtures["heart-rate-two-studies"] = studyQuantity.bundle
+        // A minute-long heart rate states a Period, which the validator checks against the heart-rate profile.
+        let studyDates = try dates(.dateTime("2026-08-20T08:20:00-07:00"))
+        let studyZone = TimeZone(identifier: Self.sourceTimeZoneIdentifier)
+        #expect(studyQuantity.observation.effective == .period(try HealthKitEffectiveTime.period(start: studyDates.start, end: studyDates.end, zone: studyZone)))
         let quantityStudies = studyQuantity.observation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(quantityStudies.count == 2)
         #expect(studyQuantity.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
-        let ecgSource = HealthKitECGSourceEvidence(
-            sourceTypeIdentifier: HealthKitContract.electrocardiogramSourceTypeIdentifier,
-            startDate: ecgStart,
-            endDate: ecgStart.addingTimeInterval(30),
-            timeZone: try #require(TimeZone(identifier: Self.sourceTimeZoneIdentifier)),
+        // HKElectrocardiogram has no public synthetic initializer, so the stored-sample fixtures state the ECG's
+        // reading, and its voltages travel beside it as the caller supplies them.
+        let ecgFacts = StoredSampleFixtures.SampleFacts(
+            uuid: GoldenFixtures.uuid(0xF6),
+            start: ecgStart,
+            end: ecgStart.addingTimeInterval(30),
+            device: Self.device,
+            metadata: [
+                HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier,
+                HKMetadataKeyAppleECGAlgorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue
+            ],
+            writer: .unattributed
+        )
+        let ecg = try StoredSampleFixtures.electrocardiogram(facts: ecgFacts, reading: StoredElectrocardiogram.Reading(
             classification: .sinusRhythm,
             symptomsStatus: .none,
             numberOfVoltageMeasurements: 4,
-            averageHeartRate: 72,
-            samplingFrequency: 500,
-            algorithmVersion: HKAppleECGAlgorithmVersion.version2.rawValue,
-            wasUserEntered: false
-        )
-        let ecgWaveform = try HealthKitECGEvidenceValidator.validateWaveform(
-            reportedCount: ecgSource.numberOfVoltageMeasurements,
-            samplingFrequencyHertz: ecgSource.samplingFrequency,
-            points: [
-                .init(timeSinceSampleStart: 0.250, millivolts: 0.125),
-                .init(timeSinceSampleStart: 0.252, millivolts: 0.250),
-                .init(timeSinceSampleStart: 0.254, millivolts: -0.125),
-                .init(timeSinceSampleStart: 0.256, millivolts: 0)
-            ]
-        )
-        let ecgInput = HealthKitECGObservationInput(
-            source: ecgSource,
-            waveform: ecgWaveform,
-            symptomOutputIdentifiers: []
-        )
-        // HKElectrocardiogram has no public synthetic initializer. This already-fetched
-        // HealthKit sample supplies only the graph envelope's UUID/device/source-revision
-        // evidence; the ECG Observation itself is built from the exact ECG input above.
-        let ecgEnvelopeSource = try quantity(
-            .heartRate,
-            .count().unitDivided(by: .minute()),
-            72,
-            effective: .dateTime("2026-08-20T08:20:00-07:00")
-        )
-        let ecgConversion = try HealthKitConverter.assembleGraph(
-            for: ecgEnvelopeSource,
-            context: ecgContext,
-            outputRole: "electrocardiogram",
-            childBuilder: { envelope in
-                guard let companion = try HealthKitConverter.ecgAverageHeartRateChild(
-                    input: ecgInput,
-                    envelope: envelope
-                ) else {
-                    return []
-                }
-                return [companion]
-            }
-        ) { graphContext in
-            try HealthKitConverter.ecgObservation(input: ecgInput, graphContext: graphContext)
+            averageHeartRate: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
+            samplingFrequency: HKQuantity(unit: .hertz(), doubleValue: 500)
+        ))
+        let voltages = try [(0.250, 0.125), (0.252, 0.250), (0.254, -0.125), (0.256, 0)].map { offset, millivolts in
+            try StoredSampleFixtures.voltageMeasurement(offset: offset, millivolts: millivolts)
         }
+        let ecgConversion = try await ExporterFixtures.export(.electrocardiogram(ecg, voltages: voltages, symptoms: []), ecgInputs)
         let ecgObservation = ecgConversion.observation
         let ecgStudies = ecgObservation.extension?.filter { $0.url == Canonicals.researchStudy } ?? []
         #expect(ecgStudies.map(\.value) == quantityStudies.map(\.value))
@@ -474,7 +502,7 @@ struct ConformanceFixtureTests {
         #expect(ecgObservation.method?.coding?.first?.system?.value?.url.absoluteString ==
             "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-ecg-algorithm-version")
         #expect(ecgObservation.method?.coding?.first?.code?.value?.string == "version2")
-        #expect(ecgConversion.graphIdentifiers.childOutputs.count == 1)
+        #expect(ecgConversion.identifiers.childOutputs.count == 1)
         let ecgChildren = ecgConversion.bundle.entry?.compactMap { entry -> Observation? in
             guard case .observation(let child)? = entry.resource,
                   child.meta?.profile?.contains(
@@ -494,7 +522,7 @@ struct ConformanceFixtureTests {
         #expect(averageHeartRateCategoryCodings.first?.system?.value?.url.absoluteString ==
             "http://terminology.hl7.org/CodeSystem/observation-category")
         #expect(averageHeartRateCategoryCodings.first?.code?.value?.string == "vital-signs")
-        let expectedECGURL = try ecgConversion.graphIdentifiers.primaryOutput.fullURLString
+        let expectedECGURL = try ecgConversion.identifiers.primaryOutput.fullURLString
         #expect(averageHeartRate.derivedFrom?.count == 1)
         #expect(averageHeartRate.derivedFrom?.first?.reference?.value?.string == expectedECGURL)
         #expect(averageHeartRate.identifier?.count == 2)
@@ -525,7 +553,12 @@ struct ConformanceFixtureTests {
         try encoder.encode(ecgConversion.bundle).write(
             to: directory.appendingPathComponent("electrocardiogram.json")
         )
-        #expect(fixtures.count == 27)
+        let validatedGoldens = Self.validatedGoldens.subtracting(GoldenCase.unavailableHere)
+        #expect(Set(GoldenCase.all.map(\.name)).isSuperset(of: validatedGoldens))
+        for goldenCase in GoldenCase.all where validatedGoldens.contains(goldenCase.name) {
+            try await goldenCase.output().graph.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
+        }
+        #expect(fixtures.count == 29)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))
         #expect(emittedVectorIDs == Set([
             "active-energy",
@@ -550,7 +583,8 @@ struct ConformanceFixtureTests {
             "resting-heart-rate",
             "sexual-activity",
             "sleep-stage",
-            "step-count"
+            "step-count",
+            "workout"
         ]))
     }
 

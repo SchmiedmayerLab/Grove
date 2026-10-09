@@ -124,29 +124,37 @@ struct HealthKitFHIRConverterTests {
             }
         }
 
-        var contract: HealthKitFHIRObservationContract {
+        var contract: MeasurementContract {
             switch self {
-            case .activeEnergy: .init(shared: MeasurementCatalog.activeEnergy)
-            case .basalBodyTemperature: .init(shared: MeasurementCatalog.basalBodyTemperature)
-            case .bodyFatPercentage: .init(shared: MeasurementCatalog.bodyFatPercentage)
-            case .bodyHeight: .init(shared: MeasurementCatalog.bodyHeight)
-            case .bodyMassIndex: .bodyMassIndex
-            case .bodyTemperature: .init(shared: MeasurementCatalog.bodyTemperature)
-            case .bodyWeight: .init(shared: MeasurementCatalog.bodyWeight)
-            case .dietaryEnergy: .init(shared: MeasurementCatalog.dietaryEnergy)
+            case .activeEnergy: MeasurementCatalog.activeEnergy
+            case .basalBodyTemperature: MeasurementCatalog.basalBodyTemperature
+            case .bodyFatPercentage: MeasurementCatalog.bodyFatPercentage
+            case .bodyHeight: MeasurementCatalog.bodyHeight
+            case .bodyMassIndex: HealthKitContract.bodyMassIndex
+            case .bodyTemperature: MeasurementCatalog.bodyTemperature
+            case .bodyWeight: MeasurementCatalog.bodyWeight
+            case .dietaryEnergy: MeasurementCatalog.dietaryEnergy
             case .distanceCrossCountrySkiing, .distanceCycling, .distanceDownhillSnowSports,
                  .distancePaddleSports, .distanceRowing, .distanceSkatingSports,
                  .distanceSwimming, .distanceWalkingRunning, .distanceWheelchair:
-                .init(shared: MeasurementCatalog.distance)
-            case .heartRate: .init(shared: MeasurementCatalog.heartRate)
-            case .heartRateVariabilitySDNN: .init(shared: MeasurementCatalog.heartRateVariabilitySdnn)
-            case .oxygenSaturation: .init(shared: MeasurementCatalog.oxygenSaturation)
-            case .respiratoryRate: .init(shared: MeasurementCatalog.respiratoryRate)
-            case .stepCount: .init(shared: MeasurementCatalog.stepCount)
-            case .vo2Max: .init(shared: MeasurementCatalog.vo2Max)
-            case .walkingSpeed: .init(shared: HealthKitMeasurementCatalog.walkingSpeed)
+                MeasurementCatalog.distance
+            case .heartRate: MeasurementCatalog.heartRate
+            case .heartRateVariabilitySDNN: MeasurementCatalog.heartRateVariabilitySdnn
+            case .oxygenSaturation: MeasurementCatalog.oxygenSaturation
+            case .respiratoryRate: MeasurementCatalog.respiratoryRate
+            case .stepCount: MeasurementCatalog.stepCount
+            case .vo2Max: MeasurementCatalog.vo2Max
+            case .walkingSpeed: HealthKitMeasurementCatalog.walkingSpeed
             }
         }
+    }
+
+    struct PercentCase: CustomTestStringConvertible, Sendable {
+        let type: HKQuantityTypeIdentifier
+        let fraction: Double
+        let expected: String
+
+        var testDescription: String { "\(type.rawValue) \(fraction) -> \(expected)" }
     }
 
     enum SleepCase: Int, CaseIterable, CustomTestStringConvertible, Sendable {
@@ -182,29 +190,37 @@ struct HealthKitFHIRConverterTests {
         }
     }
 
-    private let converter = HealthKitConverter()
+    /// Each percent type with a fraction the binary64 product `fraction * 100` states with a tail.
+    static let percentCases: [PercentCase] = [
+        PercentCase(type: .bodyFatPercentage, fraction: 0.282, expected: "28.2"),
+        PercentCase(type: .oxygenSaturation, fraction: 0.57, expected: "57"),
+        PercentCase(type: .peripheralPerfusionIndex, fraction: 0.14, expected: "14"),
+        PercentCase(type: .walkingAsymmetryPercentage, fraction: 0.07, expected: "7"),
+        PercentCase(type: .walkingDoubleSupportPercentage, fraction: 0.29, expected: "29"),
+        PercentCase(type: .bloodAlcoholContent, fraction: 0.0007, expected: "0.07"),
+        PercentCase(type: .atrialFibrillationBurden, fraction: 0.58, expected: "58"),
+        PercentCase(type: .appleWalkingSteadiness, fraction: 0.56, expected: "56")
+    ]
+
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
     }
 
     @Test("A valid sync pair is writer-scoped and omitted when its writer is unavailable")
-    func syncIdentityIsCarried() throws {
-        let converter = HealthKitConverter()
-
-        let plain = try converter.convert(
+    func syncIdentityIsCarried() async throws {
+        let plain = try await ExporterFixtures.export(
             quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-            context: context
+            inputs
         )
         let plainIdentifiers = try #require(plain.observation.identifier).map(RoledIdentifier.init)
         #expect(plainIdentifiers.map(\.role) == [.sourceRecord, .sourceOutput])
@@ -212,33 +228,33 @@ struct HealthKitFHIRConverterTests {
 
         // The same logical measurement, saved twice: HealthKit replaces the first and the
         // replacement carries a new object UUID, so only the sync identity ties them together.
-        let first = try converter.convert(
+        let first = try await ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
                 value: 68.4,
                 metadata: [HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: 1]
             ),
-            context: context
+            inputs
         )
-        let revision = try converter.convert(
+        let revision = try await ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
                 value: 68.9,
                 metadata: [HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: 2]
             ),
-            context: context
+            inputs
         )
 
-        func syncIdentifier(_ conversion: HealthKitConversionSet) -> String? {
+        func syncIdentifier(_ conversion: ExportedRecord) -> String? {
             conversion.observation.identifier?
                 .first { (try? RoledIdentifier($0).role) == .writerRecord }?
                 .value?.value?.string
         }
         // Canonical decimal text, not an integer: a sync version is an NSNumber and a Health
         // Connect client record version is a Long, neither of which fits FHIR's 32-bit integer.
-        func syncVersion(_ conversion: HealthKitConversionSet) -> String? {
+        func syncVersion(_ conversion: ExportedRecord) -> String? {
             guard case .string(let value) = conversion.observation.extension?
                 .first(where: { $0.url == Canonicals.writerRecordVersion })?.value else {
                 return nil
@@ -255,83 +271,48 @@ struct HealthKitFHIRConverterTests {
         // The object identifiers differ, which is exactly why the sync identity is needed.
         #expect(first.observation.identifier?.first != revision.observation.identifier?.first)
 
-        // Exercise the production mapper through its source-attribution seam. HealthKit's public
-        // sample factory does not let a unit test construct the HKSourceRevision that owns it.
-        var attributable = plain.observation
-        try HealthKitConverter.applySyncIdentity(
-            metadata: [
-                HKMetadataKeySyncIdentifier: "scale-2026-08-19",
-                HKMetadataKeySyncVersion: NSNumber(value: UInt64.max)
-            ],
-            writerApplication: "org.example.connected-scale",
-            to: &attributable,
-            context: context
+        // A stored sample names the writing application, so the pair is scoped to it: the identity is the one the
+        // identity scope mints for that writer and record, and a UInt64 version survives as canonical decimal text.
+        let attributable = try await ExporterFixtures.export(
+            attributedBodyMass([HKMetadataKeySyncIdentifier: "scale-2026-08-19", HKMetadataKeySyncVersion: NSNumber(value: UInt64.max)]),
+            inputs
         )
-        #expect(attributable.identifier?.contains { (try? RoledIdentifier($0).role) == .writerRecord } == true)
-        guard case .string(let version)? = attributable.extension?
-            .first(where: { $0.url == Canonicals.writerRecordVersion })?.value else {
-            Issue.record("The attributable writer carries its record version")
-            return
-        }
-        #expect(version.value?.string == "18446744073709551615")
+        let expected = try inputs.base.identityScope.writerRecord(
+            writerApplication: BusinessIdentifier(system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem), value: "org.example.connected-scale"),
+            writerRecordID: "scale-2026-08-19"
+        )
+        #expect(syncIdentifier(attributable) == expected.identifier.value)
+        #expect(syncVersion(attributable) == "18446744073709551615")
     }
 
     @Test("HealthKit sync identifier and version are a strict nonnegative-integral pair")
-    func syncIdentityRejectsMalformedPairs() throws {
-        let plain = try converter.convert(
-            quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-            context: context
-        )
-        let invalidIdentifier = HealthKitValueFailure.invalidMetadataValue(.syncIdentifier)
-        let invalidVersion = HealthKitValueFailure.invalidMetadataValue(.syncVersion)
-
-        #expect(throws: invalidVersion) {
-            var observation = plain.observation
-            try HealthKitConverter.applySyncIdentity(
-                metadata: [HKMetadataKeySyncIdentifier: "logical-record"],
-                writerApplication: "org.example.writer",
-                to: &observation,
-                context: context
-            )
-        }
-        #expect(throws: invalidIdentifier) {
-            var observation = plain.observation
-            try HealthKitConverter.applySyncIdentity(
-                metadata: [HKMetadataKeySyncVersion: 1],
-                writerApplication: "org.example.writer",
-                to: &observation,
-                context: context
-            )
-        }
-
+    func syncIdentityRejectsMalformedPairs() async throws {
+        let invalidIdentifier = HealthKitConversionError.invalidValue(.bodyMass, .invalidMetadataValue(.syncIdentifier))
+        let invalidVersion = HealthKitConversionError.invalidValue(.bodyMass, .invalidMetadataValue(.syncVersion))
+        var malformed: [([String: Any], HealthKitConversionError)] = [
+            ([HKMetadataKeySyncIdentifier: "logical-record"], invalidVersion),
+            ([HKMetadataKeySyncVersion: 1], invalidIdentifier)
+        ]
         for invalid in [true, -1, 1.5, "1", NSNumber(value: Double.nan)] as [Any] {
-            #expect(throws: invalidVersion) {
-                var observation = plain.observation
-                try HealthKitConverter.applySyncIdentity(
-                    metadata: [
-                        HKMetadataKeySyncIdentifier: "logical-record",
-                        HKMetadataKeySyncVersion: invalid
-                    ],
-                    writerApplication: "org.example.writer",
-                    to: &observation,
-                    context: context
-                )
-            }
+            malformed.append(([HKMetadataKeySyncIdentifier: "logical-record", HKMetadataKeySyncVersion: invalid], invalidVersion))
         }
         for invalid in ["", 1] as [Any] {
-            #expect(throws: invalidIdentifier) {
-                var observation = plain.observation
-                try HealthKitConverter.applySyncIdentity(
-                    metadata: [
-                        HKMetadataKeySyncIdentifier: invalid,
-                        HKMetadataKeySyncVersion: 1
-                    ],
-                    writerApplication: "org.example.writer",
-                    to: &observation,
-                    context: context
-                )
+            malformed.append(([HKMetadataKeySyncIdentifier: invalid, HKMetadataKeySyncVersion: 1], invalidIdentifier))
+        }
+        for (metadata, refusal) in malformed {
+            let sample = try attributedBodyMass(metadata)
+            await #expect(throws: refusal, "\(metadata)") {
+                try await ExporterFixtures.export(sample, inputs)
             }
         }
+    }
+
+    /// A stored body mass written by a connected scale's application, carrying exactly `metadata`, written past
+    /// HealthKit's initializer, which raises for most malformed sync pairs and for a version above Int64.
+    private func attributedBodyMass(_ metadata: [String: Any]) throws -> HKQuantitySample {
+        let writer = StoredSampleFixtures.Writer(name: "Connected Scale", bundleIdentifier: "org.example.connected-scale", version: "7", productType: "iPhone17,1")
+        let sample = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
+        return try StoredSampleFixtures.withMetadata(StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0xD0), writer: writer), metadata)
     }
 
 
@@ -353,16 +334,28 @@ struct HealthKitFHIRConverterTests {
         )
     }
 
+    #if !os(watchOS)
+    /// The document carrying a stored lab result that HealthKit reports in `version`, stating `payload`.
+    private func clinicalDocument(_ payload: Data, version: HKFHIRVersion) throws -> DocumentReference {
+        let plan = HealthKitContentPlan[.labResultRecord]
+        guard case .clinical(let document) = plan.route else {
+            throw plan.refusal
+        }
+        let facts = GoldenCase.seriesFacts(uuid: 0xF3, duration: 0)
+        return try document.document(try StoredSampleFixtures.clinicalRecord(HKClinicalType(.labResultRecord), fhirVersion: version, resource: payload, facts: facts))
+    }
+    #endif
+
     /// The full-catalog matrix proves the profile, code, and lineage facts for every row; this
     /// hand-picked set exists for the source units it converts from and its exact decimal scaling.
     @Test("Every source unit normalizes to its contract unit and exact decimal", arguments: QuantityCase.allCases)
-    func normalizesSourceUnits(testCase: QuantityCase) throws {
+    func normalizesSourceUnits(testCase: QuantityCase) async throws {
         let sample = quantitySample(
             testCase.identifier,
             unit: testCase.sourceUnit,
             value: testCase.sourceValue
         )
-        let conversion = try converter.convert(sample, context: context)
+        let conversion = try await ExporterFixtures.export(sample, inputs)
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = conversion.observation.value else {
                 return nil
@@ -371,25 +364,33 @@ struct HealthKitFHIRConverterTests {
         }())
 
         let profileClaims = try #require(conversion.observation.meta?.profile)
-        #expect(profileClaims == testCase.contract.profiles)
+        #expect(profileClaims == testCase.contract.healthKitProfiles)
         if profileClaims.count == 1 {
             #expect(ProfileClaims.singleObservationProfiles.contains(profileClaims[0]))
         } else {
             #expect(profileClaims.count == ProfileClaims.observationAdapterCardinality)
             #expect(profileClaims.contains(Profile.healthkitObservation))
         }
-        if testCase != .bodyMassIndex {
+        if testCase == .bodyMassIndex {
+            // The plan derives these from the profile rule; the guide's inventory row states them (and the generator
+            // checks they are its standardAdapterClaims).
+            let guideProfiles = HealthKitContract.rows.first { $0.sourceTypeIdentifier == HealthKitSourceType.bodyMassIndex.rawValue }?.profiles
+            #expect(profileClaims == guideProfiles)
+        } else {
             #expect(profileClaims.allSatisfy { !ProfileClaims.forbiddenExplicitProfiles.contains($0) })
         }
         #expect(quantity.system?.value?.url.absoluteString == testCase.contract.quantity?.system)
         #expect(quantity.code?.value?.string == testCase.contract.quantity?.code)
-        #expect(conversion.observation.effective?.isPeriod == (testCase.contract.effective == .period))
+        // Every sample here lasts a minute: only a profile that fixes an instant states the start alone.
+        #expect(conversion.observation.effective?.isPeriod == (testCase.contract.effective != .dateTime))
         if testCase == .heartRate {
             #expect(testCase.contract.effective == .dateTimeOrPeriod)
-            guard case .dateTime = conversion.observation.effective else {
-                Issue.record("A normal HealthKit heart-rate sample must use effectiveDateTime")
+            guard case .period(let period) = conversion.observation.effective else {
+                Issue.record("A minute-long HealthKit heart-rate sample must use effectivePeriod")
                 return
             }
+            #expect(period.start?.value?.description == "2026-08-19T14:10:00Z")
+            #expect(period.end?.value?.description == "2026-08-19T14:11:00Z")
         }
         if testCase == .oxygenSaturation {
             #expect(quantity.value?.value?.decimal.description == "97.5")
@@ -399,15 +400,41 @@ struct HealthKitFHIRConverterTests {
         }
     }
 
+    @Test("Every percent type states its fraction in percent exactly, not as the binary64 product", arguments: percentCases)
+    func percentTypesStateTheExactPercent(testCase: PercentCase) async throws {
+        #expect(testCase.fraction * 100 != Double(testCase.expected), "the product states \(testCase.expected) exactly too")
+        let sample = quantitySample(testCase.type, unit: .percent(), value: testCase.fraction)
+
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
+
+        guard case .quantity(let quantity) = observation.value else {
+            Issue.record("a percent type states a quantity")
+            return
+        }
+        #expect(quantity.code?.value?.string == "%")
+        #expect(quantity.value?.value?.decimal.description == testCase.expected)
+    }
+
+    @Test("The percent cases cover every type whose plan reads a fraction")
+    func percentCasesCoverEveryPercentType() {
+        let percentTypes = HealthKitContentPlan.all.filter { plan in
+            guard case .observation(let observation) = plan.route, case .quantity(_, .percent) = observation.value else {
+                return false
+            }
+            return true
+        }
+        #expect(Set(percentTypes.map(\.sourceType.rawValue)) == Set(Self.percentCases.map(\.type.rawValue)))
+    }
+
     @Test("Every HealthKit sleep-stage value maps to the shared code system", arguments: SleepCase.allCases)
-    func sleepStage(testCase: SleepCase) throws {
+    func sleepStage(testCase: SleepCase) async throws {
         let sample = HKCategorySample(
             type: HKCategoryType(.sleepAnalysis),
             value: testCase.rawValue,
             start: timestamp,
             end: timestamp.addingTimeInterval(1_800)
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let value: CodeableConcept = try #require({
             guard case .codeableConcept(let concept) = observation.value else {
                 return nil
@@ -429,7 +456,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func bloodPressureUsesBothRequiredComponents() throws {
+    func bloodPressureUsesBothRequiredComponents() async throws {
         let systolic = quantitySample(.bloodPressureSystolic, unit: .millimeterOfMercury(), value: 120)
         let diastolic = quantitySample(.bloodPressureDiastolic, unit: .millimeterOfMercury(), value: 80)
         let sample = HKCorrelation(
@@ -438,7 +465,7 @@ struct HealthKitFHIRConverterTests {
             end: timestamp.addingTimeInterval(60),
             objects: [systolic, diastolic]
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == [
             Profile.groveMobileBloodPressure,
@@ -456,7 +483,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func graphHasCompleteDeterministicEntryIdentitiesAndNoSyntheticResourceIDs() throws {
+    func graphHasCompleteDeterministicEntryIdentitiesAndNoSyntheticResourceIDs() async throws {
         let sample = quantitySample(
             .heartRate,
             unit: .count().unitDivided(by: .minute()),
@@ -472,16 +499,10 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "udi-device-id"
             )
         )
-        var attributedContext = context
-        attributedContext = HealthKitConversionContext(
-            subject: context.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            converterWasGateway: true,
-            conversionInstant: timestamp
-        )
-        let first = try converter.convert(sample, context: attributedContext)
-        let second = try converter.convert(sample, context: attributedContext)
+        var gatewayInputs = inputs
+        gatewayInputs.options.role = .gateway
+        let first = try await ExporterFixtures.export(sample, gatewayInputs)
+        let second = try await ExporterFixtures.export(sample, gatewayInputs)
         let entries = try #require(first.bundle.entry)
 
         #expect(first.bundle.id == nil)
@@ -489,13 +510,13 @@ struct HealthKitFHIRConverterTests {
         #expect(first.recordingDevice?.id == nil)
         #expect(first.converterApplication.id == nil)
         #expect(first.provenance.id == nil)
-        #expect(try RoledIdentifier(first.sourceIdentifier) == first.graphIdentifiers.sourceRecord)
-        #expect(first.graphIdentifiers.sourceRecord.role == .sourceRecord)
+        #expect(try RoledIdentifier(first.sourceIdentifier) == first.identifiers.sourceRecord)
+        #expect(first.identifiers.sourceRecord.role == .sourceRecord)
         #expect(first.bundle.meta?.profile == [Profile.groveMobileExchangeBundle])
         #expect(first.provenance.meta?.profile == [
             HealthKitContract.conversionProvenanceProfile
         ])
-        #expect(first.bundle.identifier == first.graphIdentifiers.event.fhirIdentifier)
+        #expect(first.bundle.identifier == first.identifiers.event.fhirIdentifier)
         #expect(entries.compactMap(\.fullUrl) == second.bundle.entry?.compactMap(\.fullUrl))
         #expect(entries.count >= 5)
         #expect(entries.allSatisfy { entry in
@@ -511,7 +532,7 @@ struct HealthKitFHIRConverterTests {
         let assemblerReference = first.provenance.agent.first?.who.reference?.value?.string
         let sourceEntities = try #require(first.provenance.entity)
         let sourceEntity = try #require(sourceEntities.first)
-        let observationURL = try first.graphIdentifiers.primaryOutput.fullURLString
+        let observationURL = try first.identifiers.primaryOutput.fullURLString
         #expect(first.observation.device.flatMap { $0.reference?.value?.string }.map(fullURLs.contains) == true)
         #expect(targetReference == observationURL)
         #expect(assemblerReference.map(fullURLs.contains) == true)
@@ -524,8 +545,10 @@ struct HealthKitFHIRConverterTests {
         #expect(first.recordingDevice?.udiCarrier == nil)
     }
 
+    /// The exporter assigns no repository id but the transitional legacy `Bundle.id`, and a custom resolver names the
+    /// recording Device's unit while the UDI stays undisclosed.
     @Test
-    func repositoryIDsAndAuthorizedDeviceNamespaceAreOnlyAppliedExplicitly() throws {
+    func repositoryIDsAndAuthorizedDeviceNamespaceAreOnlyAppliedExplicitly() async throws {
         let sample = quantitySample(
             .bodyMass,
             unit: .gramUnit(with: .kilo),
@@ -541,27 +564,18 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "globally-identifying-udi"
             )
         )
-        let explicitContext = HealthKitConversionContext(
-            subject: context.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: timestamp,
-            recordingDeviceStableUnitToken: "test-recording-device",
-            repositoryIDs: [
-                .bundle: try RepositoryID("bundle-1"),
-                .primaryOutput: try RepositoryID("observation-1"),
-                .recordingDevice: try RepositoryID("device-1"),
-                .applicationDevice: try RepositoryID("application-1"),
-                .provenance: try RepositoryID("provenance-1")
-            ]
-        )
-        let conversion = try converter.convert(sample, context: explicitContext)
+        var explicitInputs = inputs
+        explicitInputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: "test-recording-device"))
+        let unassigned = try await ExporterFixtures.export(sample, explicitInputs)
+        #expect(unassigned.bundle.id == nil)
+        explicitInputs.options.legacyBundleID = .healthKitUUID
+        let conversion = try await ExporterFixtures.export(sample, explicitInputs)
 
-        #expect(conversion.bundle.id?.value?.string == "bundle-1")
-        #expect(conversion.observation.id?.value?.string == "observation-1")
-        #expect(conversion.recordingDevice?.id?.value?.string == "device-1")
-        #expect(conversion.converterApplication.id?.value?.string == "application-1")
-        #expect(conversion.provenance.id?.value?.string == "provenance-1")
+        #expect(conversion.bundle.id?.value?.string == sample.uuid.uuidString)
+        #expect(conversion.observation.id == nil)
+        #expect(conversion.recordingDevice?.id == nil)
+        #expect(conversion.converterApplication.id == nil)
+        #expect(conversion.provenance.id == nil)
         let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
         #expect(identifiers.allSatisfy { $0.value.hasPrefix("v0:test:1:") })
@@ -569,7 +583,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func authorizedUDIDisclosureIsIndependentFromLocalIdentifierDisclosure() throws {
+    func authorizedUDIDisclosureIsIndependentFromLocalIdentifierDisclosure() async throws {
         let sample = quantitySample(
             .bodyMass,
             unit: .gramUnit(with: .kilo),
@@ -585,14 +599,9 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "authorized-udi"
             )
         )
-        let authorizedContext = HealthKitConversionContext(
-            subject: context.subject,
-            converter: context.converter,
-            graphIdentifierSystem: context.graphIdentifierSystem,
-            conversionInstant: timestamp,
-            udiDisclosurePolicy: .authorizedUDI
-        )
-        let conversion = try converter.convert(sample, context: authorizedContext)
+        var authorizedInputs = inputs
+        authorizedInputs.options.udi = .authorized
+        let conversion = try await ExporterFixtures.export(sample, authorizedInputs)
 
         let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
@@ -600,24 +609,24 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func typedMetadataDoesNotInferUnknownFacts() throws {
-        let automatic = try converter.convert(
+    func typedMetadataDoesNotInferUnknownFacts() async throws {
+        let automatic = try await ExporterFixtures.export(
             quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-            context: context
+            inputs
         )
         #expect(automatic.observation.extension?.contains {
             $0.url == Canonicals.recordingMethod
         } != true)
         #expect(automatic.writer == nil)
 
-        let manual = try converter.convert(
+        let manual = try await ExporterFixtures.export(
             quantitySample(
                 .bodyMass,
                 unit: .gramUnit(with: .kilo),
                 value: 68.4,
                 metadata: [HKMetadataKeyWasUserEntered: true]
             ),
-            context: context
+            inputs
         )
         #expect(manual.observation.extension?.contains {
             $0.url == Canonicals.recordingMethod
@@ -626,8 +635,8 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func unmodelledMetadataAndExternalUUIDAreNotInventedAsFHIRComponents() throws {
-        let conversion = try converter.convert(
+    func unmodelledMetadataAndExternalUUIDAreNotInventedAsFHIRComponents() async throws {
+        let conversion = try await ExporterFixtures.export(
             quantitySample(
                 .heartRate,
                 unit: .count().unitDivided(by: .minute()),
@@ -637,7 +646,7 @@ struct HealthKitFHIRConverterTests {
                     HKMetadataKeyExternalUUID: "linkable-and-withheld"
                 ]
             ),
-            context: context
+            inputs
         )
         // The IG's metadata mapping is closed. An open source dictionary cannot silently create
         // unprofiled Observation components, and ExternalUUID needs its own governed mapping rather
@@ -652,34 +661,23 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func nativeHealthKitUUIDDisclosureIsExplicitTypedAndPrimaryOnly() throws {
+    func nativeHealthKitUUIDDisclosureIsExplicitTypedAndPrimaryOnly() async throws {
         let sample = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
         let nativeSystem = IdentifierSystem("https://study.example/fhir/identifier/healthkit-object")
-        let nativeType = try GovernedSourceIdentifierType(
+        let nativeType = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
             system: IdentifierSystem("https://study.example/fhir/CodeSystem/native-identifier-type"),
             code: "healthkit-object-uuid",
             display: "HealthKit object UUID"
         )
 
-        let omitted = try converter.convert(sample, context: context)
+        let omitted = try await ExporterFixtures.export(sample, inputs)
         #expect(omitted.observation.identifier?.contains {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         } != true)
 
-        let disclosed = try converter.convert(
-            sample,
-            context: HealthKitConversionContext(
-                subject: .testPatient,
-                converter: ApplicationDevice.test(
-                    name: "Example Study",
-                    bundleIdentifier: "org.grovealliance.example-study",
-                    version: "2.0.0 (42)"
-                ),
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-                conversionInstant: timestamp,
-                nativeIdentifierDisclosurePolicy: .authorized(system: nativeSystem, type: nativeType)
-            )
-        )
+        var disclosureInputs = inputs
+        disclosureInputs.options.nativeIdentifier = .authorized(system: nativeSystem, type: nativeType)
+        let disclosed = try await ExporterFixtures.export(sample, disclosureInputs)
         let native = try #require(disclosed.observation.identifier?.first {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
         })
@@ -696,8 +694,8 @@ struct HealthKitFHIRConverterTests {
 
     @Test
     func nativeIdentifierTypeCannotMasqueradeAsGroveGraphRole() throws {
-        #expect(throws: GovernedSourceIdentifierType.ConfigurationError.groveGraphRoleSystem) {
-            try GovernedSourceIdentifierType(
+        #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.groveGraphRoleSystem) {
+            try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(
                 system: IdentifierSystem(try #require(
                     Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
                 )),
@@ -711,59 +709,38 @@ struct HealthKitFHIRConverterTests {
         let system: IdentifierSystem =
             "https://study.example/fhir/CodeSystem/native-identifier-type"
         for invalid in [" source-id", "source-id ", "source  id", "source\tid", "source\nid", "source\u{0000}id"] {
-            #expect(throws: GovernedSourceIdentifierType.ConfigurationError.invalidCodeLexicalForm) {
-                try GovernedSourceIdentifierType(system: system, code: invalid)
+            #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.invalidCodeLexicalForm) {
+                try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: system, code: invalid)
             }
         }
-        #expect(throws: GovernedSourceIdentifierType.ConfigurationError.emptyCode) {
-            try GovernedSourceIdentifierType(system: system, code: "")
+        #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.emptyCode) {
+            try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: system, code: "")
         }
-        #expect(throws: GovernedSourceIdentifierType.ConfigurationError.blankDisplay) {
-            try GovernedSourceIdentifierType(system: system, code: "source-id", display: " \n ")
+        #expect(throws: GovernedSourceIdentifierDisclosurePolicy.IdentifierType.ConfigurationError.blankDisplay) {
+            try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: system, code: "source-id", display: " \n ")
         }
     }
 
     @Test("Native identifiers cannot reuse generic or provider opaque namespaces")
     func nativeIdentifierSystemCannotReuseOpaqueGraphNamespace() throws {
-        let graphRoot: IdentifierSystem = "https://study.example.org/fhir/identifiers/native-collision"
-        let identitySystems = HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: graphRoot,
-            conversionInstant: timestamp
-        ).identityScope.systems.opaque
+        var disclosureInputs = inputs
+        disclosureInputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/native-collision"
+        let identitySystems = disclosureInputs.base.identityScope.systems
         for collidingNativeSystem in [
             identitySystems.sourceRecord,
             identitySystems.providerOutput,
             identitySystems.providerArtifact
         ] {
-            let disclosureContext = HealthKitConversionContext(
-                subject: .testPatient,
-                converter: ApplicationDevice.test(
-                    name: "Example Study",
-                    bundleIdentifier: "org.grovealliance.example-study",
-                    version: "2.0.0 (42)"
-                ),
-                graphIdentifierSystem: graphRoot,
-                conversionInstant: timestamp,
-                nativeIdentifierDisclosurePolicy: .authorized(system: collidingNativeSystem)
-            )
-            #expect(throws: HealthKitConversionError.reservedIdentifierSystem) {
-                try converter.convert(
-                    quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4),
-                    context: disclosureContext
-                )
+            disclosureInputs.options.nativeIdentifier = .authorized(system: collidingNativeSystem)
+            #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierSystem(collidingNativeSystem)) {
+                try ExporterFixtures.exporter(disclosureInputs)
             }
         }
     }
 
     @Test
-    func heartRateMetadataIsAllowlistedAndUnknownValuesFailClosed() throws {
-        let valid = try converter.convert(
+    func heartRateMetadataIsAllowlistedAndUnknownValuesFailClosed() async throws {
+        let valid = try await ExporterFixtures.export(
             quantitySample(
                 .heartRate,
                 unit: .count().unitDivided(by: .minute()),
@@ -773,7 +750,7 @@ struct HealthKitFHIRConverterTests {
                     HKMetadataKeyExternalUUID: "not-copied"
                 ]
             ),
-            context: context
+            inputs
         )
         #expect(valid.observation.component?.contains {
             $0.code.coding?.first?.code?.value?.string == HKMetadataKeyHeartRateMotionContext
@@ -788,36 +765,19 @@ struct HealthKitFHIRConverterTests {
             value: 72,
             metadata: [HKMetadataKeyHeartRateMotionContext: NSNumber(value: 99)]
         )
-        #expect(throws: HealthKitConversionError.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext))) {
-            try converter.convert(invalid, context: context)
+        await #expect(throws: HealthKitConversionError.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext))) {
+            try await ExporterFixtures.export(invalid, inputs)
         }
     }
 
     @Test
-    func healthKitTimeZoneMetadataIsTypedAndFailClosed() throws {
-        let missing = try HealthKitConverter.healthKitTimeZone(metadata: [:])
-        #expect(missing.secondsFromGMT(for: timestamp) == 0)
-
-        let identifier = "America/Los_Angeles"
-        let explicit = try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: identifier])
-        #expect(explicit.identifier == identifier)
-
-        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.timeZone)) {
-            try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: "Not/A-Time-Zone"])
-        }
-        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.timeZone)) {
-            try HealthKitConverter.healthKitTimeZone(metadata: [HKMetadataKeyTimeZone: 42])
-        }
-    }
-
-    @Test
-    func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() throws {
+    func glucoseConvertsWithoutSpecimenAndWithoutHealthConnectOnlyProfiles() async throws {
         let sample = quantitySample(
             .bloodGlucose,
             unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)),
             value: 100
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
 
         #expect(observation.meta?.profile == [
             Profile.groveMobileBloodGlucoseUnspecifiedSpecimen,
@@ -841,23 +801,15 @@ struct HealthKitFHIRConverterTests {
         let dstu2JSON = Data("  {\"resourceType\":\"Observation\",\"id\":\"dstu2\"}\n".utf8)
         let r4JSON = Data("{\n  \"resourceType\": \"Observation\", \"id\": \"r4\"\n}\n".utf8)
 
-        let dstu2 = try HealthKitConverter.clinicalRecordingEvidence(
-            data: dstu2JSON,
-            release: .dstu2,
-            sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-        )
-        let r4Evidence = try HealthKitConverter.clinicalRecordingEvidence(
-            data: r4JSON,
-            release: .r4,
-            sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-        )
+        let dstu2 = try clinicalDocument(dstu2JSON, version: .primaryDSTU2())
+        let r4Document = try clinicalDocument(r4JSON, version: .primaryR4())
 
-        #expect(dstu2.payload == dstu2JSON)
-        #expect(dstu2.format.rawValue == HealthKitContract.clinicalFHIRPayloadFormatCode)
-        #expect(dstu2.clinicalFHIRReleaseCode == "dstu2")
-        #expect(r4Evidence.payload == r4JSON)
-        #expect(r4Evidence.format.rawValue == HealthKitContract.clinicalFHIRPayloadFormatCode)
-        #expect(r4Evidence.clinicalFHIRReleaseCode == "r4")
+        for (document, payload, release) in [(dstu2, dstu2JSON, "dstu2"), (r4Document, r4JSON, "r4")] {
+            let content = try #require(document.content.first)
+            #expect(content.attachment.data?.value?.data() == payload)
+            #expect(content.format?.code?.value?.string == HealthKitContract.clinicalFHIRPayloadFormatCode)
+            #expect(content.attachment.contentType?.value?.string == HealthKitContract.clinicalFHIRContentTypeByRelease[release])
+        }
     }
 
     @Test("Unknown clinical releases fail before Grove creates an exchange document")
@@ -866,11 +818,7 @@ struct HealthKitFHIRConverterTests {
         let payload = Data(#"{"resourceType":"Observation"}"#.utf8)
 
         #expect(throws: HealthKitConversionError.clinicalRecord(.unsupportedRelease)) {
-            _ = try HealthKitConverter.clinicalRecordingEvidence(
-                data: payload,
-                release: .unknown,
-                sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-            )
+            _ = try clinicalDocument(payload, version: try HKFHIRVersion(fromVersionString: "3.0.1"))
         }
     }
 
@@ -885,24 +833,7 @@ struct HealthKitFHIRConverterTests {
     @available(iOS 18, macOS 15, *)
     func invalidClinicalResourceSyntaxFailsClosed(payload: Data) throws {
         #expect(throws: HealthKitConversionError.clinicalRecord(.undecodable)) {
-            _ = try HealthKitConverter.clinicalRecordingEvidence(
-                data: payload,
-                release: .r4,
-                sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord"
-            )
-        }
-    }
-
-    @Test("Typed R4 inspection still rejects a DSTU2 payload without changing transport support")
-    @available(iOS 18, macOS 15, *)
-    func typedR4InspectionRejectsDSTU2() throws {
-        let dstu2JSON = Data(#"{"resourceType":"Observation","id":"dstu2"}"#.utf8)
-
-        #expect(throws: HealthKitConversionError.clinicalRecord(.unsupportedRelease)) {
-            _ = try HealthKitConverter.decodeR4ClinicalResource(
-                data: dstu2JSON,
-                release: .dstu2
-            )
+            _ = try clinicalDocument(payload, version: .primaryR4())
         }
     }
     #endif
@@ -962,60 +893,39 @@ struct HealthKitFHIRConverterTests {
         #expect(rows.filter { $0.implementationStatus == .intentionallyUnsupported }
         .allSatisfy { $0.requirement?.isEmpty == false })
 
-        // Supported rows the sample-driven binding table intentionally does not serve: the ECG
-        // evidence path, the characteristic reads that are not HKSamples, and the panel components
-        // admitted only inside the correlation. Workouts are served now, so they are not exempt.
-        let sampleBindingExemptions: Set<String> = [
-            HKObjectType.electrocardiogramType().identifier,
-            HKDataTypeIdentifierHeartbeatSeries,
-            HKWorkoutRouteTypeIdentifier,
-            HKDocumentTypeIdentifier.CDA.rawValue,
-            HKClinicalTypeIdentifier.allergyRecord.rawValue,
-            HKClinicalTypeIdentifier.conditionRecord.rawValue,
-            HKClinicalTypeIdentifier.immunizationRecord.rawValue,
-            HKClinicalTypeIdentifier.labResultRecord.rawValue,
-            HKClinicalTypeIdentifier.medicationRecord.rawValue,
-            HKClinicalTypeIdentifier.procedureRecord.rawValue,
-            HKClinicalTypeIdentifier.vitalSignRecord.rawValue,
-            "HKCharacteristicTypeIdentifierBiologicalSex",
-            "HKCharacteristicTypeIdentifierDateOfBirth",
-            "HKCharacteristicTypeIdentifierFitzpatrickSkinType",
-            "HKCorrelationTypeIdentifierFood",
-            "HKDataTypeIdentifierAudiogram",
-            HKCharacteristicTypeIdentifier.bloodType.rawValue,
-            HKCharacteristicTypeIdentifier.wheelchairUse.rawValue,
-            HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue,
-            HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue
-        ]
-        for row in rows where row.implementationStatus == .supported {
-            let identifier = row.sourceTypeIdentifier
-            let binding = HealthKitCatalog.binding(forSourceTypeIdentifier: identifier)
-            if sampleBindingExemptions.contains(identifier) {
-                #expect(binding == nil, "\(identifier) is served outside the sample binding table")
+        // Supported rows that convert through no Observation of their sample: the ECG, which its record entry point
+        // serves, and the rows this producer does not emit yet (the characteristics are no HKSample at all). Every
+        // other row converts its own sample; a row of another status never does.
+        let servedByRecordEntryPoint: Set<HealthKitSourceType> = [.electrocardiogram]
+        let notYetEmitted: Set<HealthKitSourceType> = [.food, .audiogram, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse]
+        for row in rows {
+            let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier)
+            let plan = type.map { HealthKitContentPlan[$0] }
+            let observes = if case .observation = plan?.route { true } else { false }
+            if row.implementationStatus != .supported {
+                #expect(!observes, "\(row.sourceTypeIdentifier) is \(row.implementationStatus), yet converts to an Observation of its sample")
+            } else if let type, servedByRecordEntryPoint.contains(type) {
+                #expect(!observes, "\(row.sourceTypeIdentifier) converts through its record entry point, not its bare sample")
+            } else if let type, notYetEmitted.contains(type) {
+                #expect(!observes, "\(row.sourceTypeIdentifier) is not emitted yet, yet converts to an Observation of its sample")
             } else {
-                #expect(binding != nil, "\(identifier) is supported but has no binding")
-                #expect(binding?.contract.id == row.measurements.first?.id)
+                #expect(observes, "\(row.sourceTypeIdentifier) is supported but converts to no Observation")
+                #expect(plan?.outputs.first?.role == row.measurements.first?.id)
             }
-        }
-        for row in rows where row.implementationStatus != .supported {
-            #expect(
-                HealthKitCatalog.binding(forSourceTypeIdentifier: row.sourceTypeIdentifier) == nil,
-                "\(row.sourceTypeIdentifier) is not supported but has a binding"
-            )
         }
     }
 
     /// Step counts obey `grove-step-count-period-1`, which requires `end > start`.
     @Test
-    func periodMetricsRejectZeroLengthIntervals() {
+    func periodMetricsRejectZeroLengthIntervals() async {
         let sample = quantitySample(.stepCount, unit: .count(), value: 431, interval: 0)
-        #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
-            try converter.convert(sample, context: context)
+        await #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
+            try await ExporterFixtures.export(sample, inputs)
         }
     }
 
     @Test("A point-in-time source keeps its instant as an equal-endpoint Period")
-    func periodMetricsAdmitZeroLengthPointInTimeSources() throws {
+    func periodMetricsAdmitZeroLengthPointInTimeSources() async throws {
         let dietaryEnergy = quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 650, interval: 0)
         // HealthKit gives every State of Mind a single date.
         let stateOfMind = HKStateOfMind(
@@ -1027,7 +937,7 @@ struct HealthKitFHIRConverterTests {
         )
         #expect(stateOfMind.startDate == stateOfMind.endDate)
         for sample in [dietaryEnergy, stateOfMind] as [HKSample] {
-            let observation = try converter.convert(sample, context: context).observation
+            let observation = try await ExporterFixtures.export(sample, inputs).observation
             guard case .period(let period) = observation.effective else {
                 Issue.record("\(sample.sampleType.identifier) must emit an effectivePeriod")
                 continue
@@ -1040,15 +950,16 @@ struct HealthKitFHIRConverterTests {
     @Test
     func reversedIntervalsAreNeverAnEffectivePeriod() throws {
         // HealthKit does not build a reversed sample, so the rule is checked directly.
-        let contract = try #require(
-            HealthKitCatalog.binding(forSourceTypeIdentifier: HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue)
-        ).contract
-        #expect(HealthKitConverter.admitsEffectivePeriod(start: timestamp, end: timestamp, contract: contract))
-        #expect(!HealthKitConverter.admitsEffectivePeriod(
-            start: timestamp,
-            end: timestamp.addingTimeInterval(-1),
-            contract: contract
-        ))
+        guard case .observation(let plan) = HealthKitContentPlan[.dietaryEnergyConsumed].route else {
+            Issue.record("Dietary energy converts to no Observation")
+            return
+        }
+        #expect(throws: Never.self) {
+            try plan.effective.value(start: timestamp, end: timestamp, zone: nil)
+        }
+        #expect(throws: HealthKitConversionError.ValueFailure.effectivePeriodInvalid) {
+            try plan.effective.value(start: timestamp, end: timestamp.addingTimeInterval(-1), zone: nil)
+        }
     }
 
     @Test("Generated quantity domains reject invalid values and retain inclusive zero")
@@ -1057,33 +968,43 @@ struct HealthKitFHIRConverterTests {
         let percentage = try #require(MeasurementCatalog.oxygenSaturation.quantity)
         let valence = try #require(HealthKitMeasurementCatalog.stateOfMind.quantity)
 
-        let zero = try HealthKitConverter.fhirQuantity(value: 0, contract: steps)
+        let zero = try QuantityTemplate(steps).quantity(0)
         #expect(zero.value?.value?.decimal == 0)
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: 1.5, contract: steps)
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(steps).quantity(1.5)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: -1, contract: steps)
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(steps).quantity(-1)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: 100.01, contract: percentage)
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(percentage).quantity(100.01)
         }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: -0.01, contract: percentage)
-        }
-        #expect(throws: Never.self) {
-            try HealthKitConverter.fhirQuantity(value: 100, contract: percentage)
-        }
-        #expect(throws: HealthKitValueFailure.shapeInvalid) {
-            try HealthKitConverter.fhirQuantity(value: 1.01, contract: valence)
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(percentage).quantity(-0.01)
         }
         #expect(throws: Never.self) {
-            try HealthKitConverter.fhirQuantity(value: -1, contract: valence)
+            try QuantityTemplate(percentage).quantity(100)
+        }
+        // A fraction just above 1 or below 0 states a percent outside the domain; exactly 1 states 100.
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: 1.0000000000000002))
+        }
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: -0.01))
+        }
+        #expect(throws: Never.self) {
+            try QuantityTemplate(percentage).quantity(QuantityRead.percent(ofFraction: 1))
+        }
+        #expect(throws: HealthKitConversionError.ValueFailure.outsideDomain) {
+            try QuantityTemplate(valence).quantity(1.01)
+        }
+        #expect(throws: Never.self) {
+            try QuantityTemplate(valence).quantity(-1)
         }
     }
 
     @Test
-    func batchReportsEveryFailureWithoutDroppingRecords() {
+    func batchReportsEveryFailureWithoutDroppingRecords() async throws {
         let supported = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
         let deferred = HKCorrelation(
             type: HKCorrelationType(.food),
@@ -1091,16 +1012,16 @@ struct HealthKitFHIRConverterTests {
             end: timestamp,
             objects: [quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 320)]
         )
-        let result = converter.convert([supported, deferred]) { _ in context }
-        #expect(result.conversions.count == 1)
-        #expect(result.failures.count == 1)
-        guard case .conversion(let record, let error)? = result.failures.first else {
+        let (exporter, _) = try ExporterFixtures.exporter(inputs)
+        let (exports, _) = try await ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
+        #expect(exports.compactMap(\.graph).count == 1)
+        guard exports.count == 2, case .refused(let error) = exports[1].outcome else {
             Issue.record("The refused record keeps its source identity and typed reason")
             return
         }
-        #expect(record.uuid == deferred.uuid)
-        #expect(error == .unsupportedSourceType(.food))
-        #expect(error.diagnostic.code == "mobile-input.unsupported-source-type")
+        #expect(exports[1].source.uuid == deferred.uuid)
+        #expect(error == .notYetConvertible(.food))
+        #expect(error.diagnostic.code == "mobile-input.not-yet-convertible")
     }
 }
 

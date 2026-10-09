@@ -14,7 +14,7 @@
     @TitleHeading("Producer Package")
 }
 
-Convert already-fetched HealthKit samples into auditable FHIR R4 exchange graphs.
+Export already-fetched HealthKit samples as auditable FHIR R4 exchange graphs.
 
 ## Overview
 
@@ -24,12 +24,12 @@ Any receiver can deduplicate, correct and retract an exchange graph without know
 Grove adds what plain FHIR lacks: stable identities that never leak the HealthKit UUID, provenance saying which application assembled the graph on which device, and optional study context.
 The receiver gets a graph it can store, compare byte for byte on a retry, and take back by identity.
 
-``HealthKitConverter`` consumes an `HKSample` you already fetched; it does not request authorization, query samples, manage anchors, store FHIR or upload anything.
+``HealthKitFHIRExporter`` consumes `HKSample` values you already fetched; it does not request authorization, query samples, manage anchors, store FHIR or upload anything.
 If you already know the pieces, jump to <doc:#Beyond-the-minimum>.
 
 ## What you need and why
 
-Five inputs make a context; everything else has a default.
+Five inputs configure an exporter; everything else has a default.
 
 ### The subject pseudonym
 
@@ -42,20 +42,20 @@ Persist the pair with the enrollment; `Subject.logical` is the default form.
 
 Every sample and every output gets an opaque identity: an HMAC of the sample's native facts under your deployment's secret key.
 The same sample exported twice yields the same identifier, so a receiver deduplicates, and nobody can recover the HealthKit UUID from it.
-`DeploymentIdentifierSystems.derived(root:keyID:epoch:)` derives the twelve identifier systems the protocol recommends from your deployment root, a key id and an epoch, and `OpaqueIdentityScope` holds them with the key.
-Persist the key id and the epoch beside the key; rotating either changes every system with it.
+`OpaqueIdentityScope(root:keyID:epoch:key:)` derives the twelve identifier systems the protocol recommends from your deployment root, a key id and an epoch, and holds them with the key.
+Persist the key id and the epoch beside the key; rotating either changes every opaque system with it, while the event and entry-node systems stay with the root.
 
-### The event identifier
+### The ledger
 
 Every export is an exchange event, and every event is immutable.
-An `ExchangeEventIdentifier` is your producer instance UUID plus a monotonic `EventSequence`.
-A retry resends the same bytes under the same identifier; a new revision of the sample gets a new sequence.
-Persist the producer instance once and the next sequence before you emit.
+The exporter's `ExchangeProducer` numbers each event in its ledger and freezes what the event states (the instant, the application, the host and the studies) until you release the receipt the export returns.
+A redelivery before the release reproduces the same bytes under the same event identifier; a new revision of the sample takes a new event.
+The ledger lives in your app's `ExchangeProducer.Storage`; `GroveFHIRContract` documents the contract it must meet.
 
 ### The repository scope
 
 Two HealthKit stores must never collide: the store on one phone and the store on another can hold the same UUID.
-The repository scope is one `BusinessIdentifier` that names this installation's HealthKit store, and it enters every opaque identity.
+The repository scope is one `BusinessIdentifier` that names this installation's HealthKit store, and it enters every source-record and output identity.
 Use a system your deployment owns and a token you persist once per installation, such as a UUID minted on first launch.
 
 ### The application
@@ -63,191 +63,185 @@ Use a system your deployment owns and a token you persist once per installation,
 The conversion Provenance names the application that assembled the graph, so a receiver knows who to trust and which version wrote it.
 `ApplicationDevice(bundle:)` reads it from your bundle.
 
-> Note: The host defaults to `HostDevice.current()` and the conversion instant to now.
-> Pass both explicitly when you replay a persisted event, so the retry rebuilds the same bytes.
+> Note: The host defaults to `HostDevice.current()` and the export instant to now.
+> The producer freezes the instant, the application, the host and the studies with each event, so a redelivery before the receipt is released rebuilds the same bytes, even after an update.
 
 ## Assemble it
 
-Once per installation, derive the systems, create the scope and name the application.
+Once per installation, create the scope and name the application.
 `hmacKey` is the `SymmetricKey` you load from the keychain, `keyID` and `epoch` the values persisted beside it.
 
 ```swift
-let systems = try DeploymentIdentifierSystems.derived(root: "https://study.example.org/fhir", keyID: keyID, epoch: epoch)
-let identityScope = try OpaqueIdentityScope(systems: systems, keyID: keyID, epoch: epoch, key: hmacKey)
+let identityScope = try OpaqueIdentityScope(root: "https://study.example.org/fhir", keyID: keyID, epoch: epoch, key: hmacKey)
 let application = try ApplicationDevice(bundle: .main)
 ```
 
-Per export, reserve the next sequence and create the context, using every default.
-`producerInstance` is the UUID persisted with the installation, `nextSequence` the counter you durably advanced first, and `installationToken` the token that names this HealthKit store.
+Build the producer and the exporter once per configuration, and rebuild both when the participant, the studies or the application change.
+`ledgerStorage` is your app's ledger storage and `installationToken` the token that names this HealthKit store.
 
 ```swift
-let event = try ExchangeEventIdentifier(system: systems.event, producerInstance: producerInstance, sequence: nextSequence)
-let context = HealthKitConversionContext(event: ExchangeEventContext(
-    subject: .logical(participant),
-    event: event,
+let producer = try ExchangeProducer(
     identityScope: identityScope,
-    repositoryScope: try BusinessIdentifier(system: "https://study.example.org/fhir/NamingSystem/healthkit-store", value: installationToken),
-    application: application
-))
+    subject: .logical(participant),
+    application: application,
+    storage: ledgerStorage
+)
+let exporter = try HealthKitFHIRExporter(
+    producer: producer,
+    repositoryScope: try BusinessIdentifier(system: "https://study.example.org/fhir/NamingSystem/healthkit-store", value: installationToken)
+)
 ```
 
-Convert one sample and hand the Bundle to your uploader.
+The exporter states the application that wrote a sample only for sources you classify: HealthKit does not say whether a source is an application or a device, so by default no writer is stated.
+Pass the bundle identifiers you know to be applications as `options.writer = .applications(...)`, or classify each source with `.classify`; see ``HealthKitFHIRExporter/WriterPolicy``.
+
+Export each batch an anchored query delivered and store each graph's bytes verbatim.
+Every input is a ``HealthKitFHIRExporter/Record``: most samples export as ``HealthKitFHIRExporter/Record/sample(_:)``, and an ECG, a heartbeat series and a workout route need the companion data HealthKit keeps outside the sample (see <doc:#Beyond-the-minimum>).
+Release the receipt only once the stored graphs and the HealthKit anchor are durably committed; until then an exact redelivery reproduces the same events, byte for byte.
 
 ```swift
-let conversion = try HealthKitConverter().convert(sample, context: context)
-try upload(JSONEncoder().encode(conversion.primary.bundle))
+let receipt = try exporter.export(records: samples.map { .sample($0) }) { export in
+    if let graph = export.graph {
+        try stage(graph.json)
+    }
+}
+try commitAnchor()
+receipt.release()
 ```
+
+`receive` is called once per graph or refusal, as soon as it is ready: once for most records, once plus once per registered symptom for an ECG, and never for a workout route while `route` is `.omit`, which emits nothing and is not a refusal.
+After the release, exporting a sample again mints a new event for the same identities, so feed the exporter from anchored queries, which deliver each sample once, not from overlapping date windows.
+`export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way reserves its event and is then refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
+A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
 
 What to persist, and why:
 
 | Value | Why |
 | --- | --- |
-| The event sequence, before emitting | A reused sequence under different content is a conflict the receiver cannot resolve. |
+| The ledger storage | It numbers every event and freezes what each one states until the receipt is released. Never restore it from a backup or copy it to another installation. |
 | The key id and epoch, beside the key | They select the systems every identity is minted under. |
-| The producer instance id | It is half of every event identifier. |
 | The installation token | It is the repository scope of every identity this store mints. |
+| Each deletion's `deletedAfter` and `detectedAt`, until its retraction's receipt is released | They key the retraction event; a retry that recomputes them mints a second one. |
 
-> Important: Never reuse an event sequence for different content, and never change the key or the epoch without deriving new systems.
-> Both break the promise that one identifier means one thing.
+> Important: Never change the key or the epoch without deriving new systems.
+> It breaks the promise that one identifier means one thing.
 
 ## Beyond the minimum
 
-<doc:ConfiguringAConversion> explains every input in depth and <doc:TheConversionGraph> what the graph contains.
+<doc:ConfiguringTheExporter> explains every input in depth and <doc:TheExchangeGraph> what the graph contains.
 
-A known enrollment travels as a `StudyEnrollment` in `studies`, and the graph carries its ResearchStudy, PlanDefinition and ResearchSubject entries; `Subject.bundled` adds the Patient itself.
+A known enrollment travels as a `StudyEnrollment` in the producer's `studies`, and every graph carries its ResearchStudy, PlanDefinition and ResearchSubject entries; `Subject.bundled` adds the Patient itself.
 
 ```swift
-let event = ExchangeEventContext(
-    subject: .logical(participant),
-    event: eventIdentifier,
+let producer = try ExchangeProducer(
     identityScope: identityScope,
-    repositoryScope: repositoryScope,
+    subject: .logical(participant),
     application: application,
-    studies: [enrollment]
+    studies: [enrollment],
+    storage: ledgerStorage
 )
 ```
 
-Every disclosure in ``HealthKitConversionOptions`` defaults to omission: the UDI stays out unless ``HealthKitUDIDisclosurePolicy/authorizedUDI`` says otherwise, a workout route needs `RouteDisclosurePolicy.authorized`, and the clear HealthKit UUID needs `GovernedSourceIdentifierDisclosurePolicy.authorized` under a system you own.
+Every disclosure in ``HealthKitFHIRExporter/Options`` defaults to omission: the UDI stays out unless `udi` is `.authorized`, a workout route needs `route` `.authorized`, and the clear HealthKit UUID needs `nativeIdentifier` to authorize a system you own.
 
 ```swift
-let options = HealthKitConversionOptions(udiDisclosure: .authorizedUDI)
-let disclosing = HealthKitConversionContext(event: event, options: options)
+var options = HealthKitFHIRExporter.Options()
+options.udi = .authorized
+let disclosing = try HealthKitFHIRExporter(producer: producer, repositoryScope: repositoryScope, options: options)
 ```
 
-A `RepositoryID` per `ExchangeGraphNode` in `repositoryIDs` gives a graph node the logical id your repository assigned.
+``HealthKitFHIRExporter/RolePolicy`` states how your application relates to the measurement: `.gatewayForOwnWrites` marks the samples it wrote in the build it runs as mediated by it, and `.gatewayApplication` names a distinct application that mediated every measurement; it travels as a second application snapshot when an Observation output names it through `observation-gatewayDevice`.
+Heartbeat series, workout route, clinical record and CDA graphs state no gateway application.
 
-`ConverterRole.gatewayApplication` names a distinct application that mediated the measurement; it travels as a second application snapshot.
-
-``HealthKitConversion/warnings`` lists what a graph does not carry although its record did; log them with that graph's event.
-``HealthKitConversionSet/warnings`` flattens them over every graph of the set, so an ECG's list includes its symptoms'.
-``HealthKitConversionWarning/recordingDeviceOmitted(deviceName:)`` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``RecordingDeviceResolver`` when you have one.
-``HealthKitConversionWarning/sourceOffsetUnavailable(field:)`` names the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone, and its diagnostic is located there.
-``HealthKitConversionWarning/unmodeledMetadataWithheld(keys:)`` names, in sorted order, the metadata keys outside the typed allowlist that were left out.
-
-A batch supplies a context per sample, because every sample is its own event, and keeps a ``HealthKitRecordFailure`` for every sample it did not emit.
+Some samples keep what their graph needs outside the sample, and HealthKit makes you query it separately.
+Pass them as a ``HealthKitFHIRExporter/Record`` with that companion data: an `HKElectrocardiogram` with its voltages and correlated symptoms, each symptom an event of its own; an `HKHeartbeatSeriesSample` with its ``HealthKitFHIRExporter/Record/Heartbeat``s; an `HKWorkoutRoute` with its locations.
+A symptom exported with its ECG has the event key and identities it has when a category query exports it as a plain sample, so exporting it both ways before either receipt is released restates one event; once released, the second export is a second event for the same identities, which a receiver deduplicates. Export each symptom one way, such as with its ECG, to avoid that.
+A clinical record and a CDA document carry their bytes in the sample, so they export as ``HealthKitFHIRExporter/Record/sample(_:)``.
 
 ```swift
-let batch = HealthKitConverter().convert(samples) { sample in
-    try persistedContext(for: sample)
+let receipt = try exporter.export(records: [.electrocardiogram(ecg, voltages: voltages, symptoms: symptoms)]) { export in
+    if let graph = export.graph {
+        try stage(graph.json)
+    }
 }
 ```
+
+A sample that cannot be exported is refused in place with a ``HealthKitConversionError``, and the call continues.
+``HealthKitFHIRExporter/Export/warnings`` lists what a graph does not carry although its record did, each a registered `ProducerDiagnostic`; log them with that graph's event.
+`mobile-omission.recording-device` means the sample's device had no per-unit token, so no recording Device was emitted; supply your own ``HealthKitFHIRExporter/RecordingDeviceResolver`` through ``HealthKitFHIRExporter/RecordingDevicePolicy/custom(_:)`` when you have one.
+`mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone; a blood-pressure correlation that names none takes the zone its systolic and diastolic members agree on.
+`mobile-omission.unmodeled-metadata` is located at `HKSample.metadata`: the record, or a correlation member, workout event or workout activity it contains, carried metadata its graph does not represent.
+A graph represents a key only through the element the guide maps it to, on an output that has that element: a time zone on a heartbeat series is withheld, because a document has no element for it, and so is a key one source type reads stated on another.
+`HKMetadataKeyWasUserEntered` stated `false` is represented by omission and never reported, and a blood-pressure member's zone or manual entry that the record takes is represented as the record's own.
+An omission an option chose, such as `recordingDevice` `.omit`, is never a warning.
+Each export keeps its own warnings; to log a batch without a line per sample, add every export to one ``HealthKitFHIRExporter/WarningReport`` and log its description once.
+It names each kind with its HealthKit cause and how many samples of each type raised it.
 
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
-A deleted sample is taken back with ``HealthKitConverter/retraction(for:context:occurred:)``.
-It needs only the deleted object's UUID and the sample type it was reported for; the source record and every output it retracts are recomputed, so nothing from the sample's conversion has to be kept.
-`retractionContext` is a ``HealthKitConversionContext`` for the retraction's own new event, under the same identity scope, repository scope and native-identifier disclosure as the conversion.
-HealthKit reports a deletion without its time, so `occurred` bounds it by the `deletedAfter` the deletion handler received and the time it was reported.
+A deleted sample is taken back with ``HealthKitFHIRExporter/retract(_:at:receive:)``.
+It needs only the deleted object's UUID and the sample type it was reported for; the source record and every output it retracts are recomputed, so nothing from the sample's export has to be kept.
+HealthKit reports a deletion without its time, so a ``HealthKitFHIRExporter/Deletion`` bounds it: after ``HealthKitFHIRExporter/Deletion/deletedAfter``, the instant the query that produced the previous anchor was issued, which GroveHealthKit's `HealthKitConstraint.handleDeletedObjects(_:ofType:deletedAfter:)` passes, and no later than ``HealthKitFHIRExporter/Deletion/detectedAt``, when the deletion was reported.
+With a raw `HKAnchoredObjectQuery`, persist the instant you issue each query beside the anchor it returns, and pass it as `deletedAfter` for the deletions the next query reports.
+`sampleType` is the `HKSampleType` the anchored query that reported the deletion ran for.
 
 ```swift
-guard let type = HealthKitSourceType(sampleType.hkSampleType) else {
-    return // Never converted, so there is nothing to retract.
+guard let type = HealthKitSourceType(sampleType) else {
+    return // Never exported, so there is nothing to retract.
 }
-let retraction = try HealthKitConverter().retraction(
-    for: HealthKitSourceRecord(uuid: deletedObject.uuid, type: type),
-    context: retractionContext,
-    occurred: .period(start: deletedAfter, end: reportedAt)
-)
+let deletion = HealthKitFHIRExporter.Deletion(uuid: deletedObject.uuid, sourceType: type, deletedAfter: deletedAfter, detectedAt: reportedAt)
+let receipt = try exporter.retract([deletion]) { retraction in
+    if let graph = retraction.graph {
+        try stage(graph.json)
+    }
+}
 ```
 
-A target carries the HealthKit UUID as its native record identifier only when the context's native-identifier disclosure authorizes it, exactly as on the conversion that emitted it.
-``HealthKitConverter/retractionTargets(for:context:)`` names the targets alone.
+Each deletion is reported once, as a ``HealthKitFHIRExporter/Retraction``.
+A target carries the HealthKit UUID as its native record identifier only under the same `nativeIdentifier` option that disclosed it on the export.
+A deletion that names no output the exporter can have emitted, such as a workout route while `route` is `.omit`, reports ``HealthKitFHIRExporter/Retraction/Outcome/nothingToRetract`` and takes no event.
 
 `Observation.healthKitSample(syncIdentifier:)` and `ExchangeGraph.healthKitSamples()` read a graph back into HealthKit samples, syncing under the minted source-output identity.
+The projection reads an `effectiveDateTime` as an instant and an `effectivePeriod` as the sample's start and end, where the measurement's profile admits that datatype and HealthKit allows the duration, and refuses with a typed error otherwise.
 
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapter's output against the grove-fhir corpora and the official validator.
-
-> Tip: Keep the conversion context beside the outbox entry it produced; a retry then rebuilds identical bytes without touching the clock.
 
 ## Glossary
 
 | IG term | Swift |
 | --- | --- |
-| Exchange event | `ExchangeEventIdentifier` and `ExchangeEventContext` |
-| Exchange graph | `ExchangeGraph`, held by ``HealthKitConversion/graph`` |
+| Exchange event | `ExchangeEventIdentifier`, numbered by the `ExchangeProducer` |
+| Exchange graph | `ExchangeGraph`, delivered as ``HealthKitFHIRExporter/Export/graph`` |
 | Business identifier | `BusinessIdentifier` |
 | Identifier role | `GroveIdentifierRole` on a `RoledIdentifier` |
 | Opaque identity | minted by `OpaqueIdentityScope` under `DeploymentIdentifierSystems` |
-| Entry-node key | `EntryNodeKey` |
+| Entry-node key | the `Canonicals.entryNodeKey` extension on each Bundle entry |
 | Subject | `Subject` |
 | Study enrollment | `StudyEnrollment` |
-| Application, host and recording device | `ApplicationDevice`, `HostDevice`, `RecordingDevice` named by a ``RecordingDeviceResolver`` |
-| Writer | ``HealthKitWriter`` |
-| Retraction event and target | `RetractionEvent`, `RetractionTarget` |
+| Application, host and recording device | `ApplicationDevice`, `HostDevice`, `RecordingDevice` named by a ``HealthKitFHIRExporter/RecordingDevicePolicy`` |
+| Writer | ``HealthKitFHIRExporter/WriterPolicy/Classification``, answered by a ``HealthKitFHIRExporter/WriterPolicy`` |
+| Retraction event and target | ``HealthKitFHIRExporter/Retraction``, whose graph's Provenance targets carry the `Canonicals.retractionTargetRole` extension |
 | Governed source identifier | `GovernedSourceIdentifierDisclosurePolicy` |
-| Producer diagnostic | `ProducerDiagnostic` from ``HealthKitConversionError/diagnostic`` or ``HealthKitConversionWarning/diagnostic`` |
+| Producer diagnostic | `ProducerDiagnostic` from ``HealthKitConversionError/diagnostic`` or ``HealthKitFHIRExporter/Export/warnings`` |
 
 ## Topics
 
 ### Essentials
 
-- <doc:ConfiguringAConversion>
-- <doc:TheConversionGraph>
+- <doc:ConfiguringTheExporter>
+- <doc:TheExchangeGraph>
 
-### Conversion
+### Exporting
 
-- ``HealthKitConverter``
-- ``HealthKitConversionContext``
-- ``HealthKitConversionOptions``
-- ``RecordingDeviceResolver``
-- ``HealthKitLocalIdentifierResolver``
+- ``HealthKitFHIRExporter``
 - ``HealthKitSourceType``
-- ``HealthKitSourceRecord``
-- ``HealthKitConversion``
-- ``HealthKitConversionSet``
-- ``HealthKitConversionWarning``
-- ``HealthKitRecordFailure``
-
-### Recording and clinical inputs
-
-- ``HealthKitECGRecord``
-- ``HealthKitHeartbeatSeriesRecord``
-- ``HealthKitHeartbeat``
-- ``HealthKitWorkoutRouteRecord``
-- ``HealthKitClinicalRecord``
-- ``HealthKitClinicalAttachment``
-
-### Disclosure policies
-
-- ``HealthKitWriter``
-- ``HealthKitUDIDisclosurePolicy``
 
 ### Refusals
 
 - ``HealthKitConversionError``
-- ``HealthKitValueFailure``
-- ``HealthKitECGEvidenceFailure``
-- ``HealthKitClinicalRecordFailure``
-- ``HealthKitDependencyFailure``
-- ``HealthKitMetadataField``
 
-### Coverage
+### Catalog
 
 - ``HealthKitCatalog``
-- ``HealthKitCatalogEntry``
-- ``HealthKitMeasurementContract``
-- ``HealthKitOutput``
-- ``HealthKitUnitBinding``
-- ``FieldDisposition``
 
 ### Reading observations back
 

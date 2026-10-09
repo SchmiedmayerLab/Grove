@@ -9,19 +9,19 @@
 public import Foundation
 
 
-public enum HostDeviceError: Error, Equatable, Sendable {
-    case blankOperatingSystemVersion
-    case blankName
-    case blankManufacturer
-    case blankModelNumber
-}
-
-
 /// Event-time facts about the host a conversion runs on.
 ///
 /// An application release and its host operating system have different lifecycles, so FHIR
 /// represents them as two Device snapshots connected through `Device.parent`.
 public struct HostDevice: Hashable, Sendable {
+    /// Why the stated host is not one a Device snapshot can name.
+    public enum ValidationError: Error, Equatable, Sendable {
+        case blankOperatingSystemVersion
+        case blankName
+        case blankManufacturer
+        case blankModelNumber
+    }
+
     /// The hardware model identifier `uname` reports, such as `iPhone17,1`.
     private static var hardwareModel: String? {
         var system = utsname()
@@ -36,9 +36,9 @@ public struct HostDevice: Hashable, Sendable {
     public let modelNumber: String?
 
     /// The token the host's event-scoped Device snapshot identity is minted from:
-    /// `<model number>|<operating-system version>`, such as `iPhone17,1|26.0`, the model empty when unknown.
+    /// `<model number>|<operating-system version>`, such as `iPhone17,1|26.0.0`, the model empty when unknown.
     public var sourceDeviceToken: String {
-        "\(modelNumber ?? "")|\(operatingSystemVersion)"
+        Self.sourceDeviceToken(modelNumber: modelNumber, operatingSystemVersion: operatingSystemVersion)
     }
 
     public init(
@@ -46,7 +46,7 @@ public struct HostDevice: Hashable, Sendable {
         name: String? = nil,
         manufacturer: String? = nil,
         modelNumber: String? = nil
-    ) throws(HostDeviceError) {
+    ) throws(ValidationError) {
         guard !operatingSystemVersion.isBlank else {
             throw .blankOperatingSystemVersion
         }
@@ -70,6 +70,12 @@ public struct HostDevice: Hashable, Sendable {
         self.name = nil
         self.manufacturer = nil
         self.modelNumber = modelNumber
+    }
+
+    /// The snapshot token of a host that states these facts; every host snapshot in a graph, the host a
+    /// questionnaire response's writer ran on included, is minted from it.
+    package static func sourceDeviceToken(modelNumber: String?, operatingSystemVersion: String) -> String {
+        "\(modelNumber ?? "")|\(operatingSystemVersion)"
     }
 
     /// A snapshot of the current host: the hardware model `uname` reports and the operating-system version,

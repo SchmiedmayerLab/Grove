@@ -253,10 +253,19 @@ public struct SensorKitPPGRecord: Sendable {
         sourceRecordID: SensorKitSourceRecordID,
         nativeRecording: SensorKitNativeRecording
     ) throws {
+        try self.init(sourceRecordID: sourceRecordID, nativeRecording: nativeRecording, decoded: nil)
+    }
+
+    /// `decoded` is the strict decode of `nativeRecording`'s bytes when the caller already made it.
+    init(
+        sourceRecordID: SensorKitSourceRecordID,
+        nativeRecording: SensorKitNativeRecording,
+        decoded: SensorKitPPGRecording?
+    ) throws {
         guard nativeRecording.format == .photoplethysmogramSamples else {
             throw SensorKitRecordError.invalidRecordingFormat
         }
-        let recording = try SensorKitPPGRecording(data: nativeRecording.bytes)
+        let recording = try decoded ?? SensorKitPPGRecording(data: nativeRecording.bytes)
         guard let summary = recording.summary else {
             throw SensorKitRecordError.emptySamples
         }

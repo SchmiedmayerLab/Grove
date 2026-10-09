@@ -30,24 +30,26 @@ extension ExchangeGraph {
 
     /// Every Grove-typed resource Identifier carries one closed role, a canonical value, and a role no
     /// other Identifier of the resource repeats.
-    static func validateResourceIdentifiers(entries: [BundleEntry]) throws(ExchangeGraphError) {
-        for entry in entries {
+    static func validateResourceIdentifiers(
+        entries: [BundleEntry],
+        document: ValidationDocument
+    ) throws(ExchangeGraphError) {
+        for (entryIndex, entry) in entries.enumerated() {
             guard let resource = entry.resource else {
                 continue
             }
-            let rawIdentifiers: [[String: Any]]
+            let decodedIdentifiers: [Result<Identifier, any Error>]
             do {
-                let object = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(resource)) as? [String: Any]
-                rawIdentifiers = object?["identifier"] as? [[String: Any]] ?? []
+                decodedIdentifiers = try document.resourceIdentifiers(at: entryIndex)
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
             var roles: Set<GroveIdentifierRole> = []
-            for (index, rawIdentifier) in rawIdentifiers.enumerated() {
+            for (index, decoded) in decodedIdentifiers.enumerated() {
                 let location = "\(resource.resourceType).identifier[\(index)]"
                 let identifier: Identifier
                 do {
-                    identifier = try JSONDecoder().decode(Identifier.self, from: try JSONSerialization.data(withJSONObject: rawIdentifier))
+                    identifier = try decoded.get()
                 } catch {
                     throw .invalidEntries(String(reflecting: type(of: error)))
                 }
@@ -78,13 +80,13 @@ extension ExchangeGraph {
 
     /// Every entry carries one complete key that is its resource's highest-priority typed identifier
     /// (or its entry-node key), no two entries share a key, and each fullUrl is the key's UUIDv5.
-    static func validateEntryKeys(entries: [BundleEntry]) throws(ExchangeGraphError) {
+    static func validateEntryKeys(entries: [BundleEntry], document: ValidationDocument) throws(ExchangeGraphError) {
         var keys: Set<BusinessIdentifier> = []
         var resourceTypesByFullURL: [String: String] = [:]
         for (index, entry) in entries.enumerated() {
-            let key = try entryKey(in: entry, index: index)
+            let key = try entryKey(in: entry, index: index, document: document)
             guard keys.insert(key.identifier).inserted else {
-                throw diagnostic(.mobileExchangeDistinctEntryKey, location: "Bundle.entry[\(index)].extension.valueIdentifier")
+                throw diagnostic(.mobileExchangeDistinctEntryKey, location: entryKeyLocation(index))
             }
             guard let fullURL = entry.fullUrl?.value?.url.absoluteString,
                   resourceTypesByFullURL.updateValue(entry.resource?.resourceType ?? "", forKey: fullURL) == nil,
@@ -92,30 +94,31 @@ extension ExchangeGraph {
                 throw .ruleViolation(.mobileExchangeDeterministicFullUrl)
             }
         }
-        try validateLiteralReferences(in: entries, resourceTypesByFullURL: resourceTypesByFullURL)
+        try validateLiteralReferences(in: entries, document: document, resourceTypesByFullURL: resourceTypesByFullURL)
     }
 
-    private static func entryKey(in entry: BundleEntry, index: Int) throws(ExchangeGraphError) -> RoledIdentifier {
-        guard let resource = entry.resource else {
+    private static func entryKey(
+        in entry: BundleEntry,
+        index: Int,
+        document: ValidationDocument
+    ) throws(ExchangeGraphError) -> RoledIdentifier {
+        guard entry.resource != nil else {
             throw .invalidEntries("Bundle entry has no resource")
         }
-        let entryKeys = entry.extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
-        guard entryKeys.count == 1,
-              case .identifier(let identifier)? = entryKeys.first?.value,
-              let key = try? RoledIdentifier(identifier),
+        guard let key = document.entryKey(at: index),
               allowedEntryKeyRoles.contains(key.role) else {
             throw .ruleViolation(.mobileExchangeEntryNodeKey)
         }
         let typed: [RoledIdentifier]
         do {
-            typed = try ExchangeIdentity.typedResourceIdentifiers(in: resource)
+            typed = try document.typedResourceIdentifiers(at: index)
         } catch {
             throw .ruleViolation(.mobileExchangeEntryNodeKey)
         }
         let selected = identifierPriority.lazy.compactMap { role in typed.first { $0.role == role } }.first
         if key.role == .entryNode {
             guard selected == nil else {
-                throw diagnostic(.mobileExchangeEntryKeySelection, location: "Bundle.entry[\(index)].extension.valueIdentifier")
+                throw diagnostic(.mobileExchangeEntryKeySelection, location: entryKeyLocation(index))
             }
             return key
         }
@@ -123,33 +126,33 @@ extension ExchangeGraph {
             throw diagnostic(.mobileOutputSourceOutputRequired, location: "Bundle.entry[\(index)].resource.identifier")
         }
         guard selected == key else {
-            throw diagnostic(.mobileExchangeEntryKeySelection, location: "Bundle.entry[\(index)].extension.valueIdentifier")
+            throw diagnostic(.mobileExchangeEntryKeySelection, location: entryKeyLocation(index))
         }
         return key
     }
 
     private static func validateLiteralReferences(
         in entries: [BundleEntry],
+        document: ValidationDocument,
         resourceTypesByFullURL: [String: String]
     ) throws(ExchangeGraphError) {
-        for entry in entries {
-            guard let resource = entry.resource else {
-                continue
-            }
-            let json: Any
+        for (index, entry) in entries.enumerated() where entry.resource != nil {
+            let json: Any?
+            let objects: [[String: Any]]
             do {
-                json = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(resource))
+                json = try document.resourceObject(at: index)
+                objects = try document.resourceObjects(at: index)
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
             guard let object = json as? [String: Any], object["contained"] == nil else {
                 throw .ruleViolation(.mobileExchangeContainedResourceProhibited)
             }
-            var references: [LiteralReference] = []
-            ExchangeIdentity.walkJSONObjects(json) { object in
-                if let reference = object["reference"] as? String, object["identifier"] == nil {
-                    references.append(LiteralReference(value: reference, declaredType: object["type"] as? String))
+            let references = objects.compactMap { node -> LiteralReference? in
+                guard let reference = node["reference"] as? String, node["identifier"] == nil else {
+                    return nil
                 }
+                return LiteralReference(value: reference, declaredType: node["type"] as? String)
             }
             for reference in references {
                 guard !reference.value.hasPrefix("#") else {

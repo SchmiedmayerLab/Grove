@@ -68,6 +68,47 @@ struct HealthKitSampleProjectionTests {
         #expect(sample.metadata?[HKMetadataKeySyncIdentifier] == nil)
     }
 
+    /// Foundation's calendar would read this lexeme as the Julian date, nine days later.
+    @Test("A reading from before the 1582 calendar reform lands on its proleptic Gregorian instant")
+    func preReformInstantIsProleptic() throws {
+        var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
+        observation.effective = .dateTime(FHIRPrimitive(try DateTime("1500-01-01T00:00:00Z")))
+        let sample = try observation.healthKitSample()
+        #expect(sample.startDate == Date(timeIntervalSince1970: -14_831_769_600))
+        #expect(sample.endDate == sample.startDate)
+    }
+
+    @Test("A sample from before the 1582 calendar reform converts and projects back onto its own instant")
+    func preReformSampleRoundTrips() async throws {
+        let start = Date(timeIntervalSince1970: -14_831_769_600)
+        let sample = try StoredSampleFixtures.stored(
+            HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 70), start: start, end: start),
+            uuid: GoldenFixtures.uuid(1)
+        )
+        let projected = try await ExporterFixtures.export(sample).graph.healthKitSamples()
+        #expect(projected.failures.isEmpty)
+        #expect(projected.conversions.map(\.startDate) == [start])
+    }
+
+    /// `HKSample` raises an uncatchable exception for an end at or after `Date.distantFuture`, 4001-01-01T00:00:00Z.
+    @Test("An effective instant HealthKit cannot hold refuses instead of aborting the process")
+    func instantPastHealthKitRefuses() throws {
+        func observation(at lexeme: String) throws -> ModelsR4.Observation {
+            var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
+            observation.effective = .dateTime(FHIRPrimitive(try DateTime(lexeme)))
+            return observation
+        }
+        for lexeme in ["4000-12-31T23:59:59.999Z", "4001-01-01T00:30:00+01:00"] {
+            #expect(try observation(at: lexeme).healthKitSample().endDate == (try DateTime(lexeme).asNSDate()), "\(lexeme)")
+        }
+        for lexeme in ["4001-01-01T00:00:00Z", "4000-12-31T23:30:00-01:00", "9999-12-31T23:59:59Z"] {
+            let refused = try observation(at: lexeme)
+            #expect(throws: HealthKitSampleProjectionError.effectiveMissing(id: "body-weight"), "\(lexeme)") {
+                try refused.healthKitSample()
+            }
+        }
+    }
+
     @Test("A sync identifier makes re-projection replace, and an amendment outrank the original")
     func syncIdentityFollowsTheObservation() throws {
         var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
@@ -221,5 +262,8 @@ struct HealthKitSampleProjectionTests {
         #expect(throws: HealthKitSampleProjectionError.effectiveMissing(id: "body-weight")) {
             try observation.healthKitSample()
         }
+        let diagnostic = HealthKitSampleProjectionError.effectiveMissing(id: "body-weight").diagnostic
+        #expect(diagnostic.code == "mobile-input.effective-period-invalid")
+        #expect(diagnostic.location == "Observation.effective")
     }
 }

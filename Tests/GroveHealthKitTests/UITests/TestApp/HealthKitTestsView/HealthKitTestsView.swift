@@ -97,8 +97,12 @@ struct HealthKitTestsView: View {
     @MainActor
     private func checkInitialSamplesAuthStatus() async {
         let reqs = healthKit.initialConfigDataAccessRequirements
-        let readFullyAuthd = await reqs.read.allSatisfy { @MainActor type in
-            await healthKit.didAskForAuthorization(toRead: type)
+        var readFullyAuthd = true
+        for type in reqs.read {
+            guard await healthKit.didAskForAuthorization(toRead: type) else {
+                readFullyAuthd = false
+                break
+            }
         }
         let writeFullyAuthd = reqs.write.allSatisfy { type in
             healthKit.didAskForAuthorization(toWrite: type)

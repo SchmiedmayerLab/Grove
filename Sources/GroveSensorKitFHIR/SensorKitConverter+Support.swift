@@ -7,7 +7,7 @@
 //
 
 // FHIR R4 resource constructors intentionally spell out every audit and identity field together.
-// swiftlint:disable function_parameter_count multiline_literal_brackets
+// swiftlint:disable multiline_literal_brackets
 
 import CryptoKit
 import FHIRModelsExtensions
@@ -45,28 +45,15 @@ extension SensorKitConverter {
         return entry
     }
 
-    static func baseObservation(
-        code: Coding,
-        profiles: [String],
-        sourceTypeCode: String,
-        sourceIdentifier: RoledIdentifier,
-        outputIdentifier: RoledIdentifier,
-        context: SensorKitConversionContext,
-        recordingDeviceURL: String?,
-        converterURL: String
-    ) throws -> Observation {
+    /// An Observation's own content: its code, profiles and source-type extension. The assembler adds its
+    /// identifiers, subject, device and study references.
+    static func baseObservation(code: Coding, profiles: [String], sourceTypeCode: String) -> Observation {
         var observation = Observation(
             code: CodeableConcept(coding: [code]),
             status: FHIRPrimitive(.final)
         )
         observation.meta = Meta(profile: profiles.map(profile))
-        observation.identifier = [sourceIdentifier.fhirIdentifier, outputIdentifier.fhirIdentifier]
-        observation.subject = try context.subject
-        observation.device = recordingDeviceURL.map(reference)
-        observation.extension = [sourceTypeExtension(sourceTypeCode)] + (try contextExtensions(
-            context,
-            converterURL: converterURL
-        ))
+        observation.extension = [sourceTypeExtension(sourceTypeCode)]
         return observation
     }
 
@@ -76,51 +63,6 @@ extension SensorKitConverter {
                 stringLiteral: SensorKitContract.sourceTypeExtension
             )),
             value: .code(code.asFHIRStringPrimitive())
-        )
-    }
-
-    static func contextExtensions(
-        _ context: SensorKitConversionContext,
-        converterURL: String
-    ) throws -> [Extension] {
-        var extensions = try context.researchStudies.map { study in
-            Extension(url: Canonicals.researchStudy, value: .reference(study))
-        }
-        if let gatewayURL = try context.event.gatewayURL(converterURL: converterURL) {
-            extensions.append(Extension(
-                url: Canonicals.gatewayDevice,
-                value: .reference(reference(gatewayURL))
-            ))
-        }
-        return extensions
-    }
-
-    static func conversionProvenance(
-        sourceIdentifier: Identifier,
-        targetURLs: [String],
-        converterURL: String,
-        recordedAt: Date
-    ) throws -> Provenance {
-        Provenance(
-            activity: CodeableConcept(coding: [Coding(
-                code: "transform".asFHIRStringPrimitive(),
-                system: Canonicals.isoLifecycleEvent
-            )]),
-            agent: [ProvenanceAgent(
-                type: CodeableConcept(coding: [Coding(
-                    code: "assembler".asFHIRStringPrimitive(),
-                    system: Canonicals.provenanceParticipantType
-                )]),
-                who: reference(converterURL)
-            )],
-            entity: [ProvenanceEntity(
-                role: FHIRPrimitive(.source),
-                what: Reference(identifier: sourceIdentifier)
-            )],
-            meta: Meta(profile: [profile(SensorKitContract.conversionProvenanceProfile)]),
-            occurred: .dateTime(FHIRPrimitive(try exactDateTime(recordedAt, timeZone: .utc))),
-            recorded: FHIRPrimitive(try exactInstant(recordedAt, timeZone: .utc)),
-            target: targetURLs.map(reference)
         )
     }
 
@@ -230,10 +172,6 @@ extension SensorKitConverter {
         )
     }
 
-    static func exactInstant(_ date: Date, timeZone: TimeZone) throws -> Instant {
-        try Instant(exactDateTime(date, timeZone: timeZone).description)
-    }
-
     static func epochDecimal(_ date: Date, field: String, index: Int?) throws -> Decimal {
         try decimal(date.timeIntervalSince1970, field: field, index: index)
     }
@@ -276,7 +214,7 @@ extension SensorKitConverter {
         // payload format Coding values.
         return Coding(
             code: code.rawValue.asFHIRStringPrimitive(),
-            system: RecordingFormatContract.recordingFormatCodeSystem.asFHIRURIPrimitive()
+            system: RegisteredRecordingFormat.codeSystem.asFHIRURIPrimitive()
         )
     }
 

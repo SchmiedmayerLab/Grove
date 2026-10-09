@@ -22,6 +22,15 @@ import Testing
 /// them — which validates cleanly and loses every statistic. Nothing pinned either.
 @Suite
 struct WorkoutAndStateOfMindContractTests {
+    /// The workout's compiled content.
+    private static func workoutContent() throws -> HealthKitWorkoutContent {
+        let plan = HealthKitContentPlan[.workout]
+        guard case .observation(let observation) = plan.route, case .workout(let content) = observation.value else {
+            throw plan.refusal
+        }
+        return content
+    }
+
     @Test
     func stateOfMindComponentCodesComeFromTheContract() throws {
         let contract = HealthKitMeasurementCatalog.stateOfMind
@@ -62,20 +71,19 @@ struct WorkoutAndStateOfMindContractTests {
     }
 
     @Test
-    func eachWorkoutActivityCollapsesOntoAPublishedSharedCode() {
+    func eachWorkoutActivityCollapsesOntoAPublishedSharedCode() throws {
         let published = Set(MeasurementCatalog.workout.allowedValues)
-        for (rawValue, name) in HealthKitConverter.workoutActivityCases {
-            guard let activity = HKWorkoutActivityType(rawValue: rawValue) else {
-                Issue.record("\(name) has no HKWorkoutActivityType for raw value \(rawValue)")
-                continue
-            }
-            let shared = HealthKitConverter.sharedWorkoutActivity(activity)
-            #expect(published.contains(shared), "\(shared) is not in the published workout vocabulary")
+        let workout = try Self.workoutContent()
+        #expect(workout.activities.count == HealthKitWorkoutContent.activityTable.count)
+        for row in HealthKitWorkoutContent.activityTable {
+            #expect(HKWorkoutActivityType(rawValue: row.raw) != nil, "\(row.name) has no HKWorkoutActivityType for raw value \(row.raw)")
+            let shared = workout.activity(row.raw).value.coding?.first?.code?.value?.string
+            #expect(shared.map(published.contains) == true, "\(row.name) reports as \(shared ?? "nothing"), not a published activity")
         }
     }
 
     @Test
-    func activitiesWithTheirOwnDistanceTypeUseIt() {
+    func activitiesWithTheirOwnDistanceTypeUseIt() throws {
         // Reading walking/running distance for every activity silently drops the distance of every
         // workout that records a different type.
         let expected: [(HKWorkoutActivityType, HKQuantityTypeIdentifier)] = [
@@ -87,16 +95,22 @@ struct WorkoutAndStateOfMindContractTests {
             (.wheelchairRunPace, .distanceWheelchair),
             (.running, .distanceWalkingRunning)
         ]
+        let workout = try Self.workoutContent()
         for (activity, identifier) in expected {
-            #expect(HealthKitConverter.distanceType(for: activity) == identifier)
+            #expect(workout.activity(activity.rawValue).distance == identifier)
         }
     }
 
     @Test
-    func bothTypesResolveThroughIdentifierAndSampleLookupAlike() {
-        // A caller holding only an identifier must get the same binding as one holding a sample.
-        #expect(HealthKitCatalog.binding(forSourceTypeIdentifier: HKWorkoutType.workoutType().identifier) != nil)
-        #expect(HealthKitCatalog.binding(forSourceTypeIdentifier: HKSampleType.stateOfMindType().identifier) != nil)
+    func bothTypesResolveThroughIdentifierAndSampleLookupAlike() throws {
+        // A caller holding only a sample type, a deletion, must reach the plan a sample converts through.
+        for sampleType in [HKWorkoutType.workoutType(), HKSampleType.stateOfMindType()] as [HKSampleType] {
+            let type = try #require(HealthKitSourceType(sampleType))
+            guard case .observation = HealthKitContentPlan[type].route else {
+                Issue.record("\(type.rawValue) converts to no Observation")
+                continue
+            }
+        }
     }
 }
 
