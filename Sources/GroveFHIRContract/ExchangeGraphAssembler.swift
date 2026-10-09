@@ -273,9 +273,9 @@ extension ExchangeGraphAssembler {
 // MARK: - Provenance
 
 extension ExchangeGraphAssembler {
-    /// The FHIR forms of the last conversion instant stated, kept because every record one call reserves shares its
-    /// instant and a FHIR instant or dateTime is built by parsing its lexeme. `last` is guarded by `lock`.
-    private final class ConversionTimes: @unchecked Sendable {
+    /// The FHIR forms of the last conversion instant one thread stated, kept because every record one call reserves
+    /// shares its instant and a FHIR instant or dateTime is built by parsing its lexeme.
+    private final class ConversionTimes {
         private struct Forms {
             let milliseconds: Int64
             let offsetMinutes: Int64
@@ -283,7 +283,6 @@ extension ExchangeGraphAssembler {
             let occurred: DateTime
         }
 
-        private let lock = NSLock()
         private var last: Forms?
 
         /// `instant` in UTC, for `Provenance.recorded`, and at `occurredOffset`'s offset, for `Provenance.occurred`:
@@ -291,11 +290,8 @@ extension ExchangeGraphAssembler {
         func forms(of instant: Date, occurredOffset: TimeZone) throws -> (recorded: Instant, occurred: DateTime) {
             let milliseconds = ExchangeInstant.millisecondsSinceEpoch(instant)
             let offsetMinutes = Int64(occurredOffset.secondsFromGMT(for: instant) / 60)
-            lock.lock()
-            let cached = last
-            lock.unlock()
-            if let cached, cached.milliseconds == milliseconds, cached.offsetMinutes == offsetMinutes {
-                return (cached.recorded, cached.occurred)
+            if let last, last.milliseconds == milliseconds, last.offsetMinutes == offsetMinutes {
+                return (last.recorded, last.occurred)
             }
             let forms = Forms(
                 milliseconds: milliseconds,
@@ -303,14 +299,12 @@ extension ExchangeGraphAssembler {
                 recorded: try ExchangeInstant.fhirInstant(instant),
                 occurred: try ExchangeInstant.fhirDateTime(instant, offsetIn: occurredOffset)
             )
-            lock.lock()
             last = forms
-            lock.unlock()
             return (forms.recorded, forms.occurred)
         }
     }
 
-    private static let conversionTimes = ConversionTimes()
+    private static let conversionTimes = PerThread { ConversionTimes() }
 
     /// The conversion Provenance as every exchange graph states it: the transform activity, the converting application as
     /// the assembler agent, the source record as the entity, with the writer that authored it when the graph names one, and
@@ -336,7 +330,7 @@ extension ExchangeGraphAssembler {
         at instant: Date,
         occurredOffset: TimeZone = .utc
     ) throws -> Provenance {
-        let times = try conversionTimes.forms(of: instant, occurredOffset: occurredOffset)
+        let times = try conversionTimes.current.forms(of: instant, occurredOffset: occurredOffset)
         var entity = ProvenanceEntity(role: FHIRPrimitive(.source), what: Reference(identifier: source.identifier.fhirIdentifier))
         entity.agent = authorURL.map { url in
             [ProvenanceAgent(

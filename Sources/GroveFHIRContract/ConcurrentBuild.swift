@@ -11,8 +11,9 @@ import Foundation
 
 /// How an exporter builds its records' outputs on several child tasks while its caller receives them in input order.
 package enum ConcurrentBuild {
-    /// The records built at once before their outputs are handed over, which bounds how many wait for the caller.
-    package static let chunkSize = 256
+    /// The most elements one child task builds: enough to keep a task's own cost small, few enough that faster cores
+    /// take on more slices than slower ones.
+    package static let maximumSliceSize = 8
 
     /// The child tasks an exporter builds on when its options set no limit: one per active core.
     package static var defaultWidth: Int {
@@ -49,23 +50,57 @@ package enum ConcurrentBuild {
         }
     }
 
-    /// Builds `elements` a chunk at a time with `build` on at most `width` child tasks, and hands each element and what
-    /// was built for it to `hand` in input order, on the calling task.
+    /// Builds every element with `build` on at most `width` child tasks, a few contiguous elements per task, and hands
+    /// each element and what was built for it to `hand` in input order, on the calling task, as soon as every element
+    /// before it was handed over. At most `2 × width` slices are built ahead of the one `hand` waits for.
     ///
-    /// - Throws: `CancellationError` before a chunk once the task is cancelled, or what `hand` throws; either stops the
-    ///   remaining chunks.
+    /// - Throws: `CancellationError` once the task is cancelled, before the next slice is handed over, or what `hand`
+    ///   throws; either stops the build.
     package nonisolated(nonsending) static func forEach<Element: Sendable, Built: Sendable>(
         _ elements: [Element],
         width: Int,
         build: @escaping @Sendable (Element) -> Built,
         hand: (Element, Built) throws -> Void
     ) async throws {
-        for chunkStart in stride(from: elements.startIndex, to: elements.endIndex, by: chunkSize) {
-            try Task.checkCancellation()
-            let chunk = elements[chunkStart..<min(chunkStart + chunkSize, elements.endIndex)]
-            let built = await map(chunk, width: width, build)
-            for (element, value) in zip(chunk, built) {
-                try hand(element, value)
+        let width = max(width, 1)
+        guard width > 1, elements.count > 1 else {
+            for element in elements {
+                try Task.checkCancellation()
+                try hand(element, build(element))
+            }
+            return
+        }
+        try Task.checkCancellation()
+        // About four slices per child task, so faster cores build more of them than slower ones.
+        let sliceSize = min(max(elements.count / (width * 4), 1), maximumSliceSize)
+        let slices = stride(from: elements.startIndex, to: elements.endIndex, by: sliceSize).map {
+            $0..<min($0 + sliceSize, elements.endIndex)
+        }
+        try await withThrowingTaskGroup(of: (Int, [Built]).self) { group in
+            var started = 0
+            var handed = 0
+            var waiting: [Int: [Built]] = [:]
+            while handed < slices.count {
+                // Keep `width` slices building, and at most `2 × width` waiting to be handed over.
+                while started < slices.count, started - handed - waiting.count < width, started - handed < 2 * width {
+                    let index = started
+                    let slice = elements[slices[index]]
+                    group.addTask {
+                        (index, slice.map(build))
+                    }
+                    started += 1
+                }
+                guard let (index, built) = try await group.next() else {
+                    break
+                }
+                waiting[index] = built
+                while let built = waiting.removeValue(forKey: handed) {
+                    try Task.checkCancellation()
+                    for (element, value) in zip(elements[slices[handed]], built) {
+                        try hand(element, value)
+                    }
+                    handed += 1
+                }
             }
         }
     }

@@ -94,7 +94,7 @@ public final class HealthKitFHIRExporter: Sendable {
     /// - the producer's ledger throws `ExchangeProducer.LedgerError` when a stored entry is corrupt or
     ///   from a later layout, and `ExchangeProducer.resetLedger()` always recovers;
     /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and so is the `CancellationError` a
-    ///   cancelled task stops with between chunks; the reservations made stay for the redelivery.
+    ///   cancelled task stops with before it hands over its next records; the reservations made stay for the redelivery.
     public nonisolated(nonsending) func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,

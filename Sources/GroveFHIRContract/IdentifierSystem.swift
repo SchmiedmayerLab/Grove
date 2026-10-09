@@ -24,8 +24,9 @@ public struct IdentifierSystem: Hashable, Sendable {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~:/?#[]@!$&'()*+,;=-".utf8
     )
 
-    /// The systems that validated so far: a deployment states the same few systems in every graph, so each is parsed once.
-    private static let validated = ValidatedSystems()
+    /// The systems that validated so far: a deployment states the same few systems in every graph, so each thread parses
+    /// each once.
+    private static let validated = PerThread { ValidatedSystems() }
 
     public let rawValue: String
     /// ``rawValue`` as the `Identifier.system` that states it, parsed once.
@@ -34,7 +35,8 @@ public struct IdentifierSystem: Hashable, Sendable {
     /// Validates a namespace that is not known until runtime — read from configuration, a server
     /// response, or a deployment property list.
     public init(_ rawValue: String) throws(ExchangeIdentityError) {
-        if let uri = Self.validated.uri(for: rawValue) {
+        let validated = Self.validated.current
+        if let uri = validated.uri(for: rawValue) {
             self.rawValue = rawValue
             self.uri = uri
             return
@@ -63,7 +65,7 @@ public struct IdentifierSystem: Hashable, Sendable {
         }
         self.rawValue = rawValue
         self.uri = FHIRPrimitive(FHIRURI(stringLiteral: rawValue))
-        Self.validated.insert(uri, for: rawValue)
+        validated.insert(uri, for: rawValue)
     }
 
     private static func hasValidURICharacters(_ bytes: ArraySlice<UInt8>) -> Bool {
@@ -182,27 +184,19 @@ extension IdentifierSystem {
 
 
 extension IdentifierSystem {
-    /// The systems that passed validation, with the URI each states. Validation depends on the text alone, so a hit is
-    /// as good as validating again; failures are never kept, and the set stops growing at a bound no deployment reaches.
-    private final class ValidatedSystems: @unchecked Sendable { // `uris` is guarded by `lock`.
+    /// The systems that passed validation on one thread, with the URI each states. Validation depends on the text
+    /// alone, so a hit is as good as validating again; failures are never kept, and the set stops growing at a bound no
+    /// deployment reaches.
+    private final class ValidatedSystems {
         private static let bound = 256
 
-        private let lock = NSLock()
         private var uris: [String: FHIRPrimitive<FHIRURI>] = [:]
 
         func uri(for rawValue: String) -> FHIRPrimitive<FHIRURI>? {
-            lock.lock()
-            defer {
-                lock.unlock()
-            }
-            return uris[rawValue]
+            uris[rawValue]
         }
 
         func insert(_ uri: FHIRPrimitive<FHIRURI>, for rawValue: String) {
-            lock.lock()
-            defer {
-                lock.unlock()
-            }
             if uris.count < Self.bound {
                 uris[rawValue] = uri
             }

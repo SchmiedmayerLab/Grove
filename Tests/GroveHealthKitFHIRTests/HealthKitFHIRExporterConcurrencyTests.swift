@@ -17,9 +17,9 @@ import Testing
 
 @Suite("HealthKitFHIRExporter concurrency")
 struct HealthKitFHIRExporterConcurrencyTests {
-    /// More heart rates than one chunk builds at once, so a call builds and hands over two chunks.
+    /// More heart rates than eight child tasks build ahead of the caller, so a call hands over slices while it still builds.
     static func samples() throws -> [HKSample] {
-        try (0..<(ConcurrentBuild.chunkSize + 44)).map { index in
+        try (0..<(2 * 8 * ConcurrentBuild.maximumSliceSize + 44)).map { index in
             let uuid = try #require(UUID(uuidString: String(format: "00000000-0000-4000-8000-%012x", index)))
             return try GoldenFixtures.heartRate(uuid: uuid)
         }
