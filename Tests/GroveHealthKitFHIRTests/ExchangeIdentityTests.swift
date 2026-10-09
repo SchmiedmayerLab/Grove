@@ -503,4 +503,23 @@ extension GroveFHIRExchangeIdentityTests {
             )
         }
     }
+
+    @Test("Splitting at an ASCII separator yields the Character split's fields, a colon joined by a combining mark included")
+    func asciiSplitMatchesCharacterSplit() {
+        let values = [
+            "n0:role:1:digest", "n0::1:", ":", "", "::a::", "a:b:c:d:e", "n0:r\u{301}ole:1:x", "n0:\u{301}x:y",
+            "\u{E9}:\u{FC}", "a\r\n:b", "\u{1F600}:x"
+        ]
+        for value in values {
+            for omitting in [true, false] {
+                for maxSplits in [2, Int.max] {
+                    #expect(
+                        value.split(ascii: 0x3A, maxSplits: maxSplits, omittingEmptySubsequences: omitting)
+                            == value.split(separator: ":", maxSplits: maxSplits, omittingEmptySubsequences: omitting),
+                        "\(value.debugDescription), maxSplits \(maxSplits), omitting \(omitting)"
+                    )
+                }
+            }
+        }
+    }
 }

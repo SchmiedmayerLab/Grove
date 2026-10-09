@@ -33,14 +33,14 @@ package struct ExchangeGraphAssembler: Sendable {
     /// The device snapshots of one graph.
     struct Devices {
         let converter: ConverterSnapshots
-        let recording: RecordingSnapshot?
+        let recording: IdentifiedDevice?
         let writer: WriterSnapshots?
 
         /// Every Device entry, in its fixed order.
         var entries: [IdentifiedDevice] {
             var entries: [IdentifiedDevice] = []
             if let recording {
-                entries.append(recording.device)
+                entries.append(recording)
             }
             entries += [converter.host, converter.application]
             if let gateway = converter.gateway {
@@ -85,7 +85,7 @@ package struct ExchangeGraphAssembler: Sendable {
             studyReferences: studyContext.studyReferences,
             recordingURL: devices.recording?.url,
             gatewayURL: devices.converter.gatewayURL,
-            converterURL: devices.converter.applicationURL
+            converterURL: devices.converter.application.url
         )
         let outputs = try decoratedOutputs(of: draft, surroundings: surroundings)
         let provenanceNode = try EntryNodeKey(
@@ -97,16 +97,16 @@ package struct ExchangeGraphAssembler: Sendable {
         let provenance = try Self.conversionProvenance(
             of: draft.sourceRecord,
             targetURLs: outputs.map(\.url),
-            assemblerURL: devices.converter.applicationURL,
+            assemblerURL: devices.converter.application.url,
             // The writer application is the Provenance author; without one the Provenance names none.
-            authorURL: devices.writer?.applicationURL,
+            authorURL: devices.writer?.application.url,
             profile: envelope.adapter.provenanceProfile,
             at: draft.instant
         )
 
         var entries = outputs.map { BundleEntry(identifier: $0.identity, fullURL: $0.url, resource: $0.resource.proxy) }
         entries.append(contentsOf: studyContext.allEntries)
-        entries.append(contentsOf: try devices.entries.map { try BundleEntry(identifier: $0.identity, resource: ResourceProxy(with: $0.resource)) })
+        entries.append(contentsOf: devices.entries.map(\.entry))
         entries.append(try BundleEntry(identifier: provenanceNode.identifier, resource: ResourceProxy(with: provenance)))
         return AssembledExchangeGraph(
             graph: try graph(entries: entries, draft: draft, timestamp: provenance.recorded, onValidation: onValidation),
@@ -119,7 +119,7 @@ package struct ExchangeGraphAssembler: Sendable {
                 provenance: provenanceNode.identifier,
                 childOutputs: outputs.dropFirst().map(\.identity),
                 sourceArtifact: outputs[0].artifact,
-                recordingDeviceSnapshot: devices.recording?.device.identity,
+                recordingDeviceSnapshot: devices.recording?.identity,
                 writerSnapshot: devices.writer?.application.identity,
                 writerHostSnapshot: devices.writer?.entries.isEmpty == false ? devices.writer?.host.identity : nil
             )

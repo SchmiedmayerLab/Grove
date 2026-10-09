@@ -19,7 +19,6 @@ extension ExchangeGraphAssembler {
     struct ConverterSnapshots {
         let host: IdentifiedDevice
         let application: IdentifiedDevice
-        let applicationURL: String
         /// A distinct application that mediated the measurement; `gatewayURL` names the converter itself when it did.
         let gateway: IdentifiedDevice?
         let gatewayURL: String?
@@ -29,15 +28,9 @@ extension ExchangeGraphAssembler {
         }
     }
 
-    struct RecordingSnapshot {
-        let device: IdentifiedDevice
-        let url: String
-    }
-
     struct WriterSnapshots {
         let application: IdentifiedDevice
         let host: IdentifiedDevice
-        let applicationURL: String
         /// The writer snapshots the graph carries as entries of their own: none when the converter
         /// already states the application, and the host only when the converter does not state it.
         let entries: [IdentifiedDevice]
@@ -74,33 +67,26 @@ extension ExchangeGraphAssembler {
 
     private func converterSnapshots(event: ExchangeEventIdentifier, role: ConverterRole, statesGateway: Bool) throws -> ConverterSnapshots {
         let host = try hostSnapshot(envelope.host, event: event)
-        let application = try applicationSnapshot(envelope.application, event: event, parentURL: try host.identity.fullURLString)
-        let applicationURL = try application.identity.fullURLString
+        let application = try applicationSnapshot(envelope.application, event: event, parentURL: host.url)
         switch role {
         case .assembler:
-            return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)
+            return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: nil)
         case .gateway:
-            return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: applicationURL)
+            return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: application.url)
         case .gatewayApplication(let gatewayApplication) where gatewayApplication.sourceDeviceToken == envelope.application.sourceDeviceToken:
             // The named gateway is the converting application itself: one snapshot key, so it is the converter's
             // snapshot, as under `.gateway`, never a second entry under the same key.
-            return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: applicationURL)
+            return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: application.url)
         case .gatewayApplication(let gatewayApplication):
             guard statesGateway else {
-                return ConverterSnapshots(host: host, application: application, applicationURL: applicationURL, gateway: nil, gatewayURL: nil)
+                return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: nil)
             }
             let gateway = try applicationSnapshot(gatewayApplication, event: event, parentURL: nil)
-            return ConverterSnapshots(
-                host: host,
-                application: application,
-                applicationURL: applicationURL,
-                gateway: gateway,
-                gatewayURL: try gateway.identity.fullURLString
-            )
+            return ConverterSnapshots(host: host, application: application, gateway: gateway, gatewayURL: gateway.url)
         }
     }
 
-    private func recordingSnapshot(_ draft: ExchangeRecordingDeviceDraft?, event: ExchangeEventIdentifier) throws -> RecordingSnapshot? {
+    private func recordingSnapshot(_ draft: ExchangeRecordingDeviceDraft?, event: ExchangeEventIdentifier) throws -> IdentifiedDevice? {
         guard let draft else {
             return nil
         }
@@ -113,7 +99,7 @@ extension ExchangeGraphAssembler {
         let snapshot = try scope.deviceSnapshot(event: event, role: .recordingDevice, sourceDeviceToken: draft.device.stableUnitToken)
         var resource = draft.resource
         resource.identifier = [snapshot.fhirIdentifier, stable.fhirIdentifier]
-        return RecordingSnapshot(device: IdentifiedDevice(resource: resource, identity: snapshot), url: try snapshot.fullURLString)
+        return try IdentifiedDevice(resource: resource, identity: snapshot)
     }
 
     private func writerSnapshots(
@@ -125,16 +111,13 @@ extension ExchangeGraphAssembler {
             return nil
         }
         let host = try hostSnapshot(writer.host, event: event)
-        var snapshot = try applicationSnapshot(writer.application, event: event, parentURL: try host.identity.fullURLString)
+        var snapshot = try applicationSnapshot(writer.application, event: event, parentURL: host.url)
         if !writer.statesVersion {
-            var resource = snapshot.resource
-            resource.version = nil
-            snapshot = IdentifiedDevice(resource: resource, identity: snapshot.identity)
+            snapshot.resource.version = nil
         }
         return WriterSnapshots(
             application: snapshot,
             host: host,
-            applicationURL: try snapshot.identity.fullURLString,
             entries: Self.writerEntries(application: snapshot, host: host, stated: converter.identities)
         )
     }
@@ -149,7 +132,7 @@ extension ExchangeGraphAssembler {
             manufacturer: host.manufacturer
         )
         resource.identifier = [identity.fhirIdentifier]
-        return IdentifiedDevice(resource: resource, identity: identity)
+        return try IdentifiedDevice(resource: resource, identity: identity)
     }
 
     private func applicationSnapshot(
@@ -170,7 +153,7 @@ extension ExchangeGraphAssembler {
         )
         resource.identifier = [identity.fhirIdentifier] + (envelope.adapter.applicationIdentifier?(application).map { [$0] } ?? [])
         resource.parent = parentURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
-        return IdentifiedDevice(resource: resource, identity: identity)
+        return try IdentifiedDevice(resource: resource, identity: identity)
     }
 }
 

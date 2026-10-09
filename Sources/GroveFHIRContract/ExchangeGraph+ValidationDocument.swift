@@ -81,15 +81,22 @@ extension ExchangeGraph {
 
         /// The `identifier` array of the resource types a graph usually carries, as the model holds it; `nil` for any
         /// other type, whose identifiers are decoded from the JSON.
-        private static func identifiers(of resource: ResourceProxy) -> [Identifier]? { // swiftlint:disable:this discouraged_optional_collection
-            switch resource {
+        static func identifiers(of resource: ResourceProxy) -> [Identifier]? { // swiftlint:disable:this discouraged_optional_collection
+            switch resource { // swiftlint:disable:previous cyclomatic_complexity
             case .observation(let resource): resource.identifier ?? []
             case .device(let resource): resource.identifier ?? []
             case .researchStudy(let resource): resource.identifier ?? []
             case .researchSubject(let resource): resource.identifier ?? []
             case .planDefinition(let resource): resource.identifier ?? []
             case .patient(let resource): resource.identifier ?? []
-            case .provenance: []
+            case .documentReference(let resource): resource.identifier ?? []
+            case .medicationAdministration(let resource): resource.identifier ?? []
+            case .medicationStatement(let resource): resource.identifier ?? []
+            case .specimen(let resource): resource.identifier ?? []
+            case .visionPrescription(let resource): resource.identifier ?? []
+            // A Provenance states no identifier; a QuestionnaireResponse states at most one, not an array, which the JSON
+            // path reads as none.
+            case .provenance, .questionnaireResponse: []
             default: nil
             }
         }

@@ -40,6 +40,9 @@ enum LedgerEntryCoding {
     static let version = 1
 
     static func encode(_ payload: some Encodable) throws -> Data {
+        if let bytes = try WireJSONEncoder.encode(payload) {
+            return bytes
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return try encoder.encode(payload)

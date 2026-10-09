@@ -67,15 +67,9 @@ struct WireJSONEncoderTests {
                 (try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])?["entry"] as? [[String: Any]]
             )
             for (entry, json) in zip(graph.bundle.entry ?? [], entries) {
-                let modelIdentifiers: [Identifier]
-                switch entry.resource {
-                case .observation(let resource): modelIdentifiers = resource.identifier ?? []
-                case .device(let resource): modelIdentifiers = resource.identifier ?? []
-                case .researchStudy(let resource): modelIdentifiers = resource.identifier ?? []
-                case .researchSubject(let resource): modelIdentifiers = resource.identifier ?? []
-                case .planDefinition(let resource): modelIdentifiers = resource.identifier ?? []
-                case .patient(let resource): modelIdentifiers = resource.identifier ?? []
-                default: continue
+                guard let resource = entry.resource,
+                      let modelIdentifiers = ExchangeGraph.ValidationDocument.identifiers(of: resource) else {
+                    continue
                 }
                 let rawIdentifiers = (json["resource"] as? [String: Any])?["identifier"] as? [[String: Any]] ?? []
                 let decoded = try rawIdentifiers.map {

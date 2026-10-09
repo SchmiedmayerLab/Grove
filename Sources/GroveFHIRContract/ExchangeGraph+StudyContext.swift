@@ -79,7 +79,7 @@ extension ExchangeGraph {
               let value = identifier.value?.value?.string else {
             return nil
         }
-        let parts = value.split(separator: ":", maxSplits: 2)
+        let parts = value.split(ascii: 0x3A, maxSplits: 2)
         guard parts.count == 3, parts[0] == "n0" else {
             return nil
         }

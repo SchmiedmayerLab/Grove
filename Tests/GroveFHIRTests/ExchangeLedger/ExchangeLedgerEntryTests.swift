@@ -79,6 +79,38 @@ struct ExchangeLedgerEntryTests {
         #"{"facts":"<digest>","fingerprint":"context-a","instance":"\#(instance)","instant":\#(instant),"sequence":"\#(sequence)","v":\#(version)}"#
     }
 
+    @Test("Ledger values are the bytes JSONEncoder writes with sorted members and unescaped slashes")
+    func ledgerValuesAreJSONEncoderBytes() throws {
+        struct Member: Codable {
+            let system: String
+            let value: String
+        }
+        struct Payload: Codable {
+            enum CodingKeys: String, CodingKey {
+                case version = "v"
+                case text, absent, present, instant, members
+            }
+
+            let version: Int
+            let text: String
+            let absent: String?
+            let present: String?
+            let instant: Int64
+            let members: [Member]
+        }
+        let payload = Payload(
+            version: 1,
+            text: "https://example.org/a/b?c=\"d\"\\\u{1}\u{E9}\u{1F600}",
+            absent: nil,
+            present: "x",
+            instant: -62_135_596_800_000,
+            members: [Member(system: "urn:ietf:rfc:3986", value: "1"), Member(system: "", value: "")]
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        #expect(try LedgerEntryCoding.encode(payload) == (try encoder.encode(payload)))
+    }
+
     @Test("G18: facts with several studies, a versioned canonical and absent host fields decode to themselves")
     func factsRoundTrip() throws {
         let studies = [

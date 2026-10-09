@@ -56,6 +56,20 @@ extension String {
         }
         self = isNegative ? "-" + magnitude : magnitude
     }
+
+    /// `split(separator:maxSplits:omittingEmptySubsequences:)` at an ASCII separator, splitting ASCII text by its
+    /// bytes: there every byte is its own Character, so the fields are the same without breaking text into graphemes.
+    package func split(ascii separator: UInt8, maxSplits: Int = .max, omittingEmptySubsequences: Bool = true) -> [Substring] {
+        guard utf8.allSatisfy({ $0 < 0x80 }) else {
+            return split(
+                separator: Character(Unicode.Scalar(separator)),
+                maxSplits: maxSplits,
+                omittingEmptySubsequences: omittingEmptySubsequences
+            )
+        }
+        return utf8.split(separator: separator, maxSplits: maxSplits, omittingEmptySubsequences: omittingEmptySubsequences)
+            .map { Substring($0) }
+    }
 }
 
 

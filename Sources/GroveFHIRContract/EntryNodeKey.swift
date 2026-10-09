@@ -91,7 +91,7 @@ package struct EntryNodeKey: Hashable, Sendable {
 
     /// The ``Claim`` a persisted key states, or `nil` when its value is not shaped like an entry-node key.
     static func claim(in identifier: RoledIdentifier) -> Claim? {
-        let fields = identifier.identifier.value.split(separator: ":", omittingEmptySubsequences: false)
+        let fields = identifier.identifier.value.split(ascii: 0x3A, omittingEmptySubsequences: false)
         guard fields.count == 4,
               fields[0] == "n0",
               let ordinal = try? CanonicalNonnegativeDecimal(String(fields[2])) else {

@@ -286,7 +286,7 @@ struct ProducerSurfaceTests {
         func device(_ token: String, role: OpaqueIdentityScope.DeviceRole) throws -> IdentifiedDevice {
             let context = TestEvent.test()
             let identity = try context.identityScope.deviceSnapshot(event: context.event, role: role, sourceDeviceToken: token)
-            return IdentifiedDevice(resource: Device(), identity: identity)
+            return try IdentifiedDevice(resource: Device(), identity: identity)
         }
         let converterHost = try device("iPhone17,1|26.0.0", role: .host)
         let converterApplication = try device("org.grovealliance.test|1.0|1", role: .application)

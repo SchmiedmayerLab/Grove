@@ -51,10 +51,10 @@ struct GraphFrame {
         let application = try Self.applicationDevice(
             writer: extracted.writer,
             context: context,
-            hostURL: try host.map { try $0.identity.fullURLString }
+            hostURL: host?.url
         )
         self.application = application
-        self.applicationURL = try application.identity.fullURLString
+        self.applicationURL = application.url
     }
 
     /// The ordinal counts within the node role, not across the Bundle, so a graph carrying one
@@ -90,7 +90,7 @@ extension GraphFrame {
         entries += studies.entries
         entries.append(try BundleEntry(identifier: responseNode.identifier, resource: ResourceProxy(with: carriedResponse)))
         for device in [host, application].compactMap(\.self) {
-            entries.append(try BundleEntry(identifier: device.identity, resource: ResourceProxy(with: device.resource)))
+            entries.append(device.entry)
         }
         return entries
     }
@@ -246,7 +246,7 @@ extension GraphFrame {
         )
         var device = ExchangeGraphAssembler.hostDevice(operatingSystemVersion: osVersion, modelNumber: model)
         device.identifier = [identity.fhirIdentifier]
-        return IdentifiedDevice(resource: device, identity: identity)
+        return try IdentifiedDevice(resource: device, identity: identity)
     }
 
     /// The writer's application snapshot, carrying the writer's own identifier and naming its host when there is one.
@@ -272,6 +272,6 @@ extension GraphFrame {
         )
         device.identifier = [identity.fhirIdentifier, writer.applicationIdentifier.fhirIdentifier]
         device.parent = hostURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
-        return IdentifiedDevice(resource: device, identity: identity)
+        return try IdentifiedDevice(resource: device, identity: identity)
     }
 }
