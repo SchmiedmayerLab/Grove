@@ -333,7 +333,7 @@ struct ConversionThroughputBenchmark {
                 lap(2)
                 try ExchangeGraph.validateResourceIdentifiers(entries: entries, document: document)
                 lap(3)
-                try ExchangeIdentity.validateIdentifierSystemRoles(inBundleJSON: document.bundleObject())
+                try ExchangeIdentity.validateIdentifierSystemRoles(in: document.bundleObjects())
                 lap(4)
                 try ExchangeGraph.validateEntryKeys(entries: entries, document: document)
                 lap(5)

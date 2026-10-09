@@ -13,22 +13,22 @@ package import Foundation
 package enum ExchangeIdentity {
     /// Verifies that one Grove Identifier namespace has one graph role throughout a Bundle.
     ///
-    /// The check walks nested identifier-only References and Provenance entities as well as
+    /// The check covers nested identifier-only References and Provenance entities as well as
     /// top-level resource and entry identifiers. Untyped and non-Grove identifiers remain open.
     ///
-    /// - Parameter json: The parsed JSON of the whole Bundle.
-    static func validateIdentifierSystemRoles(inBundleJSON json: Any) throws {
+    /// - Parameter objects: Every JSON object of the whole Bundle.
+    static func validateIdentifierSystemRoles(in objects: [[String: Any]]) throws {
         var roleBySystem: [String: GroveIdentifierRole] = [:]
-        try walkJSONObjects(json) { object in
+        for object in objects {
             guard let type = object["type"] as? [String: Any],
                   let codings = type["coding"] as? [[String: Any]] else {
-                return
+                continue
             }
             let groveRoleCodings = codings.filter {
                 $0["system"] as? String == Canonicals.identifierRoleCodeSystemValue
             }
             guard !groveRoleCodings.isEmpty else {
-                return
+                continue
             }
             guard groveRoleCodings.count == 1,
                   let rawRole = groveRoleCodings[0]["code"] as? String,
@@ -116,15 +116,22 @@ package enum ExchangeIdentity {
 
     /// Whether a value has the canonical wire form of a Grove opaque identity.
     package static func isCanonicalOpaqueIdentifierValue(_ value: String) -> Bool {
-        let components = value.split(separator: ":", omittingEmptySubsequences: false)
-        guard components.count == 4,
-              components[0] == "v0",
-              OpaqueIdentityScope.isValidKeyID(String(components[1])),
-              (try? EventSequence(String(components[2]))) != nil,
-              isUnpaddedBase64URLDigest(components[3]) else {
+        // `v0:<key id>:<epoch>:<digest>`, read as slices of `value`. No field admits a colon or any non-ASCII byte, so
+        // splitting at colon bytes accepts exactly what splitting at colon characters does.
+        let utf8 = value.utf8
+        guard utf8.starts(with: "v0:".utf8) else {
             return false
         }
-        return true
+        let keyIDStart = utf8.index(utf8.startIndex, offsetBy: 3)
+        guard let keyIDEnd = utf8[keyIDStart...].firstIndex(of: 0x3A),
+              let epochEnd = utf8[utf8.index(after: keyIDEnd)...].firstIndex(of: 0x3A) else {
+            return false
+        }
+        let epoch = value[utf8.index(after: keyIDEnd)..<epochEnd]
+        // The epoch is an EventSequence: canonical and positive.
+        return OpaqueIdentityScope.isValidKeyID(value[keyIDStart..<keyIDEnd])
+            && CanonicalNonnegativeDecimal.isCanonical(epoch) && epoch != "0"
+            && isUnpaddedBase64URLDigest(value[utf8.index(after: epochEnd)...])
     }
 
     /// Whether `text` has the form of a SHA-256 digest in base64url without padding: 43 characters of `[A-Za-z0-9_-]`.

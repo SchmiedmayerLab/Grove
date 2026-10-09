@@ -257,7 +257,7 @@ public struct ExchangeGraph: Sendable {
     ) throws(ExchangeGraphError) {
         try validateResourceIdentifiers(entries: entries, document: document)
         do {
-            try ExchangeIdentity.validateIdentifierSystemRoles(inBundleJSON: document.bundleObject())
+            try ExchangeIdentity.validateIdentifierSystemRoles(in: document.bundleObjects())
         } catch let error as ExchangeIdentityError {
             throw .ruleViolation(Self.rule(for: error))
         } catch {

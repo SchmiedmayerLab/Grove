@@ -138,19 +138,21 @@ extension ExchangeGraph {
     ) throws(ExchangeGraphError) {
         for (index, entry) in entries.enumerated() where entry.resource != nil {
             let json: Any?
+            let objects: [[String: Any]]
             do {
                 json = try document.resourceObject(at: index)
+                objects = try document.resourceObjects(at: index)
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
             guard let object = json as? [String: Any], object["contained"] == nil else {
                 throw .ruleViolation(.mobileExchangeContainedResourceProhibited)
             }
-            var references: [LiteralReference] = []
-            ExchangeIdentity.walkJSONObjects(object) { node in
-                if let reference = node["reference"] as? String, node["identifier"] == nil {
-                    references.append(LiteralReference(value: reference, declaredType: node["type"] as? String))
+            let references = objects.compactMap { node -> LiteralReference? in
+                guard let reference = node["reference"] as? String, node["identifier"] == nil else {
+                    return nil
                 }
+                return LiteralReference(value: reference, declaredType: node["type"] as? String)
             }
             for reference in references {
                 guard !reference.value.hasPrefix("#") else {

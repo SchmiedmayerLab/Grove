@@ -31,12 +31,10 @@ extension ExchangeGraph {
         )
         do {
             for (fullURL, entry) in entriesByFullURL {
-                guard let object = try document.resourceObject(at: entry.index) else {
-                    continue
-                }
-                var references: Set<String> = []
-                collectLiteralReferences(in: object, into: &references)
-                for reference in references where resourcesByFullURL[reference] != nil {
+                for object in try document.resourceObjects(at: entry.index) {
+                    guard let reference = object["reference"] as? String, resourcesByFullURL[reference] != nil else {
+                        continue
+                    }
                     adjacency[fullURL, default: []].insert(reference)
                     adjacency[reference, default: []].insert(fullURL)
                 }
@@ -62,19 +60,6 @@ extension ExchangeGraph {
         guard !disconnected else {
             throw .ruleViolation(.mobileSupportConnected)
         }
-    }
-
-    static func collectLiteralReferences(
-        in value: Any,
-        into references: inout Set<String>
-    ) {
-        var collected: Set<String> = []
-        ExchangeIdentity.walkJSONObjects(value) { object in
-            if let reference = object["reference"] as? String {
-                collected.insert(reference)
-            }
-        }
-        references.formUnion(collected)
     }
 
     static func validateAdapterOnlyOutputProfile(

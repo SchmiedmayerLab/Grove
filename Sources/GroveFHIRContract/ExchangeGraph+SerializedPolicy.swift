@@ -104,8 +104,7 @@ extension ExchangeGraph {
         struct ContainedReference: Error {}
         do {
             try ExchangeIdentity.walkJSONObjects(value) { object throws(ContainedReference) in
-                if let reference = object["reference"] as? String,
-                   reference.hasPrefix("#") {
+                if refersToContainedResource(object) {
                     throw ContainedReference()
                 }
             }
@@ -113,5 +112,10 @@ extension ExchangeGraph {
         } catch {
             return true
         }
+    }
+
+    /// Whether `object` is a Reference to a contained resource (`#id`).
+    static func refersToContainedResource(_ object: [String: Any]) -> Bool {
+        (object["reference"] as? String)?.hasPrefix("#") == true
     }
 }
