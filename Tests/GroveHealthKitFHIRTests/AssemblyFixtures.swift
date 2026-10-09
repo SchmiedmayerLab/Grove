@@ -36,10 +36,16 @@ enum AssemblyFixtures {
             }
             let evidence = try plan.ecgEvidence(ecg, voltages: voltages)
             return try exporter.assembly.convertECG(evidence, symptoms: symptoms, plan: plan, request: request, symptomRequests: symptomRequests)
-        case let .heartbeatSeries(series, beats):
-            return try exporter.assembly.convertHeartbeatSeries(series, beats: beats, plan: plan, request: request)
-        case let .workoutRoute(route, locations):
-            return try exporter.assembly.convertWorkoutRoute(route, locations: locations, plan: plan, request: request)
+        case let .heartbeatSeries(series, _):
+            let recording = try #require(record.recording(content: plan)).get()
+            return try exporter.assembly.convertHeartbeatSeries(series, recording: recording, plan: plan, request: request)
+        case let .workoutRoute(route, _):
+            // The exporter plans nothing for a route its options omit.
+            guard inputs.options.route == .authorized else {
+                return []
+            }
+            let recording = try #require(record.recording(content: plan)).get()
+            return try exporter.assembly.convertWorkoutRoute(route, recording: recording, plan: plan, request: request)
         }
     }
 

@@ -57,30 +57,43 @@ extension HealthKitFHIRExporter.Record {
         ["symptoms", String(symptoms.count)] + symptoms.map { $0.uuid.uuidString.lowercased() }.sorted()
     }
 
-    /// The SHA-256, base64url without padding, of `serialized`, or ``unserializable`` when it throws.
-    private static func digest(_ serialized: () throws -> Data) -> String {
-        guard let bytes = try? serialized() else {
+    /// The SHA-256, base64url without padding, of `serialized`'s bytes, or ``unserializable`` when it holds an error.
+    private static func digest(_ serialized: Result<Data, any Error>?) -> String {
+        guard case .success(let bytes)? = serialized else {
             return unserializable
         }
         return Data(SHA256.hash(data: bytes)).base64URLEncodedStringWithoutPadding
     }
 
+    /// What the recording document of a heartbeat series or a workout route carries under `content`, the plan of the
+    /// record's type: its beat intervals or its track, or what serializing them throws; `nil` for any other record.
+    func recording(content: HealthKitContentPlan) -> Result<Data, any Error>? {
+        switch self {
+        case let .heartbeatSeries(series, beats):
+            Result { try content.recordingDocument().beatIntervals(seriesStart: series.startDate, heartbeats: beats) }
+        case let .workoutRoute(_, locations):
+            Result { try content.recordingDocument().locationTrack(locations) }
+        case .sample, .electrocardiogram:
+            nil
+        }
+    }
+
     /// The record content its event key does not version but its graph serializes: an ECG's symptom set (its
     /// Observation references their outputs) and voltages, a heartbeat series' beats and a route's locations. Each
-    /// kind enters as a tag and the digest of exactly what the assembly serializes from it under `content`, the plan
-    /// of the record's type. An ECG's voltages are read from its `evidence`, validated when the record was planned;
-    /// without it they do not validate, and the record is refused.
-    func companionParts(content: HealthKitContentPlan, evidence: HealthKitECGContent.Evidence?) -> [String] {
+    /// kind enters as a tag and the digest of exactly what the assembly serializes from it: the beats and locations
+    /// as `recording`, ``recording(content:)``, and an ECG's voltages as read from its `evidence`, validated when the
+    /// record was planned; without it they do not validate, and the record is refused.
+    func companionParts(evidence: HealthKitECGContent.Evidence?, recording: Result<Data, any Error>?) -> [String] {
         switch self {
         case .sample:
             return []
         case .electrocardiogram(_, _, let symptoms):
-            let voltages = evidence.map { evidence in Self.digest { try evidence.waveform.serialized() } } ?? Self.unserializable
+            let voltages = evidence.map { evidence in Self.digest(Result { try evidence.waveform.serialized() }) } ?? Self.unserializable
             return Self.symptomParts(symptoms) + ["voltages", voltages]
-        case let .heartbeatSeries(series, beats):
-            return ["beats", Self.digest { try content.recordingDocument().beatIntervals(seriesStart: series.startDate, heartbeats: beats) }]
-        case let .workoutRoute(_, locations):
-            return ["locations", Self.digest { try content.recordingDocument().locationTrack(locations) }]
+        case .heartbeatSeries:
+            return ["beats", Self.digest(recording)]
+        case .workoutRoute:
+            return ["locations", Self.digest(recording)]
         }
     }
 }

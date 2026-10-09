@@ -93,29 +93,26 @@ extension HealthKitContentPlan {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
-    /// Converts a heartbeat series into the recording document that carries its beats.
+    /// Converts a heartbeat series into the recording document that carries `recording`, its beat intervals.
     func convertHeartbeatSeries(
         _ series: HKHeartbeatSeriesSample,
-        beats: [HealthKitFHIRExporter.Record.Heartbeat],
+        recording: Data,
         plan: HealthKitContentPlan = HealthKitContentPlan[.heartbeatSeries],
         request: Request
     ) throws -> [Conversion] {
-        try documentGraph(for: series, plan: plan, document: try plan.recordingDocument().document(series, beats: beats), request: request)
+        try documentGraph(for: series, plan: plan, document: try plan.recordingDocument().document(recording: recording), request: request)
     }
 
-    /// Converts a workout route into the recording document that carries its track, or into nothing while
-    /// ``HealthKitFHIRExporter/Options/route`` is `.omit`: omitting the route drops an addition rather than rejecting
-    /// anything.
+    /// Converts a workout route into the recording document that carries `recording`, its track. The exporter plans
+    /// no event for a route while ``HealthKitFHIRExporter/Options/route`` is `.omit`, so only an authorized one gets
+    /// here.
     func convertWorkoutRoute(
         _ route: HKWorkoutRoute,
-        locations: [CLLocation],
+        recording: Data,
         plan: HealthKitContentPlan = HealthKitContentPlan[.workoutRoute],
         request: Request
     ) throws -> [Conversion] {
-        guard options.route == .authorized else {
-            return []
-        }
-        return try documentGraph(for: route, plan: plan, document: try plan.recordingDocument().document(locations: locations), request: request)
+        try documentGraph(for: route, plan: plan, document: try plan.recordingDocument().document(recording: recording), request: request)
     }
 
     /// The document carrying a clinical record's provider-issued FHIR resource or a CDA document's bytes, exactly as

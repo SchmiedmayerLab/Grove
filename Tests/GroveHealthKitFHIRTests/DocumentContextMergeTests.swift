@@ -61,7 +61,8 @@ struct DocumentContextMergeTests {
     func documentContextKeepsTheAdaptersStatements() throws {
         let record = try Self.record()
         let plan = HealthKitContentPlan[.heartbeatSeries]
-        var document = try plan.recordingDocument().document(record.series, beats: record.heartbeats)
+        let recording = try plan.recordingDocument().beatIntervals(seriesStart: record.series.startDate, heartbeats: record.heartbeats)
+        var document = try plan.recordingDocument().document(recording: recording)
         let period = Period(
             end: FHIRPrimitive(try ExchangeInstant.fhirDateTime(record.series.endDate)),
             start: FHIRPrimitive(try ExchangeInstant.fhirDateTime(record.series.startDate))

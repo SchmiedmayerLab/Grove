@@ -171,7 +171,13 @@ extension HealthKitFHIRExporter {
         /// An ECG record's evidence, validated once here; `nil` for any other record, and for an ECG whose evidence
         /// does not validate, which its delivery refuses for that reason.
         let evidence: HealthKitECGContent.Evidence?
-        /// The record's own event, or `nil` for a type the inventory does not list.
+        /// A heartbeat series' beat intervals or a route's track as its recording document carries them, serialized
+        /// once here for the event's fingerprint and its graph; `nil` for any other record.
+        let recording: Result<Data, any Error>?
+        /// Whether the options export nothing for the record, a workout route while `route` is `.omit`: it reserves
+        /// no event and hands nothing over, which is not a refusal.
+        let omitted: Bool
+        /// The record's own event, or `nil` for a type the inventory does not list and for an omitted record.
         let primary: Event?
         /// One entry per correlated symptom, in the record's order; `nil` for a symptom of an unregistered type.
         let symptoms: [Event?]
@@ -192,18 +198,25 @@ extension HealthKitFHIRExporter {
             } else {
                 nil
             }
-            let primary = content.map { content in
-                Self.event(for: sample, key: .active(type: content.sourceType, uuid: sample.uuid), exporter: exporter) {
-                    record.companionParts(content: content, evidence: evidence)
-                }
+            let omitted = if content != nil, case .workoutRoute = record { exporter.options.route == .omit } else { false }
+            let recording = omitted ? nil : content.flatMap { record.recording(content: $0) }
+            let primary = omitted ? nil : content.map { content in
+                Self.event(
+                    for: sample,
+                    key: .active(type: content.sourceType, uuid: sample.uuid),
+                    exporter: exporter,
+                    companionParts: record.companionParts(evidence: evidence, recording: recording)
+                )
             }
             self.record = record
             self.content = content
             self.evidence = evidence
+            self.recording = recording
+            self.omitted = omitted
             self.primary = primary
             // A record that is refused outright reserves nothing for its symptoms either.
             self.symptoms = primary == nil ? [] : record.symptoms.map { symptom in
-                ExchangeEventKey.active(symptom).map { Self.event(for: symptom, key: $0, exporter: exporter) { [] } }
+                ExchangeEventKey.active(symptom).map { Self.event(for: symptom, key: $0, exporter: exporter, companionParts: []) }
             }
         }
 
@@ -213,10 +226,18 @@ extension HealthKitFHIRExporter {
             for sample: HKSample,
             key: ExchangeEventKey,
             exporter: HealthKitFHIRExporter,
-            companionParts: () -> [String]
+            companionParts: [String]
         ) -> Event {
             let policies = ResolvedPolicies(sample, options: exporter.options)
-            return Event(request: exporter.context.request(for: key, recordParts: policies.fingerprintParts + companionParts()), policies: policies)
+            return Event(request: exporter.context.request(for: key, recordParts: policies.fingerprintParts + companionParts), policies: policies)
+        }
+
+        /// ``recording``'s bytes, or what serializing them threw.
+        func recordingPayload() throws -> Data {
+            guard let recording else {
+                preconditionFailure("Only a heartbeat series or a workout route is converted from its recording.")
+            }
+            return try recording.get()
         }
     }
 
@@ -239,6 +260,9 @@ extension HealthKitFHIRExporter {
         func delivery(_ exports: [Export], validation: Swift.Duration = .zero) -> Delivery {
             Delivery(exports: exports, building: start.map { ContinuousClock.now - $0 } ?? .zero, validation: validation)
         }
+        guard !plan.omitted else {
+            return delivery([])
+        }
         guard let primary = plan.primary, let content = plan.content else {
             let refusal = HealthKitConversionError.unregisteredSourceType(plan.record.sample.sampleType.identifier)
             return delivery([Export(source: plan.source, outcome: .refused(refusal), warnings: [])])
@@ -251,8 +275,6 @@ extension HealthKitFHIRExporter {
         // standalone export of the same record in this call keeps its event.
         do {
             let conversions = try convert(plan, content: content, primary: primary, reserved: reserved)
-            // A policy that chose to emit nothing (an unauthorized route) leaves no conversion; that is not a refusal
-            // and never warns.
             return delivery(conversions.map(\.export), validation: conversions.reduce(.zero) { $0 + $1.validation })
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
@@ -315,10 +337,10 @@ extension HealthKitFHIRExporter {
                 request: request,
                 symptomRequests: symptomRequests(plan, reserved: reserved)
             )
-        case let .heartbeatSeries(series, beats):
-            return try assembly.convertHeartbeatSeries(series, beats: beats, plan: content, request: request)
-        case let .workoutRoute(route, locations):
-            return try assembly.convertWorkoutRoute(route, locations: locations, plan: content, request: request)
+        case let .heartbeatSeries(series, _):
+            return try assembly.convertHeartbeatSeries(series, recording: plan.recordingPayload(), plan: content, request: request)
+        case let .workoutRoute(route, _):
+            return try assembly.convertWorkoutRoute(route, recording: plan.recordingPayload(), plan: content, request: request)
         }
     }
 

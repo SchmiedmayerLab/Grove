@@ -94,7 +94,7 @@ struct HealthKitFHIRExporterRecordTests {
         #expect(exports[0].graph?.json == reference.graph.json)
     }
 
-    @Test("A route the policy omits delivers nothing, neither graph nor refusal, and holds its event until release")
+    @Test("A route the policy omits delivers nothing, neither graph nor refusal, and reserves no event")
     func omittedWorkoutRouteDeliversNothing() async throws {
         let storage = LedgerCountingStorage()
         let exporter = try Fixtures.exporter(storage: storage)
@@ -108,9 +108,8 @@ struct HealthKitFHIRExporterRecordTests {
         try #require(exports.map(\.source.uuid) == [heartRate.uuid], "the omitted route is not reported, and the export continues")
         #expect(exports[0].warnings.isEmpty)
         let key = try #require(ExchangeEventKey.active(route))
-        #expect(try storage.holdsReservation(for: key))
-        receipt.release()
         #expect(try !storage.holdsReservation(for: key))
+        receipt.release()
     }
 
     @Test("E1: a duplicated ECG symptom is refused as a duplicate, on every OS")
