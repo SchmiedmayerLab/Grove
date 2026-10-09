@@ -267,7 +267,7 @@ extension SensorKitThroughputBenchmark {
             let nativeRecording = try SensorKitNativeRecording(
                 title: "\(name) batch \(index)",
                 format: format,
-                payload: .sidecar(path: "sensorkit/\(name)-\(index).\(format.fileExtension)", bytes: data),
+                payload: .sidecar(path: "sensorkit/\(name)-\(index).csv", bytes: data),
                 admission: .callerAuthorizedOpaquePayload
             ) { _ in }
             return try record(sourceRecordID(index), nativeRecording, period)
@@ -287,7 +287,7 @@ extension SensorKitThroughputBenchmark {
             return try prepared.sensorKitRecord(
                 sourceRecordID: sourceRecordID(index),
                 title: "ppg batch \(index)",
-                location: .sidecar(path: "sensorkit/ppg-\(index).bin"),
+                location: .sidecar(path: "sensorkit/ppg-\(index).mhcPPG2"),
                 admission: .callerAuthorizedOpaquePayload
             )
         }

@@ -183,7 +183,8 @@ let sourceRecordID = SensorKitSourceRecordID.derived(
     recordOrdinal: 0
 )
 try retryLog.verifyOrRecord(sourceRecordID, digest: SHA256.hash(data: recording.retryEvidence))
-let sidecarPath = "sensorkit/\(sourceRecordID.value).\(recording.format.fileExtension)"
+// The app names the file where it writes it; the bytes are the recording's registered format.
+let sidecarPath = "sensorkit/\(sourceRecordID.value).csv"
 let record = try recording.sensorKitRecord(
     sourceRecordID: sourceRecordID,
     title: "Accelerometer",
