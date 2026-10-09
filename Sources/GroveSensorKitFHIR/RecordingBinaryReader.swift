@@ -95,10 +95,16 @@ public struct RecordingBinaryReader: ~Copyable {
 
     /// IEEE-754 binary64 in network byte order.
     public mutating func readFloat64() throws -> Double {
-        var pattern: UInt64 = 0
-        for _ in 0..<8 {
-            pattern = (pattern << 8) | UInt64(try next())
+        guard bytes.count - offset >= 8 else {
+            // As a byte-at-a-time read would, the remaining bytes are consumed before the payload is found short.
+            offset = bytes.count
+            throw ReaderError.unexpectedEnd
         }
+        var pattern: UInt64 = 0
+        for byte in bytes[offset..<(offset + 8)] {
+            pattern = (pattern << 8) | UInt64(byte)
+        }
+        offset += 8
         let value = Double(bitPattern: pattern)
         guard value.isFinite else {
             throw ReaderError.nonFiniteFloat

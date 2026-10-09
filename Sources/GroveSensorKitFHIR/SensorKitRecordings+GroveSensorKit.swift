@@ -97,12 +97,13 @@ public struct SensorKitTabularRecording: Sendable {
         location: SensorKitRecordingLocation,
         admission: SensorRawPayloadAdmission
     ) throws -> SensorKitRecord {
+        // `init` validated exactly these bytes as `format`'s, so they are not parsed a second time here.
         let nativeRecording = try SensorKitNativeRecording(
             title: title,
             format: format,
             payload: location.payload(bytes: data),
             admission: admission
-        )
+        ) { _ in }
         switch structuredProjection {
         case .accelerometer:
             return .accelerometer(try SensorKitAccelerometerRecord(
