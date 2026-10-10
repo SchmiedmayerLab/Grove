@@ -15,9 +15,18 @@ public import GroveFHIRContract
 
 /// One complete `photoplethysmogram-samples` payload.
 ///
-/// This type owns the registry's binary grammar. Encoding always produces canonical bytes and
-/// decoding rejects malformed, non-canonical, or trailing data.
+/// This type owns the registry's binary grammar: a version byte, then the records. Encoding always produces canonical
+/// bytes and decoding rejects another version and malformed, non-canonical, or trailing data.
 public struct SensorKitPPGRecording: Equatable, Sendable {
+    /// Why bytes are not a payload of this grammar version, beyond what ``RecordingBinaryReader/ReaderError`` reports.
+    public enum DecodingError: Error, Equatable, Sendable {
+        /// The payload starts with a version byte other than ``SensorKitPPGRecording/version``.
+        case unsupportedVersion(UInt8)
+    }
+
+    /// The version byte every payload starts with.
+    public static let version: UInt8 = 1
+
     public let records: [Record]
 
     public init(records: [Record]) {
@@ -26,6 +35,10 @@ public struct SensorKitPPGRecording: Equatable, Sendable {
 
     public init(data: Data) throws {
         var reader = RecordingBinaryReader(data)
+        let version = try reader.readByte()
+        guard version == Self.version else {
+            throw DecodingError.unsupportedVersion(version)
+        }
         records = try reader.readArray { reader in
             try Record(from: &reader)
         }
@@ -34,6 +47,7 @@ public struct SensorKitPPGRecording: Equatable, Sendable {
 
     public func encoded() throws -> Data {
         var writer = RecordingBinaryWriter()
+        writer.writeByte(Self.version)
         try writer.writeArray(records) { writer, record in
             try record.encode(to: &writer)
         }

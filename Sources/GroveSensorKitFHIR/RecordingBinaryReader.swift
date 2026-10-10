@@ -69,6 +69,11 @@ public struct RecordingBinaryReader: ~Copyable {
         return bytes[offset]
     }
 
+    /// One byte as it is.
+    public mutating func readByte() throws -> UInt8 {
+        try next()
+    }
+
     /// Unsigned LEB128.
     public mutating func readVarint() throws -> UInt64 {
         var result: UInt64 = 0

@@ -117,8 +117,9 @@ extension SensorKitPPGRecording {
     /// Reads a recording in the encoding My Heart Counts wrote before this registered format (its `.mhcPPG` files),
     /// accepting exactly what that app's decoder accepted.
     ///
-    /// The two encodings share their field order and carry no version, so the bytes alone cannot tell them apart;
-    /// pick this decoder by the file's extension. The legacy encoding differs from ``init(data:)``'s in that:
+    /// The legacy encoding carries no version, and its first byte, a record count of one, can equal the version byte
+    /// ``init(data:)``'s encoding starts with, so the bytes alone cannot tell them apart; pick this decoder by the file's
+    /// extension. Past that byte, the two share their field order; the legacy encoding differs in that:
     /// - every binary64 is little-endian;
     /// - a string is its UTF-8 byte count, then each byte as its own varint;
     /// - a photodiode set is in no particular order; it is read here in ascending order, without duplicates;

@@ -35,6 +35,11 @@ public struct RecordingBinaryWriter: ~Copyable {
         Data(bytes)
     }
 
+    /// One byte as it is.
+    public mutating func writeByte(_ value: UInt8) {
+        bytes.append(value)
+    }
+
     /// Unsigned LEB128.
     public mutating func writeVarint(_ value: UInt64) {
         var remaining = value
