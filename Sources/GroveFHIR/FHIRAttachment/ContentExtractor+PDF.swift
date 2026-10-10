@@ -46,14 +46,16 @@ public struct PDFContentExtractor: FHIRAttachmentContentExtractor {
         guard let pdf = documentProvider.createPDFDocument(from: data) else {
             throw FHIRAttachmentError.pdfParsingFailed
         }
-        let documentContent = NSMutableAttributedString()
+        // Only the text is kept, so it is read without `attributedString`, which also resolves every run's font: the
+        // step a flaky PDFKit crash came from.
+        var documentContent = ""
         for pageIdx in 0..<pdf.pageCount {
-            guard let page = pdf.page(at: pageIdx), let content = page.attributedString else {
+            guard let page = pdf.page(at: pageIdx), let content = page.string else {
                 continue
             }
-            documentContent.append(content)
+            documentContent += content
         }
-        return (.plainText, Data(documentContent.string.utf8))
+        return (.plainText, Data(documentContent.utf8))
         #else
         throw NotAvailableError()
         #endif
