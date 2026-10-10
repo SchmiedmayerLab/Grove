@@ -83,7 +83,7 @@ extension ExchangeGraphRule {
         case .mobileExchangeOpaqueResourceIdentity: "Bundle.entry[0].resource.identifier"
         case .mobileOmissionRecordingDevice: "Observation.device"
         case .mobileOmissionSourceOffset: "Observation.effective"
-        case .mobileOmissionUnmodeledMetadata: "Observation.extension"
+        case .mobileOmissionUnmodeledMetadata, .mobileOmissionRecordingMethod: "Observation.extension"
         default: "Bundle"
         }
     }

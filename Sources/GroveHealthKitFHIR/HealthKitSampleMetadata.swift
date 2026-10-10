@@ -296,7 +296,22 @@ extension HealthKitSampleMetadata {
         let carried = recordValues.filter { key, value in
             carries(key, value: value, in: outputs)
         }
-        return Self.withheldKeys(record: values, contained: containedValues, carried: carried)
+        // A blood-pressure member's zone and manual entry count only toward the record's, as the rules above define,
+        // so neither is withheld from the member (healthkit mapping.md, Blood-pressure correlation objects).
+        let contained = memberValues.isEmpty ? containedValues : containedValues.map { metadata in
+            metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
+        }
+        return Self.withheldKeys(record: values, contained: contained, carried: carried)
+    }
+
+    /// Whether a blood-pressure correlation or one of its members states manual entry `true` that `outputs` do not
+    /// state as the manual-entry recording method: the record as a whole does not establish it (healthkit mapping.md,
+    /// Blood-pressure correlation objects).
+    func omitsStatedManualEntry(in outputs: [ExchangeOutputDraft]) -> Bool {
+        guard !memberValues.isEmpty, !outputs.contains(where: \.statesManualEntry) else {
+            return false
+        }
+        return ([values] + memberValues).contains { ($0[HKMetadataKeyWasUserEntered] as? Bool) == true }
     }
 
     /// Whether `outputs` represent the sample's `value` for `key`:

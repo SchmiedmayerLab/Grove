@@ -130,24 +130,26 @@ struct HealthKitMetadataConsumptionTests {
         }
     }
 
-    @Test("A blood-pressure member's key is reported unless the record carries the equal value; manual entry false never is")
+    @Test("A blood-pressure member's key is reported unless the record carries the equal value; its zone and manual entry never are")
     func bloodPressureMembers() throws {
         let zone = GoldenFixtures.timeZoneMetadata
         let berlin: [String: any Sendable] = [HKMetadataKeyTimeZone: "Europe/Berlin"]
         let entry: [String: any Sendable] = [HKMetadataKeyWasUserEntered: true]
         #expect(try Self.bloodPressure(correlation: zone, systolic: zone, diastolic: zone).withheldMetadataKeys.isEmpty)
-        #expect(try Self.bloodPressure(correlation: zone, systolic: berlin).withheldMetadataKeys == [HKMetadataKeyTimeZone])
         // Spec F9: a correlation stating no zone or manual entry takes its members' agreed zone, and manual entry when
-        // every member states it, so those member keys are the record's and carried.
+        // every member states it; a member's zone and manual entry count only toward the record's, so neither is
+        // withheld, even where the record does not take it (healthkit mapping.md, Blood-pressure correlation objects).
+        #expect(try Self.bloodPressure(correlation: zone, systolic: berlin).withheldMetadataKeys.isEmpty)
         #expect(try Self.bloodPressure(correlation: [:], systolic: zone).withheldMetadataKeys.isEmpty)
-        #expect(try Self.bloodPressure(correlation: [:], systolic: zone, diastolic: berlin).withheldMetadataKeys == [HKMetadataKeyTimeZone])
+        #expect(try Self.bloodPressure(correlation: [:], systolic: zone, diastolic: berlin).withheldMetadataKeys.isEmpty)
         #expect(try Self.bloodPressure(correlation: zone, systolic: entry, diastolic: entry).withheldMetadataKeys.isEmpty)
         let merged = try Self.bloodPressure(
             correlation: zone.merging(["com.example.zeta": "z"]) { $1 },
             systolic: [HKMetadataKeyWasUserEntered: true, "com.example.cuff": "x"]
         )
-        #expect(merged.withheldMetadataKeys == ["com.example.cuff", "com.example.zeta", HKMetadataKeyWasUserEntered].sorted())
-        #expect(merged.warnings == [Warnings.unmodeled])
+        #expect(merged.withheldMetadataKeys == ["com.example.cuff", "com.example.zeta"])
+        // The systolic member states manual entry that the record, whose diastolic member states none, does not establish.
+        #expect(merged.warnings == [Warnings.unmodeled, HealthKitBloodPressureMemberTests.recordingMethod])
         let unentered: [String: any Sendable] = [HKMetadataKeyWasUserEntered: false]
         #expect(try Self.bloodPressure(correlation: zone, systolic: unentered, diastolic: unentered).withheldMetadataKeys.isEmpty)
         let entered = zone.merging([HKMetadataKeyWasUserEntered: true]) { $1 }

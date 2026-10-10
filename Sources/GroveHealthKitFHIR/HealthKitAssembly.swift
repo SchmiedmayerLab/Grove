@@ -183,17 +183,21 @@ struct HealthKitAssembly: Sendable {
     }
 
     /// What the decorated `outputs` do not carry of the record's metadata: the `withheld` keys, as the registered
-    /// `mobile-omission.unmodeled-metadata` warning located at the source's metadata, then each effective element they
-    /// serialized in UTC because the record named no time zone, each once, as the registered
-    /// `mobile-omission.source-offset` warning located at the element.
+    /// `mobile-omission.unmodeled-metadata` warning located at the source's metadata; manual entry a blood-pressure
+    /// correlation or member states but the record does not establish, as `mobile-omission.recording-method` located at
+    /// the extension the Observation omits; then each effective element they serialized in UTC because the record named
+    /// no time zone, each once, as the registered `mobile-omission.source-offset` warning located at the element.
     private func metadataWarnings(
         for metadata: HealthKitSampleMetadata,
         outputs: [ExchangeOutputDraft],
         withheld: [String]
     ) -> [ProducerDiagnostic] {
-        let unmodeled = withheld.isEmpty ? [] : [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")]
+        var omissions = withheld.isEmpty ? [] : [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")]
+        if metadata.omitsStatedManualEntry(in: outputs) {
+            omissions.append(ExchangeGraphRule.mobileOmissionRecordingMethod.diagnostic(at: "Observation.extension"))
+        }
         guard !metadata.statesTimeZone else {
-            return unmodeled
+            return omissions
         }
         var fields: [String] = []
         for output in outputs {
@@ -207,7 +211,7 @@ struct HealthKitAssembly: Sendable {
             }
             fields += elements.filter { !fields.contains($0) }
         }
-        return unmodeled + fields.map(ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at:))
+        return omissions + fields.map(ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at:))
     }
 }
 

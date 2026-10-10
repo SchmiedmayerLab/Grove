@@ -69,6 +69,9 @@ extension HealthKitFHIRExporter {
                 case .mobileOmissionUnmodeledMetadata:
                     "Metadata withheld: the sample, or a correlation member, workout event or workout activity it "
                         + "contains, carries metadata keys its graph does not represent"
+                case .mobileOmissionRecordingMethod:
+                    "No recording method: a blood-pressure correlation or one of its members states "
+                        + "HKMetadataKeyWasUserEntered true, but the correlation states false or not every member states true"
                 default:
                     nil
                 }

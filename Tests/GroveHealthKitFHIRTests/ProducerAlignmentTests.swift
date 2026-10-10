@@ -96,8 +96,9 @@ struct ProducerWarningTests {
     private static let recordingDeviceOmitted = ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic
     private static let effectiveDateTimeOffsetUnavailable = ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectiveDateTime")
     private static let unmodeledMetadataWithheld = ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")
+    private static let recordingMethodOmitted = ExchangeGraphRule.mobileOmissionRecordingMethod.diagnostic(at: "Observation.extension")
 
-    private static let warnings = [recordingDeviceOmitted, effectiveDateTimeOffsetUnavailable, unmodeledMetadataWithheld]
+    private static let warnings = [recordingDeviceOmitted, effectiveDateTimeOffsetUnavailable, unmodeledMetadataWithheld, recordingMethodOmitted]
 
     private static func heartRate(device: HKDevice, metadata: [String: Any]) -> HKQuantitySample {
         let start = TestEvent.testInstant
@@ -117,7 +118,8 @@ struct ProducerWarningTests {
         #expect(codes == [
             "mobile-omission.recording-device",
             "mobile-omission.source-offset",
-            "mobile-omission.unmodeled-metadata"
+            "mobile-omission.unmodeled-metadata",
+            "mobile-omission.recording-method"
         ])
         for warning in Self.warnings {
             let rule = try #require(ExchangeGraphRule(rawValue: warning.code))
@@ -127,6 +129,7 @@ struct ProducerWarningTests {
         }
         #expect(Self.warnings[1].location == "Observation.effectiveDateTime")
         #expect(Self.warnings[2].location == "HKSample.metadata")
+        #expect(Self.warnings[3].location == "Observation.extension")
         #expect(Set(ExchangeGraphRule.allCases.filter { $0.severity == .warning }.map(\.rawValue)) == Set(codes))
     }
 

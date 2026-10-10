@@ -2517,7 +2517,9 @@ package enum HealthKitMeasurementCatalog {
         code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "insulin-delivery", display: "Insulin delivery"),
         requiredCodings: [],
         quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "[iU]", unit: "IU", valueDomain: nil),
-        components: [],
+        components: [
+            ComponentContract(id: "insulinDeliveryReason", system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-metadata-key", code: "HKInsulinDeliveryReason", quantity: nil, resultCodeSystem: nil, resultCodes: []),
+        ],
         resultCodeSystem: nil,
         allowedValues: [],
         resultCodes: [],
@@ -5753,7 +5755,7 @@ package enum HealthKitContract {
             measurementIDs: [],
             profiles: [Profile.healthkitRecordingDocument],
             implementationStatus: .platformExclusive,
-            requirement: "The recorded route is admitted as a recording document carrying the published location-track-samples column schema. A route re-identifies readily, so a producer discloses it only under an explicit route-disclosure authorization."
+            requirement: "The recorded route is admitted as a recording document carrying the published location-track-samples column schema. A route re-identifies readily, so a producer discloses it only under an explicit route-disclosure authorization. A location whose CLLocation horizontalAccuracy is negative, CoreLocation's marker for an invalid horizontal position, keeps its row, with horizontalAccuracy empty and latitude and longitude as the CLLocation states them; a negative verticalAccuracy, the marker for an invalid altitude, leaves verticalAccuracy empty."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKWorkoutTypeIdentifier",
@@ -6686,9 +6688,11 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case mobileRetractionProvenance = "mobile-retraction.provenance"
     case mobileRetractionTargetRequired = "mobile-retraction.target-required"
     case mobileRetractionDistinctTarget = "mobile-retraction.distinct-target"
+    case mobileRetractionSourceRecordTarget = "mobile-retraction.source-record-target"
     case mobileOmissionRecordingDevice = "mobile-omission.recording-device"
     case mobileOmissionSourceOffset = "mobile-omission.source-offset"
     case mobileOmissionUnmodeledMetadata = "mobile-omission.unmodeled-metadata"
+    case mobileOmissionRecordingMethod = "mobile-omission.recording-method"
 
     /// The registry's reason, verbatim.
     public var reason: String {
@@ -6859,21 +6863,25 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
             "A retraction Provenance names at least one logical target."
         case .mobileRetractionDistinctTarget:
             "No two retraction targets carry the same Identifier system and value pair."
+        case .mobileRetractionSourceRecordTarget:
+            "A source-record retraction target is the Provenance's only target, states no Reference.type, and repeats the exact source-record Identifier of the Provenance source entity."
         case .mobileOmissionRecordingDevice:
             "The source names a recording device without a stable per-unit token, so the producer emits no recording Device and the output carries no device reference."
         case .mobileOmissionSourceOffset:
             "The source supplies an effective instant without a UTC offset or time-zone name, so the producer serializes it in UTC and attaches no timezone extension."
         case .mobileOmissionUnmodeledMetadata:
-            "The source record carries metadata outside the adapter's typed allowlist, so the producer withholds those fields."
+            "The source record, or a part of it, carries metadata that no output of its graph represents, so the producer withholds those fields."
+        case .mobileOmissionRecordingMethod:
+            "Part of the source record that the adapter's capture-mode rules read states a capture mode that the record as a whole does not establish, so the producer omits the grove-recording-method extension."
         }
     }
 
     /// A warning names what an accepted record lost; every other rule refuses the record or graph.
     public var severity: ProducerDiagnostic.Severity {
         switch self {
-        case .mobileOmissionRecordingDevice, .mobileOmissionSourceOffset, .mobileOmissionUnmodeledMetadata:
+        case .mobileOmissionRecordingDevice, .mobileOmissionSourceOffset, .mobileOmissionUnmodeledMetadata, .mobileOmissionRecordingMethod:
             .warning
-        case .mobileExchangeUnclassified, .mobileExchangeEntryNodeKey, .mobileExchangeDeterministicFullUrl, .mobileExchangeResolvedReference, .mobileExchangeEventIdentity, .mobileExchangeEntryNodeDigest, .mobileExchangeEntryNodeOrdinal, .mobileExchangeIdentitySystemRole, .mobileOutputSourceOutputRequired, .mobileOutputHybridCompanion, .healthkitEcgOutputGraph, .mobileExchangeTransformProvenance, .mobileRetractionLogicalTarget, .mobileRetractionTargetRole, .mobileRetractionOpaqueTarget, .mobileRetractionNativeRecordIdentifier, .mobileExchangeCollectionEntryOperation, .mobileSupportQuestionnaireResponseProfile, .mobileDeviceRecordingDeviceDualIdentity, .healthkitClinicalFhirRepresentation, .sensorRecordingDocumentIdentityAndContent, .mobileRetractionNoClinicalCopy, .mobileExchangeLifecycleCoding, .mobileOutputSemanticProfile, .mobileOutputFixedQuantityUnit, .mobileOutputQuantityValueDomain, .mobileExchangeReferenceTargetType, .mobileExchangeReferenceDeclaredType, .mobileExchangeLogicalSourceEntity, .mobileRetractionRoleTargetType, .mobileExchangeSingleSourceEntity, .mobileExchangeReferenceShape, .mobileExchangeLogicalPatientReference, .mobileOutputAdapterOnlyProfile, .mobileExchangeEntryResourceType, .mobileExchangeContainedResourceProhibited, .mobileOutputDocumentProfile, .mobileSupportDeviceProfile, .mobileSupportConnected, .mobileExchangeProvenanceProfile, .mobileInputUnclassified, .mobileInputUnsupportedSourceType, .mobileInputIntentionallyUnsupportedSourceType, .mobileInputNotYetConvertible, .mobileInputPlatformExclusiveSourceType, .mobileInputValueShapeInvalid, .mobileInputValueOutsideDomain, .mobileInputUnsupportedSourceValue, .mobileInputRequiredMetadataMissing, .mobileInputRequiredComponentMissing, .mobileInputEffectivePeriodInvalid, .mobileInputConversionInstantPrecedesSourceVersion, .mobileInputTextNotUnicodeScalar, .mobileInputNativeIdentifierInvalid, .mobileInputRecordingPayloadTooLarge, .mobileInputEmptyRecordingSeries, .healthkitInputEcgEvidence, .healthkitInputClinicalReleaseUnsupported, .healthkitInputClinicalRecordEmpty, .healthkitInputComponentRequiresCorrelation, .healthkitInputSourceApplicationInvalid, .mobileExchangeBundleProfile, .mobileExchangeEntryRequired, .mobileExchangeEventTimes, .mobileExchangeDistinctEntryKey, .mobileExchangeEntryKeySelection, .mobileExchangeIdentifierRole, .mobileExchangeOpaqueResourceIdentity, .mobileExchangeDistinctResourceIdentityRole, .mobileExchangeOutputRequired, .mobileExchangeProvenanceAssembler, .mobileExchangeProvenanceTargets, .mobileExchangeAdapterProvenanceGraph, .mobileOutputAdapterSourceMarker, .mobileDeviceHostDeviceIdentity, .mobileSupportStudyContext, .healthkitDeviceApplicationBundleIdentifier, .healthConnectProvenanceDataOriginAgent, .sensorRecordingDocumentEmbeddedIntegrity, .sensorRecordingDocumentFormat, .mobileRetractionProvenance, .mobileRetractionTargetRequired, .mobileRetractionDistinctTarget:
+        case .mobileExchangeUnclassified, .mobileExchangeEntryNodeKey, .mobileExchangeDeterministicFullUrl, .mobileExchangeResolvedReference, .mobileExchangeEventIdentity, .mobileExchangeEntryNodeDigest, .mobileExchangeEntryNodeOrdinal, .mobileExchangeIdentitySystemRole, .mobileOutputSourceOutputRequired, .mobileOutputHybridCompanion, .healthkitEcgOutputGraph, .mobileExchangeTransformProvenance, .mobileRetractionLogicalTarget, .mobileRetractionTargetRole, .mobileRetractionOpaqueTarget, .mobileRetractionNativeRecordIdentifier, .mobileExchangeCollectionEntryOperation, .mobileSupportQuestionnaireResponseProfile, .mobileDeviceRecordingDeviceDualIdentity, .healthkitClinicalFhirRepresentation, .sensorRecordingDocumentIdentityAndContent, .mobileRetractionNoClinicalCopy, .mobileExchangeLifecycleCoding, .mobileOutputSemanticProfile, .mobileOutputFixedQuantityUnit, .mobileOutputQuantityValueDomain, .mobileExchangeReferenceTargetType, .mobileExchangeReferenceDeclaredType, .mobileExchangeLogicalSourceEntity, .mobileRetractionRoleTargetType, .mobileExchangeSingleSourceEntity, .mobileExchangeReferenceShape, .mobileExchangeLogicalPatientReference, .mobileOutputAdapterOnlyProfile, .mobileExchangeEntryResourceType, .mobileExchangeContainedResourceProhibited, .mobileOutputDocumentProfile, .mobileSupportDeviceProfile, .mobileSupportConnected, .mobileExchangeProvenanceProfile, .mobileInputUnclassified, .mobileInputUnsupportedSourceType, .mobileInputIntentionallyUnsupportedSourceType, .mobileInputNotYetConvertible, .mobileInputPlatformExclusiveSourceType, .mobileInputValueShapeInvalid, .mobileInputValueOutsideDomain, .mobileInputUnsupportedSourceValue, .mobileInputRequiredMetadataMissing, .mobileInputRequiredComponentMissing, .mobileInputEffectivePeriodInvalid, .mobileInputConversionInstantPrecedesSourceVersion, .mobileInputTextNotUnicodeScalar, .mobileInputNativeIdentifierInvalid, .mobileInputRecordingPayloadTooLarge, .mobileInputEmptyRecordingSeries, .healthkitInputEcgEvidence, .healthkitInputClinicalReleaseUnsupported, .healthkitInputClinicalRecordEmpty, .healthkitInputComponentRequiresCorrelation, .healthkitInputSourceApplicationInvalid, .mobileExchangeBundleProfile, .mobileExchangeEntryRequired, .mobileExchangeEventTimes, .mobileExchangeDistinctEntryKey, .mobileExchangeEntryKeySelection, .mobileExchangeIdentifierRole, .mobileExchangeOpaqueResourceIdentity, .mobileExchangeDistinctResourceIdentityRole, .mobileExchangeOutputRequired, .mobileExchangeProvenanceAssembler, .mobileExchangeProvenanceTargets, .mobileExchangeAdapterProvenanceGraph, .mobileOutputAdapterSourceMarker, .mobileDeviceHostDeviceIdentity, .mobileSupportStudyContext, .healthkitDeviceApplicationBundleIdentifier, .healthConnectProvenanceDataOriginAgent, .sensorRecordingDocumentEmbeddedIntegrity, .sensorRecordingDocumentFormat, .mobileRetractionProvenance, .mobileRetractionTargetRequired, .mobileRetractionDistinctTarget, .mobileRetractionSourceRecordTarget:
             .error
         }
     }

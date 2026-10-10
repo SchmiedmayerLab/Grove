@@ -129,9 +129,13 @@ struct HealthKitBloodPressureMemberTests {
     @Test("The correlation's Boolean decides manual entry; otherwise every member must state true", arguments: entryCases)
     func manualEntry(_ expected: EntryCase) async throws {
         #expect(try Self.bridge(Self.pressure(expected.parts)).wasUserEntered == expected.wasUserEntered)
-        let observation = try await Self.export(Self.pressure(expected.parts)).observation
-        let methods = observation.extension?.filter { $0.url == Canonicals.recordingMethod } ?? []
+        let conversion = try await Self.export(Self.pressure(expected.parts))
+        let methods = conversion.observation.extension?.filter { $0.url == Canonicals.recordingMethod } ?? []
         #expect(methods.count == (expected.wasUserEntered ? 1 : 0))
+        // A part stating true that the record does not establish is reported as the omitted recording method.
+        let statesTrue = [expected.parts.correlation, expected.parts.systolic, expected.parts.diastolic]
+            .contains { ($0[HKMetadataKeyWasUserEntered] as? Bool) == true }
+        #expect(conversion.warnings.contains(Self.recordingMethod) == (statesTrue && !expected.wasUserEntered))
     }
 
     @Test("A correlation without members states manual entry only through its own flag")
@@ -162,13 +166,8 @@ extension HealthKitBloodPressureMemberTests {
     @Test("Members that name no zone or disagree leave the effective time in UTC, reported")
     func disagreeingMembersStayInUTC() async throws {
         let offset = ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectiveDateTime")
-        // Disagreeing members' zones are no zone the graph names, so they are reported as withheld (spec F10).
-        let cases: [(Parts, withheld: [String])] = [
-            (Parts(), []),
-            (Parts(systolic: Self.zone(Self.pacific), diastolic: Self.zone(Self.eastern)), [HKMetadataKeyTimeZone])
-        ]
-        for (parts, withheld) in cases {
-            let warnings = withheld.isEmpty ? [offset] : [Self.unmodeled, offset]
+        // A member's zone counts only toward the record's, so disagreeing ones are not reported as withheld.
+        for parts in [Parts(), Parts(systolic: Self.zone(Self.pacific), diastolic: Self.zone(Self.eastern))] {
             let conversion = try await Self.export(Self.pressure(parts))
             guard case .dateTime(let utc)? = conversion.observation.effective else {
                 Issue.record("a blood-pressure correlation states a dateTime")
@@ -176,9 +175,21 @@ extension HealthKitBloodPressureMemberTests {
             }
             #expect(utc.value?.description == "2026-08-17T22:30:00Z", "\(parts.testDescription)")
             #expect(utc.extension == nil, "\(parts.testDescription)")
-            #expect(conversion.warnings == warnings, "\(parts.testDescription)")
-            #expect(try Self.withheldKeys(Self.pressure(parts)) == withheld, "\(parts.testDescription)")
+            #expect(conversion.warnings == [offset], "\(parts.testDescription)")
+            #expect(try Self.withheldKeys(Self.pressure(parts)).isEmpty, "\(parts.testDescription)")
         }
+    }
+
+    @Test("A member's zone and manual entry are never withheld; manual entry the record does not establish is reported")
+    func memberZoneAndEntryAreNeverWithheld() async throws {
+        var systolic = Self.zone(Self.pacific)
+        systolic[HKMetadataKeyWasUserEntered] = true
+        var diastolic = Self.zone(Self.eastern)
+        diastolic[HKMetadataKeyWasUserEntered] = false
+        let pressure = try Self.pressure(Parts(systolic: systolic, diastolic: diastolic))
+        let offset = ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectiveDateTime")
+        #expect(try Self.withheldKeys(pressure).isEmpty)
+        await #expect(try Self.export(pressure).warnings == [Self.recordingMethod, offset])
     }
 
     @Test("A member zone the conversion consults and HealthKit does not know refuses the record")
@@ -224,6 +235,9 @@ extension HealthKitBloodPressureMemberTests {
 extension HealthKitBloodPressureMemberTests {
     /// The warning a graph that withholds metadata keys reports, whichever keys they are.
     static let unmodeled = ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")
+
+    /// The warning a blood-pressure record reports when a part states manual entry the record does not establish.
+    static let recordingMethod = ExchangeGraphRule.mobileOmissionRecordingMethod.diagnostic(at: "Observation.extension")
 
     /// A 120/80 correlation stating `parts`, written by `writer`; its members are attributed to no writer, as
     /// HealthKit's initializer requires.
