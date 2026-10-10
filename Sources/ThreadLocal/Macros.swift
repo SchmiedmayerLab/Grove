@@ -18,6 +18,14 @@
 ///     private static var counter: Int = 0
 /// }
 /// ```
+///
+/// An optional variable may leave out its initializer and then starts as `nil`:
+/// ```swift
+/// extension SomeType {
+///     @ThreadLocal
+///     private static var counter: Int?
+/// }
+/// ```
 @attached(accessor, names: named(get), named(set))
 @attached(peer, names: prefixed(_))
 public macro ThreadLocal(
