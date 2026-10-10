@@ -24,8 +24,8 @@ import Darwin.C
 /// Each thread's value lives in a box its pthread slot owns: the thread's first read stores the default there, a write
 /// replaces the value in the box, and the thread's exit releases the box, which hands its value to the deallocator.
 public final class ThreadLocal<Value>: Sendable {
-    public let _key: pthread_key_t
-    public let _deallocator: Deallocator
+    @usableFromInline let _key: pthread_key_t
+    @usableFromInline let _deallocator: Deallocator
 
     /// The calling thread's box, or `nil` until the thread first reads or writes the value.
     @inlinable var _box: _Box? {
