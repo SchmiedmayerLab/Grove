@@ -135,21 +135,22 @@ extension HealthKitWorkoutContent {
         let raw: UInt
         /// The exact HealthKit case name, kept beside the shared code so nothing the shared vocabulary collapses is lost.
         let name: String
-        /// The shared activity the case reports as; `other` when the shared vocabulary does not name it.
+        /// The shared activity the case reports as; `other` when the case is no kind of a shared activity.
         let shared: String
         /// The distance type the activity records: `HKWorkout.statistics(for:)` has none for any other.
         let distance: HKQuantityTypeIdentifier
     }
 
-    /// Every HealthKit workout activity, by case name. The shared vocabulary names 28 activities and HealthKit 84, so
-    /// related cases collapse onto one shared code and the rest report as `other`. The three cases HealthKit deprecated
-    /// but keeps readable in older workouts (14, 15 and 30) are stated by raw value.
+    /// Every HealthKit workout activity, by case name, as grove-fhir's workout `activityMapping` states it. The shared
+    /// vocabulary names 28 activities and HealthKit 84, so a case reports as the shared activity it is a kind of, and a
+    /// case that is merely related to one, such as `waterFitness` to swimming, reports as `other`. The three cases
+    /// HealthKit deprecated but keeps readable in older workouts (14, 15 and 30) are stated by raw value.
     static let activityTable = [
         ActivityRow(.americanFootball, name: "americanFootball", shared: "american-football"),
         ActivityRow(.archery, name: "archery"),
         ActivityRow(.australianFootball, name: "australianFootball"),
         ActivityRow(.badminton, name: "badminton", shared: "badminton"),
-        ActivityRow(.barre, name: "barre", shared: "dancing"),
+        ActivityRow(.barre, name: "barre"),
         ActivityRow(.baseball, name: "baseball", shared: "baseball"),
         ActivityRow(.basketball, name: "basketball", shared: "basketball"),
         ActivityRow(.bowling, name: "bowling"),
@@ -164,7 +165,7 @@ extension HealthKitWorkoutContent {
         ActivityRow(.curling, name: "curling"),
         ActivityRow(.cycling, name: "cycling", shared: "cycling", distance: .distanceCycling),
         ActivityRow(raw: 14, name: "dance", shared: "dancing", distance: .distanceWalkingRunning),
-        ActivityRow(raw: 15, name: "danceInspiredTraining", shared: "dancing", distance: .distanceWalkingRunning),
+        ActivityRow(raw: 15, name: "danceInspiredTraining", shared: "other", distance: .distanceWalkingRunning),
         ActivityRow(.discSports, name: "discSports"),
         ActivityRow(.downhillSkiing, name: "downhillSkiing", shared: "skiing", distance: .distanceDownhillSnowSports),
         ActivityRow(.elliptical, name: "elliptical", shared: "elliptical"),
@@ -183,7 +184,7 @@ extension HealthKitWorkoutContent {
         ActivityRow(.hockey, name: "hockey"),
         ActivityRow(.hunting, name: "hunting"),
         ActivityRow(.jumpRope, name: "jumpRope"),
-        ActivityRow(.kickboxing, name: "kickboxing", shared: "boxing"),
+        ActivityRow(.kickboxing, name: "kickboxing", shared: "martial-arts"),
         ActivityRow(.lacrosse, name: "lacrosse"),
         ActivityRow(.martialArts, name: "martialArts", shared: "martial-arts"),
         ActivityRow(.mindAndBody, name: "mindAndBody"),
@@ -205,11 +206,11 @@ extension HealthKitWorkoutContent {
         ActivityRow(.snowSports, name: "snowSports", distance: .distanceDownhillSnowSports),
         ActivityRow(.soccer, name: "soccer", shared: "soccer"),
         ActivityRow(.socialDance, name: "socialDance", shared: "dancing"),
-        ActivityRow(.softball, name: "softball", shared: "baseball"),
+        ActivityRow(.softball, name: "softball"),
         ActivityRow(.squash, name: "squash", shared: "squash"),
         ActivityRow(.stairClimbing, name: "stairClimbing", shared: "stair-climbing"),
         ActivityRow(.stairs, name: "stairs", shared: "stair-climbing"),
-        ActivityRow(.stepTraining, name: "stepTraining", shared: "stair-climbing"),
+        ActivityRow(.stepTraining, name: "stepTraining"),
         ActivityRow(.surfingSports, name: "surfingSports", distance: .distancePaddleSports),
         ActivityRow(.swimBikeRun, name: "swimBikeRun"),
         ActivityRow(.swimming, name: "swimming", shared: "swimming", distance: .distanceSwimming),
@@ -222,11 +223,11 @@ extension HealthKitWorkoutContent {
         ActivityRow(.underwaterDiving, name: "underwaterDiving"),
         ActivityRow(.volleyball, name: "volleyball", shared: "volleyball"),
         ActivityRow(.walking, name: "walking", shared: "walking"),
-        ActivityRow(.waterFitness, name: "waterFitness", shared: "swimming"),
+        ActivityRow(.waterFitness, name: "waterFitness"),
         ActivityRow(.waterPolo, name: "waterPolo"),
-        ActivityRow(.waterSports, name: "waterSports", shared: "swimming"),
-        ActivityRow(.wheelchairRunPace, name: "wheelchairRunPace", shared: "running", distance: .distanceWheelchair),
-        ActivityRow(.wheelchairWalkPace, name: "wheelchairWalkPace", shared: "walking", distance: .distanceWheelchair),
+        ActivityRow(.waterSports, name: "waterSports"),
+        ActivityRow(.wheelchairRunPace, name: "wheelchairRunPace", distance: .distanceWheelchair),
+        ActivityRow(.wheelchairWalkPace, name: "wheelchairWalkPace", distance: .distanceWheelchair),
         ActivityRow(.wrestling, name: "wrestling", shared: "martial-arts"),
         ActivityRow(.yoga, name: "yoga", shared: "yoga")
     ]
