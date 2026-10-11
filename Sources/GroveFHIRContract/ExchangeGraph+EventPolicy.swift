@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import ModelsR4
 
@@ -26,6 +28,9 @@ extension ExchangeGraph {
             resourceTypesByURL[output.fullURL] = output.resourceType
         }
     }
+
+    /// The retraction-target role that addresses the source record as a whole rather than one emitted node.
+    private static let sourceRecordTargetRole = "source-record"
 
     static func rule(for error: ExchangeIdentityError) -> ExchangeGraphRule {
         switch error {
@@ -378,11 +383,11 @@ extension ExchangeGraph {
         guard hasExactLifecycleCoding(provenance, kind: .retraction) else {
             throw .ruleViolation(.mobileExchangeLifecycleCoding)
         }
-        _ = try exactSourceEntity(in: provenance)
+        let sourceEntity = try exactSourceEntity(in: provenance)
         guard !provenance.target.isEmpty else {
             throw diagnostic(.mobileRetractionTargetRequired, location: "Provenance.target")
         }
-        try validateRetractionTargets(provenance.target)
+        try validateRetractionTargets(provenance.target, sourceEntity: sourceEntity)
     }
 
     private static func validateRetractionEntry(
@@ -433,23 +438,28 @@ extension ExchangeGraph {
     }
 
     private static func validateRetractionTargets(
-        _ targets: [Reference]
+        _ targets: [Reference],
+        sourceEntity: RoledIdentifier
     ) throws(ExchangeGraphError) {
         var logicalTargets: Set<BusinessIdentifier> = []
         for (index, target) in targets.enumerated() {
-            let logicalTarget = try validatedRetractionTarget(target)
-            guard logicalTargets.insert(logicalTarget.identifier.identifier).inserted else {
+            let identifier = try validatedRetractionTarget(target, at: index, among: targets.count, sourceEntity: sourceEntity)
+            guard logicalTargets.insert(identifier.identifier).inserted else {
                 throw diagnostic(.mobileRetractionDistinctTarget, location: "Provenance.target[\(index)].identifier")
             }
         }
     }
 
+    /// The identity of one valid retraction target: a logical Reference with one complete opaque Identifier, exactly one
+    /// target role and at most one native record identifier, typed as its role admits or, for a source-record target,
+    /// addressing the source record as a whole.
     private static func validatedRetractionTarget(
-        _ target: Reference
-    ) throws(ExchangeGraphError) -> RetractionEvent.Target {
+        _ target: Reference,
+        at index: Int,
+        among count: Int,
+        sourceEntity: RoledIdentifier
+    ) throws(ExchangeGraphError) -> RoledIdentifier {
         guard target.reference == nil,
-              let type = target.type?.value?.url.absoluteString,
-              let resourceType = ResourceType(rawValue: type),
               let identifier = target.identifier,
               let businessIdentifier = try? RoledIdentifier(identifier) else {
             throw .ruleViolation(.mobileRetractionLogicalTarget)
@@ -460,28 +470,23 @@ extension ExchangeGraph {
         let roles = target.extension?.filter { $0.url == Canonicals.retractionTargetRole } ?? []
         guard roles.count == 1,
               case .code(let roleCode)? = roles.first?.value,
-              let rawRole = roleCode.value?.string,
-              let role = RetractionEvent.Target.Role(rawValue: rawRole) else {
+              let rawRole = roleCode.value?.string else {
             throw .ruleViolation(.mobileRetractionTargetRole)
         }
-        let natives = target.extension?.filter { $0.url == Canonicals.retractionTargetNativeIdentifier } ?? []
-        guard natives.count <= 1 else {
-            throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
+        let nativeRecordIdentifier = try validatedNativeRecordIdentifier(of: target)
+        if rawRole == sourceRecordTargetRole {
+            try validateSourceRecordTarget(target, identifier: businessIdentifier, at: index, among: count, sourceEntity: sourceEntity)
+            return businessIdentifier
         }
-        var nativeRecordIdentifier: BusinessIdentifier?
-        if let native = natives.first {
-            // Any coding in the Grove role system restates a graph identity, whether or not its code parses.
-            guard case .identifier(let disclosed)? = native.value,
-                  !(disclosed.type?.coding ?? []).contains(where: {
-                      $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
-                  }),
-                  let identifier = try? BusinessIdentifier(disclosed) else {
-                throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
-            }
-            nativeRecordIdentifier = identifier
+        guard let role = RetractionEvent.Target.Role(rawValue: rawRole) else {
+            throw .ruleViolation(.mobileRetractionTargetRole)
+        }
+        guard let type = target.type?.value?.url.absoluteString,
+              let resourceType = ResourceType(rawValue: type) else {
+            throw .ruleViolation(.mobileRetractionLogicalTarget)
         }
         do {
-            return try RetractionEvent.Target(
+            _ = try RetractionEvent.Target(
                 identifier: businessIdentifier,
                 resourceType: resourceType,
                 role: role,
@@ -490,5 +495,49 @@ extension ExchangeGraph {
         } catch {
             throw .ruleViolation(.mobileRetractionRoleTargetType)
         }
+        return businessIdentifier
+    }
+
+    /// A source-record target names no one resource, so it states no resource type, is the retraction's only target, and
+    /// repeats the exact source-record Identifier of the Provenance source entity; each failure names where it occurs.
+    private static func validateSourceRecordTarget(
+        _ target: Reference,
+        identifier: RoledIdentifier,
+        at index: Int,
+        among count: Int,
+        sourceEntity: RoledIdentifier
+    ) throws(ExchangeGraphError) {
+        guard identifier.role == .sourceRecord else {
+            throw diagnostic(.mobileRetractionSourceRecordTarget, location: "Provenance.target[\(index)].identifier")
+        }
+        guard target.type == nil else {
+            throw diagnostic(.mobileRetractionSourceRecordTarget, location: "Provenance.target[\(index)].type")
+        }
+        guard count == 1 else {
+            throw diagnostic(.mobileRetractionSourceRecordTarget, location: "Provenance.target")
+        }
+        guard identifier == sourceEntity else {
+            throw diagnostic(.mobileRetractionSourceRecordTarget, location: "Provenance.target[\(index)].identifier")
+        }
+    }
+
+    /// The target's one optional native record identifier, which never restates a Grove graph identity.
+    private static func validatedNativeRecordIdentifier(of target: Reference) throws(ExchangeGraphError) -> BusinessIdentifier? {
+        let natives = target.extension?.filter { $0.url == Canonicals.retractionTargetNativeIdentifier } ?? []
+        guard natives.count <= 1 else {
+            throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
+        }
+        guard let native = natives.first else {
+            return nil
+        }
+        // Any coding in the Grove role system restates a graph identity, whether or not its code parses.
+        guard case .identifier(let disclosed)? = native.value,
+              !(disclosed.type?.coding ?? []).contains(where: {
+                  $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
+              }),
+              let identifier = try? BusinessIdentifier(disclosed) else {
+            throw .ruleViolation(.mobileRetractionNativeRecordIdentifier)
+        }
+        return identifier
     }
 }

@@ -81,11 +81,14 @@ struct ExchangeGraphCorpusTests {
     func acceptsSharedFixtures() throws {
         _ = try graph(named: "exchange-bundle.json", kind: .active)
         _ = try graph(named: "retraction-bundle.json", kind: .retraction)
+        // A retraction may address the source record as a whole through one untyped source-record target.
+        _ = try graph(named: "source-record-target-retraction-bundle.json", kind: .retraction)
     }
 
     @Test("Serialized shared fixtures preserve their event identity", arguments: [
         ("exchange-bundle.json", ExchangeGraph.Kind.active),
-        ("retraction-bundle.json", ExchangeGraph.Kind.retraction)
+        ("retraction-bundle.json", ExchangeGraph.Kind.retraction),
+        ("source-record-target-retraction-bundle.json", ExchangeGraph.Kind.retraction)
     ])
     func acceptsSerializedSharedFixtures(name: String, kind: ExchangeGraph.Kind) throws {
         let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
@@ -97,7 +100,8 @@ struct ExchangeGraphCorpusTests {
 
     @Test("An otherwise valid graph cannot hide a duplicated JSON member", arguments: [
         ("exchange-bundle.json", ExchangeGraph.Kind.active),
-        ("retraction-bundle.json", ExchangeGraph.Kind.retraction)
+        ("retraction-bundle.json", ExchangeGraph.Kind.retraction),
+        ("source-record-target-retraction-bundle.json", ExchangeGraph.Kind.retraction)
     ])
     func rejectsDuplicateMemberInValidGraph(name: String, kind: ExchangeGraph.Kind) throws {
         let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
