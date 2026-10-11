@@ -335,6 +335,8 @@ enum ContentCorpusInput: Codable, Sendable {
     case catalog(projection: ContentCorpusProjection)
     /// Project one Observation back to the HealthKit sample it describes.
     case reverse(observation: ContentCorpusJSON)
+    /// Project one grove-fhir guide example back to the HealthKit sample it depicts, then convert that sample.
+    case guideExample(observation: ContentCorpusJSON)
 }
 
 #endif

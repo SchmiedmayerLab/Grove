@@ -47,7 +47,29 @@ enum ContentCorpusRecorder {
         case let .retract(type, disclosure): try await retraction(of: type, disclosure: disclosure)
         case .catalog(let projection): try ContentCorpusCatalog.projection(projection)
         case .reverse(let observation): reverse(try observation.decoded(as: Observation.self))
+        case .guideExample(let observation): try await guideExample(try observation.decoded(as: Observation.self))
         }
+    }
+
+    /// Converts the sample a guide example depicts, as the reverse projection reads it from the example, under the
+    /// fixed record identity and no writer, so Scripts/check-ig-example-containment.py can check that the example is
+    /// contained in what Grove emits for it. An example the projection cannot read renders as `unprojected` with the
+    /// projection's error, so the check tells a sample it cannot build apart from a conversion that refuses.
+    static func guideExample(_ observation: Observation) async throws -> LosslessJSONValue {
+        let sample: HKSample
+        do {
+            sample = try observation.healthKitSample()
+        } catch {
+            return .object(["unprojected": .object(["code": .string(error.diagnostic.code), "error": .string(String(describing: error))])])
+        }
+        let stored = try StoredSampleFixtures.stored(sample, uuid: ContentCorpusSamples.uuid, writer: .unattributed)
+        var inputs = ExportInputs()
+        inputs.sequence = sequence
+        let exports = try await ExporterFixtures.exports(.sample(stored), inputs)
+        if exports.count == 1, case .refused(let error) = exports[0].outcome {
+            return refusal(error)
+        }
+        return try render(exports.isEmpty ? .omitted : .converted(exports))
     }
 
     /// Exports `source` as the record its payload takes.

@@ -83,7 +83,7 @@ enum ContentCorpusGrid {
     static var vectors: [ContentCorpusVector] {
         quantities + categories + times + correlations + workouts + statesOfMind + assessments + bareRows
             + metadata + precedence + electrocardiograms + recordings + clinicalDocuments + retractions + catalog + reverseProjections
-            + roundTrips
+            + roundTrips + guideExamples
     }
 
     /// The vectors of every quantity row: a value the contract admits, the sweep, values without a `Decimal`, a percent

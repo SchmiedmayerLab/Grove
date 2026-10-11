@@ -98,6 +98,10 @@ if [ "$missing_package" = true ]; then
     echo "==> building ${GUIDE_NAMES[*]} implementation guides"
     (cd "$GUIDES" && npm ci && ./Scripts/build-guides.sh "${GUIDE_NAMES[@]}")
 fi
+# The content corpus converts the HealthKit guide's generated examples, read from its built package.
+if [ "$COMPONENT" = "healthkit" ]; then
+    python3 Scripts/generate-grove-fhir-guide-example-fixtures.py --guides "$GUIDES" --check
+fi
 
 mkdir -p "$OUT"
 find "$OUT" -type f -delete
@@ -131,7 +135,7 @@ python3 "$GUIDES/Scripts/validate-producer.py" \
     --validator "$VALIDATOR" \
     "${package_arguments[@]}"
 
-echo "==> checking that the paired $COMPONENT guide examples are contained in Grove's goldens"
+echo "==> checking that the paired $COMPONENT guide examples are contained in Grove's output"
 python3 Scripts/check-ig-example-containment.py --guides "$GUIDES" --component "$COMPONENT"
 
 if [ "$COMPONENT" = "questionnaire" ]; then

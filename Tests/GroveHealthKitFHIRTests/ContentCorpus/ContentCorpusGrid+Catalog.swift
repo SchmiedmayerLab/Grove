@@ -78,6 +78,24 @@ extension ContentCorpusGrid {
         }
     }
 
+    /// Every Observation example the pinned HealthKit guide generates from its catalogs, as
+    /// Scripts/generate-grove-fhir-guide-example-fixtures.py copies them from the built guide, in id order.
+    static var guideExamples: [ContentCorpusVector] {
+        let name = "guide-examples-healthkit"
+        guard let url = Bundle.module.url(forResource: name, withExtension: "jsonl", subdirectory: "GuideExamples")
+            ?? Bundle.module.url(forResource: name, withExtension: "jsonl"),
+              let data = try? Data(contentsOf: url),
+              let examples = try? ContentCorpusStore.rawLines(data).map({ try JSONDecoder().decode(ContentCorpusJSON.self, from: $0.bytes) }) else {
+            preconditionFailure("Resources/GuideExamples/\(name).jsonl is checked in with one guide example per line")
+        }
+        return examples.map { example in
+            guard case .object(let members) = example, case .string(let id)? = members["id"] else {
+                preconditionFailure("every guide example states its id")
+            }
+            return ContentCorpusVector(id: "guide-example/\(id)", input: .guideExample(observation: example))
+        }
+    }
+
     /// Heart-rate Observations that each change one thing the reverse projection reads: among them an ECG's lineage,
     /// as the ECG's average heart rate states it, and Periods of zero width, without an end and reversed.
     static var reverseEdges: [(String, [String: Any])] {

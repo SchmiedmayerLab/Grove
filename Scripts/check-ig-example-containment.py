@@ -7,19 +7,22 @@
 # SPDX-License-Identifier: MIT
 #
 
-"""Checks that every paired grove-fhir example is contained in the golden Grove recorded for the same input.
+"""Checks that every paired grove-fhir example is contained in what Grove emits for the same input.
 
-Each pair in PAIRS names a guide example and the golden of a case built from the values the example
-states. Within the golden's Bundle, the entry of the example's resource type whose profiles include all of the
-example's profiles is the counterpart, and every element the example states must appear there with the same value;
-Grove may state more.
+Each pair in PAIRS names a guide example and the golden of a case built from the values the example states, and
+every content-corpus vector `guide-example/<id>` pairs the guide's example `<id>` with Grove's conversion of the
+sample the reverse projection reads from it. Among Grove's resources, the one of the example's resource type whose
+profiles include all of the example's profiles is the counterpart, and every element the example states must appear
+there with the same value; Grove may state more. An example the reverse projection cannot read is reported as
+unprojected, not failed.
 
 Identities cannot match byte for byte: the guide's examples are keyed under its own test key and naming systems,
 and their digests have no published preimage. So both sides are compared after normalization:
 - an identifier that carries a Grove identifier-role type keeps its type, and its system and value become
   placeholders;
 - a reference becomes the resource type it resolves to: `Patient/HealthKitPatientExample` in the guide, the entry
-  a `urn:uuid` names in Grove's Bundle, and a logical reference by its `type`, as Grove names the Patient;
+  a `urn:uuid` names in Grove's Bundle, and a logical reference by its `type`, as Grove names the Patient; a corpus
+  line pins only a graph's outputs, so a `urn:uuid` there stays unresolved;
 - an example's `id` and narrative `text` are the guide's own and are not compared.
 
 Arrays are compared as multisets: each example element must be contained in a distinct element of Grove's array,
@@ -55,6 +58,8 @@ PAIRS = {
     },
 }
 GOLDENS = {"healthkit": ROOT / "Tests/GroveHealthKitFHIRTests/Resources/Goldens"}
+CORPUS = {"healthkit": ROOT / "Tests/GroveHealthKitFHIRTests/Resources/ContentCorpus/content-corpus.jsonl"}
+CORPUS_PREFIX = "guide-example/"
 IDENTIFIER_ROLE_SYSTEM = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
 # The example resource types an adapter emits as its outputs; examples of these that no pair names are reported.
 OUTPUT_TYPES = {"Observation", "DocumentReference"}
@@ -144,43 +149,62 @@ def contained(example: Any, grove: Any, path: str, differences: list[str]) -> bo
     return True
 
 
-def counterpart(bundle: dict[str, Any], example: dict[str, Any]) -> dict[str, Any]:
-    """The one entry resource of the example's type whose profiles include all of the example's."""
+def counterpart(resources: list[dict[str, Any]], example: dict[str, Any]) -> dict[str, Any]:
+    """The one resource of the example's type whose profiles include all of the example's."""
     profiles = set(example.get("meta", {}).get("profile", []))
     candidates = [
-        entry["resource"]
-        for entry in bundle.get("entry", [])
-        if entry.get("resource", {}).get("resourceType") == example["resourceType"]
-        and profiles <= set(entry["resource"].get("meta", {}).get("profile", []))
+        resource
+        for resource in resources
+        if resource.get("resourceType") == example["resourceType"]
+        and profiles <= set(resource.get("meta", {}).get("profile", []))
     ]
     if len(candidates) != 1:
         raise ValueError(f"{len(candidates)} entries of type {example['resourceType']} state the profiles {sorted(profiles)}")
     return candidates[0]
 
 
-def check(pair: dict[str, Any], examples: dict[str, dict[str, Any]], goldens: Path) -> list[str]:
-    example_key = f"{pair['resourceType']}/{pair['example']}"
-    example = examples.get(example_key)
-    if example is None:
-        return [f"the guide has no example {example_key}"]
-    golden = goldens / f"{pair['golden']}.json"
-    if not golden.exists():
-        return [f"Grove has no golden {golden.name}"]
-    bundle = json.loads(golden.read_text(encoding="utf-8"))
+def compare(example: dict[str, Any], resources: list[dict[str, Any]], resolve) -> list[str]:  # type: ignore[no-untyped-def]
+    """The differences between `example` and its counterpart among `resources`."""
     try:
-        grove = counterpart(bundle, example)
+        grove = counterpart(resources, example)
     except ValueError as error:
         return [str(error)]
-    entry_types = {entry.get("fullUrl"): entry.get("resource", {}).get("resourceType") for entry in bundle.get("entry", [])}
     stated = {key: value for key, value in example.items() if key not in {"id", "text"}}
     differences: list[str] = []
     contained(
         normalize(stated, lambda reference: reference.split("/", 1)[0]),
-        normalize(grove, lambda reference: entry_types.get(reference, reference)),
+        normalize(grove, resolve),
         example["resourceType"],
         differences,
     )
     return differences
+
+
+def check_golden(example: dict[str, Any], golden: Path) -> list[str]:
+    if not golden.exists():
+        return [f"Grove has no golden {golden.name}"]
+    bundle = json.loads(golden.read_text(encoding="utf-8"))
+    entry_types = {entry.get("fullUrl"): entry.get("resource", {}).get("resourceType") for entry in bundle.get("entry", [])}
+    resources = [entry.get("resource", {}) for entry in bundle.get("entry", [])]
+    return compare(example, resources, lambda reference: entry_types.get(reference, reference))
+
+
+def check_corpus(example: dict[str, Any], output: dict[str, Any]) -> list[str]:
+    if "graphs" not in output:
+        return [f"Grove does not convert the sample the example depicts: {json.dumps(output)}"]
+    resources = [resource for graph in output["graphs"] for resource in graph.get("outputs", [])]
+    return compare(example, resources, lambda reference: reference)
+
+
+def corpus_outputs(corpus: Path) -> dict[str, dict[str, Any]]:
+    """The output of each guide-example vector in the corpus, by the example id the vector names."""
+    outputs: dict[str, dict[str, Any]] = {}
+    with corpus.open(encoding="utf-8") as lines:
+        for line in lines:
+            vector = json.loads(line)
+            if vector["id"].startswith(CORPUS_PREFIX):
+                outputs[vector["id"].removeprefix(CORPUS_PREFIX)] = vector["output"]
+    return outputs
 
 
 def main() -> int:
@@ -194,19 +218,41 @@ def main() -> int:
         print(f"==> no IG example pairs for {arguments.component}")
         return 0
     failed = False
+    vectors = corpus_outputs(CORPUS[arguments.component])
     for guide in component["guides"]:
         examples = load_examples(arguments.guides, guide)
-        pairs = [pair for pair in component["pairs"] if pair["guide"] == guide]
-        for pair in pairs:
-            differences = check(pair, examples, GOLDENS[arguments.component])
-            status = "contained" if not differences else "NOT contained"
-            print(f"    {pair['resourceType']}/{pair['example']} in {pair['golden']}: {status}")
+        results: list[tuple[str, str, list[str]]] = []
+        for pair in (pair for pair in component["pairs"] if pair["guide"] == guide):
+            key = f"{pair['resourceType']}/{pair['example']}"
+            example = examples.get(key)
+            differences = (
+                [f"the guide has no example {key}"] if example is None
+                else check_golden(example, GOLDENS[arguments.component] / f"{pair['golden']}.json")
+            )
+            results.append((key, pair["golden"], differences))
+        unprojected: list[str] = []
+        for identifier, output in sorted(vectors.items()):
+            key = f"Observation/{identifier}"
+            example = examples.get(key)
+            if example is not None and "unprojected" in output:
+                unprojected.append(f"{key}: {output['unprojected']['error']}")
+                continue
+            differences = [f"the guide has no example {key}"] if example is None else check_corpus(example, output)
+            results.append((key, f"{CORPUS_PREFIX}{identifier}", differences))
+        for key, source, differences in results:
+            print(f"    {key} in {source}: {'NOT contained' if differences else 'contained'}")
             for difference in differences:
                 print(f"      {difference}")
             failed = failed or bool(differences)
-        paired = {f"{pair['resourceType']}/{pair['example']}" for pair in pairs}
+        paired = {key for key, _, _ in results} | {line.split(":", 1)[0] for line in unprojected}
         unpaired = sorted(key for key, resource in examples.items() if resource["resourceType"] in OUTPUT_TYPES and key not in paired)
-        print(f"    {guide}: {len(pairs)} paired, {len(unpaired)} output examples unpaired")
+        contained_count = sum(1 for _, _, differences in results if not differences)
+        print(
+            f"    {guide}: {contained_count} of {len(results)} paired examples contained, {len(unprojected)} unprojected, "
+            f"{len(unpaired)} output examples unpaired"
+        )
+        for line in unprojected:
+            print(f"      unprojected {line}")
         for key in unpaired:
             print(f"      unpaired {key}")
     return 1 if failed else 0
