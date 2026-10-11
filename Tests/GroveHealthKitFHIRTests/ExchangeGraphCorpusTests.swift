@@ -221,7 +221,12 @@ struct ExchangeGraphCorpusTests {
             )
             let mutated = try applying(operations, to: baseObject)
             let mutatedData = try JSONSerialization.data(withJSONObject: mutated)
-            let kind: ExchangeGraph.Kind = testCase.base == "mobile-retraction" ? .retraction : .active
+            // A base is a retraction when it claims the retraction Bundle profile, as each source-record-target
+            // base does as well as the mobile-retraction one.
+            let profiles = ((baseObject as? [String: Any])?["meta"] as? [String: Any])?["profile"] as? [String] ?? []
+            let kind: ExchangeGraph.Kind = profiles.contains(Profile.groveMobileRetractionBundle.value?.url.absoluteString ?? "")
+                ? .retraction
+                : .active
 
             do {
                 _ = try ExchangeGraph(validating: mutatedData, kind: kind)
