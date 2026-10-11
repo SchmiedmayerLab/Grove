@@ -18,7 +18,7 @@ import ModelsR4
 /// The Observation-graph shapes the goldens pin: one sample each, exported through `HealthKitFHIRExporter`.
 extension GoldenCase {
     /// Every pinned shape, in the order the goldens directory lists them.
-    static let all: [GoldenCase] = observations + writers + disclosures + documents + retractions + exporter
+    static let all: [GoldenCase] = observations + writers + disclosures + documents + retractions + exporter + guideExamples
 
     /// Sequences 1-19: the measurement shapes under the default context.
     static let observations: [GoldenCase] = [
@@ -276,6 +276,35 @@ extension GoldenCase {
             var inputs = ExportInputs()
             inputs.studies = [.test("study-a"), .test("study-b")]
             return try await GoldenFixtures.export(attributedHeartRate(uuid: 45, writer: GoldenFixtures.foreignWriter), sequence: sequence, inputs)
+        }
+    ]
+
+    /// Sequences 120-139: records built from the values a grove-fhir guide example states, one per example that
+    /// `Scripts/check-ig-example-containment.py` pairs with its golden, so that script can check that the golden contains
+    /// everything the example states.
+    static let guideExamples: [GoldenCase] = [
+        // HealthKitHeartRateObservationExample: 72/min at 10:30:00.251 Los Angeles time while sedentary, from the
+        // watch, in a study.
+        GoldenCase("guide-example-heart-rate", sequence: 120) { sequence in
+            let start = Date(timeIntervalSince1970: 1_787_160_600.251)
+            let sample = HKQuantitySample(
+                type: HKQuantityType(.heartRate),
+                quantity: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 72),
+                start: start,
+                end: start,
+                device: GoldenFixtures.watch,
+                metadata: [
+                    HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
+                    HKMetadataKeyHeartRateMotionContext: HKHeartRateMotionContext.sedentary.rawValue
+                ]
+            )
+            var inputs = ExportInputs()
+            inputs.studies = [.test("study-a")]
+            return try await GoldenFixtures.export(
+                try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0x78)),
+                sequence: sequence,
+                inputs
+            )
         }
     ]
 

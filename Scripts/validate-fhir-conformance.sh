@@ -131,6 +131,9 @@ python3 "$GUIDES/Scripts/validate-producer.py" \
     --validator "$VALIDATOR" \
     "${package_arguments[@]}"
 
+echo "==> checking that the paired $COMPONENT guide examples are contained in Grove's goldens"
+python3 Scripts/check-ig-example-containment.py --guides "$GUIDES" --component "$COMPONENT"
+
 if [ "$COMPONENT" = "questionnaire" ]; then
     echo "==> validating the exact Questionnaire/Response pair"
     python3 "$GUIDES/Scripts/validate-questionnaire.py" \

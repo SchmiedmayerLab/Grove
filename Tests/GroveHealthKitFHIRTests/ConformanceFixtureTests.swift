@@ -87,6 +87,7 @@ struct ConformanceFixtureTests {
     /// `healthkit-state-of-mind-value-domain-1` in the HL7 validator, which rejects every negative value although the
     /// invariant admits -1 through 1, an IG defect.
     private static let validatedGoldens: Set<String> = [
+        "guide-example-heart-rate",
         "workout-session",
         "workout-session-context",
         "writer-non-ascii-name",

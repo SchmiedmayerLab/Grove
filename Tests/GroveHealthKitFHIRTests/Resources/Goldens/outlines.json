@@ -1460,6 +1460,97 @@
 
     ]
   },
+  "guide-example-heart-rate" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "http://hl7.org/fhir/StructureDefinition/workflow-researchStudy"
+        ],
+        "fullUrl" : "urn:uuid:03dd352f-6df3-55e3-9d9b-b1498bd222c9",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:Eesi62AEc--BuYuLJqYnU2IM3nVlEyVH-Xt9DWGtYKw",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:X57J5eKPOcWSVMYxv6_I8rlFoMpbt1ytHKvwV24at7o"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c91e48f4-aa93-5128-b9ef-4cfbd6108c9b",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchstudy|study-a"
+        ],
+        "resourceType" : "ResearchStudy"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:dd7c284c-2a79-5261-9865-0385888c1160",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "PlanDefinition"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:64462ef5-244b-55bd-b3ca-f4efc98aeef9",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchsubject|enrollment-study-a"
+        ],
+        "resourceType" : "ResearchSubject"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:510e8f8f-89fc-5fe6-86d3-0c455dd5dd4a",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:Z302Fld-yrTn-1q1R3NkCAHAt1zYq8iSR8JaA0q6BO8",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:b8f477cf-7ad2-5b8f-a74d-8b25a2ec6ab4",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:s1OLAa6viDSgXwZKCx8Dfz0dLbWUgWBfMWHlTLs89h0"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:c3bf63e1-0b73-5e1f-94b4-31c086a6a021",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:UN1ETRaRkobE3l1hoKUDksd7U6OkU7exA9QY3PUGZfQ",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f35317f3-3f66-5464-9afc-b78bd25a8252",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
   "heart-rate-device-without-unit-token" : {
     "entries" : [
       {
