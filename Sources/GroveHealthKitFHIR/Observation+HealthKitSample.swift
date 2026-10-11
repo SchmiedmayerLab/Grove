@@ -321,7 +321,11 @@ enum HealthKitSampleProjection {
               let unit = HealthKitCatalog.unit(forUCUMCode: contract.code) else {
             throw HealthKitSampleProjectionError.unitNotMappable(code: code)
         }
-        return HKQuantity(unit: unit, doubleValue: NSDecimalNumber(decimal: decimal).doubleValue)
+        // The decimal's text parses to the nearest binary64; `NSDecimalNumber` reads 1.32 as 1.3199999999999998.
+        guard let value = Double(decimal.description) else {
+            throw HealthKitSampleProjectionError.valueMissing(id: measurementID)
+        }
+        return HKQuantity(unit: unit, doubleValue: value)
     }
 }
 

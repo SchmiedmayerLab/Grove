@@ -68,6 +68,15 @@ struct HealthKitSampleProjectionTests {
         #expect(sample.metadata?[HKMetadataKeySyncIdentifier] == nil)
     }
 
+    @Test("A stated value lands as the binary64 nearest its decimal")
+    func valueLandsNearestItsDecimal() throws {
+        for lexeme in ["1.32", "0.42", "36.52"] {
+            let observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: Decimal(string: lexeme))
+            let sample = try #require(observation.healthKitSample() as? HKQuantitySample)
+            #expect(sample.quantity.doubleValue(for: .gramUnit(with: .kilo)) == Double(lexeme))
+        }
+    }
+
     /// Foundation's calendar would read this lexeme as the Julian date, nine days later.
     @Test("A reading from before the 1582 calendar reform lands on its proleptic Gregorian instant")
     func preReformInstantIsProleptic() throws {
