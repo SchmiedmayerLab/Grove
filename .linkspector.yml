@@ -12,6 +12,8 @@ useGitIgnore: true
 ignorePatterns:
   - pattern: '^doc:.*$'
   - pattern: '^http://localhost.*$'
+  # This article is available, but Bluetooth SIG rejects CI link-checker requests with HTTP 403.
+  - pattern: '^https://www\.bluetooth\.com/blog/a-developers-guide-to-bluetooth/$'
   # DocC anchors keep the capitalisation of their heading and never match a GitHub heading slug.
   - pattern: '^#[A-Z][A-Za-z0-9-]*$'
 replacementPatterns:

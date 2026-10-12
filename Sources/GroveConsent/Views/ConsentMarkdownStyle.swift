@@ -25,7 +25,8 @@ struct ConsentMarkdownStyle: ViewModifier {
 
     private func heading(_ configuration: BlockConfiguration, level: Int) -> some View {
         // MarkdownUI scales its base font with Dynamic Type. Relative sizes preserve that scaling.
-        let scale: CGFloat = [22 / 17, 20 / 17, 19 / 17, 18 / 17, 1, 1][level - 1]
+        let headingSizes: [CGFloat] = [22, 20, 19, 18, 17, 17]
+        let scale = headingSizes[level - 1] / 17
         let accessibilityLevel: AccessibilityHeadingLevel = [.h1, .h2, .h3, .h4, .h5, .h6][level - 1]
         return configuration.label
             .markdownTextStyle {
