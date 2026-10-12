@@ -136,12 +136,23 @@ are rejected rather than silently omitted from the PDF. Links must use `https`, 
 need images must first define how immutable assets are packaged and preserved in both
 the presented document and its exported copy.
 
-Servers can use `GroveFoundation.ConsentDocumentFormat.parse(_:)` to validate the same
-interactive-field structure without importing SwiftUI. This structural check does not
+Servers can use `GroveFoundation.ConsentDocumentFormat.decode(_:)` to obtain the same
+validated, typed control definitions without importing SwiftUI. Use `parse(_:)` when
+only the validated Markdown representation is needed. This structural check does not
 establish rendering support, study approval or whether participant responses are complete.
 Fenced code examples remain literal text, not interactive controls. Duplicate field or
 option identifiers, invalid expected values, unknown attributes and unfinished controls
 are rejected. Frontmatter remains Grove's existing string-valued metadata format.
+
+Platform-specific controls can implement `ConsentDocumentElement` and be supplied to
+`decode(_:additionalElements:)`. Registration enables structural validation only;
+GroveConsent's views and PDF exporter still accept only built-in controls. See
+[Validating and Extending Consent Documents](../../GroveFoundation/GroveFoundation.docc/Consent-Documents.md)
+for the extension contract and a Swift example.
+
+The PDF exporter uses PDFKit, TPPDF and Apple font and drawing APIs. It does not run
+on Linux. Server-side PDF generation on Linux would require a separate rendering
+backend; the shared format types do not depend on the Apple exporter.
 
 Below is an example of a simple consent document that embeds several custom elements into its Markdown text:
 

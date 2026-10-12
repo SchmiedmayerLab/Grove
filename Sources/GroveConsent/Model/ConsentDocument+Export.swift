@@ -98,7 +98,7 @@ extension PDFRenderer {
     }
     
     
-    private func addToggleBlock(_ toggleConfig: ConsentDocument.ToggleConfig) throws {
+    private func addToggleBlock(_ toggleConfig: ConsentDocumentFormat.Toggle) throws {
         let state = consentDocument.value(for: toggleConfig)
         let cellStyle = PDFTableCellStyle(
             borders: .none,
@@ -124,7 +124,7 @@ extension PDFRenderer {
     }
     
     
-    private func addSelectBlock(_ selectConfig: ConsentDocument.SelectConfig) throws {
+    private func addSelectBlock(_ selectConfig: ConsentDocumentFormat.Selection) throws {
         let selection = consentDocument.value(for: selectConfig)
         let cellStyle = PDFTableCellStyle(
             borders: .none,
