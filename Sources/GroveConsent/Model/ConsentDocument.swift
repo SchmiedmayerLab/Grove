@@ -251,38 +251,24 @@ public final class ConsentDocument: Sendable {
     /// - parameter markdown: The Markdown input
     /// - parameter initialName: The default name that should be used for signature forms embedded in the Document
     public init(markdown: String, initialName: PersonNameComponents? = nil) throws(LoadError) {
-        let doc: MarkdownDocument
+        let parsed: ConsentDocumentFormat.ParsedDocument
         do {
-            doc = try ConsentDocumentFormat.parse(markdown)
+            parsed = try ConsentDocumentFormat.decode(markdown)
         } catch let error as MarkdownDocument.ParseError {
             throw LoadError.failedToParse(error)
+        } catch ConsentDocumentFormat.ValidationError.duplicateIdentifier(let id) {
+            throw LoadError.duplicateCustomElementId(id)
         } catch {
             throw LoadError.unsupportedContent
         }
-        markdownDocument = doc
-        sections = try markdownDocument.blocks.map { block throws(LoadError) -> Section in
-            switch block {
-            case .markdown(id: _, let rawContents):
-                return .markdown(rawContents)
-            case .customElement(let parsedElement):
-                do {
-                    switch parsedElement.name {
-                    case "toggle":
-                        return try Section.toggle(parsedElement, in: doc)
-                    case "select":
-                        return try Section.select(parsedElement, in: doc)
-                    case "signature":
-                        return try Section.signature(parsedElement)
-                    default:
-                        throw LoadError.failedToProcessInteractiveElements("Unexpected top-level element: \(parsedElement.name)")
-                    }
-                } catch let error as LoadError {
-                    throw error
-                } catch {
-                    throw LoadError.failedToProcessInteractiveElements(
-                        "Unable to construct \(parsedElement.name.localizedCapitalized) element from \(parsedElement): \(error)"
-                    )
-                }
+        markdownDocument = parsed.markdownDocument
+        sections = try parsed.sections.map { section throws(LoadError) -> Section in
+            switch section {
+            case .markdown(let text): return .markdown(text)
+            case .toggle(let toggle): return .toggle(toggle)
+            case .select(let selection): return .select(selection)
+            case .signature(let signature): return .signature(.init(id: signature.id))
+            case .custom: throw LoadError.unsupportedContent
             }
         }
         try processConsentFileSections(defaultName: initialName)

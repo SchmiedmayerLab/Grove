@@ -44,6 +44,11 @@ Grove Foundation provides a base layer of functionality useful in many applicati
 - ``TopLevelEncoder``
 - ``TopLevelDecoder``
 
+### Consent Documents
+- <doc:Consent-Documents>
+- ``ConsentDocumentFormat``
+- ``ConsentDocumentElement``
+
 ### Generic Result Builders
 - ``RangeReplaceableCollectionBuilder``
 - ``ArrayBuilder``

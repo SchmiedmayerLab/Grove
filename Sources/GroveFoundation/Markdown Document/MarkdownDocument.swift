@@ -16,7 +16,7 @@ public import Foundation
 ///
 /// ### Metadata
 ///
-/// When using any of the `processing:` initializers to create a ``MarkdownDocument`` (e.g.: ``init(processing:customElementNames:baseUrl:)-(String,_,_)``),
+/// When using any of the `processing:` initializers to create a ``MarkdownDocument`` (e.g.: ``init(processing:customElementNames:baseUrl:requiresCompleteInput:)``),
 /// any frontmatter-style metadata entries at the very beginning of the input will be parsed into a ``Metadata-swift.struct`` object.
 ///
 /// The frontmatter-style metadata takes the following format:
@@ -94,7 +94,7 @@ public import Foundation
 ///
 /// ### Initializers
 /// - ``init(metadata:blocks:baseUrl:)``
-/// - ``init(processing:customElementNames:baseUrl:)-(String,_,_)``
+/// - ``init(processing:customElementNames:baseUrl:requiresCompleteInput:)``
 /// - ``init(processing:customElementNames:baseUrl:)-(Data,_,_)``
 /// - ``init(contentsOf:customElementNames:baseUrl:)``
 /// - ``ParseError``
@@ -138,7 +138,7 @@ public struct MarkdownDocument: Hashable, Sendable {
         baseUrl: URL? = nil,
         requiresCompleteInput: Bool = false
     ) throws(ParseError) {
-        let parser = Parser(input: text, customElementNames: customElementNames)
+        let parser = Parser(input: text, customElements: .named(customElementNames))
         self = try parser.parse(baseUrl: baseUrl, requiresCompleteInput: requiresCompleteInput)
     }
     
