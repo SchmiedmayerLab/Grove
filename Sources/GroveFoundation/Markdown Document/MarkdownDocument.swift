@@ -131,9 +131,15 @@ public struct MarkdownDocument: Hashable, Sendable {
     /// - parameter customElementNames: A `Set` of HTML tag names which should be processed into custom elements.
     ///     Any HTML tags encountered that aren't specified in the set will be treated as if they were part of the normal markdown text.
     /// - parameter baseUrl: The document's base url.
-    public init(processing text: String, customElementNames: Set<String> = [], baseUrl: URL? = nil) throws(ParseError) {
+    /// - parameter requiresCompleteInput: Reject unfinished custom elements instead of accepting a parsed prefix.
+    public init(
+        processing text: String,
+        customElementNames: Set<String> = [],
+        baseUrl: URL? = nil,
+        requiresCompleteInput: Bool = false
+    ) throws(ParseError) {
         let parser = Parser(input: text, customElementNames: customElementNames)
-        self = try parser.parse(baseUrl: baseUrl)
+        self = try parser.parse(baseUrl: baseUrl, requiresCompleteInput: requiresCompleteInput)
     }
     
     /// Creates a new Markdown document by processing a `Data` object.

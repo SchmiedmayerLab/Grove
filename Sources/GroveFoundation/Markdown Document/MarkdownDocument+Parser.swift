@@ -79,11 +79,13 @@ extension MarkdownDocument {
 
 
 extension MarkdownDocument.Parser {
-    consuming func parse(baseUrl: URL?) throws(ParseError) -> MarkdownDocument { // swiftlint:disable:this function_body_length cyclomatic_complexity
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
+    consuming func parse(baseUrl: URL?, requiresCompleteInput: Bool = false) throws(ParseError) -> MarkdownDocument {
         typealias Block = MarkdownDocument.Block
         let frontmatter = try parseFrontmatter()
         var blocks: [Block] = []
         var currentBlockText = ""
+        var fence: (character: Character, count: Int)?
         func terminateCurrentBlock(id: String? = nil) {
             blocks.append(.markdown(
                 id: id ?? Self.markdownBlockId(currentBlockText),
@@ -93,6 +95,33 @@ extension MarkdownDocument.Parser {
         }
         do {
             while let currentChar {
+                // Fenced examples are literal Markdown, never interactive controls or headings.
+                if isAtBeginningOfLine, let line = currentLine {
+                    let trimmed = line.drop(while: { $0 == " " })
+                    if line.count - trimmed.count <= 3, let first = trimmed.first, first == "`" || first == "~" {
+                        let count = trimmed.prefix(while: { $0 == first }).count
+                        if count >= 3 {
+                            if let active = fence {
+                                if active.character == first, count >= active.count,
+                                   trimmed.dropFirst(count).allSatisfy(\.isWhitespace) {
+                                    fence = nil
+                                }
+                            } else {
+                                fence = (first, count)
+                            }
+                            currentBlockText.append(contentsOf: line)
+                            currentBlockText.append("\n")
+                            consumeLine()
+                            continue
+                        }
+                    }
+                    if fence != nil {
+                        currentBlockText.append(contentsOf: line)
+                        currentBlockText.append("\n")
+                        consumeLine()
+                        continue
+                    }
+                }
                 if isAtBeginningOfLine, Self.markdownBlockId(remainingInput) != nil {
                     // terminate current block, if we're at the start of a new one whith would get an id of its own.
                     terminateCurrentBlock()
@@ -116,7 +145,7 @@ extension MarkdownDocument.Parser {
         } catch {
             switch error.kind {
             case .eof:
-                break
+                if requiresCompleteInput { throw error }
             default:
                 throw error
             }
