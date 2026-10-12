@@ -168,6 +168,8 @@ public final class ConsentDocument: Sendable {
         case failedToProcessInteractiveElements(String)
         /// The input contains multiple custom elements with identical `id`s.
         case duplicateCustomElementId(String)
+        /// The document uses malformed interactive controls.
+        case unsupportedContent
     }
     
     /// Storage container for the data entered into a ``ConsentSignatureForm``, as part of filling out a ``ConsentDocument``.
@@ -251,12 +253,11 @@ public final class ConsentDocument: Sendable {
     public init(markdown: String, initialName: PersonNameComponents? = nil) throws(LoadError) {
         let doc: MarkdownDocument
         do {
-            doc = try MarkdownDocument(
-                processing: markdown,
-                customElementNames: ["toggle", "select", "signature", "option", "footnote"]
-            )
-        } catch {
+            doc = try ConsentDocumentFormat.parse(markdown)
+        } catch let error as MarkdownDocument.ParseError {
             throw LoadError.failedToParse(error)
+        } catch {
+            throw LoadError.unsupportedContent
         }
         markdownDocument = doc
         sections = try markdownDocument.blocks.map { block throws(LoadError) -> Section in
@@ -286,7 +287,7 @@ public final class ConsentDocument: Sendable {
         }
         try processConsentFileSections(defaultName: initialName)
     }
-    
+
     /// Creates a Consent Document by parsing a Markdown Data object
     ///
     /// - parameter markdown: The Markdown input. Must be valid UTF-8.
