@@ -44,7 +44,7 @@ Grove Foundation provides a base layer of functionality useful in many applicati
 - ``TopLevelEncoder``
 - ``TopLevelDecoder``
 
-### Consent Documents
+### Consent Document Validation
 - <doc:Consent-Documents>
 - ``ConsentDocumentFormat``
 - ``ConsentDocumentElement``
