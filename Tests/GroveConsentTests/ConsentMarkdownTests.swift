@@ -17,6 +17,41 @@ import PencilKit
 
 
 struct ConsentMarkdownTests {
+    @Test
+    @MainActor
+    func retainsDuplicateIdentifierError() {
+        #expect {
+            try ConsentDocument(markdown: "<signature id=participant />\n<signature id=participant />")
+        } throws: { error in
+            guard case ConsentDocument.LoadError.duplicateCustomElementId("participant") = error else {
+                return false
+            }
+            return true
+        }
+    }
+
+    @Test
+    @MainActor
+    func sharedControlsInitializeResponsesAndCheckCompletion() throws {
+        let document = try ConsentDocument(markdown: """
+            <toggle id=agree expected-value=true>Agree</toggle>
+            <select id=choice expected-value="*"><option id=yes>Yes</option></select>
+            """)
+        guard case .toggle(let toggle) = document.sections[0], case .select(let selection) = document.sections[1] else {
+            Issue.record("Expected shared controls")
+            return
+        }
+        #expect(document.userResponses.toggles["agree"] == false)
+        #expect(document.userResponses.selects["choice"]?.isEmpty == true)
+        #expect(document.completionState == .incomplete(firstIncompleteId: "agree"))
+        document.binding(for: toggle).wrappedValue = true
+        #expect(document.completionState == .incomplete(firstIncompleteId: "choice"))
+        document.binding(for: selection).wrappedValue = "unknown"
+        #expect(document.completionState == .incomplete(firstIncompleteId: "choice"))
+        document.binding(for: selection).wrappedValue = "yes"
+        #expect(document.completionState == .complete)
+    }
+
     #if canImport(UIKit)
     @Test
     @MainActor

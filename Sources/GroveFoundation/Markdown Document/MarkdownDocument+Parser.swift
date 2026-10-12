@@ -64,14 +64,26 @@ extension MarkdownDocument {
     struct Parser: ~Copyable {
         typealias ParseError = MarkdownDocument.ParseError
         typealias CustomElement = MarkdownDocument.CustomElement
+
+        enum CustomElements {
+            case named(Set<String>)
+            case all
+
+            func contains(_ name: String) -> Bool {
+                switch self {
+                case .named(let names): names.contains(name)
+                case .all: true
+                }
+            }
+        }
         
         private let input: String
-        private let customElementNames: Set<String>
+        private let customElements: CustomElements
         private var position: String.Index
         
-        init(input: String, customElementNames: Set<String>) {
+        init(input: String, customElements: CustomElements) {
             self.input = input
-            self.customElementNames = customElementNames
+            self.customElements = customElements
             self.position = input.startIndex
         }
     }
@@ -128,7 +140,7 @@ extension MarkdownDocument.Parser {
                 }
                 if currentChar == "<", isAtBeginningOfLine,
                    let element = try parseCustomElement() {
-                    if customElementNames.contains(element.name) {
+                    if customElements.contains(element.name) {
                         terminateCurrentBlock()
                         blocks.append(.customElement(element))
                     } else {
@@ -318,7 +330,7 @@ extension MarkdownDocument.Parser {
         } else {
             while true {
                 if let element = try parseCustomElement() {
-                    if customElementNames.contains(element.name) {
+                    if customElements.contains(element.name) {
                         parsedElement.content.append(.element(element))
                     } else {
                         parsedElement.content.append(.text(element.raw))
@@ -358,7 +370,35 @@ extension MarkdownDocument.Parser {
     /// Parses the `{X}` part in `<element>{X}</element>`.
     private mutating func parseElementTextContents() -> String {
         var text = ""
-        while let currentChar, currentChar != "<" {
+        var fence: (character: Character, count: Int)?
+        while let currentChar {
+            if isAtBeginningOfLine, let line = currentLine {
+                let trimmed = line.drop(while: { $0 == " " })
+                if line.count - trimmed.count <= 3, let first = trimmed.first, first == "`" || first == "~" {
+                    let count = trimmed.prefix(while: { $0 == first }).count
+                    if count >= 3 {
+                        if let active = fence {
+                            if active.character == first, count >= active.count,
+                               trimmed.dropFirst(count).allSatisfy(\.isWhitespace) {
+                                fence = nil
+                            }
+                        } else {
+                            fence = (first, count)
+                        }
+                        text.append(contentsOf: line)
+                        text.append("\n")
+                        consumeLine()
+                        continue
+                    }
+                }
+                if fence != nil {
+                    text.append(contentsOf: line)
+                    text.append("\n")
+                    consumeLine()
+                    continue
+                }
+            }
+            guard currentChar != "<" else { break }
             text.append(currentChar)
             consume()
         }

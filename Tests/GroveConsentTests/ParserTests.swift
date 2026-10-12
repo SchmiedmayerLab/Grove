@@ -84,40 +84,31 @@ struct ConsentParserTests {
             """
         let document = try ConsentDocument(markdown: input)
         #expect(document.metadata.isEmpty)
-        #expect(document.sections == [
-            .markdown("Hello *there* :)"),
-            .toggle(.init(
-                id: "toggle1",
-                text: MarkdownDocument(metadata: [:], blocks: [.markdown(id: nil, rawContents: "Prompt1")]),
-                initialValue: true,
-                expectedValue: false
-            )),
-            .toggle(.init(
-                id: "toggle2",
-                text: MarkdownDocument(metadata: [:], blocks: [.markdown(id: nil, rawContents: "Prompt2")]),
-                initialValue: false,
-                expectedValue: true
-            )),
-            .toggle(.init(
-                id: "toggle3",
-                text: MarkdownDocument(metadata: [:], blocks: [.markdown(id: nil, rawContents: "Prompt3")]),
-                initialValue: false,
-                expectedValue: true
-            )),
-            .markdown("some more markdown"),
-            .select(.init(
-                id: "select1",
-                text: MarkdownDocument(metadata: [:], blocks: [.markdown(id: nil, rawContents: "Please select your preference")]),
-                options: [
-                    .init(id: "option1", title: "Option1"),
-                    .init(id: "option2", title: "Option2")
-                ],
-                initialValue: "option1",
-                expectedSelection: .anything(allowEmptySelection: true)
-            )),
-            .markdown("even more mark down"),
-            .signature(.init(id: "sig1"))
+        try #require(document.sections.count == 8)
+        #expect(document.sections[0] == .markdown("Hello *there* :)"))
+        #expect(document.sections[4] == .markdown("some more markdown"))
+        #expect(document.sections[6] == .markdown("even more mark down"))
+        #expect(document.sections[7] == .signature(.init(id: "sig1")))
+        let toggles = document.sections.compactMap { section in
+            if case .toggle(let toggle) = section { toggle } else { nil }
+        }
+        #expect(toggles.map(\.id) == ["toggle1", "toggle2", "toggle3"])
+        #expect(toggles.map(\.initialValue) == [true, false, false])
+        #expect(toggles.map(\.expectedValue) == [false, true, true])
+        #expect(toggles.map(\.text.blocks) == [
+            [.markdown(id: nil, rawContents: "Prompt1")],
+            [.markdown(id: nil, rawContents: "Prompt2")],
+            [.markdown(id: nil, rawContents: "Prompt3")]
         ])
+        let selection = try #require(document.sections.compactMap { section in
+            if case .select(let selection) = section { selection } else { nil }
+        }.first)
+        #expect(selection.id == "select1")
+        #expect(selection.text.blocks == [.markdown(id: nil, rawContents: "Please select your preference")])
+        #expect(selection.options.map(\.id) == ["option1", "option2"])
+        #expect(selection.options.map(\.title) == ["Option1", "Option2"])
+        #expect(selection.initialValue == "option1")
+        #expect(selection.expectedSelection == .anything(allowEmptySelection: true))
     }
     
     @Test(arguments: [
@@ -143,15 +134,13 @@ struct ConsentParserTests {
             </select>
             """
         let document = try ConsentDocument(markdown: input)
-        #expect(document.sections == [
-            .select(.init(
-                id: "select1",
-                text: MarkdownDocument(metadata: [:], blocks: []),
-                options: [.init(id: "option1", title: "Text")],
-                initialValue: "option1",
-                expectedSelection: .anything(allowEmptySelection: true)
-            ))
-        ])
+        let selection = try singleSelection(in: document)
+        #expect(selection.id == "select1")
+        #expect(selection.text.blocks.isEmpty)
+        #expect(selection.options.map(\.id) == ["option1"])
+        #expect(selection.options.map(\.title) == ["Text"])
+        #expect(selection.initialValue == "option1")
+        #expect(selection.expectedSelection == .anything(allowEmptySelection: true))
     }
     
     @Test
@@ -166,18 +155,16 @@ struct ConsentParserTests {
             </select>
             """
         let document = try ConsentDocument(markdown: input)
-        #expect(document.sections == [
-            .select(.init(
-                id: "select1",
-                text: MarkdownDocument(metadata: [:], blocks: [
-                    .markdown(id: nil, rawContents: "Please select"),
-                    .markdown(id: nil, rawContents: "your preferred option")
-                ]),
-                options: [.init(id: "o1", title: "T1"), .init(id: "o2", title: "T2")],
-                initialValue: "",
-                expectedSelection: .anything(allowEmptySelection: false)
-            ))
+        let selection = try singleSelection(in: document)
+        #expect(selection.id == "select1")
+        #expect(selection.text.blocks == [
+            .markdown(id: nil, rawContents: "Please select"),
+            .markdown(id: nil, rawContents: "your preferred option")
         ])
+        #expect(selection.options.map(\.id) == ["o1", "o2"])
+        #expect(selection.options.map(\.title) == ["T1", "T2"])
+        #expect(selection.initialValue.isEmpty)
+        #expect(selection.expectedSelection == .anything(allowEmptySelection: false))
     }
     
     @Test
@@ -192,23 +179,21 @@ struct ConsentParserTests {
             </select>
             """
         let document = try ConsentDocument(markdown: input)
-        #expect(document.sections == [
-            .select(.init(
-                id: "select1",
-                text: MarkdownDocument(metadata: [:], blocks: [
-                    .markdown(id: nil, rawContents: "Please select your preferred option"),
-                    .customElement(.init(
-                        name: "footnote",
-                        attributes: [],
-                        content: [.text("You can change this later in Settings...")],
-                        raw: "<footnote>You can change this later in Settings...</footnote>"
-                    ))
-                ]),
-                options: [.init(id: "o1", title: "T1"), .init(id: "o2", title: "T2")],
-                initialValue: "",
-                expectedSelection: .anything(allowEmptySelection: false)
+        let selection = try singleSelection(in: document)
+        #expect(selection.id == "select1")
+        #expect(selection.text.blocks == [
+            .markdown(id: nil, rawContents: "Please select your preferred option"),
+            .customElement(.init(
+                name: "footnote",
+                attributes: [],
+                content: [.text("You can change this later in Settings...")],
+                raw: "<footnote>You can change this later in Settings...</footnote>"
             ))
         ])
+        #expect(selection.options.map(\.id) == ["o1", "o2"])
+        #expect(selection.options.map(\.title) == ["T1", "T2"])
+        #expect(selection.initialValue.isEmpty)
+        #expect(selection.expectedSelection == .anything(allowEmptySelection: false))
     }
     
     @Test
@@ -237,5 +222,12 @@ struct ConsentParserTests {
         #expect(throws: (any Error).self) {
             try ConsentDocument(markdown: input)
         }
+    }
+
+    private func singleSelection(in document: ConsentDocument) throws -> ConsentDocument.SelectConfig {
+        try #require(document.sections.count == 1)
+        return try #require(document.sections.compactMap { section in
+            if case .select(let selection) = section { selection } else { nil }
+        }.first)
     }
 }
