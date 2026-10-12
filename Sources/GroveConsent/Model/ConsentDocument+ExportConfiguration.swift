@@ -99,10 +99,10 @@ extension ConsentDocument.ExportConfiguration.FontSettings {
     /// This configuration uses `systemFont` and `boldSystemFont` with absolute font sizes to achieve uniform font sizes
     /// on different operating systems such as macOS, iOS, and visionOS.
     public static let `default` = Self(
-        signatureCaptionFont: .systemFont(ofSize: 10),
-        signaturePrefixFont: .boldSystemFont(ofSize: 12),
-        documentContentFont: .systemFont(ofSize: 12),
-        headerTitleFont: .boldSystemFont(ofSize: 28),
+        signatureCaptionFont: .systemFont(ofSize: 9),
+        signaturePrefixFont: .boldSystemFont(ofSize: 11),
+        documentContentFont: .systemFont(ofSize: 11),
+        headerTitleFont: .boldSystemFont(ofSize: 20),
         headerExportTimeStampFont: .systemFont(ofSize: 8)
     )
 

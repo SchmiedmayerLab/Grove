@@ -50,6 +50,7 @@ public struct ConsentDocumentView<Footer: View>: View {
                 }
                 view(for: section)
             }
+            .modifier(ConsentMarkdownStyle())
             footer
         }
     }
@@ -182,7 +183,7 @@ extension ConsentDocumentView {
                     Text(ConsentDocument.SelectConfig.emptySelectionDefaultTitle)
                         .tag(ConsentDocument.SelectConfig.emptySelection)
                     ForEach(config.options, id: \.self) { option in
-                        Text(option.title)
+                        Text((try? AttributedString(markdown: option.title)) ?? AttributedString(option.title))
                             .foregroundStyle(.primary)
                             .tag(option.id)
                     }

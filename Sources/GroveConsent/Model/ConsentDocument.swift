@@ -168,7 +168,7 @@ public final class ConsentDocument: Sendable {
         case failedToProcessInteractiveElements(String)
         /// The input contains multiple custom elements with identical `id`s.
         case duplicateCustomElementId(String)
-        /// The document uses malformed interactive controls.
+        /// The document uses malformed controls or content that cannot be preserved in its PDF copy.
         case unsupportedContent
     }
     
@@ -254,6 +254,7 @@ public final class ConsentDocument: Sendable {
         let parsed: ConsentDocumentFormat.ParsedDocument
         do {
             parsed = try ConsentDocumentFormat.decode(markdown)
+            try Self.validateMarkdown(in: parsed.markdownDocument)
         } catch let error as MarkdownDocument.ParseError {
             throw LoadError.failedToParse(error)
         } catch ConsentDocumentFormat.ValidationError.duplicateIdentifier(let id) {
@@ -314,6 +315,23 @@ public final class ConsentDocument: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
+    private static func validateMarkdown(in document: MarkdownDocument) throws {
+        func validate(_ contents: [MarkdownDocument.CustomElement.Content]) throws {
+            for content in contents {
+                switch content {
+                case .text(let text): _ = try ConsentMarkdown.parse(text)
+                case .element(let element): try validate(element.content)
+                }
+            }
+        }
+        for block in document.blocks {
+            switch block {
+            case .markdown(_, let text): _ = try ConsentMarkdown.parse(text)
+            case .customElement(let element): try validate(element.content)
+            }
+        }
+    }
+
     func binding<S: InteractiveSectionProtocol>(for section: S) -> Binding<S.Value> {
         Binding<S.Value> {
             self.userResponses[keyPath: section.userResponsesKeyPath] ?? section.initialValue

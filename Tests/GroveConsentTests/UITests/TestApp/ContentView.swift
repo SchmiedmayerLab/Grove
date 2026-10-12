@@ -57,6 +57,7 @@ struct ContentView: View {
                 NavigationLink("Consent Footers") {
                     ConsentFooterTestView()
                 }
+                documentExamples
             }
         }
         .navigationTitle("GroveConsent")
@@ -108,6 +109,19 @@ struct ContentView: View {
             .adjustingSizeOnVisionOS()
         }
         #endif
+    }
+
+    @ViewBuilder
+    private var documentExamples: some View {
+        NavigationLink("Heading Hierarchy") {
+            ConsentExampleView(resource: "ConsentTypography")
+        }
+        NavigationLink("Structured Consent") {
+            ConsentExampleView(resource: "ConsentStructured")
+        }
+        NavigationLink("Daily Activity Consent") {
+            ConsentExampleView(resource: "ConsentDailyActivity")
+        }
     }
 }
 
