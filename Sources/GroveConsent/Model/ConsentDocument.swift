@@ -168,6 +168,8 @@ public final class ConsentDocument: Sendable {
         case failedToProcessInteractiveElements(String)
         /// The input contains multiple custom elements with identical `id`s.
         case duplicateCustomElementId(String)
+        /// The document uses malformed controls or content that cannot be preserved in its PDF copy.
+        case unsupportedContent
     }
     
     /// Storage container for the data entered into a ``ConsentSignatureForm``, as part of filling out a ``ConsentDocument``.
@@ -251,12 +253,12 @@ public final class ConsentDocument: Sendable {
     public init(markdown: String, initialName: PersonNameComponents? = nil) throws(LoadError) {
         let doc: MarkdownDocument
         do {
-            doc = try MarkdownDocument(
-                processing: markdown,
-                customElementNames: ["toggle", "select", "signature", "option", "footnote"]
-            )
-        } catch {
+            doc = try ConsentDocumentFormat.parse(markdown)
+            try Self.validateMarkdown(in: doc)
+        } catch let error as MarkdownDocument.ParseError {
             throw LoadError.failedToParse(error)
+        } catch {
+            throw LoadError.unsupportedContent
         }
         markdownDocument = doc
         sections = try markdownDocument.blocks.map { block throws(LoadError) -> Section in
@@ -286,7 +288,7 @@ public final class ConsentDocument: Sendable {
         }
         try processConsentFileSections(defaultName: initialName)
     }
-    
+
     /// Creates a Consent Document by parsing a Markdown Data object
     ///
     /// - parameter markdown: The Markdown input. Must be valid UTF-8.
@@ -327,6 +329,23 @@ public final class ConsentDocument: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
+    private static func validateMarkdown(in document: MarkdownDocument) throws {
+        func validate(_ contents: [MarkdownDocument.CustomElement.Content]) throws {
+            for content in contents {
+                switch content {
+                case .text(let text): _ = try ConsentMarkdown.parse(text)
+                case .element(let element): try validate(element.content)
+                }
+            }
+        }
+        for block in document.blocks {
+            switch block {
+            case .markdown(_, let text): _ = try ConsentMarkdown.parse(text)
+            case .customElement(let element): try validate(element.content)
+            }
+        }
+    }
+
     func binding<S: InteractiveSectionProtocol>(for section: S) -> Binding<S.Value> {
         Binding<S.Value> {
             self.userResponses[keyPath: section.userResponsesKeyPath] ?? section.initialValue

@@ -111,6 +111,38 @@ ManagedNavigationStack {
 
 ### Consent Documents
 
+Consent documents support textual Markdown, including headings, paragraphs, lists,
+block quotes, tables, code, emphasis and links, alongside Grove's interactive fields.
+The exported PDF retains this structure as searchable text. Field prompts and footnotes
+are Markdown too; selection option titles support inline formatting.
+
+The frontmatter `title` is document metadata, not an extracted Markdown H1.
+The enclosing screen decides where to display it. Body headings are preserved,
+use a compact hierarchy below the screen title, and scale with Dynamic Type.
+Even H5 and H6 remain at least body-sized; weight and style distinguish them from
+paragraphs. Heading levels are exposed to accessibility. PDF typography is sized
+for the printed page and does not depend on the device's text-size setting.
+
+To compare the native view and PDF, run the `TestApp` scheme in
+`Tests/GroveConsentTests/UITests/UITests.xcodeproj`. Open **Heading Hierarchy**,
+**Structured Consent**, or **Daily Activity Consent**, then choose **Show PDF**.
+These bundled Markdown fixtures export unsigned examples without submitting consent.
+The app saves the exports in `Documents/ConsentExamples`; use RocketSim to capture
+the native view and PDF preview. Review normal and accessibility text sizes separately.
+
+`ConsentDocument` validates the document before presenting it. Images and arbitrary HTML
+are rejected rather than silently omitted from the PDF. Links must use `https`, `http`,
+`mailto` or `tel`; parsing and exporting never fetch linked resources. Applications that
+need images must first define how immutable assets are packaged and preserved in both
+the presented document and its exported copy.
+
+Servers can use `GroveFoundation.ConsentDocumentFormat.parse(_:)` to validate the same
+interactive-field structure without importing SwiftUI. This structural check does not
+establish rendering support, study approval or whether participant responses are complete.
+Fenced code examples remain literal text, not interactive controls. Duplicate field or
+option identifiers, invalid expected values, unknown attributes and unfinished controls
+are rejected. Frontmatter remains Grove's existing string-valued metadata format.
+
 Below is an example of a simple consent document that embeds several custom elements into its Markdown text:
 
 ```html
