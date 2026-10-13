@@ -135,7 +135,7 @@ public final class SensorKitFHIRExporter: Sendable {
     ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
     ///   - receive: Called once per record, in input order.
     /// - Returns: The receipt to release once every graph is durably stored and the batch acknowledged.
-    public nonisolated(nonsending) func export(
+    nonisolated(nonsending) public func export(
         _ records: some Collection<SensorKitRecord>,
         sourceTimeZone: TimeZone,
         recordingDevice: RecordingDevice? = nil,

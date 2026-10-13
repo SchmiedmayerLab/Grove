@@ -62,7 +62,7 @@ extension QuestionnaireFHIRExporter {
     ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
     ///   - receive: Called once per withdrawal, in input order.
     /// - Returns: The receipt to release once every graph is durably stored.
-    public nonisolated(nonsending) func retract(
+    nonisolated(nonsending) public func retract(
         _ withdrawals: some Collection<Withdrawal>,
         at instant: Date = .now,
         receive: (Retraction) throws -> Void

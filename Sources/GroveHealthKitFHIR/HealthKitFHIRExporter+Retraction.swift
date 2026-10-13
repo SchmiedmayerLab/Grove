@@ -30,7 +30,7 @@ extension HealthKitFHIRExporter {
     /// for the same reasons as ``export(_:at:receive:)``: an unstatable `instant`, a `LedgerError`
     /// (recovered by `ExchangeProducer.resetLedger()`), errors of the ledger's storage or of `receive`, and
     /// cancellation before the next records are handed over.
-    public nonisolated(nonsending) func retract(
+    nonisolated(nonsending) public func retract(
         _ deletions: some Collection<Deletion>,
         at instant: Date = .now,
         receive: (Retraction) throws -> Void

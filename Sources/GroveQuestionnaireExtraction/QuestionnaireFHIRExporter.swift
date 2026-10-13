@@ -97,7 +97,7 @@ public final class QuestionnaireFHIRExporter: Sendable {
     ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
     ///   - receive: Called once per record, in input order.
     /// - Returns: The receipt to release once every graph is durably stored.
-    public nonisolated(nonsending) func export(
+    nonisolated(nonsending) public func export(
         _ records: some Collection<Record>,
         at instant: Date = .now,
         receive: (Export) throws -> Void

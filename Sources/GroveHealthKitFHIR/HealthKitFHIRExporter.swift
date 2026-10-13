@@ -95,7 +95,7 @@ public final class HealthKitFHIRExporter: Sendable {
     ///   from a later layout, and `ExchangeProducer.resetLedger()` always recovers;
     /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and so is the `CancellationError` a
     ///   cancelled task stops with before it hands over its next records; the reservations made stay for the redelivery.
-    public nonisolated(nonsending) func export<Samples: Collection>(
+    nonisolated(nonsending) public func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,
         receive: (Export) throws -> Void
@@ -107,7 +107,7 @@ public final class HealthKitFHIRExporter: Sendable {
     ///
     /// The records are planned first, then one reserve transaction covers every event they need, then their graphs are
     /// built and handed to `receive` in input order, on the calling task.
-    public nonisolated(nonsending) func export(
+    nonisolated(nonsending) public func export(
         records: some Collection<Record>,
         at instant: Date = .now,
         receive: (Export) throws -> Void
