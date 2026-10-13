@@ -13,13 +13,13 @@
 #if canImport(HealthKit)
 
 import Foundation
-package import GroveFHIRContract
-package import HealthKit
-package import ModelsR4
+public import GroveFHIRContract
+public import HealthKit
+public import ModelsR4
 
 
 /// Why a Grove observation cannot become a HealthKit sample; every case reports one registry code.
-package enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
+public enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
     /// The observation's code names no Grove measurement.
     case measurementUnknown(system: String, code: String)
     /// The measurement has no single HealthKit type the projection can write: none or several read it, its value is
@@ -42,7 +42,7 @@ package enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
     /// duration is outside what HealthKit allows for the sample type.
     case effectivePeriodInvalid(id: String)
 
-    package var diagnostic: ProducerDiagnostic {
+    public var diagnostic: ProducerDiagnostic {
         let (rule, location): (ExchangeGraphRule, String) = switch self {
         case .measurementUnknown, .measurementNotMappable: (.mobileInputUnsupportedSourceType, "Observation.code")
         case .unitNotMappable: (.mobileOutputFixedQuantityUnit, "Observation.valueQuantity.code")
@@ -59,9 +59,9 @@ package enum HealthKitSampleProjectionError: Error, Equatable, Sendable {
 
 
 /// One entry of a graph that could not be projected back into a sample.
-package struct HealthKitSampleProjectionFailure: Error, Sendable {
-    package let fullURL: FHIRPrimitive<FHIRURI>
-    package let error: HealthKitSampleProjectionError
+public struct HealthKitSampleProjectionFailure: Error, Sendable {
+    public let fullURL: FHIRPrimitive<FHIRURI>
+    public let error: HealthKitSampleProjectionError
 }
 
 
@@ -546,10 +546,8 @@ extension Observation {
     /// `HKMetadataKeySyncIdentifier`, so a reading re-projected from any exchange graph replaces
     /// the earlier sample instead of duplicating it.
     ///
-    /// Not used by any clients but used and needed by tests, hence package visibility rather than public.
-    ///
     /// - Parameter syncIdentifier: A stable per-reading discriminator in place of the source-output identity.
-    package func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {
+    public func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {
         try HealthKitSampleProjection.sample(of: self, syncIdentifier: syncIdentifier)
     }
 }
@@ -558,7 +556,7 @@ extension Observation {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ExchangeGraph {
     /// Every Observation of the graph as the sample it describes, with a typed failure for each that refuses.
-    package func healthKitSamples() -> ConversionBatch<HKSample, HealthKitSampleProjectionFailure> {
+    public func healthKitSamples() -> ConversionBatch<HKSample, HealthKitSampleProjectionFailure> {
         var samples: [HKSample] = []
         var failures: [HealthKitSampleProjectionFailure] = []
         for entry in bundle.entry ?? [] {
