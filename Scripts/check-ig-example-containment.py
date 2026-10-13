@@ -13,8 +13,11 @@ Each pair in PAIRS names a guide example and the golden of a case built from the
 every content-corpus vector `guide-example/<id>` pairs the guide's example `<id>` with Grove's conversion of the
 sample the reverse projection reads from it. Among Grove's resources, the one of the example's resource type whose
 profiles include all of the example's profiles is the counterpart, and every element the example states must appear
-there with the same value; Grove may state more. An example the reverse projection cannot read is reported as
-unprojected, not failed.
+there with the same value; Grove may state more.
+
+Every output example must be paired, or listed in NOT_YET_PAIRED with why: an example the reverse projection cannot
+read as unprojected, any other as unpaired. An example that is neither paired nor listed fails, and so does a listed
+one that is now paired or no longer in the guide, so the lists name exactly what the check does not cover.
 
 Identities cannot match byte for byte: the guide's examples are keyed under its own test key and naming systems,
 and their digests have no published preimage. So both sides are compared after normalization:
@@ -43,7 +46,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 # Per component: the guides whose examples it checks, and each example paired with the golden of the case built
-# from the values that example states. Examples of an output type that no pair names are reported, not failed.
+# from the values that example states.
 PAIRS = {
     "healthkit": {
         "guides": ["healthkit"],
@@ -57,11 +60,44 @@ PAIRS = {
         ],
     },
 }
+# Per component: the output examples the check does not cover yet, and why.
+NOT_YET_PAIRED = {
+    "healthkit": {
+        "unprojected": {
+            "Observation/HealthkitAudiogramPanelExample": "Grove does not convert audiograms yet",
+            "Observation/HealthkitBiologicalSexExample": "Grove does not convert characteristics yet",
+            "Observation/HealthkitBloodTypeExample": "Grove does not convert characteristics yet",
+            "Observation/HealthkitDateOfBirthExample": "Grove does not convert characteristics yet",
+            "Observation/HealthkitFitzpatrickSkinTypeExample": "Grove does not convert characteristics yet",
+            "Observation/HealthkitWheelchairUseExample": "Grove does not convert characteristics yet",
+            "Observation/HealthkitFoodCorrelationExample": "Grove does not convert food correlations yet",
+            "Observation/HealthkitGad7AssessmentExample": "the projection does not invert a scored assessment",
+            "Observation/HealthkitPhq9AssessmentExample": "the projection does not invert a scored assessment",
+            "Observation/HealthkitStateOfMindExample": "the projection does not invert a reflection",
+            "Observation/HealthkitWorkoutEffortScoreExample": "two HealthKit types report the measurement",
+        },
+        # Hand-written examples, which no golden is built from yet.
+        "unpaired": {
+            "DocumentReference/HealthKitClinicalRecordDocumentExample",
+            "DocumentReference/HealthKitDSTU2ClinicalRecordDocumentExample",
+            "DocumentReference/HealthKitHeartbeatSeriesRecordingExample",
+            "Observation/HealthKitBloodPressureObservationExample",
+            "Observation/HealthKitBluetoothHeartRateObservationExample",
+            "Observation/HealthKitECGAverageHeartRateExample",
+            "Observation/HealthKitECGCorrelatedDizzinessExample",
+            "Observation/HealthKitECGObservationExample",
+            "Observation/HealthKitManuallyEnteredBodyWeightExample",
+            "Observation/HealthKitRevisedBodyWeightObservationExample",
+            "Observation/HealthKitSleepStageObservationExample",
+            "Observation/HealthKitStepCountObservationExample",
+        },
+    },
+}
 GOLDENS = {"healthkit": ROOT / "Tests/GroveHealthKitFHIRTests/Resources/Goldens"}
 CORPUS = {"healthkit": ROOT / "Tests/GroveHealthKitFHIRTests/Resources/ContentCorpus/content-corpus.jsonl"}
 CORPUS_PREFIX = "guide-example/"
 IDENTIFIER_ROLE_SYSTEM = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
-# The example resource types an adapter emits as its outputs; examples of these that no pair names are reported.
+# The example resource types an adapter emits as its outputs, each of whose examples must be paired or listed.
 OUTPUT_TYPES = {"Observation", "DocumentReference"}
 
 
@@ -207,6 +243,15 @@ def corpus_outputs(corpus: Path) -> dict[str, dict[str, Any]]:
     return outputs
 
 
+def coverage_mismatches(unprojected: dict[str, str], listed_unprojected: set[str], unpaired: set[str], listed_unpaired: set[str]) -> list[str]:
+    """Every way the uncovered examples differ from the lists: one uncovered but not listed, or listed but covered."""
+    mismatches = [f"unprojected but not listed: {key}: {unprojected[key]}" for key in sorted(set(unprojected) - listed_unprojected)]
+    mismatches += [f"listed as unprojected, but it projects or is gone: {key}" for key in sorted(listed_unprojected - set(unprojected))]
+    mismatches += [f"unpaired but not listed: {key}" for key in sorted(unpaired - listed_unpaired)]
+    mismatches += [f"listed as unpaired, but it is paired or gone: {key}" for key in sorted(listed_unpaired - unpaired)]
+    return mismatches
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--guides", type=Path, required=True)
@@ -230,12 +275,12 @@ def main() -> int:
                 else check_golden(example, GOLDENS[arguments.component] / f"{pair['golden']}.json")
             )
             results.append((key, pair["golden"], differences))
-        unprojected: list[str] = []
+        unprojected: dict[str, str] = {}
         for identifier, output in sorted(vectors.items()):
             key = f"Observation/{identifier}"
             example = examples.get(key)
             if example is not None and "unprojected" in output:
-                unprojected.append(f"{key}: {output['unprojected']['error']}")
+                unprojected[key] = output["unprojected"]["error"]
                 continue
             differences = [f"the guide has no example {key}"] if example is None else check_corpus(example, output)
             results.append((key, f"{CORPUS_PREFIX}{identifier}", differences))
@@ -244,17 +289,19 @@ def main() -> int:
             for difference in differences:
                 print(f"      {difference}")
             failed = failed or bool(differences)
-        paired = {key for key, _, _ in results} | {line.split(":", 1)[0] for line in unprojected}
-        unpaired = sorted(key for key, resource in examples.items() if resource["resourceType"] in OUTPUT_TYPES and key not in paired)
+        paired = {key for key, _, _ in results} | set(unprojected)
+        unpaired = {key for key, resource in examples.items() if resource["resourceType"] in OUTPUT_TYPES and key not in paired}
+        listed = NOT_YET_PAIRED.get(arguments.component, {})
+        mismatches = coverage_mismatches(unprojected, set(listed.get("unprojected", {})), unpaired, listed.get("unpaired", set()))
+        for mismatch in mismatches:
+            print(f"    {mismatch}")
+        failed = failed or bool(mismatches)
         contained_count = sum(1 for _, _, differences in results if not differences)
         print(
-            f"    {guide}: {contained_count} of {len(results)} paired examples contained, {len(unprojected)} unprojected, "
-            f"{len(unpaired)} output examples unpaired"
+            f"    {guide}: {contained_count} of {len(results)} paired examples contained; {len(unprojected)} unprojected and "
+            f"{len(unpaired)} unpaired output examples, as NOT_YET_PAIRED lists them"
+            if not mismatches else f"    {guide}: coverage differs from NOT_YET_PAIRED"
         )
-        for line in unprojected:
-            print(f"      unprojected {line}")
-        for key in unpaired:
-            print(f"      unpaired {key}")
     return 1 if failed else 0
 
 
