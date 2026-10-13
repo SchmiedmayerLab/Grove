@@ -30,8 +30,6 @@ public final class HealthKitFHIRExporter: Sendable {
     }
 
     let producer: ExchangeProducer
-    /// The business identifier naming this installation's HealthKit store; it enters every source identity.
-    let repositoryScope: BusinessIdentifier
     let options: Options
     let assembly: HealthKitAssembly
     /// What shapes every graph beside the frozen facts; it fingerprints each request.
@@ -59,7 +57,6 @@ public final class HealthKitFHIRExporter: Sendable {
             throw .reservedNativeIdentifierSystem(system)
         }
         self.producer = producer
-        self.repositoryScope = repositoryScope
         self.options = options
         self.assembly = HealthKitAssembly(
             scope: ExchangeEnvelope.Scope(

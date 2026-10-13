@@ -78,7 +78,6 @@ package struct ExchangeEnvelope: Sendable {
     package var adapter: ExchangeAdapterContract { scope.adapter }
     package var identityScope: OpaqueIdentityScope { scope.identityScope }
     package var subject: Subject { scope.subject }
-    package var repositoryScope: BusinessIdentifier { scope.repositoryScope }
     package var application: ApplicationDevice { facts.application }
     package var host: HostDevice { facts.host }
     package var studies: [StudyEnrollment] { facts.studies }
