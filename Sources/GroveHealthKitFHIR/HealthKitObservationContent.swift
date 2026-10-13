@@ -227,6 +227,19 @@ extension QuantityRead {
         case .score: Double(try sample.cast(to: HKScoredAssessment.self).score)
         }
     }
+
+    /// The quantity a stated decimal's `text` reads back to, the reverse of ``value(of:)``: the binary64 nearest the
+    /// text in the binding's unit or as a count, and a percentage as the fraction HealthKit keeps, the text parsed with
+    /// its exponent lowered by two, so 28.2 becomes 0.282 in one correctly rounded conversion. A score, which no
+    /// quantity holds, and text that is not a number read back to nothing.
+    func quantity(stating text: String) -> HKQuantity? {
+        switch self {
+        case .unit(let binding): Double(text).map { HKQuantity(unit: binding.unit, doubleValue: $0) }
+        case .platformRate: Double(text).map { HKQuantity(unit: .count(), doubleValue: $0) }
+        case .percent: Double(text + "e-2").map { HKQuantity(unit: .percent(), doubleValue: $0) }
+        case .score: nil
+        }
+    }
 }
 
 

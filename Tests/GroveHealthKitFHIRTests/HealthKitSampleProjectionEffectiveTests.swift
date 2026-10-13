@@ -210,9 +210,9 @@ struct HealthKitSampleProjectionEffectiveTests {
         for effective in [Effective.instant(Self.start), .period(start: Self.start, end: Self.minuteLater), .period(start: nil, end: nil)] {
             #expect(Self.refusal(try Self.observation(MeasurementCatalog.distance, effective)) == .measurementNotMappable(id: "distance"))
         }
-        // HealthKit raises on an insulin delivery without the delivery reason, which the projection does not restore.
+        // HealthKit raises on an insulin delivery without the delivery reason, so one that states none refuses.
         let insulin = try Self.observation(HealthKitMeasurementCatalog.insulinDelivery, .period(start: Self.start, end: Self.minuteLater))
-        #expect(Self.refusal(insulin) == .measurementNotMappable(id: "insulin-delivery"))
+        #expect(Self.refusal(insulin) == .componentMissing(id: "insulin-delivery", code: HKMetadataKeyInsulinDeliveryReason))
         let averageHeartRate = try Self.observation(
             MeasurementCatalog.heartRate,
             .instant(Self.start),
@@ -248,7 +248,9 @@ struct HealthKitSampleProjectionEffectiveTests {
             #expect(projection.failures.contains { $0.fullURL == fullURL && $0.error == .measurementNotMappable(id: "heart-rate") })
         }
         if goldenCase.name == "insulin-delivery-bolus" {
-            #expect(projection.failures.map(\.error) == [.measurementNotMappable(id: "insulin-delivery")])
+            #expect(projection.failures.isEmpty)
+            let insulin = try #require(projection.conversions.first as? HKQuantitySample)
+            #expect(insulin.metadata?[HKMetadataKeyInsulinDeliveryReason] as? Int == HKInsulinDeliveryReason.bolus.rawValue)
         }
     }
 }

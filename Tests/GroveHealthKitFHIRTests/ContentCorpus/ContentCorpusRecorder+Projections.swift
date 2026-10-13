@@ -139,6 +139,9 @@ extension ContentCorpusRecorder {
         if let quantitySample = sample as? HKQuantitySample {
             members["quantity"] = .string(quantityText(quantitySample.quantity, units: units))
         }
+        if let categorySample = sample as? HKCategorySample {
+            members["value"] = .string(String(categorySample.value))
+        }
         if let correlation = sample as? HKCorrelation {
             let objects = correlation.objects.map { Self.sample($0, units: units) }.sorted { $0.canonicalText < $1.canonicalText }
             members["objects"] = .array(objects)

@@ -110,7 +110,7 @@ struct GoldenOutputRevisionTests {
 
     /// The content corpus pins the content layer's output, refusals included, for every vector, so a changed output
     /// bumps a revision as a changed golden does, even where no golden changes.
-    static let contentCorpus = GoldenRevision("content-corpus", digest: "CQtc-aiwyovdiLaWZH2lzpxX8vgbeGD_WpRgHJWq7Mc", assembler: 1, healthKit: 12)
+    static let contentCorpus = GoldenRevision("content-corpus", digest: "2mLUq7Kum4sBt0DdO3R2X2fN0IrGYitkBas7W6U88WA", assembler: 1, healthKit: 12)
 
     /// Expects `data` to hash to `row`'s digest, and `row` to name revisions the code has reached.
     private static func expect(_ row: GoldenRevision, matches data: Data) {

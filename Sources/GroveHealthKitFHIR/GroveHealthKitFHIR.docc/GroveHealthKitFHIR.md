@@ -200,9 +200,6 @@ Each deletion is reported once, as a ``HealthKitFHIRExporter/Retraction``.
 A target carries the HealthKit UUID as its native record identifier only under the same `nativeIdentifier` option that disclosed it on the export.
 A deletion that names no output the exporter can have emitted, such as a workout route while `route` is `.omit`, reports ``HealthKitFHIRExporter/Retraction/Outcome/nothingToRetract`` and takes no event.
 
-`Observation.healthKitSample(syncIdentifier:)` and `ExchangeGraph.healthKitSamples()` read a graph back into HealthKit samples, syncing under the minted source-output identity.
-The projection reads an `effectiveDateTime` as an instant and an `effectivePeriod` as the sample's start and end, where the measurement's profile admits that datatype and HealthKit allows the duration, and refuses with a typed error otherwise.
-
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapter's output against the grove-fhir corpora and the official validator.
 
 ## Glossary
@@ -242,8 +239,3 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 ### Catalog
 
 - ``HealthKitCatalog``
-
-### Reading observations back
-
-- ``HealthKitSampleProjectionError``
-- ``HealthKitSampleProjectionFailure``

@@ -132,26 +132,27 @@ struct ContentInvariantTests {
 
     @Test("The reverse map lands each measurement on the one quantity type that converts into it, and refuses the rest")
     func reverseMapInvertsTheForwardBindings() throws {
+        // Every converting quantity row, whether read in its unit, as a percentage or as a platform rate.
         var forward: [String: [String]] = [:]
-        for (row, _) in Self.boundQuantityRows {
-            if let id = row.measurementIDs.first {
-                forward[id, default: []].append(row.sourceTypeIdentifier)
+        for row in ContentCorpusGrid.rows(prefix: "HKQuantityTypeIdentifier") where row.implementationStatus == .supported {
+            guard let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier), !HealthKitContentPlan[type].outputs.isEmpty,
+                  let id = row.measurementIDs.first, Self.contracts[id]?.quantity != nil else {
+                continue
             }
+            forward[id, default: []].append(row.sourceTypeIdentifier)
         }
-        // HealthKit raises on an insulin delivery without its delivery reason, which the projection does not restore.
-        let unwritable: Set<String> = [HKQuantityTypeIdentifier.insulinDelivery.rawValue]
         var mismatches: [String] = []
         for contract in MeasurementCatalog.all + HealthKitMeasurementCatalog.all {
             // The projection's map, read without building a sample: HealthKit raises on samples it refuses to create.
-            let projected = HealthKitSampleProjection.quantityTypes[contract.id]?.rawValue
-            let expected = forward[contract.id].flatMap { $0.count == 1 ? $0.first : nil }.flatMap { unwritable.contains($0) ? nil : $0 }
+            let projected = (HealthKitSampleProjection.projections[contract.id]?.sourceType)
+                .flatMap { $0.hasPrefix("HKQuantityTypeIdentifier") ? $0 : nil }
+            let expected = forward[contract.id].flatMap { $0.count == 1 ? $0.first : nil }
             if projected != expected {
                 mismatches.append("\(contract.id): \(projected ?? "refused") != \(expected ?? "refused")")
             }
         }
         #expect(mismatches.isEmpty, "\(mismatches)")
         #expect(forward.values.contains { $0.count > 1 }, "some measurement is bound to several types and must refuse")
-        #expect(forward[HealthKitMeasurementCatalog.insulinDelivery.id] == unwritable.sorted(), "insulin delivery is bound and refused")
     }
 
     @Test("Every row that names a sample type has a corpus vector converting it")
