@@ -198,7 +198,8 @@ extension ContentCorpusGrid {
         [
             (HKObjectType.audiogramSampleType().identifier, "HKAudiogramSample"),
             (HKObjectType.visionPrescriptionType().identifier, "HKVisionPrescription"),
-            (HKObjectType.medicationDoseEventType().identifier, "HKMedicationDoseEvent")
+            // `HKObjectType.medicationDoseEventType()` exists only from iOS 26; this is its identifier.
+            ("HKMedicationDoseEventTypeIdentifierMedicationDoseEvent", "HKMedicationDoseEvent")
         ].map { type, sampleClass in
             convert("row/\(type)", ContentCorpusSource(.bare(type: type, sampleClass: sampleClass)))
         }

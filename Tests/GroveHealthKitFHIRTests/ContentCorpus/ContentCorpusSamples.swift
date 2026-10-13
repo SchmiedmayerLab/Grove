@@ -43,15 +43,21 @@ enum ContentCorpusSamples {
     /// The UUID of every vector's record; members and symptoms take their own ordinals.
     static let uuid = GoldenFixtures.uuid(0xC0)
 
-    /// The bare classes the plain entry point is fed, by the sample type they carry.
-    private static let bareSampleTypes: [String: HKSampleType] = [
-        HKObjectType.audiogramSampleType().identifier: HKObjectType.audiogramSampleType(),
-        HKObjectType.visionPrescriptionType().identifier: HKObjectType.visionPrescriptionType(),
-        HKObjectType.medicationDoseEventType().identifier: HKObjectType.medicationDoseEventType(),
-        HKObjectType.electrocardiogramType().identifier: HKObjectType.electrocardiogramType(),
-        HKSeriesType.heartbeat().identifier: HKSeriesType.heartbeat(),
-        HKSeriesType.workoutRoute().identifier: HKSeriesType.workoutRoute()
-    ]
+    /// The bare classes the plain entry point is fed, by the sample type they carry; medication dose events exist from
+    /// iOS, macOS and watchOS 26.
+    private static let bareSampleTypes: [String: HKSampleType] = {
+        var types: [String: HKSampleType] = [
+            HKObjectType.audiogramSampleType().identifier: HKObjectType.audiogramSampleType(),
+            HKObjectType.visionPrescriptionType().identifier: HKObjectType.visionPrescriptionType(),
+            HKObjectType.electrocardiogramType().identifier: HKObjectType.electrocardiogramType(),
+            HKSeriesType.heartbeat().identifier: HKSeriesType.heartbeat(),
+            HKSeriesType.workoutRoute().identifier: HKSeriesType.workoutRoute()
+        ]
+        if #available(iOS 26, macOS 26, watchOS 26, *) {
+            types[HKObjectType.medicationDoseEventType().identifier] = HKObjectType.medicationDoseEventType()
+        }
+        return types
+    }()
 
     /// Every fact of `source` except its payload, under `uuid`.
     static func facts(_ source: ContentCorpusSource, uuid: UUID = uuid) -> StoredSampleFixtures.SampleFacts {

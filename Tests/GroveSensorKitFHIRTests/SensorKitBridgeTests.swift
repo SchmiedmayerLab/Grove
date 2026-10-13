@@ -25,7 +25,7 @@ struct GroveSensorKitBridgeTests {
     }
 
     @Test("Every sensor the catalog lists resolves to its own entry")
-    @available(iOS 18, *)
+    @available(iOS 26, *)
     func everyCatalogedSensorResolvesToItsEntry() {
         let sensors: [SRSensor] = [
             .accelerometer, .acousticSettings, .ambientLightSensor, .ambientPressure, .deviceUsageReport, .electrocardiogram,
