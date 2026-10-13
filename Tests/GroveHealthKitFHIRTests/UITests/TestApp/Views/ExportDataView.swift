@@ -66,7 +66,7 @@ struct ExportDataView: View {
                 print("did fetch samples (#=\(samples.count)) (took \(fetchEndTS - fetchStartTS) sec)")
                 let mapResourcesStartTS = CACurrentMediaTime()
                 var refusal: HealthKitConversionError?
-                _ = try makeFHIRTestExporter().export(samples) { export in
+                _ = try await makeFHIRTestExporter().export(samples) { export in
                     if case .refused(let error) = export.outcome, refusal == nil {
                         refusal = error
                     }
