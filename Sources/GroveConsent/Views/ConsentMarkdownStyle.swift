@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 import MarkdownUI
 import SwiftUI
 
@@ -39,3 +40,4 @@ struct ConsentMarkdownStyle: ViewModifier {
             .accessibilityHeading(accessibilityLevel)
     }
 }
+#endif

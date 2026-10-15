@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
+// `AttributedString(markdown:)` is only available in the Apple platforms' Foundation.
+#if canImport(Darwin)
 import Foundation
 
 
@@ -34,3 +36,4 @@ enum ConsentMarkdown {
         return parsed
     }
 }
+#endif

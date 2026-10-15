@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GroveFoundation
 
 
 extension MarkdownDocument.CustomElement {
@@ -40,7 +41,7 @@ extension MarkdownDocument.CustomElement {
         return value
     }
 
-    func consentLabel() throws -> MarkdownDocument {
+    func consentLabel(from content: [Content]) throws -> MarkdownDocument {
         let blocks = try content.map { child -> MarkdownDocument.Block in
             switch child {
             case .text(let text): return .markdown(id: nil, rawContents: text)

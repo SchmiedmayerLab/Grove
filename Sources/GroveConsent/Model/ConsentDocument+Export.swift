@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 import GroveFoundation
 import PDFKit
 private import PencilKit
@@ -276,3 +277,4 @@ extension Sequence where Element == MarkdownDocument.CustomElement.Content {
         .trimmingWhitespace()
     }
 }
+#endif

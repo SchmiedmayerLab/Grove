@@ -134,25 +134,27 @@ the native view and PDF preview. Review normal and accessibility text sizes sepa
 are rejected rather than silently omitted from the PDF. Links must use `https`, `http`,
 `mailto` or `tel`; parsing and exporting never fetch linked resources. Applications that
 need images must first define how immutable assets are packaged and preserved in both
-the presented document and its exported copy.
+the presented document and its exported copy. This Markdown check relies on Foundation's
+Markdown parser, which is only available on Apple platforms; on Linux, ``ConsentDocument``
+validates the interactive-field structure only.
 
-Servers can use `GroveFoundation.ConsentDocumentFormat.decode(_:)` to obtain the same
-validated, typed control definitions without importing SwiftUI. Use `parse(_:)` when
+Servers can use ``ConsentDocumentFormat/decode(_:additionalElements:)`` to obtain the same
+validated, typed control definitions; GroveConsent builds on Linux, without its SwiftUI views
+and PDF export. Use ``ConsentDocumentFormat/parse(_:additionalElements:)`` when
 only the validated Markdown representation is needed. This structural check does not
 establish rendering support, study approval or whether participant responses are complete.
 Fenced code examples remain literal text, not interactive controls. Duplicate field or
 option identifiers, invalid expected values, unknown attributes and unfinished controls
 are rejected. Frontmatter remains Grove's existing string-valued metadata format.
 
-Platform-specific controls can implement `ConsentDocumentElement` and be supplied to
-`decode(_:additionalElements:)`. Registration enables structural validation only;
+Platform-specific controls can implement ``ConsentDocumentElement`` and be supplied to
+``ConsentDocumentFormat/decode(_:additionalElements:)``. Registration enables structural validation only;
 GroveConsent's views and PDF exporter still accept only built-in controls. See
-[Validating and Extending Consent Documents](../../GroveFoundation/GroveFoundation.docc/Consent-Documents.md)
-for the extension contract and a Swift example.
+<doc:Consent-Documents> for the extension contract and a Swift example.
 
 The PDF exporter uses PDFKit, TPPDF and Apple font and drawing APIs. It does not run
 on Linux. Server-side PDF generation on Linux would require a separate rendering
-backend; the shared format types do not depend on the Apple exporter.
+backend; the format types do not depend on the Apple exporter.
 
 Below is an example of a simple consent document that embeds several custom elements into its Markdown text:
 
@@ -189,6 +191,11 @@ Please sign to confirm your participation:
 - ``ConsentDocument/ExportConfiguration``
 - ``ConsentDocument/ExportResult``
 - ``ConsentDocument/ConsentCompletionState``
+
+### Consent Document Format
+- <doc:Consent-Documents>
+- ``ConsentDocumentFormat``
+- ``ConsentDocumentElement``
 
 ### Views
 - ``ConsentDocumentView``

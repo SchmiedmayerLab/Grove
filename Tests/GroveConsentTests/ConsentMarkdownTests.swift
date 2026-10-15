@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 import Foundation
 @testable import GroveConsent
 import PDFKit
@@ -227,4 +228,21 @@ struct ConsentMarkdownTests {
             #expect(result.attribute(.font, at: offset, effectiveRange: nil) != nil)
         }
     }
+
+    @Test
+    @MainActor
+    func marksNestedListItemsWithTheirOwnList() throws {
+        let renderer = ConsentMarkdownPDF(font: .systemFont(ofSize: 12))
+        let result = try renderer.label("1. Outer\n   - Inner A\n   - Inner B\n2. Second")
+        #expect(result.string == "1. Outer\n\n    • Inner A\n\n    • Inner B\n\n2. Second")
+    }
+
+    @Test
+    @MainActor
+    func keepsThematicBreaks() throws {
+        let renderer = ConsentMarkdownPDF(font: .systemFont(ofSize: 12))
+        let result = try renderer.label("Before\n\n***\n\nAfter")
+        #expect(result.string == "Before\n\n⸻\n\nAfter")
+    }
 }
+#endif

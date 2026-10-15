@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 @testable import GroveConsent
 @testable import GroveFoundation
 import PDFKit
@@ -100,3 +101,4 @@ struct GroveConsentTests {
         return knownGoodPdf
     }
 }
+#endif

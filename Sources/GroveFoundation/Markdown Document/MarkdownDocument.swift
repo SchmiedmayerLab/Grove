@@ -16,7 +16,7 @@ public import Foundation
 ///
 /// ### Metadata
 ///
-/// When using any of the `processing:` initializers to create a ``MarkdownDocument`` (e.g.: ``init(processing:customElementNames:baseUrl:requiresCompleteInput:)``),
+/// When using any of the `processing:` initializers to create a ``MarkdownDocument`` (e.g.: ``init(processing:customElementNames:baseUrl:)-(String,_,_)``),
 /// any frontmatter-style metadata entries at the very beginning of the input will be parsed into a ``Metadata-swift.struct`` object.
 ///
 /// The frontmatter-style metadata takes the following format:
@@ -94,8 +94,9 @@ public import Foundation
 ///
 /// ### Initializers
 /// - ``init(metadata:blocks:baseUrl:)``
-/// - ``init(processing:customElementNames:baseUrl:requiresCompleteInput:)``
+/// - ``init(processing:customElementNames:baseUrl:)-(String,_,_)``
 /// - ``init(processing:customElementNames:baseUrl:)-(Data,_,_)``
+/// - ``init(processing:customElements:baseUrl:requiresCompleteInput:)``
 /// - ``init(contentsOf:customElementNames:baseUrl:)``
 /// - ``ParseError``
 ///
@@ -107,6 +108,7 @@ public import Foundation
 /// ### Supporting Types
 /// - ``Metadata``
 /// - ``Block``
+/// - ``CustomElementSelection``
 public struct MarkdownDocument: Hashable, Sendable {
     /// The document's metadata.
     public var metadata: Metadata
@@ -131,14 +133,26 @@ public struct MarkdownDocument: Hashable, Sendable {
     /// - parameter customElementNames: A `Set` of HTML tag names which should be processed into custom elements.
     ///     Any HTML tags encountered that aren't specified in the set will be treated as if they were part of the normal markdown text.
     /// - parameter baseUrl: The document's base url.
+    public init(processing text: String, customElementNames: Set<String> = [], baseUrl: URL? = nil) throws(ParseError) {
+        try self.init(processing: text, customElements: .named(customElementNames), baseUrl: baseUrl)
+    }
+    
+    /// Creates a new Markdown document by processing a `String`.
+    ///
+    /// Note that thie doesn't perform any Markdown parsing on its own; rather, it splits up a markdown file into a sequence of blocks,
+    /// each of which is either markdown content or a custom HTML element.
+    ///
+    /// - parameter text: The Markdown string to process.
+    /// - parameter customElements: The HTML tags which should be processed into custom elements.
+    /// - parameter baseUrl: The document's base url.
     /// - parameter requiresCompleteInput: Reject unfinished custom elements instead of accepting a parsed prefix.
     public init(
         processing text: String,
-        customElementNames: Set<String> = [],
+        customElements: CustomElementSelection,
         baseUrl: URL? = nil,
         requiresCompleteInput: Bool = false
     ) throws(ParseError) {
-        let parser = Parser(input: text, customElements: .named(customElementNames))
+        let parser = Parser(input: text, customElements: customElements)
         self = try parser.parse(baseUrl: baseUrl, requiresCompleteInput: requiresCompleteInput)
     }
     

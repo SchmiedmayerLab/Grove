@@ -6,10 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+import Foundation
 @testable import GroveConsent
 @testable import GroveFoundation
-import PDFKit
-import SwiftUI
 import Testing
 
 

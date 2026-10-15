@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import GroveConsent
 import GroveFoundation
 import Testing
 

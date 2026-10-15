@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 import Foundation
 public import SwiftUI
 import TPPDF
@@ -117,3 +118,4 @@ extension ConsentDocument.ExportConfiguration.FontSettings {
         headerExportTimeStampFont: .preferredFont(forTextStyle: .caption1)
     )
 }
+#endif

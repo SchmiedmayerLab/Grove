@@ -6,12 +6,18 @@
 // SPDX-License-Identifier: MIT
 //
 
-private import Foundation
+public import Foundation
 public import GroveFoundation
 public import Observation
+#if canImport(PDFKit)
 public import class PDFKit.PDFDocument
+#endif
+#if canImport(PencilKit)
 public import PencilKit
+#endif
+#if canImport(SwiftUI)
 import SwiftUI
+#endif
 
 
 /// Represents and manages a Markdown-based (potentially interactive) Consent Document.
@@ -177,7 +183,7 @@ public final class ConsentDocument: Sendable {
         // ^^ SAFETY: we should be able to safely mark this as @unchecked Sendable, since PKDrawing is likely Sendable already
         //    (it's explicitly intended as a value type alternative to PKDrawingReference), but is probably just missing the annotation.
         //    See also FB18233435 (`PKDrawing` isn't marked as Sendable; should be since it's a value type)
-        #if !os(macOS)
+        #if canImport(PencilKit) && !os(macOS)
         public typealias Signature = PKDrawing
         #else
         public typealias Signature = String
@@ -188,7 +194,7 @@ public final class ConsentDocument: Sendable {
         var size: CGSize = .zero
         
         var isSigned: Bool {
-            #if !os(macOS)
+            #if canImport(PencilKit) && !os(macOS)
             !signature.strokes.isEmpty
             #else
             !signature.isEmpty
@@ -206,7 +212,7 @@ public final class ConsentDocument: Sendable {
 
         /// Resets the signature to an empty state.
         public mutating func clearSignature() {
-            #if !os(macOS)
+            #if canImport(PencilKit) && !os(macOS)
             signature.strokes.removeAll(keepingCapacity: true)
             #else
             signature.removeAll(keepingCapacity: true)
@@ -254,7 +260,9 @@ public final class ConsentDocument: Sendable {
         let parsed: ConsentDocumentFormat.ParsedDocument
         do {
             parsed = try ConsentDocumentFormat.decode(markdown)
+            #if canImport(Darwin)
             try Self.validateMarkdown(in: parsed.markdownDocument)
+            #endif
         } catch let error as MarkdownDocument.ParseError {
             throw LoadError.failedToParse(error)
         } catch ConsentDocumentFormat.ValidationError.duplicateIdentifier(let id) {
@@ -315,6 +323,7 @@ public final class ConsentDocument: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
+    #if canImport(Darwin)
     private static func validateMarkdown(in document: MarkdownDocument) throws {
         func validate(_ contents: [MarkdownDocument.CustomElement.Content]) throws {
             for content in contents {
@@ -331,7 +340,9 @@ extension ConsentDocument {
             }
         }
     }
+    #endif
 
+    #if canImport(SwiftUI)
     func binding<S: InteractiveSectionProtocol>(for section: S) -> Binding<S.Value> {
         Binding<S.Value> {
             self.userResponses[keyPath: section.userResponsesKeyPath] ?? section.initialValue
@@ -339,6 +350,7 @@ extension ConsentDocument {
             self.userResponses[keyPath: section.userResponsesKeyPath] = newValue
         }
     }
+    #endif
     
     func value<S: InteractiveSectionProtocol>(for section: S) -> S.Value {
         userResponses[keyPath: section.userResponsesKeyPath] ?? section.initialValue
@@ -386,6 +398,7 @@ extension ConsentDocument.InteractiveSectionProtocol {
 
 // MARK: Export
 
+#if canImport(PDFKit)
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
     /// Result of an export operation. Contains the produced PDF as well as associated metadata.
@@ -413,6 +426,7 @@ extension ConsentDocument {
         )
     }
 }
+#endif
 
 
 // MARK: Other

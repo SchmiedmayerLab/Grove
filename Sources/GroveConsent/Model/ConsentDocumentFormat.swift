@@ -6,6 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import GroveFoundation
+
+
 /// A platform-independent consent control that validates its input during construction.
 ///
 /// An implementation must reject unsupported attributes, children and values rather than discard them.
@@ -82,8 +85,7 @@ public enum ConsentDocumentFormat {
             extensions[name] = type
         }
         // Capture every tag so an unregistered control cannot silently become ordinary Markdown.
-        let document = try MarkdownDocument.Parser(input: markdown, customElements: .all)
-            .parse(baseUrl: nil, requiresCompleteInput: true)
+        let document = try MarkdownDocument(processing: markdown, customElements: .all, requiresCompleteInput: true)
         var identifiers: Set<String> = []
         let sections = try document.blocks.map { block -> Section in
             switch block {

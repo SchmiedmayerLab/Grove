@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 import Foundation
 import GroveFoundation
 import PDFKit
@@ -218,3 +219,4 @@ struct ConsentMarkdownPDF {
         return NSAttributedString(string: text, attributes: attributes)
     }
 }
+#endif
