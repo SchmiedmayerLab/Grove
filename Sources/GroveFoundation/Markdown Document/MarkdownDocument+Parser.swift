@@ -65,6 +65,12 @@ extension MarkdownDocument {
         typealias ParseError = MarkdownDocument.ParseError
         typealias CustomElement = MarkdownDocument.CustomElement
         
+        /// A fenced code block (opened by at least three backticks or tildes) whose lines are literal Markdown.
+        fileprivate struct Fence {
+            let character: Character
+            let count: Int
+        }
+        
         private let input: String
         private let customElements: MarkdownDocument.CustomElementSelection
         private var position: String.Index
@@ -85,7 +91,7 @@ extension MarkdownDocument.Parser {
         let frontmatter = try parseFrontmatter()
         var blocks: [Block] = []
         var currentBlockText = ""
-        var fence: (character: Character, count: Int)?
+        var fence: Fence?
         func terminateCurrentBlock(id: String? = nil) {
             blocks.append(.markdown(
                 id: id ?? Self.markdownBlockId(currentBlockText),
@@ -96,31 +102,8 @@ extension MarkdownDocument.Parser {
         do {
             while let currentChar {
                 // Fenced examples are literal Markdown, never interactive controls or headings.
-                if isAtBeginningOfLine, let line = currentLine {
-                    let trimmed = line.drop(while: { $0 == " " })
-                    if line.count - trimmed.count <= 3, let first = trimmed.first, first == "`" || first == "~" {
-                        let count = trimmed.prefix(while: { $0 == first }).count
-                        if count >= 3 {
-                            if let active = fence {
-                                if active.character == first, count >= active.count,
-                                   trimmed.dropFirst(count).allSatisfy(\.isWhitespace) {
-                                    fence = nil
-                                }
-                            } else {
-                                fence = (first, count)
-                            }
-                            currentBlockText.append(contentsOf: line)
-                            currentBlockText.append("\n")
-                            consumeLine()
-                            continue
-                        }
-                    }
-                    if fence != nil {
-                        currentBlockText.append(contentsOf: line)
-                        currentBlockText.append("\n")
-                        consumeLine()
-                        continue
-                    }
+                if consumeFencedCodeLine(into: &currentBlockText, fence: &fence) {
+                    continue
                 }
                 if isAtBeginningOfLine, Self.markdownBlockId(remainingInput) != nil {
                     // terminate current block, if we're at the start of a new one whith would get an id of its own.
@@ -358,39 +341,43 @@ extension MarkdownDocument.Parser {
     /// Parses the `{X}` part in `<element>{X}</element>`.
     private mutating func parseElementTextContents() -> String {
         var text = ""
-        var fence: (character: Character, count: Int)?
+        var fence: Fence?
         while let currentChar {
-            if isAtBeginningOfLine, let line = currentLine {
-                let trimmed = line.drop(while: { $0 == " " })
-                if line.count - trimmed.count <= 3, let first = trimmed.first, first == "`" || first == "~" {
-                    let count = trimmed.prefix(while: { $0 == first }).count
-                    if count >= 3 {
-                        if let active = fence {
-                            if active.character == first, count >= active.count,
-                               trimmed.dropFirst(count).allSatisfy(\.isWhitespace) {
-                                fence = nil
-                            }
-                        } else {
-                            fence = (first, count)
-                        }
-                        text.append(contentsOf: line)
-                        text.append("\n")
-                        consumeLine()
-                        continue
-                    }
-                }
-                if fence != nil {
-                    text.append(contentsOf: line)
-                    text.append("\n")
-                    consumeLine()
-                    continue
-                }
+            if consumeFencedCodeLine(into: &text, fence: &fence) {
+                continue
             }
             guard currentChar != "<" else { break }
             text.append(currentChar)
             consume()
         }
         return text.trimmingWhitespace()
+    }
+    
+    
+    /// Consumes the current line into `text` if it opens, belongs to, or closes a fenced code block, and updates `fence` accordingly.
+    ///
+    /// - returns: `true` iff the line was consumed.
+    private mutating func consumeFencedCodeLine(into text: inout String, fence: inout Fence?) -> Bool {
+        guard isAtBeginningOfLine, let line = currentLine else {
+            return false
+        }
+        let trimmed = line.drop(while: { $0 == " " })
+        let markerCount = trimmed.first.map { marker in trimmed.prefix(while: { $0 == marker }).count } ?? 0
+        if line.count - trimmed.count <= 3, let marker = trimmed.first, marker == "`" || marker == "~", markerCount >= 3 {
+            if let open = fence {
+                if open.character == marker, markerCount >= open.count, trimmed.dropFirst(markerCount).allSatisfy(\.isWhitespace) {
+                    fence = nil
+                }
+            } else {
+                fence = Fence(character: marker, count: markerCount)
+            }
+        } else if fence == nil {
+            return false
+        }
+        text.append(contentsOf: line)
+        text.append("\n")
+        consumeLine()
+        return true
     }
     
     
