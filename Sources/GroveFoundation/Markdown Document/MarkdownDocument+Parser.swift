@@ -64,24 +64,12 @@ extension MarkdownDocument {
     struct Parser: ~Copyable {
         typealias ParseError = MarkdownDocument.ParseError
         typealias CustomElement = MarkdownDocument.CustomElement
-
-        enum CustomElements {
-            case named(Set<String>)
-            case all
-
-            func contains(_ name: String) -> Bool {
-                switch self {
-                case .named(let names): names.contains(name)
-                case .all: true
-                }
-            }
-        }
         
         private let input: String
-        private let customElements: CustomElements
+        private let customElements: MarkdownDocument.CustomElementSelection
         private var position: String.Index
         
-        init(input: String, customElements: CustomElements) {
+        init(input: String, customElements: MarkdownDocument.CustomElementSelection) {
             self.input = input
             self.customElements = customElements
             self.position = input.startIndex

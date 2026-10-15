@@ -14,7 +14,7 @@ presenting it in an app.
 ## Parse Once
 
 ```swift
-import GroveFoundation
+import GroveConsent
 
 let document = try ConsentDocumentFormat.decode(markdown)
 for section in document.sections {
@@ -49,6 +49,7 @@ For example, a platform could define a rating control:
 
 ```swift
 import Foundation
+import GroveConsent
 import GroveFoundation
 
 struct StudyRating: ConsentDocumentElement {
@@ -98,8 +99,9 @@ PDF exporter support the built-ins, not arbitrary registered controls.
 
 ## Server Validation and PDF Export
 
-The format and its typed definitions live in GroveFoundation without SwiftUI,
-PDFKit or participant state. They can be used independently of GroveConsent.
+GroveConsent builds on Linux. There, it provides the format, its typed definitions
+and ``ConsentDocument`` without SwiftUI, PDFKit or PencilKit; its views and PDF export
+are available only on Apple platforms.
 
 GroveConsent's PDF exporter is an Apple-platform implementation. It uses PDFKit,
 TPPDF and UIKit/AppKit drawing and font APIs; drawn signatures use PencilKit.

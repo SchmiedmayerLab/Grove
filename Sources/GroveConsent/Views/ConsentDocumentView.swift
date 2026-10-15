@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import Foundation
 private import GroveFoundation
 private import GrovePersonalInfo
@@ -275,4 +276,5 @@ extension View {
             .padding()
     }
 }
+#endif
 #endif

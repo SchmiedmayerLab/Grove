@@ -70,9 +70,11 @@ extension ConsentDocumentFormat.Selection: ConsentDocument.InteractiveSectionPro
     typealias Value = String
     static var userResponsesKeyPath: StorageKeyPath { \.selects }
 
+    #if canImport(SwiftUI)
     static var emptySelectionDefaultTitle: String {
         String(localized: "CONSENT_NO_SELECTION_DEFAULT_TITLE", bundle: .module)
     }
+    #endif
 
     func valueMatchesExpected(_ value: String) -> Bool {
         guard value.isEmpty || options.contains(where: { $0.id == value }) else {

@@ -111,8 +111,9 @@ ManagedNavigationStack {
 
 ### Consent Documents
 
-Servers can use `GroveFoundation.ConsentDocumentFormat.parse(_:)` to validate the same
-interactive-field structure without importing SwiftUI. This structural check does not
+Servers can use ``ConsentDocumentFormat/parse(_:additionalElements:)`` to validate the same
+interactive-field structure; GroveConsent builds on Linux, without its SwiftUI views and PDF export
+(see <doc:Consent-Documents>). This structural check does not
 establish rendering support, study approval or whether participant responses are complete.
 Fenced code examples remain literal text, not interactive controls. Duplicate field or
 option identifiers, invalid expected values, unknown attributes and unfinished controls
@@ -153,6 +154,11 @@ Please sign to confirm your participation:
 - ``ConsentDocument/ExportConfiguration``
 - ``ConsentDocument/ExportResult``
 - ``ConsentDocument/ConsentCompletionState``
+
+### Consent Document Format
+- <doc:Consent-Documents>
+- ``ConsentDocumentFormat``
+- ``ConsentDocumentElement``
 
 ### Views
 - ``ConsentDocumentView``

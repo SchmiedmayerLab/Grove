@@ -7,6 +7,7 @@
 //
 
 import Foundation
+public import GroveFoundation
 
 
 extension ConsentDocumentFormat {
@@ -22,7 +23,7 @@ extension ConsentDocumentFormat {
             try element.validateConsentAttributes(kind: .toggle, allowed: [.id, .initialValue, .expectedValue])
             id = try element.consentIdentifier()
             guard !element.content.isEmpty else { throw ValidationError.invalidControl(element.name) }
-            text = try element.consentLabel()
+            text = try element.consentLabel(from: element.content)
             initialValue = try element.consentBoolean(.initialValue) ?? false
             expectedValue = try element.consentBoolean(.expectedValue)
         }
@@ -48,8 +49,7 @@ extension ConsentDocumentFormat {
             id = try element.consentIdentifier()
             var options: [SelectionOption] = []
             var identifiers: Set<String> = []
-            var label = element
-            label.content = try element.content.filter { child in
+            let labelContent = try element.content.filter { child in
                 guard case .element(let child) = child, child.name == Kind.option.rawValue else {
                     return true
                 }
@@ -60,7 +60,7 @@ extension ConsentDocumentFormat {
             }
             guard !options.isEmpty else { throw ValidationError.invalidControl(element.name) }
             self.options = options
-            text = try label.consentLabel()
+            text = try element.consentLabel(from: labelContent)
             initialValue = element[consentAttribute: .initialValue] ?? Self.emptySelection
             guard initialValue.isEmpty || identifiers.contains(initialValue) else { throw ValidationError.invalidControl(element.name) }
             switch element[consentAttribute: .expectedValue] {
