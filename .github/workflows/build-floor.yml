@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Build ${{matrix.platform}} (${{matrix.kind}}) at the deployment floor
-        run: Scripts/build-floor.sh "${{matrix.platform}}" "${{matrix.kind}}"
+        run: python3 Scripts/build-floor.py "${{matrix.platform}}" "${{matrix.kind}}"
 
   # Single gate to use as the required status check in branch protection. Does no work itself; it just
   # aggregates the build-floor matrix. `!cancelled()` so it still reports when a matrix leg failed, while

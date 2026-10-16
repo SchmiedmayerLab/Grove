@@ -71,7 +71,7 @@ jobs:
             swift package dump-package > "$RUNNER_TEMP/apple15-package.json"
           python3 Scripts/apple15-release.py validate-defaults --dump "$RUNNER_TEMP/apple15-package.json"
       - name: Build at the deployment floor
-        run: Scripts/build-floor.sh "${{matrix.platform}}" "${{matrix.kind}}"
+        run: python3 Scripts/build-floor.py "${{matrix.platform}}" "${{matrix.kind}}"
 
   publish:
     needs: [prepare, build-floor]
