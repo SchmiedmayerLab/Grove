@@ -23,7 +23,7 @@ public import HealthKit
 /// It keeps track of the session's identity, and the stores the individual batches that need to be processed as part of the session.
 /// It also keeps track of the already-completed sample types, to prevent unnecessary duplicates when exporting.
 @available(iOS 18, macOS 15, watchOS 11, *)
-struct ExportSessionDescriptor: Codable {
+struct ExportSessionDescriptor: Codable, Sendable {
     let sessionId: BulkExportSessionIdentifier
     let startDate: ExportSessionStartDate
     let endDate: Date

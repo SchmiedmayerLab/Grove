@@ -68,6 +68,7 @@ enum ActivityLog {
     static let questionnaire = Questionnaire(
         url: URL(string: "https://grovealliance.org/samples/ActivityLog")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Activity Log",
         explainer: "One question that asks itself again for every activity you pick."
     ) {

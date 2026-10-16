@@ -105,7 +105,7 @@ public struct DynamicChoiceQuestion: TypedQuestion {
         .init(
             options: choices.map { $0.option(defaultSystem: system) },
             hasFreeTextOtherOption: hasOtherOption,
-            freeTextOtherOptionLabel: otherOptionLabel,
+            freeTextOtherOptionLabel: otherOptionLabel.map { .init($0) },
             allowsMultipleSelection: allowsMultipleSelection,
             presentation: presentation,
             orientation: orientation,
@@ -114,7 +114,7 @@ public struct DynamicChoiceQuestion: TypedQuestion {
     }
 
     public func _makeTasks() -> [Questionnaire.Task] { // swiftlint:disable:this identifier_name
-        var task = Questionnaire.Task(id: id, title: title, kind: .choice(makeConfig()))
+        var task = Questionnaire.Task(id: id, title: .init(title), kind: .choice(makeConfig()))
         _core.apply(to: &task)
         return [task]
     }

@@ -67,7 +67,7 @@ extension StudyManager {
         guard !staleIds.isEmpty || !staleCategories.isEmpty else {
             return false
         }
-        LegacyIdentifierReport.encountered(taskPrefix, in: "GroveStudy", .duringMigration)
+        LegacyIdentifierReport.encountered(taskPrefix, in: "GroveStudy")
 
         // `#Unique<Task>([\.nextVersion], [\.id, \.nextVersion])` resolves a conflict at save time by
         // *upserting*, which would silently fold two task chains — and their outcomes — into one.

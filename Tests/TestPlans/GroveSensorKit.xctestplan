@@ -1,32 +1,30 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "00000000-0000-0000-0000-000000000025",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "00000000-0000-0000-0000-000000000025",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-    "codeCoverage" : {
-      "targets" : [
-      {
-        "containerPath" : "container:",
-        "identifier" : "GroveSensorKit",
-        "name" : "GroveSensorKit"
-      }
-    ]
+  "defaultOptions": {
+    "codeCoverage": {
+      "targets": [
+        {
+          "containerPath": "container:",
+          "identifier": "GroveSensorKit",
+          "name": "GroveSensorKit"
+        }
+      ]
     }
   },
-  "testTargets" : [
-      {
-        "target" : {
-          "containerPath" : "container:",
-          "identifier" : "GroveSensorKitTests",
-          "name" : "GroveSensorKitTests"
-        }
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveSensorKitTests",
+        "name": "GroveSensorKitTests"
       }
+    }
   ],
-  "version" : 1
+  "version": 1
 }

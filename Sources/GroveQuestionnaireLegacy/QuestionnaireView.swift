@@ -55,7 +55,7 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
     private let questionnaireResult: @MainActor (QuestionnaireResult) async -> Void
     private let completionStepMessage: String?
     private let cancelBehavior: CancelBehavior
-    
+
     public var body: some View {
         if let task = createTask(questionnaire: questionnaire) {
             ORKOrderedTaskView(tasks: task, tintColor: .accentColor, cancelBehavior: cancelBehavior, result: handleResult)
@@ -66,8 +66,8 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
             Text("Questionnaire could not be loaded.")
         }
     }
-    
-    
+
+
     /// - Parameters:
     ///   - questionnaire: The  `Questionnaire` that should be displayed.
     ///   - completionStepMessage: Optional completion message that can be appended at the end of the questionnaire.
@@ -84,8 +84,8 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
         self.cancelBehavior = cancelBehavior
         self.questionnaireResult = questionnaireResult
     }
-    
-    
+
+
     private func handleResult(_ result: TaskResult) async {
         let questionnaireResult: QuestionnaireResult
         switch result {
@@ -99,7 +99,7 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
         await self.questionnaireResult(questionnaireResult)
     }
 
-    
+
     /// Creates a ResearchKit navigable task from a questionnaire
     /// - Parameter questionnaire: a questionnaire
     /// - Returns: a ResearchKit navigable task
@@ -110,7 +110,7 @@ public struct QuestionnaireView: View { // @available(*, deprecated, renamed: "G
             completionStep = ORKCompletionStep(identifier: "completion-step")
             completionStep?.text = completionStepMessage
         }
-        
+
         // Create a navigable task from the Questionnaire
         do {
             return try ORKNavigableOrderedTask(questionnaire: questionnaire, completionStep: completionStep)

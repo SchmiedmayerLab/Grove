@@ -28,23 +28,26 @@ You need to add the Grove HealthKit Swift package to
 ### Example
 
 Before you configure the ``HealthKit-class`` module, make sure your `Standard` in your Grove Application conforms to the ``HealthKitConstraint`` protocol to receive HealthKit data.
-The ``HealthKitConstraint/handleNewSamples(_:ofType:)`` function is called once for every batch of newly collected HealthKit samples, and the ``HealthKitConstraint/handleDeletedObjects(_:ofType:)`` function is called once for every batch of deleted HealthKit objects.
+The ``HealthKitConstraint/handleNewSamples(_:ofType:)`` function is called once for every batch of newly collected HealthKit samples, and the ``HealthKitConstraint/handleDeletedObjects(_:ofType:deletedAfter:)`` function is called once for every batch of deleted HealthKit objects, with the latest instant the deletions are known to follow when Grove has one. Returning confirms that the application has durably accepted the batch and permits Grove to advance its query anchor. Throwing—including cancellation or temporarily unavailable account state—retains the anchor and redelivers the exact delta, so handlers must be idempotent. Grove presents additions before deletions and advances the anchor only after both callbacks succeed. A handler that retains retry-only state can return a ``HealthKitAnchorCommitAction`` to release it after the anchor is durable.
 ```swift
 actor ExampleStandard: Standard, HealthKitConstraint {
     // Add the newly collected HealthKit samples to your application.
     func handleNewSamples<Sample>(
         _ addedSamples: some Collection<Sample> & Sendable,
         ofType sampleType: SampleType<Sample>
-    ) async {
+    ) async throws -> HealthKitAnchorCommitAction? {
         // ...
+        return nil
     }
 
     // Remove the deleted HealthKit objects from your application.
     func handleDeletedObjects<Sample>(
         _ deletedObjects: some Collection<HKDeletedObject> & Sendable,
-        ofType sampleType: SampleType<Sample>
-    ) async {
+        ofType sampleType: SampleType<Sample>,
+        deletedAfter: Date?
+    ) async throws -> HealthKitAnchorCommitAction? {
         // ...
+        return nil
     }
 }
 ```
@@ -99,7 +102,9 @@ class ExampleAppDelegate: GroveAppDelegate {
 
 ### Working with ECG Data
 - ``HealthKit/HKElectrocardiogram/symptoms(from:)``
+- ``HealthKit/HKElectrocardiogram/correlatedSymptomSamples(from:)``
 - ``HealthKit/HKElectrocardiogram/voltageMeasurements(from:)``
+- ``HealthKit/HKElectrocardiogram/rawVoltageMeasurements(from:)``
 - ``HealthKit/HKElectrocardiogram/Symptoms``
 - ``HealthKit/HKElectrocardiogram/Measurement``
 - ``HealthKit/HKElectrocardiogram/correlatedSymptomTypes``

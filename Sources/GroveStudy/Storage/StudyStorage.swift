@@ -50,7 +50,7 @@ enum StudyStorage {
                 fileManager: fileManager
             )
             if outcome == .relocated {
-                LegacyIdentifierReport.encountered(LegacyStorage.studyStore, in: "GroveStudy", .duringMigration)
+                LegacyIdentifierReport.encountered(LegacyStorage.studyStore, in: "GroveStudy")
             }
         } catch {
             // Handing out the destination now would let ModelContainer create an EMPTY store there,
@@ -91,8 +91,7 @@ enum StudyStorage {
             if outcome == .relocated {
                 LegacyIdentifierReport.encountered(
                     LegacyStorage.studyBundlesDirectory,
-                    in: "GroveStudy",
-                    .duringMigration
+                    in: "GroveStudy"
                 )
                 removeLegacyParentIfEmpty(of: legacy)
             }
@@ -139,8 +138,7 @@ enum StudyStorage {
                 try fileManager.moveItem(at: url, to: renamed)
                 LegacyIdentifierReport.encountered(
                     LegacyStorage.studyBundleFileExtension,
-                    in: "GroveStudy",
-                    .duringMigration
+                    in: "GroveStudy"
                 )
             } catch {
                 logger.error("Unable to rename the study bundle \(child, privacy: .public): \(error)")

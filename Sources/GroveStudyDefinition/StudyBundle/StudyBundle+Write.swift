@@ -70,6 +70,10 @@ extension StudyBundle {
     }
     
     /// Creates a new Study Bundle, from the specified inputs.
+    ///
+    /// Questionnaires are authored as one file per locale.
+    /// Once the bundle validates, each questionnaire's files are merged into one multilingual Questionnaire in its base file,
+    /// the `en-US` one where it exists; articles and other files stay per locale.
     public static func writeToDisk(
         at bundleUrl: URL,
         definition: StudyDefinition,
@@ -111,6 +115,7 @@ extension StudyBundle {
             try? fileManager.removeItem(at: bundle.bundleUrl)
             throw CreateBundleError.failedValidation(issues)
         }
+        try bundle.mergeQuestionnaires()
         return bundle
     }
 }

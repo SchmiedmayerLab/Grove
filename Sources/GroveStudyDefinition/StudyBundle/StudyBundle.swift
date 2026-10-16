@@ -9,7 +9,6 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
-public import struct ModelsR4.Questionnaire
 #if canImport(OSLog)
 import OSLog
 #else
@@ -49,7 +48,8 @@ extension UTType {
 ///
 /// ### Accessing the Bundle's Contents
 /// - ``consentText(for:in:using:fallbackLocale:)``
-/// - ``questionnaire(for:in:using:fallback:)``
+/// - ``questionnaire(for:)``
+/// - ``questionnaire(named:)``
 /// - ``displayTitle(for:in:using:)``
 /// - ``resolve(_:in:using:fallback:)``
 ///
@@ -107,33 +107,6 @@ public struct StudyBundle: Identifiable, Sendable {
         try FileManager.default.copyItem(at: bundleUrl, to: dstUrl, overwriteExisting: true)
     }
     
-    
-    /// Load a questionnaire resource from a ``FileReference``.
-    public func questionnaire(
-        for fileRef: FileReference,
-        in locale: Locale,
-        using localeMatchingBehaviour: LocaleMatchingBehaviour = .default,
-        fallback fallbackLocale: LocalizationKey? = .enUS
-    ) -> Questionnaire? {
-        _decodeResource(for: fileRef, locale: locale, using: localeMatchingBehaviour, fallback: fallbackLocale) {
-            try JSONDecoder().decode(Questionnaire.self, from: $0)
-        }
-    }
-    
-    /// Load a the quesrionnaire resource with the specified filename.
-    public func questionnaire(
-        named questionnaireName: String,
-        in locale: Locale,
-        using localeMatchingBehaviour: LocaleMatchingBehaviour = .default,
-        fallback fallbackLocale: LocalizationKey? = .enUS
-    ) -> Questionnaire? {
-        questionnaire(
-            for: .init(category: .questionnaire, filename: questionnaireName, fileExtension: "json"),
-            in: locale,
-            using: localeMatchingBehaviour,
-            fallback: fallbackLocale
-        )
-    }
     
     /// Load a consent text resource from a ``FileReference``.
     public func consentText(

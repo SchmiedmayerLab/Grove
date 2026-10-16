@@ -17,16 +17,12 @@ Reusable utilies when working with the [apple/FHIRModels](https://github.com/app
 
 ## Topics
 
-### FHIR Extension Builder
-- ``FHIRExtensionBuilder``
-
 ### FHIRModels Utilities
 - ``ModelsR4``
 - ``FHIRTypeWithExtensions``
 
 ### FHIRDecimal Utilities
 - ``Swift/Double/asFHIRDecimalPrimitiveSafe()``
-- ``Foundation/Decimal/asFHIRPrimitive()``
 
 ### Foundation Utilities
 - ``Foundation/Decimal/intValue``

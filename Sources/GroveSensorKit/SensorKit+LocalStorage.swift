@@ -38,6 +38,16 @@ extension SensorKit {
         // `Key` is not `Sendable`, so the lock cannot own the dictionary.
         private let lock = Mutex<Void>(())
         nonisolated(unsafe) private var keys: [DictKey: LocalStorageKey<Value>] = [:]
+
+        /// Every key materialized by this store in the current process.
+        ///
+        /// Reset operations use this to fence an in-flight query whose default anchor has not yet
+        /// produced an on-disk LocalStorage entry.
+        var allKeys: [Key] {
+            lock.withLock { _ in
+                keys.keys.map(\.key)
+            }
+        }
         
         init(makeStorageKey: @escaping @Sendable (Key) -> LocalStorageKey<Value>) {
             self.makeStorageKey = makeStorageKey

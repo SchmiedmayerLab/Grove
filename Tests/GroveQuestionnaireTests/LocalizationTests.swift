@@ -1,0 +1,405 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import FHIRModelsExtensions
+import Foundation
+import GroveFHIRContract
+import GroveQuestionnaire
+import GroveQuestionnaireFHIR
+import ModelsR4
+import Testing
+
+
+@Suite
+struct LocalizationTests {
+    private typealias Text = GroveQuestionnaire.Questionnaire.LocalizedText
+
+    private static let url = URL(string: "https://example.org/fhir/Questionnaire/localized")
+    private static let moodSystem = URL(string: "https://example.org/mood")!
+
+    /// A panel marked for observation extraction, in a questionnaire declaring its use context, both translated.
+    /// One use context of each value kind, its displayed text translated.
+    private static let useContexts = [
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "focus"},
+          "valueCodeableConcept": {"text": "Heart Risk", "_text": \#(spanish("Riesgo cardíaco"))}
+        }
+        """#,
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "age"},
+          "valueQuantity": {"value": 18, "comparator": ">=", "unit": "years", "_unit": \#(spanish("años")), "system": "http://unitsofmeasure.org", "code": "a"}
+        }
+        """#,
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "age"},
+          "valueRange": {
+            "low": {"value": 18, "unit": "years", "_unit": \#(spanish("años")), "system": "http://unitsofmeasure.org", "code": "a"},
+            "high": {"value": 99, "unit": "years", "system": "http://unitsofmeasure.org", "code": "a"}
+          }
+        }
+        """#,
+        #"""
+        {
+          "code": {"system": "http://terminology.hl7.org/CodeSystem/usage-context-type", "code": "program"},
+          "valueReference": {
+            "reference": "ResearchStudy/heart",
+            "type": "ResearchStudy",
+            "identifier": {"system": "https://example.org/studies", "value": "heart"},
+            "display": "My Heart Counts",
+            "_display": \#(spanish("Mi corazón cuenta"))
+          }
+        }
+        """#
+    ]
+
+    private static let extractablePanel = #"""
+    {
+      "resourceType": "Questionnaire",
+      "url": "https://example.org/fhir/Questionnaire/vitals",
+      "version": "1.0.0",
+      "language": "en-US",
+      "status": "active",
+      "useContext": [\#(useContexts.joined(separator: ", "))],
+      "item": [{
+        "linkId": "vitals",
+        "type": "group",
+        "text": "Vitals",
+        "item": [{
+          "linkId": "blood-pressure",
+          "type": "group",
+          "code": [{"system": "http://loinc.org", "code": "85354-9"}],
+          "extension": [
+            {"url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observationExtract", "valueBoolean": true},
+            {
+              "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observation-extract-category",
+              "valueCodeableConcept": {"coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs",
+                "_display": {"extension": [{
+                  "url": "http://hl7.org/fhir/StructureDefinition/translation",
+                  "extension": [{"url": "lang", "valueCode": "es-US"}, {"url": "content", "valueString": "Signos vitales"}]
+                }]}
+              }]}
+            }
+          ],
+          "item": [{
+            "linkId": "systolic",
+            "type": "integer",
+            "text": "Systolic",
+            "code": [{"system": "http://loinc.org", "code": "8480-6"}],
+            "extension": [{"url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-observationExtract", "valueCode": "component"}]
+          }]
+        }]
+      }]
+    }
+    """#
+
+    /// A primitive's extensions (`_element`) carrying one `es-US` translation.
+    private static func spanish(_ content: String) -> String {
+        #"{"extension": [{"url": "http://hl7.org/fhir/StructureDefinition/translation", "#
+            + #""extension": [{"url": "lang", "valueCode": "es-US"}, {"url": "content", "valueString": "\#(content)"}]}]}"#
+    }
+
+    /// A questionnaire written in `en-US`, translated into British English, Spanish and Mexican Spanish.
+    private static func questionnaire(language: String? = "en-US") -> GroveQuestionnaire.Questionnaire {
+        let translated = { (base: String) in
+            Text(base, translations: ["en-GB": "\(base) (GB)", "es": "\(base) (es)", "es-MX": "\(base) (MX)"])
+        }
+        return GroveQuestionnaire.Questionnaire(
+            metadata: .init(
+                id: "localized",
+                url: url,
+                version: "1.0.0",
+                language: language,
+                title: translated("Check-In"),
+                explainer: translated("How you are doing"),
+                purpose: translated("Why we ask")
+            ),
+            sections: [
+                .init(
+                    id: "section",
+                    title: translated("Today"),
+                    shortTitle: translated("Now"),
+                    tasks: [
+                        .init(
+                            id: "intro",
+                            title: "",
+                            markdownText: translated("**Please** answer"),
+                            kind: .instructional(translated("Please answer"))
+                        ),
+                        .init(
+                            id: "mood",
+                            title: translated("How do you feel?"),
+                            prefix: translated("1."),
+                            shortTitle: translated("Mood"),
+                            footer: translated("Take your time"),
+                            kind: .choice(.init(
+                                options: [
+                                    .init(
+                                        id: "https://example.org/mood|good",
+                                        title: translated("Good"),
+                                        fhirCoding: .init(system: moodSystem, code: "good")
+                                    ),
+                                    .init(id: "string|meh", title: .init("meh", translations: ["es": "regular"]), answerValue: .string("meh"))
+                                ],
+                                hasFreeTextOtherOption: true,
+                                freeTextOtherOptionLabel: translated("Something else"),
+                                allowsMultipleSelection: false
+                            )),
+                            constraints: [.init(expression: "true", humanDescription: translated("Pick one"), key: "mood-1")],
+                            groupPath: [.init(id: "feelings", title: translated("Feelings"), shortTitle: translated("F"))]
+                        ),
+                        .init(
+                            id: "weight",
+                            title: "Weight",
+                            kind: .numeric(.init(
+                                inputMode: .numberPad(.decimal),
+                                minimum: 20,
+                                maximum: 200,
+                                unit: translated("kilograms"),
+                                unitSystem: URL(string: "http://unitsofmeasure.org"),
+                                unitCode: "kg",
+                                valueKind: .quantity
+                            )),
+                            isOptional: true
+                        )
+                    ],
+                    fhirGroupId: "section"
+                )
+            ]
+        )
+    }
+
+    @Test("A locale renders in the exact tag, then its primary language, then the base language", arguments: [
+        ("en_US", "en-US"),
+        ("en_GB", "en-GB"),
+        ("en_AU", "en-US"),
+        ("es_MX", "es-MX"),
+        ("es_US", "es"),
+        ("fr_FR", "en-US")
+    ])
+    func renderingLanguageFollowsTheSelectionRule(locale: String, language: String) {
+        #expect(Self.questionnaire().renderingLanguage(for: Locale(identifier: locale)) == language)
+    }
+
+    @Test
+    func questionnaireOffersItsBaseAndEveryTranslationLanguage() {
+        #expect(Self.questionnaire().languages == ["en-US", "en-GB", "es", "es-MX"])
+        #expect(Self.questionnaire(language: nil).languages == ["en-GB", "es", "es-MX"])
+    }
+
+    @Test
+    func textResolvesToItsTranslationOrElseTheBase() {
+        let text = Text("Good", translations: ["es": "Bien"])
+        #expect(text.resolved(in: "es") == "Bien")
+        #expect(text.resolved(in: "ES") == "Bien")
+        #expect(text.resolved(in: "es-MX") == "Good")
+        #expect(text.resolved(in: "en-US") == "Good")
+        #expect(text.resolved(in: nil) == "Good")
+        #expect(Text(stringLiteral: "Good") == Text("Good"))
+    }
+
+    @Test
+    func exportWritesTheBaseLanguageAndEveryTranslation() throws {
+        let fhir = try ModelsR4.Questionnaire(Self.questionnaire())
+        #expect(fhir.language?.value?.string == "en-US")
+        let json = try String(decoding: JSONEncoder().encode(fhir), as: UTF8.self)
+        let texts = [
+            "Check-In", "How you are doing", "Why we ask", "**Please** answer", "Today", "Now", "Please answer", "How do you feel?", "1.", "Mood", "Take your time",
+            "Good", "Something else", "Pick one", "Feelings", "F", "kilograms"
+        ]
+        for base in texts {
+            for suffix in ["(GB)", "(es)", "(MX)"] {
+                #expect(json.contains("\"\(base) \(suffix)\""), "\(base) \(suffix)")
+            }
+        }
+        #expect(json.contains("\"regular\""))
+        let weight = try #require(fhir.item?.first?.item?.last)
+        for bound in ["minQuantity", "maxQuantity"] {
+            guard case .quantity(let quantity)? = weight.extensions(
+                for: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-\(bound)"
+            ).first?.value else {
+                Issue.record("Expected a quantity bound")
+                return
+            }
+            #expect(quantity.unit?.value?.string == "kilograms")
+            #expect(quantity.unit?.translations == ["en-GB": "kilograms (GB)", "es": "kilograms (es)", "es-MX": "kilograms (MX)"])
+        }
+    }
+
+    @Test
+    func exportRoundTripsEveryLanguage() throws {
+        let questionnaire = Self.questionnaire()
+        let exported = try ModelsR4.Questionnaire(questionnaire)
+        let imported = try GroveQuestionnaire.Questionnaire(exported, clock: questionnaireResponseTestClock)
+        #expect(imported.metadata.language == "en-US")
+        #expect(imported.metadata.purpose == questionnaire.metadata.purpose)
+        #expect(imported.sections.first?.tasks.first?.markdownText == questionnaire.sections[0].tasks[0].markdownText)
+        #expect(imported.languages == questionnaire.languages)
+        #expect(try ModelsR4.Questionnaire(imported) == exported)
+        let mood = try #require(imported.sections.first?.tasks.first { $0.id == "mood" })
+        #expect(mood.title == questionnaire.sections[0].tasks[1].title)
+        guard case .choice(let config) = mood.kind.variant else {
+            Issue.record("Expected a choice")
+            return
+        }
+        #expect(config.options.map(\.title) == [
+            Text("Good", translations: ["en-GB": "Good (GB)", "es": "Good (es)", "es-MX": "Good (MX)"]),
+            Text("meh", translations: ["es": "regular"])
+        ])
+        #expect(config.options.last?.answerValue == .string("meh"))
+    }
+
+    @Test
+    func exportRequiresTheBaseLanguage() throws {
+        #expect(throws: ContractError.missingQuestionnaireLanguage) {
+            try ModelsR4.Questionnaire(Self.questionnaire(language: nil))
+        }
+        let responses = QuestionnaireResponses(questionnaire: Self.questionnaire(language: nil))
+        #expect(throws: ContractError.missingQuestionnaireLanguage) {
+            try ModelsR4.QuestionnaireResponse(
+                responses,
+                renderedIn: questionnaireResponseTestLocale,
+                authored: questionnaireResponseTestAuthoredAt,
+                authoredTimeZone: questionnaireResponseTestTimeZone
+            )
+        }
+    }
+
+    @Test("A text translates neither into the base language nor twice into one language", arguments: [
+        ["en-us": "Hi"],
+        ["es": "Hola", "ES": "Buenas"]
+    ])
+    func exportRejectsConflictingTranslations(translations: [String: String]) {
+        let questionnaire = GroveQuestionnaire.Questionnaire(
+            metadata: .init(id: "conflict", url: Self.url, version: "1.0.0", language: "en-US", title: .init("Hello", translations: translations), explainer: ""),
+            sections: [.init(id: "section", tasks: [.init(id: "well", title: "Well?", kind: .boolean)])]
+        )
+        #expect(throws: ContractError.self) {
+            try ModelsR4.Questionnaire(questionnaire)
+        }
+    }
+
+    @Test("A response names its rendering language and carries text only in the base language", arguments: [
+        ("en_US", "en-US", true),
+        ("es_MX", "es-MX", false),
+        ("fr_FR", "en-US", true)
+    ])
+    func responseNamesTheRenderingLanguage(locale: String, language: String, carriesText: Bool) throws {
+        let responses = QuestionnaireResponses(questionnaire: Self.questionnaire())
+        responses.responses["mood"] = .init(value: .choice(.init(selectedOptions: ["https://example.org/mood|good"])))
+        let pair = try ResourceBuilder().pair(
+            from: responses,
+            renderedIn: Locale(identifier: locale),
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
+        #expect(pair.response.language?.value?.string == language)
+        let section = try #require(pair.response.item?.first)
+        let group = try #require(section.item?.first)
+        let mood = try #require(group.item?.first)
+        #expect(section.text?.value?.string == (carriesText ? "Today" : nil))
+        #expect(group.text?.value?.string == (carriesText ? "Feelings" : nil))
+        #expect(mood.text?.value?.string == (carriesText ? "How do you feel?" : nil))
+        // A translated response identifies the answer by system and code alone.
+        guard case .coding(let coding)? = mood.answer?.first?.value else {
+            Issue.record("Expected a coded answer")
+            return
+        }
+        #expect(coding.code?.value?.string == "good")
+        #expect(coding.display?.value?.string == (carriesText ? "Good" : nil))
+        #expect(coding.display?.extension == nil)
+    }
+
+    @Test
+    func importKeepsTranslationsOfTheDisplayedValueOfAStringOption() throws {
+        var value: FHIRPrimitive<ModelsR4.FHIRString> = "meh"
+        var translation = Extension(url: "http://hl7.org/fhir/StructureDefinition/translation")
+        translation.extension = [
+            Extension(url: "lang", value: .code("es")),
+            Extension(url: "content", value: .string("regular"))
+        ]
+        value.extension = [translation]
+        var item = ModelsR4.QuestionnaireItem(linkId: "mood".asFHIRStringPrimitive(), type: .init(.choice))
+        item.text = "How do you feel?"
+        item.answerOption = [.init(value: .string(value))]
+        var fhirQuestionnaire = ModelsR4.Questionnaire(status: FHIRPrimitive(PublicationStatus.active))
+        fhirQuestionnaire.url = "https://example.org/fhir/Questionnaire/string-option".asFHIRURIPrimitive()
+        fhirQuestionnaire.version = "1.0.0".asFHIRStringPrimitive()
+        fhirQuestionnaire.language = "en"
+        fhirQuestionnaire.item = [item]
+        let questionnaire = try GroveQuestionnaire.Questionnaire(fhirQuestionnaire, clock: questionnaireResponseTestClock)
+        guard case .choice(let config)? = questionnaire.sections.first?.tasks.first?.kind.variant else {
+            Issue.record("Expected a choice")
+            return
+        }
+        #expect(config.options.first?.title == Text("meh", translations: ["es": "regular"]))
+        #expect(config.options.first?.answerValue == .string("meh"))
+    }
+
+    @Test
+    func useContextAndExtractionRoundTripInEveryLanguage() throws {
+        let source = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(Self.extractablePanel.utf8))
+        let imported = try GroveQuestionnaire.Questionnaire(source, clock: questionnaireResponseTestClock)
+        #expect(imported.languages == ["en-US", "es-US"])
+        let exported = try ModelsR4.Questionnaire(imported)
+        #expect(try ModelsR4.Questionnaire(GroveQuestionnaire.Questionnaire(exported, clock: questionnaireResponseTestClock)) == exported)
+
+        #expect(exported.useContext == source.useContext)
+        let panel = try #require(exported.item?.first?.item?.first)
+        let sourcePanel = try #require(source.item?.first?.item?.first)
+        #expect(panel.code == sourcePanel.code)
+        #expect(panel.extension == sourcePanel.extension)
+        let systolic = try #require(panel.item?.first)
+        #expect(systolic.code == sourcePanel.item?.first?.code)
+        #expect(systolic.extension == sourcePanel.item?.first?.extension)
+        guard case .codeableConcept(let category)? = panel.extension?.last?.value else {
+            Issue.record("Expected the extraction category")
+            return
+        }
+        #expect(category.coding?.first?.display?.translations == ["es-US": "Signos vitales"])
+        #expect(exported.useContext?.count == 4)
+    }
+
+    @Test("Every kind of use context imports", arguments: 0..<4)
+    func everyUseContextKindImports(index: Int) throws {
+        let json = #"{"resourceType": "Questionnaire", "url": "https://example.org/fhir/Questionnaire/context", "version": "1.0.0", "#
+            + #""language": "en-US", "status": "active", "useContext": [\#(Self.useContexts[index])], "#
+            + #""item": [{"linkId": "well", "type": "boolean", "text": "Well?"}]}"#
+        let source = try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: Data(json.utf8))
+        let imported = try GroveQuestionnaire.Questionnaire(source, clock: questionnaireResponseTestClock)
+        let context = try #require(imported.metadata.useContexts.first)
+        switch (index, context.value) {
+        case (0, .concept(let concept)):
+            #expect(concept.text == .init("Heart Risk", translations: ["es-US": "Riesgo cardíaco"]))
+        case (1, .quantity(let quantity)):
+            #expect(quantity == .init(
+                value: 18,
+                comparator: ">=",
+                unit: .init("years", translations: ["es-US": "años"]),
+                system: URL(string: "http://unitsofmeasure.org"),
+                code: "a"
+            ))
+        case let (2, .range(low, high)):
+            #expect(low?.unit == .init("years", translations: ["es-US": "años"]))
+            #expect(high?.value == 99)
+        case (3, .reference(let reference)):
+            #expect(reference.reference == "ResearchStudy/heart")
+            #expect(reference.identifierValue == "heart")
+            #expect(reference.display == .init("My Heart Counts", translations: ["es-US": "Mi corazón cuenta"]))
+        default:
+            Issue.record("Use context \(index) imported as \(context.value)")
+        }
+        #expect(imported.languages == ["en-US", "es-US"])
+        #expect(try ModelsR4.Questionnaire(imported).useContext == source.useContext)
+    }
+}

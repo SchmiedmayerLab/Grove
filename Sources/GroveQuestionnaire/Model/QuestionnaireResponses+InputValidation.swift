@@ -6,21 +6,47 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(Darwin)
 public import Foundation
+#else
+import Foundation
+#endif
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
+    #if canImport(Darwin)
+    /// What a rejected response says to the participant: a resource the view resolves in its own locale.
+    ///
+    /// The alias is `String` off Apple platforms. That is safe: it is a new name that never shadows Foundation's type,
+    /// and here it is exactly the `LocalizedStringResource` the cases carried on main.
+    public typealias ResponseValidationMessage = LocalizedStringResource
+    #else
+    /// What a rejected response says to the participant: the message itself.
+    ///
+    /// There is no catalogue to resolve against off Apple platforms, and these messages are authored
+    /// as text, so the literal is already the finished message.
+    public typealias ResponseValidationMessage = String
+    #endif
+
     public enum ResponseValidationResult: Sendable {
         /// The response provided for the task is ok.
         case ok
         /// The response provided for the task is invalid.
-        case invalid(message: LocalizedStringResource)
+        case invalid(message: ResponseValidationMessage)
         /// The response is on its way but not there yet, such as "Other" chosen with nothing typed. Unlike an
         /// invalid one, the page says so only once the participant tries to move on, as for a missing answer.
-        case incomplete(message: LocalizedStringResource)
+        case incomplete(message: ResponseValidationMessage)
+
+        #if canImport(Darwin)
+        /// How a message is written in this package: a catalogue key with its arguments.
+        typealias MessageLiteral = String.LocalizationValue
+        #else
+        /// How a message is written in this package: the finished text, there being no catalogue.
+        typealias MessageLiteral = String
+        #endif
         
-        var isOk: Bool {
+        package var isOk: Bool {
             switch self {
             case .ok:
                 true
@@ -41,19 +67,48 @@ extension QuestionnaireResponses {
         /// Creates a ``invalid(message:)`` localized to the specified bundle.
         ///
         /// - Important: Use this function when creating `invalid` results within the package, to ensure that the localization is picked up correctly.
-        static func invalid(message: String.LocalizationValue, bundle: Bundle) -> Self {
+        static func invalid(message: MessageLiteral, bundle: Bundle) -> Self {
+            #if canImport(Darwin)
             .invalid(message: LocalizedStringResource(message, bundle: bundle))
+            #else
+            .invalid(message: message)
+            #endif
         }
 
         /// Creates a ``incomplete(message:)`` localized to the specified bundle.
-        static func incomplete(message: String.LocalizationValue, bundle: Bundle) -> Self {
+        static func incomplete(message: MessageLiteral, bundle: Bundle) -> Self {
+            #if canImport(Darwin)
             .incomplete(message: LocalizedStringResource(message, bundle: bundle))
+            #else
+            .incomplete(message: message)
+            #endif
+        }
+
+        /// Creates a ``invalid(message:)`` from text the questionnaire itself authored, which is shown as written.
+        static func invalid(authored message: String) -> Self {
+            #if canImport(Darwin)
+            .invalid(message: LocalizedStringResource(stringLiteral: message))
+            #else
+            .invalid(message: message)
+            #endif
         }
     }
     
     
-    func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
-        for task: Questionnaire.Task
+    /// Renders an hour/minute/second bound like "9:30 AM" for a validation message.
+    ///
+    /// The components are anchored to the fixed reference date, not today: `date(bySettingHour:)`
+    /// on a daylight-saving transition day can shift or skip the requested wall time.
+    private static func formattedTime(hour: Int, minute: Int, second: Int) -> String? {
+        Calendar.current
+            .date(bySettingHour: hour, minute: minute, second: second, of: Date(timeIntervalSinceReferenceDate: 0))?
+            .formatted(date: .omitted, time: .shortened)
+    }
+
+    /// Validates the task's response; an authored rule's message reads in `language`, or in the base language when `nil`.
+    package func validateResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
+        for task: Questionnaire.Task,
+        in language: String? = nil
     ) -> ResponseValidationResult {
         guard hasResponse(for: task) else {
             // if no response exists, there is nothing that could be invalid.
@@ -66,7 +121,7 @@ extension QuestionnaireResponses {
             for constraint in task.constraints where constraint.severity == .error {
                 do {
                     if try engine.evaluateBoolean(constraint.expression, scope: .answer(task.id), in: self) == .false {
-                        return .invalid(message: LocalizedStringResource(stringLiteral: constraint.humanDescription))
+                        return .invalid(authored: constraint.humanDescription.resolved(in: language))
                     }
                 } catch {
                     // A rule that cannot be evaluated proves nothing, so the answer stands;
@@ -153,30 +208,14 @@ extension QuestionnaireResponses {
             case .timeOnly:
                 let response = (response.hour ?? 0, response.minute ?? 0, response.second ?? 0)
                 if let minValue = config.minValue.map({ ($0.hour ?? 0, $0.minute ?? 0, $0.second ?? 0) }), !(response >= minValue) {
-                    let minValueDesc = cal
-                        .date(
-                            bySettingHour: minValue.0,
-                            minute: minValue.1,
-                            second: minValue.2,
-                            of: .now
-                        )?
-                        .formatted(date: .omitted, time: .shortened)
                     return .invalid(
-                        message: "Must be after \(minValueDesc ?? (config.minValue ?? .init()).description)", // will never be nil.
+                        message: "Must be after \(Self.formattedTime(hour: minValue.0, minute: minValue.1, second: minValue.2) ?? (config.minValue ?? .init()).description)",
                         bundle: .module
                     )
                 }
                 if let maxValue = config.maxValue.map({ ($0.hour ?? 0, $0.minute ?? 0, $0.second ?? 0) }), !(response <= maxValue) {
-                    let maxValueDesc = cal
-                        .date(
-                            bySettingHour: maxValue.0,
-                            minute: maxValue.1,
-                            second: maxValue.2,
-                            of: .now
-                        )?
-                        .formatted(date: .omitted, time: .shortened)
                     return .invalid(
-                        message: "Must be before \(maxValueDesc ?? (config.maxValue ?? .init()).description)", // will never be nil.
+                        message: "Must be before \(Self.formattedTime(hour: maxValue.0, minute: maxValue.1, second: maxValue.2) ?? (config.maxValue ?? .init()).description)",
                         bundle: .module
                     )
                 }

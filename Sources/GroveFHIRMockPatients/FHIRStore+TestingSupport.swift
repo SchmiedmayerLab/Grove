@@ -14,16 +14,16 @@ import ModelsR4
 extension FHIRStore {
     /// Loads a mock resource into the `FHIRStore` for testing purposes.
     @MainActor
-    public func loadTestingResources() async {
+    public func loadTestingResources() async throws {
         removeAllResources()
         
         let mockObservation = Observation(
             code: CodeableConcept(coding: [Coding(code: "1234".asFHIRStringPrimitive())]),
             id: FHIRPrimitive<FHIRString>("1234"),
-            issued: FHIRPrimitive<Instant>(try? Instant(date: .now)),
+            issued: FHIRPrimitive<Instant>(try Instant(date: .now)),
             status: FHIRPrimitive(ObservationStatus.final)
         )
-        insert(FHIRResource(
+        insert(try FHIRResource(
             versionedResource: .r4(mockObservation),
             displayName: "Mock Resource"
         ))

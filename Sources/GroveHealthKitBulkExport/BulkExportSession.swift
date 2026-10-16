@@ -117,7 +117,7 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     ///
     /// If the session is running, this will include the batch currently being processed.
     @MainActor var pendingBatches: [ExportBatch] { get }
-    /// The session's completed batches.
+    /// The batches whose processing succeeded, including any awaiting checkpoint recovery.
     @MainActor var completedBatches: [ExportBatch] { get }
     /// The session's failed batches.
     @MainActor var failedBatches: [ExportBatch] { get }
@@ -130,10 +130,12 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     /// Starts the session.
     ///
     /// Samples may repeat across batches; deduplicate within each participant’s data.
-    /// Progress is checkpointed for restoration across launches. After a write failure, retrying the live
-    /// session preserves its completed batches; terminating the app loses any unsaved progress.
+    /// Outputs are yielded only after their completion is checkpointed. After a write failure, the live
+    /// session retains completed batches and unpublished outputs. Restarting it first retries persistence,
+    /// then yields held outputs without processing those batches again.
     /// Pass `retryFailedBatches: true` to retry failed batches as well as checkpoint persistence.
-    /// Restoration may repeat batches whose completion was not saved.
+    /// Outputs are retained only in memory. Across launches, restoration may repeat unsaved completions;
+    /// saved completions may have no corresponding stream delivery if the app terminated before yielding.
     ///
     /// Attempting to start a session that is already running will result in a ``StartSessionError/alreadyRunning`` error.
     ///
@@ -154,7 +156,7 @@ public protocol BulkExportSession<Processor>: AnyObject, Hashable, Sendable, Obs
     
     /// Irrevocably terminates the session and detaches it from the ``BulkHealthExporter``.
     ///
-    /// Waits for active work and pending checkpoint writes before returning.
+    /// Waits for active work and pending checkpoint writes before returning, then discards retained outputs.
     /// A long-running ``BatchProcessor`` can delay termination while it responds to cancellation.
     ///
     /// - Note: Place the call inside a `Task` if the caller should continue without waiting.

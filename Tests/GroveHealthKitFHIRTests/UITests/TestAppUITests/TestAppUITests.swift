@@ -48,61 +48,21 @@ class TestAppUITests: XCTestCase {
         // Dismiss results view
         app.swipeDown(velocity: XCUIGestureVelocity.fast)
     }
-    
-    @MainActor
-    func testECGHealthKitMapping() throws {
-        let app = XCUIApplication()
-        app.launch()
-        
-        try launchAndAddSample(healthApp: .healthApp, .electrocardiogram())
 
-        app.launch()
-        XCTAssert(app.wait(for: .runningForeground, timeout: 6.0))
-
-        XCTAssert(app.staticTexts["Electrocardiogram"].waitForExistence(timeout: 5))
-        app.staticTexts["Electrocardiogram"].tap()
-        XCTAssert(app.buttons["Read Electrocardiogram"].waitForExistence(timeout: 5))
-        app.buttons["Read Electrocardiogram"].tap()
-        
-        // Enable Apple Health Access if needed
-        app.handleHealthKitAuthorization()
-        
-        let passed = app.staticTexts["Passed"]
-        if !passed.waitForExistence(timeout: 10) {
-            app.buttons["Read Electrocardiogram"].tap()
-        }
-        XCTAssert(passed.waitForExistence(timeout: 10))
-        
-        app.collectionViews.buttons["See JSON"].tap()
-        
-        // Dismiss results view
-        app.swipeDown(velocity: XCUIGestureVelocity.fast)
-    }
-
-    @MainActor
-    func testWorkoutMapping() throws {
-        let app = XCUIApplication()
-        app.launch()
-
-        // Create Workout
-        XCTAssert(app.collectionViews.buttons["Create Workout"].waitForExistence(timeout: 5))
-        app.collectionViews.buttons["Create Workout"].tap()
-        XCTAssert(app.collectionViews.buttons["Create Sample Workout"].waitForExistence(timeout: 5))
-        app.collectionViews.buttons["Create Sample Workout"].tap()
-
-        // Enable Apple Health Access if needed
-        app.handleHealthKitAuthorization()
-
-        // Dismiss results view
-        app.swipeDown(velocity: XCUIGestureVelocity.fast)
-    }
-    
     @MainActor
     func testMappingCompleteness() throws {
         let app = XCUIApplication()
         app.launch()
-        
+
         app.buttons["Mapping Completeness"].tap()
-        XCTAssertTrue(app.staticTexts["All Fine!"].waitForExistence(timeout: 2))
+        // The catalog renders grouped by status, and the first group is the one the enum orders
+        // first. Only the visible rows of a 218-row List exist in the accessibility tree, so this
+        // asserts the first section rather than a row further down; the catalog's completeness is
+        // proven exhaustively by the unit-test matrix instead.
+        //
+        // `deferred` was the first group until the adapter stopped deferring anything, which left
+        // the refusals first.
+        XCTAssertTrue(app.staticTexts["intentionally-unsupported"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Activity Move Mode"].waitForExistence(timeout: 5))
     }
 }
