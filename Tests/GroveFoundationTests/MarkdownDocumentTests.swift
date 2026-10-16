@@ -765,4 +765,34 @@ struct MarkdownDocumentTests { // swiftlint:disable:this type_body_length
             ))
         ]))
     }
+    
+    @Test
+    func processesAllElements() throws {
+        let input = "<rating id=comfort />\n<toggle id=agree><b>Yes</b></toggle>"
+        let named = try MarkdownDocument(processing: input, customElementNames: ["toggle"])
+        #expect(named.blocks.compactMap(\.customElement).map(\.name) == ["toggle"])
+        let all = try MarkdownDocument(processing: input, customElements: .all)
+        let elements = all.blocks.compactMap(\.customElement)
+        #expect(elements.map(\.name) == ["rating", "toggle"])
+        #expect(elements.last?.content == [.element(.init(name: "b", content: [.text("Yes")], raw: "<b>Yes</b>"))])
+    }
+    
+    @Test
+    func requiresCompleteInput() throws {
+        let input = #"<toggle id="agree"#
+        _ = try MarkdownDocument(processing: input, customElementNames: ["toggle"])
+        let error = #expect(throws: MarkdownDocument.ParseError.self) {
+            try MarkdownDocument(processing: input, customElements: .named(["toggle"]), requiresCompleteInput: true)
+        }
+        #expect(error?.kind == .eof)
+    }
+    
+    @Test(arguments: ["```", "~~~~"])
+    func fencedCodeIsLiteral(fence: String) throws {
+        let input = "\(fence)html\n<elem id=example />\n# Literal heading\n\(fence)\n\n<elem id=real />"
+        let document = try MarkdownDocument(processing: input, customElements: .all)
+        #expect(document.blocks.compactMap { $0.customElement?[attribute: "id"] } == ["real"])
+        #expect(document.blocks.first?.isMarkdown == true)
+        #expect(document.blocks.first?.id == nil)
+    }
 }

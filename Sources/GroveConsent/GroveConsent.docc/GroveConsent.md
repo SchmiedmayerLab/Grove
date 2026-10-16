@@ -111,6 +111,14 @@ ManagedNavigationStack {
 
 ### Consent Documents
 
+Servers can use ``ConsentDocumentFormat/parse(_:additionalElements:)`` to validate the same
+interactive-field structure; GroveConsent builds on Linux, without its SwiftUI views and PDF export
+(see <doc:Validating-Consent-Documents>). This structural check does not
+establish rendering support, study approval or whether participant responses are complete.
+Fenced code examples remain literal text, not interactive controls. Duplicate field or
+option identifiers, invalid expected values, unknown attributes and unfinished controls
+are rejected. Frontmatter remains Grove's existing string-valued metadata format.
+
 Below is an example of a simple consent document that embeds several custom elements into its Markdown text:
 
 ```html
@@ -146,6 +154,11 @@ Please sign to confirm your participation:
 - ``ConsentDocument/ExportConfiguration``
 - ``ConsentDocument/ExportResult``
 - ``ConsentDocument/ConsentCompletionState``
+
+### Consent Document Format
+- <doc:Validating-Consent-Documents>
+- ``ConsentDocumentFormat``
+- ``ConsentDocumentElement``
 
 ### Views
 - ``ConsentDocumentView``

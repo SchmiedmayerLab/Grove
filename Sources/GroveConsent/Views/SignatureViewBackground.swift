@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 import SwiftUI
 
 
@@ -106,4 +107,5 @@ extension Color {
     }
     .frame(height: 120)
 }
+#endif
 #endif

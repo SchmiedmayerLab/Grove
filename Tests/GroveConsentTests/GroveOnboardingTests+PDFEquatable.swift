@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 import PDFKit
 
 
@@ -50,3 +51,4 @@ extension PDFDocument {
         .init(self)
     }
 }
+#endif
