@@ -153,9 +153,10 @@ let batch = HealthKitConverter().convert(samples) { sample in
 ```
 
 A retry is exact when `ExchangeGraph.isSemanticallyEqual(to:)` says so.
-A deleted sample is taken back with ``HealthKitConverter/retraction(for:context:retractedAt:)``.
+A deleted sample is taken back with ``HealthKitConverter/retraction(for:context:occurred:)``.
 It needs only the deleted object's UUID and the sample type it was reported for; the source record and every output it retracts are recomputed, so nothing from the sample's conversion has to be kept.
 `retractionContext` is a ``HealthKitConversionContext`` for the retraction's own new event, under the same identity scope, repository scope and native-identifier disclosure as the conversion.
+HealthKit reports a deletion without its time, so `occurred` bounds it by the `deletedAfter` the deletion handler received and the time it was reported.
 
 ```swift
 guard let type = HealthKitSourceType(sampleType.hkSampleType) else {
@@ -164,7 +165,7 @@ guard let type = HealthKitSourceType(sampleType.hkSampleType) else {
 let retraction = try HealthKitConverter().retraction(
     for: HealthKitSourceRecord(uuid: deletedObject.uuid, type: type),
     context: retractionContext,
-    retractedAt: deletedAt
+    occurred: .period(start: deletedAfter, end: reportedAt)
 )
 ```
 
