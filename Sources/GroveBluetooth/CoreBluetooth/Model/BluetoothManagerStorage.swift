@@ -165,8 +165,12 @@ final class BluetoothManagerStorage: ValueObservable, Sendable {
 extension BluetoothManagerStorage {
     var stateSubscription: AsyncStream<BluetoothState> {
         AsyncStream(BluetoothState.self) { continuation in
-            Task { @GroveBluetooth [self] in
-                let id = subscribe(continuation)
+            Task { @GroveBluetooth [weak self] in
+                guard let self else {
+                    continuation.finish()
+                    return
+                }
+                let id = self.subscribe(continuation)
                 continuation.onTermination = { @Sendable [weak self] _ in
                     guard let self = self else {
                         return
