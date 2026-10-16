@@ -35,7 +35,7 @@ public struct ExportBatch: Codable, Sendable {
     
     /// The batch's sample type.
     public let sampleType: any AnySampleType
-    /// The batch's time range.
+    /// The batch's query window.
     public let timeRange: Range<Date>
     /// The batch's processing result.
     ///
@@ -103,4 +103,16 @@ extension ExportBatch: Hashable {
     }
 }
 
+#endif
+
+#if canImport(HealthKit)
+import HealthKit
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension ExportBatch {
+    /// Includes boundary-spanning samples; duplicates across batches are expected.
+    static func samplePredicate(for range: Range<Date>) -> NSPredicate {
+        HKQuery.predicateForSamples(withStart: range.lowerBound, end: range.upperBound, options: [])
+    }
+}
 #endif

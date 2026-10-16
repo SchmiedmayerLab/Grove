@@ -274,6 +274,12 @@ extension QuestionnaireSheetNavigator.Question {
             return
         }
         tap(option)
+        XCTAssert(
+            self.option(title).wait(for: \.label, toEqual: "Option: \(title), Not Selected", timeout: timeout),
+            "Question '\(linkId)' did not clear option '\(title)'.",
+            file: file,
+            line: line
+        )
     }
 
     /// Answers a yes/no question.

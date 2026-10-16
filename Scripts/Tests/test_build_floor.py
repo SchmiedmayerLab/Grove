@@ -51,7 +51,15 @@ class FloorBuildTests(unittest.TestCase):
             "name": "XCTGroveNotifications", "targets": ["XCTGroveNotifications"],
             "type": {"library": ["automatic"]},
         })
-        (self.root / "dump.json").write_text(json.dumps({"products": products, "targets": targets}))
+        (self.root / "dump.json").write_text(json.dumps({
+            "products": products,
+            "targets": targets,
+            "platforms": [
+                {"platformName": "ios", "version": "15.0"},
+                {"platformName": "macos", "version": "12.0"},
+                {"platformName": "watchos", "version": "9.0"},
+            ],
+        }))
         (self.root / "packages.toml").write_text(textwrap.dedent('''\
             [Common]
             platforms = ["iOS", "macOS", "watchOS"]
