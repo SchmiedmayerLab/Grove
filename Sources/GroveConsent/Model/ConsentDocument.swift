@@ -6,12 +6,18 @@
 // SPDX-License-Identifier: MIT
 //
 
-private import Foundation
+public import Foundation
 public import GroveFoundation
 public import Observation
+#if canImport(PDFKit)
 public import class PDFKit.PDFDocument
+#endif
+#if canImport(PencilKit)
 public import PencilKit
+#endif
+#if canImport(SwiftUI)
 import SwiftUI
+#endif
 
 
 /// Represents and manages a Markdown-based (potentially interactive) Consent Document.
@@ -168,6 +174,8 @@ public final class ConsentDocument: Sendable {
         case failedToProcessInteractiveElements(String)
         /// The input contains multiple custom elements with identical `id`s.
         case duplicateCustomElementId(String)
+        /// The document uses malformed controls or content that cannot be preserved in its PDF copy.
+        case unsupportedContent
     }
     
     /// Storage container for the data entered into a ``ConsentSignatureForm``, as part of filling out a ``ConsentDocument``.
@@ -175,7 +183,7 @@ public final class ConsentDocument: Sendable {
         // ^^ SAFETY: we should be able to safely mark this as @unchecked Sendable, since PKDrawing is likely Sendable already
         //    (it's explicitly intended as a value type alternative to PKDrawingReference), but is probably just missing the annotation.
         //    See also FB18233435 (`PKDrawing` isn't marked as Sendable; should be since it's a value type)
-        #if !os(macOS)
+        #if canImport(PencilKit) && !os(macOS)
         public typealias Signature = PKDrawing
         #else
         public typealias Signature = String
@@ -186,7 +194,7 @@ public final class ConsentDocument: Sendable {
         var size: CGSize = .zero
         
         var isSigned: Bool {
-            #if !os(macOS)
+            #if canImport(PencilKit) && !os(macOS)
             !signature.strokes.isEmpty
             #else
             !signature.isEmpty
@@ -204,7 +212,7 @@ public final class ConsentDocument: Sendable {
 
         /// Resets the signature to an empty state.
         public mutating func clearSignature() {
-            #if !os(macOS)
+            #if canImport(PencilKit) && !os(macOS)
             signature.strokes.removeAll(keepingCapacity: true)
             #else
             signature.removeAll(keepingCapacity: true)
@@ -249,44 +257,32 @@ public final class ConsentDocument: Sendable {
     /// - parameter markdown: The Markdown input
     /// - parameter initialName: The default name that should be used for signature forms embedded in the Document
     public init(markdown: String, initialName: PersonNameComponents? = nil) throws(LoadError) {
-        let doc: MarkdownDocument
+        let parsed: ConsentDocumentFormat.ParsedDocument
         do {
-            doc = try MarkdownDocument(
-                processing: markdown,
-                customElementNames: ["toggle", "select", "signature", "option", "footnote"]
-            )
-        } catch {
+            parsed = try ConsentDocumentFormat.decode(markdown)
+            #if canImport(Darwin)
+            try Self.validateMarkdown(in: parsed.markdownDocument)
+            #endif
+        } catch let error as MarkdownDocument.ParseError {
             throw LoadError.failedToParse(error)
+        } catch ConsentDocumentFormat.ValidationError.duplicateIdentifier(let id) {
+            throw LoadError.duplicateCustomElementId(id)
+        } catch {
+            throw LoadError.unsupportedContent
         }
-        markdownDocument = doc
-        sections = try markdownDocument.blocks.map { block throws(LoadError) -> Section in
-            switch block {
-            case .markdown(id: _, let rawContents):
-                return .markdown(rawContents)
-            case .customElement(let parsedElement):
-                do {
-                    switch parsedElement.name {
-                    case "toggle":
-                        return try Section.toggle(parsedElement, in: doc)
-                    case "select":
-                        return try Section.select(parsedElement, in: doc)
-                    case "signature":
-                        return try Section.signature(parsedElement)
-                    default:
-                        throw LoadError.failedToProcessInteractiveElements("Unexpected top-level element: \(parsedElement.name)")
-                    }
-                } catch let error as LoadError {
-                    throw error
-                } catch {
-                    throw LoadError.failedToProcessInteractiveElements(
-                        "Unable to construct \(parsedElement.name.localizedCapitalized) element from \(parsedElement): \(error)"
-                    )
-                }
+        markdownDocument = parsed.markdownDocument
+        sections = try parsed.sections.map { section throws(LoadError) -> Section in
+            switch section {
+            case .markdown(let text): return .markdown(text)
+            case .toggle(let toggle): return .toggle(toggle)
+            case .select(let selection): return .select(selection)
+            case .signature(let signature): return .signature(.init(id: signature.id))
+            case .custom: throw LoadError.unsupportedContent
             }
         }
         try processConsentFileSections(defaultName: initialName)
     }
-    
+
     /// Creates a Consent Document by parsing a Markdown Data object
     ///
     /// - parameter markdown: The Markdown input. Must be valid UTF-8.
@@ -327,6 +323,26 @@ public final class ConsentDocument: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
+    #if canImport(Darwin)
+    private static func validateMarkdown(in document: MarkdownDocument) throws {
+        func validate(_ contents: [MarkdownDocument.CustomElement.Content]) throws {
+            for content in contents {
+                switch content {
+                case .text(let text): _ = try ConsentMarkdown.parse(text)
+                case .element(let element): try validate(element.content)
+                }
+            }
+        }
+        for block in document.blocks {
+            switch block {
+            case .markdown(_, let text): _ = try ConsentMarkdown.parse(text)
+            case .customElement(let element): try validate(element.content)
+            }
+        }
+    }
+    #endif
+
+    #if canImport(SwiftUI)
     func binding<S: InteractiveSectionProtocol>(for section: S) -> Binding<S.Value> {
         Binding<S.Value> {
             self.userResponses[keyPath: section.userResponsesKeyPath] ?? section.initialValue
@@ -334,6 +350,7 @@ extension ConsentDocument {
             self.userResponses[keyPath: section.userResponsesKeyPath] = newValue
         }
     }
+    #endif
     
     func value<S: InteractiveSectionProtocol>(for section: S) -> S.Value {
         userResponses[keyPath: section.userResponsesKeyPath] ?? section.initialValue
@@ -381,6 +398,7 @@ extension ConsentDocument.InteractiveSectionProtocol {
 
 // MARK: Export
 
+#if canImport(PDFKit)
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ConsentDocument {
     /// Result of an export operation. Contains the produced PDF as well as associated metadata.
@@ -408,6 +426,7 @@ extension ConsentDocument {
         )
     }
 }
+#endif
 
 
 // MARK: Other

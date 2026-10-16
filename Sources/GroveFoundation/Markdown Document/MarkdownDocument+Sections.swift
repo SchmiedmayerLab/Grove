@@ -104,4 +104,21 @@ extension MarkdownDocument {
             attributes.first { $0.name == name }?.value
         }
     }
+    
+    
+    /// The HTML tags which the parser processes into ``CustomElement``s.
+    public enum CustomElementSelection: Hashable, Sendable {
+        /// Only tags with one of these names are processed into custom elements;
+        /// any other tag is treated as if it were part of the normal markdown text.
+        case named(Set<String>)
+        /// Every tag is processed into a custom element, which allows rejecting unsupported tags instead of treating them as markdown text.
+        case all
+        
+        func contains(_ name: String) -> Bool {
+            switch self {
+            case .named(let names): names.contains(name)
+            case .all: true
+            }
+        }
+    }
 }

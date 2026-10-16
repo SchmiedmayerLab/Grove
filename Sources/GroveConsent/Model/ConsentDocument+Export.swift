@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(PDFKit)
 import GroveFoundation
 import PDFKit
 private import PencilKit
@@ -37,9 +38,11 @@ struct PDFRenderer {
         }
         if config.includingTimestamp {
             pdf.add(.contentRight, attributedTextObject: renderedExportTimestamp())
+            pdf.add(space: 12)
         }
         if let header = renderedHeader() {
             pdf.add(.contentCenter, attributedTextObject: header)
+            pdf.add(space: 18)
         }
         for section in consentDocument.sections {
             try add(section)
@@ -54,8 +57,7 @@ struct PDFRenderer {
     
     private func renderedExportTimestamp() -> PDFAttributedText {
         let date = DateFormatter.localizedString(from: .now, dateStyle: .medium, timeStyle: .short)
-        var text = String(localized: "Exported: \(date)", bundle: .module)
-        text += "\n\n\n\n"
+        let text = String(localized: "Exported: \(date)", bundle: .module)
         let attributedTitle = NSMutableAttributedString(
             string: text,
             attributes: [.font: config.fontSettings.headerExportTimeStampFont]
@@ -69,7 +71,7 @@ struct PDFRenderer {
             return nil
         }
         let attributedTitle = NSMutableAttributedString(
-            string: title + "\n\n",
+            string: title,
             attributes: [.font: config.fontSettings.headerTitleFont]
         )
         return PDFAttributedText(text: attributedTitle)
@@ -81,7 +83,7 @@ extension PDFRenderer {
     private func add(_ section: ConsentDocument.Section) throws {
         switch section {
         case .markdown(let rawContent):
-            addMarkdownBlock(rawContent)
+            try addMarkdownBlock(rawContent)
         case .signature(let config):
             addRenderedSignature(config)
         case .toggle(let config):
@@ -92,19 +94,12 @@ extension PDFRenderer {
     }
     
     
-    private func addMarkdownBlock(_ text: String) {
-        var markdownString = (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(String(localized: "MARKDOWN_LOADING_ERROR", bundle: .module))
-        // Indirection needed to hide `Sendable` warnings of `NSFont` on macOS
-        markdownString.mergeAttributes(.init([.font: config.fontSettings.documentContentFont]))
-        let attrText = PDFAttributedText(text: NSAttributedString(markdownString))
-        pdf.add(attributedTextObject: attrText)
+    private func addMarkdownBlock(_ text: String) throws {
+        try ConsentMarkdownPDF(font: config.fontSettings.documentContentFont).append(text, to: pdf)
     }
     
     
-    private func addToggleBlock(_ toggleConfig: ConsentDocument.ToggleConfig) throws {
+    private func addToggleBlock(_ toggleConfig: ConsentDocumentFormat.Toggle) throws {
         let state = consentDocument.value(for: toggleConfig)
         let cellStyle = PDFTableCellStyle(
             borders: .none,
@@ -114,21 +109,23 @@ extension PDFRenderer {
         table.widths = [0.8, 0.2] // sadly can't make this dynamic :/
         table.style.outline = .none
         table[0, 0] = PDFTableCell(
-            content: try .init(content: toggleConfig.text.plainTextContents),
+            content: try .init(content: ConsentMarkdownPDF(font: config.fontSettings.documentContentFont).label(toggleConfig.text)),
             alignment: .left,
             style: cellStyle
         )
         table[0, 1] = PDFTableCell(
-            content: try .init(content: String(localized: state ? "Yes" : "No")),
+            content: try .init(content: String(localized: state ? "Yes" : "No", bundle: .module)),
             alignment: .right,
             style: cellStyle
         )
-        pdf.add(table: table)
+        let group = consentCard()
+        group.add(.left, table: table)
+        pdf.add(group: group)
         pdf.add(space: 12)
     }
     
     
-    private func addSelectBlock(_ selectConfig: ConsentDocument.SelectConfig) throws {
+    private func addSelectBlock(_ selectConfig: ConsentDocumentFormat.Selection) throws {
         let selection = consentDocument.value(for: selectConfig)
         let cellStyle = PDFTableCellStyle(
             borders: .none,
@@ -138,16 +135,20 @@ extension PDFRenderer {
         table.widths = [0.75, 0.25] // sadly can't make this dynamic :/
         table.style.outline = .none
         table[0, 0] = PDFTableCell(
-            content: try .init(content: selectConfig.text.plainTextContents),
+            content: try .init(content: ConsentMarkdownPDF(font: config.fontSettings.documentContentFont).label(selectConfig.text)),
             alignment: .left,
             style: cellStyle
         )
         table[0, 1] = PDFTableCell(
-            content: try .init(content: selectConfig.options.first { $0.id == selection }?.title),
+            content: try .init(content: ConsentMarkdownPDF(font: config.fontSettings.documentContentFont).label(
+                selectConfig.options.first { $0.id == selection }?.title ?? ""
+            )),
             alignment: .right,
             style: cellStyle
         )
-        pdf.add(table: table)
+        let group = consentCard()
+        group.add(.left, table: table)
+        pdf.add(group: group)
         pdf.add(space: 12)
     }
     
@@ -155,21 +156,21 @@ extension PDFRenderer {
     private func addRenderedSignature(_ signatureConfig: ConsentDocument.SignatureConfig) {
         let storage = consentDocument.value(for: signatureConfig)
         let personName = storage.name.formatted(.name(style: .long))
+        let group = consentCard()
         #if !os(macOS)
-        let group = PDFGroup(
-            allowsBreaks: false,
-            backgroundImage: PDFImage(image: storage.signatureImage(size: storage.size)),
-            padding: EdgeInsets(top: 50, left: 50, bottom: 0, right: 100)
-        )
+        if storage.size.width > 0, storage.size.height > 0, !storage.signature.strokes.isEmpty {
+            let scale = min(1, 60 / storage.size.height, 300 / storage.size.width)
+            group.add(.left, image: PDFImage(
+                image: storage.signatureImage(size: storage.size),
+                size: CGSize(width: storage.size.width * scale, height: storage.size.height * scale),
+                options: []
+            ))
+        } else {
+            group.add(space: 36)
+        }
         let signaturePrefix = "X"
         #else
-        // On macOS, we do not have a "drawn" signature, hence we do
-        // not set a backgroundImage for the PDFGroup.
-        // Instead, we render the person name.
-        let group = PDFGroup(
-            allowsBreaks: false,
-            padding: EdgeInsets(top: 50, left: 50, bottom: 0, right: 100)
-        )
+        group.add(space: 36)
         let signaturePrefix = "X " + storage.signature
         #endif
         group.set(font: config.fontSettings.signaturePrefixFont)
@@ -201,6 +202,39 @@ extension PDFRenderer {
         )
         group.add(.left, table: table)
         pdf.add(group: group)
+        pdf.add(space: 12)
+    }
+
+    /// Corner-anchored geometry keeps the radius fixed as the card fits its content.
+    private func consentCard() -> PDFGroup {
+        let path = PDFBezierPath(ref: CGRect(x: 0, y: 0, width: 100, height: 100))
+        path.move(to: .init(position: CGPoint(x: 8, y: 0), anchor: .topLeft))
+        path.addLine(to: .init(position: CGPoint(x: 92, y: 0), anchor: .topRight))
+        path.addQuadCurve(
+            to: .init(position: CGPoint(x: 100, y: 8), anchor: .topRight),
+            controlPoint: .init(position: CGPoint(x: 100, y: 0), anchor: .topRight)
+        )
+        path.addLine(to: .init(position: CGPoint(x: 100, y: 92), anchor: .bottomRight))
+        path.addQuadCurve(
+            to: .init(position: CGPoint(x: 92, y: 100), anchor: .bottomRight),
+            controlPoint: .init(position: CGPoint(x: 100, y: 100), anchor: .bottomRight)
+        )
+        path.addLine(to: .init(position: CGPoint(x: 8, y: 100), anchor: .bottomLeft))
+        path.addQuadCurve(
+            to: .init(position: CGPoint(x: 0, y: 92), anchor: .bottomLeft),
+            controlPoint: .init(position: CGPoint(x: 0, y: 100), anchor: .bottomLeft)
+        )
+        path.addLine(to: .init(position: CGPoint(x: 0, y: 8), anchor: .topLeft))
+        path.addQuadCurve(
+            to: .init(position: CGPoint(x: 8, y: 0), anchor: .topLeft),
+            controlPoint: .init(position: .zero, anchor: .topLeft)
+        )
+        path.close()
+        return PDFGroup(
+            allowsBreaks: false,
+            backgroundShape: PDFDynamicGeometryShape(path: path, fillColor: Color(white: 0.96, alpha: 1), stroke: .none),
+            padding: EdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        )
     }
 }
 
@@ -230,25 +264,6 @@ extension ConsentDocument.SignatureStorage {
 }
 
 
-extension MarkdownDocument {
-    /// The markdown document's contents, as a plain-text representation.
-    ///
-    /// - Note: The String returned here is not guaranteed to retain all content from the markdown document.
-    ///     Elements which cannot be represented will be omitted.
-    ///     Additionally, the markdown syntax will not necessarily be stripped from the text.
-    fileprivate var plainTextContents: String {
-        blocks.reduce(into: "") { plainText, block in
-            switch block {
-            case .markdown(id: _, let rawContents):
-                plainText.append("\n\n\(rawContents)")
-            case .customElement(let element):
-                plainText.append("\n\n\(element.content.plainTextContents)")
-            }
-        }
-    }
-}
-
-
 extension Sequence where Element == MarkdownDocument.CustomElement.Content {
     var plainTextContents: String {
         reduce(into: "") { result, element in
@@ -262,3 +277,4 @@ extension Sequence where Element == MarkdownDocument.CustomElement.Content {
         .trimmingWhitespace()
     }
 }
+#endif
