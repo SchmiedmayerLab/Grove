@@ -34,7 +34,7 @@ let fhirModelsCondition: TargetDependencyCondition? = isLoweredDeploymentTargetE
     ? .when(platforms: [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .linux])
     : nil
 
-/// The platforms that ship the SwiftUI-based layers. Linux gets the LLM core without them.
+/// The platforms that ship the SwiftUI-based layers. Linux gets the LLM core and the consent document model without them.
 let applePlatformsOnly: TargetDependencyCondition? = .when(
     platforms: [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .watchOS]
 )
@@ -692,10 +692,10 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "Grove"),
             .target(name: "GroveFoundation"),
-            .target(name: "GroveViews"),
-            .target(name: "GrovePersonalInfo"),
-            .product(name: "TPPDF", package: "TPPDF"),
-            .product(name: "MarkdownUI", package: "swift-markdown-ui")
+            .target(name: "GroveViews", condition: applePlatformsOnly),
+            .target(name: "GrovePersonalInfo", condition: applePlatformsOnly),
+            .product(name: "TPPDF", package: "TPPDF", condition: applePlatformsOnly),
+            .product(name: "MarkdownUI", package: "swift-markdown-ui", condition: applePlatformsOnly)
         ],
         exclude: targetExcludes("GroveConsent"),
         resources: [

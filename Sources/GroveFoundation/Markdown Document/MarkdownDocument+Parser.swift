@@ -65,13 +65,19 @@ extension MarkdownDocument {
         typealias ParseError = MarkdownDocument.ParseError
         typealias CustomElement = MarkdownDocument.CustomElement
         
+        /// A fenced code block (opened by at least three backticks or tildes) whose lines are literal Markdown.
+        fileprivate struct Fence {
+            let character: Character
+            let count: Int
+        }
+        
         private let input: String
-        private let customElementNames: Set<String>
+        private let customElements: MarkdownDocument.CustomElementSelection
         private var position: String.Index
         
-        init(input: String, customElementNames: Set<String>) {
+        init(input: String, customElements: MarkdownDocument.CustomElementSelection) {
             self.input = input
-            self.customElementNames = customElementNames
+            self.customElements = customElements
             self.position = input.startIndex
         }
     }
@@ -79,11 +85,13 @@ extension MarkdownDocument {
 
 
 extension MarkdownDocument.Parser {
-    consuming func parse(baseUrl: URL?) throws(ParseError) -> MarkdownDocument { // swiftlint:disable:this function_body_length cyclomatic_complexity
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
+    consuming func parse(baseUrl: URL?, requiresCompleteInput: Bool = false) throws(ParseError) -> MarkdownDocument {
         typealias Block = MarkdownDocument.Block
         let frontmatter = try parseFrontmatter()
         var blocks: [Block] = []
         var currentBlockText = ""
+        var fence: Fence?
         func terminateCurrentBlock(id: String? = nil) {
             blocks.append(.markdown(
                 id: id ?? Self.markdownBlockId(currentBlockText),
@@ -93,13 +101,17 @@ extension MarkdownDocument.Parser {
         }
         do {
             while let currentChar {
+                // Fenced examples are literal Markdown, never interactive controls or headings.
+                if consumeFencedCodeLine(into: &currentBlockText, fence: &fence) {
+                    continue
+                }
                 if isAtBeginningOfLine, Self.markdownBlockId(remainingInput) != nil {
                     // terminate current block, if we're at the start of a new one whith would get an id of its own.
                     terminateCurrentBlock()
                 }
                 if currentChar == "<", isAtBeginningOfLine,
                    let element = try parseCustomElement() {
-                    if customElementNames.contains(element.name) {
+                    if customElements.contains(element.name) {
                         terminateCurrentBlock()
                         blocks.append(.customElement(element))
                     } else {
@@ -116,7 +128,7 @@ extension MarkdownDocument.Parser {
         } catch {
             switch error.kind {
             case .eof:
-                break
+                if requiresCompleteInput { throw error }
             default:
                 throw error
             }
@@ -289,7 +301,7 @@ extension MarkdownDocument.Parser {
         } else {
             while true {
                 if let element = try parseCustomElement() {
-                    if customElementNames.contains(element.name) {
+                    if customElements.contains(element.name) {
                         parsedElement.content.append(.element(element))
                     } else {
                         parsedElement.content.append(.text(element.raw))
@@ -329,11 +341,43 @@ extension MarkdownDocument.Parser {
     /// Parses the `{X}` part in `<element>{X}</element>`.
     private mutating func parseElementTextContents() -> String {
         var text = ""
-        while let currentChar, currentChar != "<" {
+        var fence: Fence?
+        while let currentChar {
+            if consumeFencedCodeLine(into: &text, fence: &fence) {
+                continue
+            }
+            guard currentChar != "<" else { break }
             text.append(currentChar)
             consume()
         }
         return text.trimmingWhitespace()
+    }
+    
+    
+    /// Consumes the current line into `text` if it opens, belongs to, or closes a fenced code block, and updates `fence` accordingly.
+    ///
+    /// - returns: `true` iff the line was consumed.
+    private mutating func consumeFencedCodeLine(into text: inout String, fence: inout Fence?) -> Bool {
+        guard isAtBeginningOfLine, let line = currentLine else {
+            return false
+        }
+        let trimmed = line.drop(while: { $0 == " " })
+        let markerCount = trimmed.first.map { marker in trimmed.prefix(while: { $0 == marker }).count } ?? 0
+        if line.count - trimmed.count <= 3, let marker = trimmed.first, marker == "`" || marker == "~", markerCount >= 3 {
+            if let open = fence {
+                if open.character == marker, markerCount >= open.count, trimmed.dropFirst(markerCount).allSatisfy(\.isWhitespace) {
+                    fence = nil
+                }
+            } else {
+                fence = Fence(character: marker, count: markerCount)
+            }
+        } else if fence == nil {
+            return false
+        }
+        text.append(contentsOf: line)
+        text.append("\n")
+        consumeLine()
+        return true
     }
     
     
