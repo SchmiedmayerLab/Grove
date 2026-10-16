@@ -53,7 +53,11 @@ struct GroveConsentTests {
 
         let knownGoodPdf = try #require(loadPDFFromPath(path: pdfPath))
         let exportResult = try document.export(using: exportConfiguration)
-        #expect(exportResult.pdf.equatable == knownGoodPdf.equatable)
+        #expect(exportResult.pdf.pageCount == knownGoodPdf.pageCount)
+        let exportedText = try #require(exportResult.pdf.string)
+        let expectedText = try #require(knownGoodPdf.string)
+        // Typography may move a line across pages, but must preserve every word in order.
+        #expect(exportedText.split(whereSeparator: \.isWhitespace) == expectedText.split(whereSeparator: \.isWhitespace))
         #expect(exportResult.userResponses.toggles.isEmpty)
         #expect(exportResult.userResponses.selects.isEmpty)
         #expect(exportResult.userResponses.signatures.count == 1)

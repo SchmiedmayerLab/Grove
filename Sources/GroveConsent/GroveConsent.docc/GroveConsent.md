@@ -111,13 +111,50 @@ ManagedNavigationStack {
 
 ### Consent Documents
 
-Servers can use ``ConsentDocumentFormat/parse(_:additionalElements:)`` to validate the same
-interactive-field structure; GroveConsent builds on Linux, without its SwiftUI views and PDF export
-(see <doc:Validating-Consent-Documents>). This structural check does not
+Consent documents support textual Markdown, including headings, paragraphs, lists,
+block quotes, tables, code, emphasis and links, alongside Grove's interactive fields.
+The exported PDF retains this structure as searchable text. Field prompts and footnotes
+are Markdown too; selection option titles support inline formatting.
+
+The frontmatter `title` is document metadata, not an extracted Markdown H1.
+The enclosing screen decides where to display it. Body headings are preserved,
+use a compact hierarchy below the screen title, and scale with Dynamic Type.
+Even H5 and H6 remain at least body-sized; weight and style distinguish them from
+paragraphs. Heading levels are exposed to accessibility. PDF typography is sized
+for the printed page and does not depend on the device's text-size setting.
+
+To compare the native view and PDF, run the `TestApp` scheme in
+`Tests/GroveConsentTests/UITests/UITests.xcodeproj`. Open **Heading Hierarchy**,
+**Structured Consent**, or **Daily Activity Consent**, then choose **Show PDF**.
+These bundled Markdown fixtures export unsigned examples without submitting consent.
+The app saves the exports in `Documents/ConsentExamples`; use RocketSim to capture
+the native view and PDF preview. Review normal and accessibility text sizes separately.
+
+`ConsentDocument` validates the document before presenting it. Images and arbitrary HTML
+are rejected rather than silently omitted from the PDF. Links must use `https`, `http`,
+`mailto` or `tel`; parsing and exporting never fetch linked resources. Applications that
+need images must first define how immutable assets are packaged and preserved in both
+the presented document and its exported copy. This Markdown check relies on Foundation's
+Markdown parser, which is only available on Apple platforms; on Linux, ``ConsentDocument``
+validates the interactive-field structure only.
+
+Servers can use ``ConsentDocumentFormat/decode(_:additionalElements:)`` to obtain the same
+validated, typed control definitions; GroveConsent builds on Linux, without its SwiftUI views
+and PDF export. Use ``ConsentDocumentFormat/parse(_:additionalElements:)`` when
+only the validated Markdown representation is needed. This structural check does not
 establish rendering support, study approval or whether participant responses are complete.
 Fenced code examples remain literal text, not interactive controls. Duplicate field or
 option identifiers, invalid expected values, unknown attributes and unfinished controls
 are rejected. Frontmatter remains Grove's existing string-valued metadata format.
+
+Platform-specific controls can implement ``ConsentDocumentElement`` and be supplied to
+``ConsentDocumentFormat/decode(_:additionalElements:)``. Registration enables structural validation only;
+GroveConsent's views and PDF exporter still accept only built-in controls. See
+<doc:Validating-Consent-Documents> for the extension contract and a Swift example.
+
+The PDF exporter uses PDFKit, TPPDF and Apple font and drawing APIs. It does not run
+on Linux. Server-side PDF generation on Linux would require a separate rendering
+backend; the format types do not depend on the Apple exporter.
 
 Below is an example of a simple consent document that embeds several custom elements into its Markdown text:
 
