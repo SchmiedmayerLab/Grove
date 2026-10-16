@@ -10,6 +10,9 @@ import Foundation
 
 
 /// How an exporter builds its records' outputs on several child tasks while its caller receives them in input order.
+///
+/// Each element is built in its own autorelease pool where the platform has one, so the Foundation temporaries of one
+/// record are released with it rather than with a pool a batch may not drain until thousands of records later.
 package enum ConcurrentBuild {
     /// The most elements one child task builds: enough to keep a task's own cost small, few enough that faster cores
     /// take on more slices than slower ones.
@@ -29,7 +32,7 @@ package enum ConcurrentBuild {
     ) async -> [Result] {
         let width = min(max(width, 1), elements.count)
         guard width > 1 else {
-            return elements.map(transform)
+            return elements.map { element in draining { transform(element) } }
         }
         let sliceSize = (elements.count + width - 1) / width
         return await withTaskGroup(of: (Int, [Result]).self) { group in
@@ -38,7 +41,7 @@ package enum ConcurrentBuild {
                 let slice = elements[start..<min(start + sliceSize, elements.endIndex)]
                 let index = sliceCount
                 group.addTask {
-                    (index, slice.map(transform))
+                    (index, slice.map { element in draining { transform(element) } })
                 }
                 sliceCount += 1
             }
@@ -66,7 +69,7 @@ package enum ConcurrentBuild {
         guard width > 1, elements.count > 1 else {
             for element in elements {
                 try Task.checkCancellation()
-                try hand(element, build(element))
+                try hand(element, draining { build(element) })
             }
             return
         }
@@ -86,7 +89,7 @@ package enum ConcurrentBuild {
                     let index = started
                     let slice = elements[slices[index]]
                     group.addTask {
-                        (index, slice.map(build))
+                        (index, slice.map { element in draining { build(element) } })
                     }
                     started += 1
                 }
@@ -103,5 +106,14 @@ package enum ConcurrentBuild {
                 }
             }
         }
+    }
+
+    /// `body`, in its own autorelease pool where the platform has one.
+    private static func draining<T>(_ body: () -> T) -> T {
+        #if canImport(ObjectiveC)
+        autoreleasepool(invoking: body)
+        #else
+        body()
+        #endif
     }
 }

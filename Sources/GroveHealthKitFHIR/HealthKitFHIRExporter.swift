@@ -117,11 +117,9 @@ public final class HealthKitFHIRExporter: Sendable {
         let measuring = measurement != nil
         let width = options.maximumConcurrency ?? ConcurrentBuild.defaultWidth
         let planned = await ConcurrentBuild.map(Array(records)[...], width: width) { record in
-            autoreleasepool {
-                let start = measuring ? ContinuousClock.now : nil
-                let plan = Plan(record, exporter: self)
-                return (plan, start.map { ContinuousClock.now - $0 })
-            }
+            let start = measuring ? ContinuousClock.now : nil
+            let plan = Plan(record, exporter: self)
+            return (plan, start.map { ContinuousClock.now - $0 })
         }
         let plans = planned.map(\.0)
         if let measurement {
@@ -137,9 +135,7 @@ public final class HealthKitFHIRExporter: Sendable {
         let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
         measurement?.reserved(since: reserveStart)
         try await ConcurrentBuild.forEach(plans, width: width) { plan in
-            autoreleasepool {
-                self.build(plan, reserved: reserved, measuring: measuring)
-            }
+            self.build(plan, reserved: reserved, measuring: measuring)
         } hand: { plan, delivery in
             try hand(delivery, of: plan, measurement: measurement, receive: receive)
         }

@@ -149,9 +149,7 @@ public final class SensorKitFHIRExporter: Sendable {
         let device = recordingDevice.map(SensorKitConverter.recordingDevice)
         let width = options.maximumConcurrency ?? ConcurrentBuild.defaultWidth
         let plans = await ConcurrentBuild.map(Array(records)[...], width: width) { record in
-            autoreleasepool {
-                Plan(record, content: content, recordingDevice: device, exporter: self)
-            }
+            Plan(record, content: content, recordingDevice: device, exporter: self)
         }
         // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
         // later, and a retry of the call would mint both again.
@@ -159,9 +157,7 @@ public final class SensorKitFHIRExporter: Sendable {
         // Refusals alone need no event, and a call that reserves nothing never touches the ledger.
         let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
         try await ConcurrentBuild.forEach(plans, width: width) { plan in
-            autoreleasepool {
-                self.deliver(plan, reserved: reserved)
-            }
+            self.deliver(plan, reserved: reserved)
         } hand: { plan, outcome in
             try receive(Export(source: plan.source, outcome: outcome))
         }

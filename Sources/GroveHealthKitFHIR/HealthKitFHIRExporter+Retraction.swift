@@ -48,9 +48,7 @@ extension HealthKitFHIRExporter {
             (deletion: deletion, reservation: request.flatMap { reserved[$0] })
         }
         try await ConcurrentBuild.forEach(reservations, width: options.maximumConcurrency ?? ConcurrentBuild.defaultWidth) { job in
-            autoreleasepool {
-                self.outcome(of: job.deletion, reservation: job.reservation)
-            }
+            self.outcome(of: job.deletion, reservation: job.reservation)
         } hand: { job, outcome in
             try receive(Retraction(deletion: job.deletion, outcome: outcome))
         }
