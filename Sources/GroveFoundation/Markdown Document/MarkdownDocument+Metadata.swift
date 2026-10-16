@@ -28,7 +28,7 @@ extension MarkdownDocument {
         
         /// Parses only  the frontmatter of a Markdown `String`.
         public init(parsing markdown: String) throws(ParseError) {
-            var parser = Parser(input: markdown, customElementNames: [])
+            var parser = Parser(input: markdown, customElements: .named([]))
             self.init(try parser.parseFrontmatter())
         }
         

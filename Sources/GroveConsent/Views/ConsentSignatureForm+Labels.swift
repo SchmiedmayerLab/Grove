@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import Foundation
 
 
@@ -38,3 +39,4 @@ extension ConsentSignatureForm {
         }
     }
 }
+#endif
