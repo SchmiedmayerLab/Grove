@@ -150,7 +150,7 @@ are rejected. Frontmatter remains Grove's existing string-valued metadata format
 Platform-specific controls can implement ``ConsentDocumentElement`` and be supplied to
 ``ConsentDocumentFormat/decode(_:additionalElements:)``. Registration enables structural validation only;
 GroveConsent's views and PDF exporter still accept only built-in controls. See
-<doc:Consent-Documents> for the extension contract and a Swift example.
+<doc:Validating-Consent-Documents> for the extension contract and a Swift example.
 
 The PDF exporter uses PDFKit, TPPDF and Apple font and drawing APIs. It does not run
 on Linux. Server-side PDF generation on Linux would require a separate rendering
@@ -193,7 +193,7 @@ Please sign to confirm your participation:
 - ``ConsentDocument/ConsentCompletionState``
 
 ### Consent Document Format
-- <doc:Consent-Documents>
+- <doc:Validating-Consent-Documents>
 - ``ConsentDocumentFormat``
 - ``ConsentDocumentElement``
 
