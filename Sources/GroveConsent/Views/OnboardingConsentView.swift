@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 public import Foundation
 public import GroveViews
 public import SwiftUI
@@ -151,4 +152,5 @@ public struct OnboardingConsentView: View {
         }
     }
 }
+#endif
 #endif
