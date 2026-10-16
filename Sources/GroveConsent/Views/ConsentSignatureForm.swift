@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 private import Foundation
 private import GrovePersonalInfo
 private import GroveViews
@@ -144,4 +145,5 @@ public struct ConsentSignatureForm: View {
         .padding()
     }
 }
+#endif
 #endif

@@ -69,7 +69,7 @@ tests = ["GroveChatTests"]
 uiTests = ["iOS", "visionOS"]
 
 [GroveConsent]
-platforms = ["iOS", "macOS", "visionOS"]
+platforms = ["iOS", "macOS", "visionOS", "Linux"]
 targets = ["GroveConsent"]
 tests = ["GroveConsentTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
