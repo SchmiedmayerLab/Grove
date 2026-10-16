@@ -121,6 +121,24 @@ class BuildSupportTests(unittest.TestCase):
         self.assertEqual(result.stdout, b"out\n")
         self.assertEqual(result.stderr, b"err\n")
 
+    def test_stopping_a_group_that_already_exited_succeeds(self):
+        # Cancellation can arrive after a stage exited but before it was reaped; macOS then refuses
+        # to signal its group with EPERM, which must not end the script as a failure.
+        sys.path.insert(0, str(self.root))
+        self.addCleanup(sys.path.remove, str(self.root))
+        import build_support
+        process = subprocess.Popen([sys.executable, "-c", "pass"], start_new_session=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            state = subprocess.run(["ps", "-o", "stat=", "-p", str(process.pid)],
+                                   capture_output=True, text=True).stdout.strip()
+            if state.startswith("Z"):
+                break
+            time.sleep(0.01)
+        self.assertTrue(state.startswith("Z"), f"Stage did not become a zombie: {state!r}")
+        build_support._stop_processes([process])
+        self.assertEqual(process.returncode, 0)
+
     def test_cancellation_stops_command_and_its_descendant(self):
         # Exercise both the simple command and build pipeline; the child acknowledges SIGTERM
         # through a file so this assertion does not confuse a short-lived zombie with a live tool.

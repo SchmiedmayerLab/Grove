@@ -41,6 +41,9 @@ public struct SensorKitTabularRecording: Sendable {
     public let effectivePeriod: DateInterval
     public let retryEvidence: Data
     private let structuredProjection: StructuredProjection
+    /// What an accelerometer recording's rows state, read in the parse that checked its bytes; `nil` for any other
+    /// recording, and for rows that state no summary.
+    private let accelerometerSummary: SensorKitAccelerometerRecord.Summary?
 
     /// Encodes a homogeneous fetched batch through its Grove-owned row mapping.
     public init<Sample: SensorKitTabularSample>(
@@ -97,14 +100,23 @@ public struct SensorKitTabularRecording: Sendable {
         location: SensorKitRecordingLocation,
         admission: SensorRawPayloadAdmission
     ) throws -> SensorKitRecord {
+        // `init` validated exactly these bytes as `format`'s, so they are not parsed a second time here.
         let nativeRecording = try SensorKitNativeRecording(
             title: title,
             format: format,
             payload: location.payload(bytes: data),
             admission: admission
-        )
+        ) { _ in }
         switch structuredProjection {
         case .accelerometer:
+            if let accelerometerSummary {
+                return .accelerometer(SensorKitAccelerometerRecord(
+                    sourceRecordID: sourceRecordID,
+                    nativeRecording: nativeRecording,
+                    summary: accelerometerSummary
+                ))
+            }
+            // The rows state no summary; reading them again reports why.
             return .accelerometer(try SensorKitAccelerometerRecord(
                 sourceRecordID: sourceRecordID,
                 nativeRecording: nativeRecording
@@ -137,7 +149,19 @@ public struct SensorKitTabularRecording: Sendable {
               let end = intervals.lazy.map(\.upperBound).max() else {
             throw SensorKitRecordError.emptySamples
         }
-        try format.validatePayload(data)
+        if case .accelerometer = structuredProjection {
+            // One parse checks the bytes as `format`'s and reads the summary the record states.
+            let reader: RecordingCSVReader
+            do {
+                reader = try RecordingCSVReader(data, format: format)
+            } catch {
+                throw RegisteredRecordingPayloadError.invalidTabularPayload
+            }
+            self.accelerometerSummary = try? SensorKitAccelerometerRecord.Summary(reader)
+        } else {
+            try format.validatePayload(data)
+            self.accelerometerSummary = nil
+        }
         self.sourceToken = sourceToken
         self.format = format
         self.data = data

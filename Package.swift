@@ -370,7 +370,6 @@ var targets: [Target] = [
         name: "GroveHealthKitFHIR",
         dependencies: [
             .target(name: "GroveFHIRContract"),
-            .target(name: "GroveHealthKit"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions")
         ],
@@ -382,9 +381,13 @@ var targets: [Target] = [
         name: "GroveHealthKitFHIRTests",
         dependencies: [
             .target(name: "GroveFHIRContract"),
+            .target(name: "GroveHealthKit"),
             .target(name: "GroveHealthKitFHIR")
         ],
         exclude: testTargetExcludes("GroveHealthKitFHIRTests", additional: ["UITests"]),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -803,7 +806,8 @@ var targets: [Target] = [
         name: "GroveFHIRContract",
         dependencies: [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux]))
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
+            .target(name: "ThreadLocal")
         ],
         exclude: targetExcludes("GroveFHIRContract"),
         swiftSettings: defaultSwiftSettings,
@@ -838,6 +842,7 @@ var targets: [Target] = [
         name: "GroveFHIRTests",
         dependencies: [
             .target(name: "GroveFHIR"),
+            .target(name: "GroveFHIRContract"),
             "GroveHealthKitFHIR"
         ],
         exclude: testTargetExcludes("GroveFHIRTests", additional: ["UITests"]),
@@ -1433,7 +1438,6 @@ var targets: [Target] = [
             .target(name: "GroveQuestionnaireExtraction"),
             .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
-            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser"),
@@ -1487,6 +1491,7 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "GroveQuestionnaireExtraction"),
             .target(name: "GroveFHIRContract"),
+            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         resources: [
@@ -1576,6 +1581,9 @@ var targets: [Target] = [
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
         ],
         exclude: testTargetExcludes("GroveSensorKitFHIRTests"),
+        resources: [
+            .process("Resources")
+        ],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),

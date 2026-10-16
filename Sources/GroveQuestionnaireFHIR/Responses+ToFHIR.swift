@@ -6,11 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(CryptoKit)
-private import CryptoKit
-#else
-private import Crypto
-#endif
 private import FHIRModelsExtensions
 public import Foundation
 public import GroveFHIRContract
@@ -459,14 +454,13 @@ extension QuestionnaireResponseItemAnswer {
         // Mapped loading keeps large attachments from being copied wholesale into memory
         // before encoding.
         let data = try Data(contentsOf: attachment.url, options: .mappedIfSafe)
-        let sha1 = Insecure.SHA1.hash(data: data)
         self.init(value: .attachment(.init(
             // att-1: inline data requires a contentType; fall back to the generic binary
             // type when the platform did not record one for the file.
             contentType: (attachment.contentType ?? .octetStream).rawValue.asFHIRStringPrimitive(),
 //                        creation: <#T##FHIRPrimitive<DateTime>?#>, // not easy bc eg an imported photo/file will likely not be brand new...
             data: FHIRPrimitive(Base64Binary(data.base64EncodedString())),
-            hash: FHIRPrimitive(Base64Binary(Data(sha1).base64EncodedString())),
+            hash: FHIRPrimitive(Base64Binary(data.attachmentSHA1.base64EncodedString())),
             id: attachment.id.uuidString.asFHIRStringPrimitive(),
             size: data.count.asFHIRUnsignedIntegerPrimitive(),
             title: attachment.filename.asFHIRStringPrimitive(),

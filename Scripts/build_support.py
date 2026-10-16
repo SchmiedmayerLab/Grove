@@ -29,18 +29,20 @@ def _interrupt(signum, _frame):
 def _stop_processes(processes):
     # Each pipeline stage has its own process group, including any tools it launches. Signal the
     # group even when its leader exited: compilers may still be running or holding a pipe open.
+    # A group whose members have all exited but are not yet reaped has nothing left to stop, and
+    # macOS answers it with EPERM rather than ESRCH.
     handlers = {signum: signal.signal(signum, signal.SIG_IGN)
                 for signum in (signal.SIGINT, signal.SIGTERM)}
     try:
         for process in processes:
-            with contextlib.suppress(ProcessLookupError):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.killpg(process.pid, signal.SIGTERM)
         deadline = time.monotonic() + 5
         for process in processes:
             with contextlib.suppress(subprocess.TimeoutExpired):
                 process.wait(timeout=max(0, deadline - time.monotonic()))
         for process in processes:
-            with contextlib.suppress(ProcessLookupError):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.killpg(process.pid, signal.SIGKILL)
             process.wait()
     finally:

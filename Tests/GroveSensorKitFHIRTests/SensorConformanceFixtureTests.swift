@@ -40,24 +40,8 @@ struct SensorConformanceFixtureTests {
     }
 
     @Test
-    func writeSharedSensorFixtures() throws {
+    func writeSharedSensorFixtures() async throws {
         let timestamp = Date(timeIntervalSince1970: 1_787_009_400)
-        let converter = SensorKitConverter()
-        func context(_ sequence: UInt64) throws -> SensorKitConversionContext {
-            try SensorKitConversionContext(
-                subject: SensorFHIRIdentityTestSupport.subject,
-                converter: ApplicationDevice.test(name: "Sensor Conformance Fixture", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.5.0"),
-                eventIdentifier: SensorFHIRIdentityTestSupport.event(sequence: sequence),
-                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
-                recordingDevice: RecordingDevice.test(
-                    stableUnitToken: "sensor-fixture-device",
-                    name: "Sensor Fixture Device"
-                ),
-                converterWasGateway: true,
-                sourceTimeZone: #require(TimeZone(identifier: "America/Los_Angeles")),
-                conversionInstant: timestamp.addingTimeInterval(20)
-            )
-        }
         let rotation = SensorKitRotationRateRecord(
             sourceRecordID: try Self.sourceID("754cdecc-6733-4610-935b-f19425cff68e"),
             samples: [
@@ -176,20 +160,40 @@ struct SensorConformanceFixtureTests {
                 admission: .callerAuthorizedOpaquePayload
             )
         )
-        let fixtures = [
-            "rotation-rate": try converter.convert(.rotationRate(rotation), context: context(1)).bundle,
-            "ecg-hybrid": try converter.convert(.electrocardiogram(ecg), context: context(2)).bundle,
-            "on-wrist": try converter.convert(.onWrist(onWrist), context: context(3)).bundle,
-            "device-usage-hybrid": try converter.convert(.deviceUsage(deviceUsage), context: context(4)).bundle,
-            "visit": try converter.convert(.visit(visit), context: context(5)).bundle,
-            "raw-recording": try converter.convert(.raw(raw), context: context(6)).bundle,
-            "messages-usage-hybrid": try converter.convert(.messagesUsage(messagesUsage), context: context(7)).bundle,
-            "phone-usage": try converter.convert(.phoneUsage(phoneUsage), context: context(8)).bundle,
-            "keyboard-metrics-hybrid": try converter.convert(.keyboardMetrics(keyboardMetrics), context: context(9)).bundle,
-            "sleep-session": try converter.convert(.sleepSession(sleepSession), context: context(10)).bundle,
-            "accelerometer-summary-hybrid": try converter.convert(.accelerometer(accelerometer), context: context(11)).bundle,
-            "ppg-summary-hybrid": try converter.convert(.ppg(ppg), context: context(12)).bundle
+        let records: [(name: String, record: SensorKitRecord)] = [
+            ("rotation-rate", .rotationRate(rotation)),
+            ("ecg-hybrid", .electrocardiogram(ecg)),
+            ("on-wrist", .onWrist(onWrist)),
+            ("device-usage-hybrid", .deviceUsage(deviceUsage)),
+            ("visit", .visit(visit)),
+            ("raw-recording", .raw(raw)),
+            ("messages-usage-hybrid", .messagesUsage(messagesUsage)),
+            ("phone-usage", .phoneUsage(phoneUsage)),
+            ("keyboard-metrics-hybrid", .keyboardMetrics(keyboardMetrics)),
+            ("sleep-session", .sleepSession(sleepSession)),
+            ("accelerometer-summary-hybrid", .accelerometer(accelerometer)),
+            ("ppg-summary-hybrid", .ppg(ppg))
         ]
+        // Each record is its own event, numbered 1 through 12 in this order through a fresh ledger.
+        var fixtures: [String: ModelsR4.Bundle] = [:]
+        for (index, entry) in records.enumerated() {
+            let producer = try SensorKitExporterFixtures.producer(
+                sequence: UInt64(index + 1),
+                application: ApplicationDevice.test(
+                    name: "Sensor Conformance Fixture",
+                    bundleIdentifier: "org.grovealliance.sensor-conformance",
+                    version: "0.5.0"
+                )
+            )
+            let exports = try await SensorKitExporterFixtures.collect(
+                SensorKitExporterFixtures.exporter(producer),
+                [entry.record],
+                timeZone: SensorKitExporterFixtures.timeZone,
+                recordingDevice: RecordingDevice.test(stableUnitToken: "sensor-fixture-device", name: "Sensor Fixture Device"),
+                at: timestamp.addingTimeInterval(20)
+            ).exports
+            fixtures[entry.name] = try #require(exports.first?.graph).bundle
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
 

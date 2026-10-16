@@ -111,6 +111,28 @@ public struct SensorKitNativeRecording: Sendable {
         payload: Payload,
         admission: SensorRawPayloadAdmission
     ) throws {
+        try self.init(
+            title: title,
+            format: format,
+            contentType: contentType,
+            payload: payload,
+            admission: admission
+        ) { bytes throws(RegisteredRecordingPayloadError) in
+            try format.validatePayload(bytes)
+        }
+    }
+
+    /// ``init(title:format:contentType:payload:admission:)`` with `validatePayload` in place of the format's own
+    /// payload check, for bytes this module produced: one it already checked needs no second parse, and a PPG
+    /// recording's strict decode is kept for its summary.
+    init(
+        title: String,
+        format: RegisteredRecordingFormat,
+        contentType: String? = nil,
+        payload: Payload,
+        admission: SensorRawPayloadAdmission,
+        validatePayload: (Data) throws(RegisteredRecordingPayloadError) -> Void
+    ) throws {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SensorKitRecordError.invalidAttachmentTitle
         }
@@ -122,11 +144,11 @@ public struct SensorKitNativeRecording: Sendable {
         guard !bytes.isEmpty else {
             throw SensorKitRecordError.emptyPayload
         }
-        if case .sidecar(let path, _) = payload, !SensorRecordingDocument.isRelativeSidecarPath(path) {
+        if case .sidecar(let path, _) = payload, !Self.isRelativeSidecarPath(path) {
             throw SensorKitRecordError.invalidSidecarPath(path)
         }
         do {
-            try format.validatePayload(bytes)
+            try validatePayload(bytes)
         } catch {
             throw SensorKitRecordError.invalidRegisteredPayload(format: format, reason: error)
         }
@@ -144,6 +166,25 @@ public struct SensorKitNativeRecording: Sendable {
         switch payload {
         case .inline(let data), .sidecar(_, let data): data
         }
+    }
+
+    /// Whether `path` is a relative reference with no empty, `.` or `..` segment, query or fragment, which a deployment
+    /// resolves against its own storage root.
+    private static func isRelativeSidecarPath(_ path: String) -> Bool {
+        guard !path.isEmpty,
+              !path.hasPrefix("/"),
+              !path.split(separator: "/", omittingEmptySubsequences: false).contains(where: {
+                  $0.isEmpty || $0 == "." || $0 == ".."
+              }),
+              let components = URLComponents(string: path),
+              components.scheme == nil,
+              components.host == nil,
+              components.query == nil,
+              components.fragment == nil,
+              components.percentEncodedPath == path else {
+            return false
+        }
+        return true
     }
 }
 

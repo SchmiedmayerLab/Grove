@@ -19,16 +19,15 @@ import Testing
 
 /// The three HealthKit sources the guide admits as recordings rather than results.
 ///
-/// `HKHeartbeatSeriesSample` and `HKWorkoutRoute` have no public synthetic initializer, so the
-/// payload and the graph envelope are exercised separately: the payload from the already-fetched
-/// samples the caller supplies, the envelope from a sample that can be built here.
+/// `HKHeartbeatSeriesSample` and `HKWorkoutRoute` have no public synthetic initializer, so the stored-sample
+/// fixtures build the series and the route each record carries beside the beats or fixes the caller supplies.
 @Suite
 struct HealthKitRecordingDocumentTests {
     private static let seriesStart = Date(timeIntervalSince1970: 1_755_624_000)
     private static let heartbeats = [
-        HealthKitHeartbeat(timeSinceSeriesStart: 0, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
-        HealthKitHeartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0.84, precededByGap: false),
+        HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 1.71, precededByGap: true)
     ]
 
     private static let locations = [
@@ -78,42 +77,55 @@ struct HealthKitRecordingDocumentTests {
         </ClinicalDocument>
         """
 
-    private let converter = HealthKitConverter()
-
-    private func context(
-        routeDisclosurePolicy: RouteDisclosurePolicy = .omit,
-        studies: [StudyEnrollment] = []
-    ) -> HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: Date(timeIntervalSince1970: 1_755_624_060),
-            routeDisclosurePolicy: routeDisclosurePolicy,
-            studies: studies
+    /// The facts of a stored series or route sample: when it starts and how long it lasts.
+    private static func facts(duration: TimeInterval) -> StoredSampleFixtures.SampleFacts {
+        StoredSampleFixtures.SampleFacts(
+            uuid: GoldenFixtures.uuid(0xF1),
+            start: seriesStart,
+            end: seriesStart.addingTimeInterval(duration),
+            device: nil,
+            metadata: nil,
+            writer: .unattributed
         )
     }
 
-    /// A sample that supplies only the graph envelope's UUID, device, and source-revision evidence.
-    private func envelopeSample() -> HKSample {
-        HKQuantitySample(
-            type: HKQuantityType(.heartRate),
-            quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 60),
-            start: Self.seriesStart,
-            end: Self.seriesStart.addingTimeInterval(600)
+    /// The heartbeat series of the guide's example, with its beats.
+    private static func heartbeatSeries() throws -> HealthKitFHIRExporter.Record {
+        let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts(duration: 2))
+        return .heartbeatSeries(series, beats: heartbeats)
+    }
+
+    /// A workout route with `locations`.
+    private static func workoutRoute(_ locations: [CLLocation]) throws -> HealthKitFHIRExporter.Record {
+        let route = try StoredSampleFixtures.seriesSample(HKWorkoutRoute.self, sampleType: HKSeriesType.workoutRoute(), facts: facts(duration: 1))
+        return .workoutRoute(route, locations: locations)
+    }
+
+    /// The payload the heartbeat-series plan writes for `heartbeats` from the guide's series start.
+    private static func beatIntervals(_ heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> Data {
+        try HealthKitContentPlan[.heartbeatSeries].recordingDocument().beatIntervals(seriesStart: seriesStart, heartbeats: heartbeats)
+    }
+
+    private func inputs(
+        route: HealthKitFHIRExporter.Disclosure = .omit,
+        studies: [StudyEnrollment] = []
+    ) -> ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = Date(timeIntervalSince1970: 1_755_624_060)
+        inputs.options.route = route
+        inputs.studies = studies
+        return inputs
     }
 
     @Test("A beat series is written in the registry's published bytes")
     func beatIntervalPayloadMatchesThePublishedExample() throws {
-        let payload = try HealthKitConverter.beatIntervalPayload(
-            seriesStart: Self.seriesStart,
-            heartbeats: Self.heartbeats
-        )
+        let payload = try Self.beatIntervals(Self.heartbeats)
 
         #expect(String(decoding: payload, as: UTF8.self) == """
             timestamp,precededByGap
@@ -130,41 +142,26 @@ struct HealthKitRecordingDocumentTests {
 
     @Test("A series with no beats fails closed rather than carrying a header alone")
     func emptyBeatSeriesFailsClosed() {
-        #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
-            try HealthKitConverter.beatIntervalPayload(
-                seriesStart: Self.seriesStart,
-                heartbeats: []
-            )
+        #expect(throws: HealthKitConversionError.ValueFailure.emptyRecordingSeries) {
+            try Self.beatIntervals([])
         }
     }
 
     @Test("A beat series is carried as a recording document, not reduced to a value")
-    func beatSeriesGraphCarriesThePublishedContract() throws {
-        let payload = try HealthKitConverter.beatIntervalPayload(
-            seriesStart: Self.seriesStart,
-            heartbeats: Self.heartbeats
-        )
-        let conversion = try HealthKitConverter.assembleDocumentGraph(
-            for: envelopeSample(),
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "native-recording",
-                format: .beatIntervalSeries,
-                title: "Heartbeat series beat intervals",
-                payload: payload
-            ),
-            context: context()
-        )
+    func beatSeriesGraphCarriesThePublishedContract() async throws {
+        let payload = try Self.beatIntervals(Self.heartbeats)
+        let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
         let document = conversion.document
 
         #expect(document.meta?.profile == [
             Profile.groveSensorRecordingDocument,
-            HealthKitRecordingDocumentContract.profile
+            Profile.healthkitRecordingDocument
         ])
         #expect(document.status.value == .current)
         #expect(document.subject == .testPatient)
         let identifiers = try #require(document.identifier).map(RoledIdentifier.init)
         #expect(identifiers.map(\.role) == [.sourceRecord, .sourceOutput, .sourceArtifact])
-        #expect(document.identifier?[1].value?.value?.string == conversion.graphIdentifiers.sourceOutput.value)
+        #expect(document.identifier?[1].value?.value?.string == conversion.identifiers.sourceOutput.value)
         #expect(document.content.count == 1)
 
         let content = try #require(document.content.first)
@@ -180,21 +177,8 @@ struct HealthKitRecordingDocumentTests {
     }
 
     @Test("The document states its HealthKit source type and its conversion event")
-    func documentGraphStatesItsSourceAndProvenance() throws {
-        let sample = envelopeSample()
-        let conversion = try HealthKitConverter.assembleDocumentGraph(
-            for: sample,
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "native-recording",
-                format: .beatIntervalSeries,
-                title: "Heartbeat series beat intervals",
-                payload: try HealthKitConverter.beatIntervalPayload(
-                    seriesStart: Self.seriesStart,
-                    heartbeats: Self.heartbeats
-                )
-            ),
-            context: context()
-        )
+    func documentGraphStatesItsSourceAndProvenance() async throws {
+        let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
 
         let coding = try #require(conversion.document.type?.coding?.first)
         #expect(coding.system?.value?.url.absoluteString
@@ -208,32 +192,27 @@ struct HealthKitRecordingDocumentTests {
             Issue.record("HealthKit source type must use the lineage valueCode extension")
             return
         }
-        #expect(sourceType.value?.string == sample.sampleType.identifier)
+        #expect(sourceType.value?.string == HKDataTypeIdentifierHeartbeatSeries)
 
         #expect(conversion.provenance.meta?.profile == [
             HealthKitContract.conversionProvenanceProfile
         ])
-        let documentURL = try conversion.graphIdentifiers.sourceOutput.fullURLString
+        let documentURL = try conversion.identifiers.sourceOutput.fullURLString
         #expect(conversion.provenance.target.first?.reference?.value?.string == documentURL)
         #expect(conversion.bundle.entry?.first?.fullUrl?.value?.url.absoluteString == documentURL)
         #expect(conversion.document.author?.last?.reference?.value?.string
-            == (try conversion.graphIdentifiers.converterApplicationSnapshot.fullURLString))
+            == (try conversion.identifiers.converterApplicationSnapshot.fullURLString))
     }
 
     @Test("A route is omitted under the default disclosure policy")
-    func routeIsOmittedByDefault() throws {
-        #expect(try HealthKitConverter.locationTrackPayload(
-            Self.locations,
-            context: context()
-        ) == nil)
+    func routeIsOmittedByDefault() async throws {
+        await #expect(try ExporterFixtures.exports(try Self.workoutRoute(Self.locations), inputs()).isEmpty)
     }
 
     @Test("An authorized route is written in the registry's column schema")
-    func authorizedRouteIsCarried() throws {
-        let payload = try #require(try HealthKitConverter.locationTrackPayload(
-            Self.locations,
-            context: context(routeDisclosurePolicy: .authorized)
-        ))
+    func authorizedRouteIsCarried() async throws {
+        let conversion = try await ExporterFixtures.export(try Self.workoutRoute(Self.locations), inputs(route: .authorized))
+        let payload = try #require(conversion.document.content.first?.attachment.data?.value?.data())
 
         // The second fix reports no altitude, speed, or course, and each unavailable reading is an
         // empty field rather than CoreLocation's negative sentinel.
@@ -246,18 +225,37 @@ struct HealthKitRecordingDocumentTests {
     }
 
     @Test("An authorized route with no fixes fails closed")
-    func emptyAuthorizedRouteFailsClosed() {
-        #expect(throws: HealthKitValueFailure.emptyRecordingSeries) {
-            try HealthKitConverter.locationTrackPayload(
-                [],
-                context: context(routeDisclosurePolicy: .authorized)
-            )
+    func emptyAuthorizedRouteFailsClosed() async {
+        await #expect(throws: HealthKitConversionError.invalidValue(.workoutRoute, .emptyRecordingSeries)) {
+            try await ExporterFixtures.export(try Self.workoutRoute([]), inputs(route: .authorized))
         }
+    }
+
+    /// CoreLocation marks a fix whose coordinate is invalid with a negative horizontal accuracy, wherever the fix falls
+    /// and whatever its altitude reports. The registry's row states a position and its radius of uncertainty, which
+    /// cannot be empty, for every fix, so the route cannot be carried; no registered input rule names that reason, so
+    /// it is reported unclassified. An omitted route is never read.
+    @Test("An authorized route with an invalid coordinate fails closed")
+    func invalidCoordinateFailsClosed() async throws {
+        let invalid = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 37.4275, longitude: -122.1697),
+            altitude: 30.5,
+            horizontalAccuracy: -1,
+            verticalAccuracy: 3,
+            timestamp: Self.seriesStart
+        )
+        let record = try Self.workoutRoute([invalid, Self.locations[1]])
+        let refusal = try await #require(throws: HealthKitConversionError.self) {
+            try await ExporterFixtures.export(record, inputs(route: .authorized))
+        }
+        #expect(refusal == HealthKitConversionError(conversionFailure: WorkoutRouteFailure.invalidCoordinate, source: .workoutRoute))
+        #expect(refusal.diagnostic == ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: "Bundle"))
+        await #expect(try ExporterFixtures.exports(record, inputs()).isEmpty)
     }
 
     #if !os(watchOS)
     @Test("A CDA document is carried byte for byte under its own media type")
-    func clinicalDocumentIsBytePreserved() throws {
+    func clinicalDocumentIsBytePreserved() async throws {
         let bytes = Data(Self.clinicalDocumentXML.utf8)
         let sample = try HKCDADocumentSample(
             data: bytes,
@@ -266,7 +264,7 @@ struct HealthKitRecordingDocumentTests {
             metadata: nil
         )
 
-        let conversion = try converter.convert(sample, context: context())
+        let conversion = try await ExporterFixtures.export(sample, inputs())
         let content = try #require(conversion.document.content.first)
 
         #expect(content.format?.code?.value?.string == "clinical-document")
@@ -290,24 +288,18 @@ struct HealthKitRecordingDocumentTests {
 
 extension HealthKitRecordingDocumentTests {
     @Test("Study relevance preserves recording bytes and identities", arguments: [0, 1, 2])
-    func studyRelevancePreservesRecording(studyCount: Int) throws {
-        let evidence = HealthKitRecordingEvidence(
-            outputRole: "native-recording",
-            format: .beatIntervalSeries,
-            title: "Heartbeat series beat intervals",
-            payload: try HealthKitConverter.beatIntervalPayload(seriesStart: Self.seriesStart, heartbeats: Self.heartbeats)
-        )
-        let sample = envelopeSample()
+    func studyRelevancePreservesRecording(studyCount: Int) async throws {
+        let record = try Self.heartbeatSeries()
         let studies = (0..<studyCount).map { StudyEnrollment.test("study-\($0)") }
-        let baseline = try HealthKitConverter.assembleDocumentGraph(for: sample, evidence: evidence, context: context())
-        let conversion = try HealthKitConverter.assembleDocumentGraph(for: sample, evidence: evidence, context: context(studies: studies))
+        let baseline = try await ExporterFixtures.export(record, inputs())
+        let conversion = try await ExporterFixtures.export(record, inputs(studies: studies))
         #expect(conversion.document.context?.related?.count ?? 0 == studyCount)
         #expect(conversion.document.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
-        #expect(conversion.graphIdentifiers == baseline.graphIdentifiers)
+        #expect(conversion.identifiers == baseline.identifiers)
         #expect(conversion.document.content == baseline.document.content)
         #expect(conversion.provenance == baseline.provenance)
         #expect(conversion.bundle.identifier == baseline.bundle.identifier)
-        _ = try ExchangeGraph(kind: .active, jsonData: JSONEncoder().encode(conversion.bundle))
+        _ = try ExchangeGraph(validating: JSONEncoder().encode(conversion.bundle), kind: .active)
     }
 }
 

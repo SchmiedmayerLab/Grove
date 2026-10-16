@@ -35,15 +35,15 @@ private struct MockPDFDocumentProvider: PDFDocumentProviding {
 
 
 private class MockPDFPage: PDFPage {
-    private let mockAttributedString: NSAttributedString
+    private let mockText: String
 
-    override var attributedString: NSAttributedString? {
-        mockAttributedString
+    override var string: String? {
+        mockText
     }
 
 
     init(text: String) {
-        self.mockAttributedString = NSAttributedString(string: text)
+        self.mockText = text
         super.init()
     }
 }

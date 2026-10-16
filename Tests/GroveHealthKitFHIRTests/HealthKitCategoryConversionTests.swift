@@ -135,20 +135,18 @@ struct HealthKitFHIRCategoryConversionTests {
         )
     ]
 
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
     }
 
     private func categorySample(
@@ -177,9 +175,9 @@ struct HealthKitFHIRCategoryConversionTests {
     }
 
     @Test("Every HKCategoryValueSeverity grade absorbs into the shared severity code", arguments: severityCases)
-    func symptomSeverity(testCase: SeverityCase) throws {
+    func symptomSeverity(testCase: SeverityCase) async throws {
         let sample = categorySample(.headache, value: testCase.value.rawValue)
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let codings = try codings(observation)
         let contract = HealthKitMeasurementCatalog.symptomHeadache
 
@@ -193,14 +191,14 @@ struct HealthKitFHIRCategoryConversionTests {
     }
 
     @Test("Presence-only symptoms bind the two-code presence subset")
-    func symptomPresence() throws {
-        let present = try converter.convert(
+    func symptomPresence() async throws {
+        let present = try await ExporterFixtures.export(
             categorySample(.moodChanges, value: HKCategoryValuePresence.present.rawValue),
-            context: context
+            inputs
         ).observation
-        let notPresent = try converter.convert(
+        let notPresent = try await ExporterFixtures.export(
             categorySample(.sleepChanges, value: HKCategoryValuePresence.notPresent.rawValue),
-            context: context
+            inputs
         ).observation
 
         #expect(try codings(present)[0].code?.value?.string == "present")
@@ -212,13 +210,13 @@ struct HealthKitFHIRCategoryConversionTests {
     }
 
     @Test("Every absorbed enumeration keeps the Grove code primary and the source case secondary", arguments: absorptionCases)
-    func categoryValueAbsorption(testCase: AbsorptionCase) throws {
+    func categoryValueAbsorption(testCase: AbsorptionCase) async throws {
         let sample = categorySample(
             testCase.identifier,
             value: testCase.value,
             metadata: testCase.requiredMetadata
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let codings = try codings(observation)
         let expectedDisplay = testCase.measurement.resultCodes
             .first { $0.code == testCase.sharedCode }?
@@ -237,13 +235,13 @@ struct HealthKitFHIRCategoryConversionTests {
         "Menstrual flow carries HealthKit's mandatory cycle-start metadata as a coded component",
         arguments: [(true, "cycle-start", "Cycle start"), (false, "not-cycle-start", "Not cycle start")]
     )
-    func menstrualCycleStart(cycleStart: Bool, code: String, display: String) throws {
+    func menstrualCycleStart(cycleStart: Bool, code: String, display: String) async throws {
         let sample = categorySample(
             .menstrualFlow,
             value: HKCategoryValueVaginalBleeding.light.rawValue,
             metadata: [HKMetadataKeyMenstrualCycleStart: cycleStart]
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let component = try #require(observation.component?.first)
         let componentValue: CodeableConcept = try #require({
             guard case .codeableConcept(let concept) = component.value else {
@@ -268,38 +266,79 @@ struct HealthKitFHIRCategoryConversionTests {
     }
 
     // HealthKit rejects a menstrual-flow sample without cycle-start metadata at construction, so the
-    // converter's own guard is reachable only below the sample surface.
+    // samples are stored ones, built past that check.
     @Test("Menstrual flow without HealthKit's mandatory cycle-start metadata fails closed")
-    func menstrualCycleStartIsRequired() throws {
-        let contract = HealthKitFHIRObservationContract(shared: MeasurementCatalog.menstruationFlow)
-
-        #expect(throws: HealthKitValueFailure.requiredMetadataMissing(.menstrualCycleStart)) {
-            try HealthKitConverter.menstrualCycleStartComponent(
-                metadata: [:],
-                contract: contract
+    func menstrualCycleStartIsRequired() async throws {
+        let failures: [([String: any Sendable], HealthKitConversionError.ValueFailure)] = [
+            ([:], .requiredMetadataMissing(.menstrualCycleStart)),
+            ([HKMetadataKeyMenstrualCycleStart: "yes"], .unsupportedMetadataValue(.menstrualCycleStart))
+        ]
+        for (metadata, failure) in failures {
+            let facts = StoredSampleFixtures.SampleFacts(
+                uuid: GoldenFixtures.uuid(0xF5),
+                start: timestamp,
+                end: timestamp.addingTimeInterval(1_800),
+                device: nil,
+                metadata: metadata.isEmpty ? nil : metadata,
+                writer: .unattributed
             )
+            let sample = try StoredSampleFixtures.categorySample(
+                HKCategoryType(.menstrualFlow),
+                value: HKCategoryValueVaginalBleeding.light.rawValue,
+                facts: facts
+            )
+            await #expect(throws: HealthKitConversionError.invalidValue(.menstrualFlow, failure)) {
+                try await ExporterFixtures.export(sample, inputs)
+            }
         }
-        #expect(throws: HealthKitValueFailure.unsupportedMetadataValue(.menstrualCycleStart)) {
-            try HealthKitConverter.menstrualCycleStartComponent(
-                metadata: [HKMetadataKeyMenstrualCycleStart: "yes"],
-                contract: contract
-            )
+    }
+
+    /// The guide splits each HealthKit case into a classification value and a notification-occurrence component,
+    /// as its `HealthkitWalkingSteadinessNotificationExample` does.
+    @Test("A walking-steadiness notification states its classification as the value and its occurrence as a component")
+    func walkingSteadinessNotification() async throws {
+        let notifications: KeyValuePairs<HKCategoryValueAppleWalkingSteadinessEvent, [String]> = [
+            .initialLow: ["low", "Low", "initial", "Initial"],
+            .initialVeryLow: ["very-low", "Very low", "initial", "Initial"],
+            .repeatLow: ["low", "Low", "repeat", "Repeat"],
+            .repeatVeryLow: ["very-low", "Very low", "repeat", "Repeat"]
+        ]
+        let contract = HealthKitMeasurementCatalog.walkingSteadinessNotification
+        let occurrence = try #require(contract.components.first { $0.id == "notification-occurrence" })
+        for (value, expected) in notifications {
+            let sample = categorySample(.appleWalkingSteadinessEvent, value: value.rawValue)
+            let observation = try await ExporterFixtures.export(sample, inputs).observation
+            let classification = try codings(observation)
+            #expect(classification.map { $0.system?.value?.url.absoluteString } == [contract.resultCodeSystem])
+            #expect(classification.map { [$0.code?.value?.string, $0.display?.value?.string] } == [[expected[0], expected[1]]])
+
+            let component = try #require(observation.component?.first)
+            #expect(observation.component?.count == 1)
+            let code = component.code.coding?.map { [$0.system?.value?.url.absoluteString, $0.code?.value?.string] }
+            #expect(code == [[occurrence.system, occurrence.code]])
+            #expect(component.code.coding?.first?.display == nil)
+            guard case .codeableConcept(let stated)? = component.value else {
+                Issue.record("\(value) states no coded occurrence")
+                continue
+            }
+            #expect(stated.coding?.map { $0.system?.value?.url.absoluteString } == [occurrence.resultCodeSystem])
+            #expect(stated.coding?.map { [$0.code?.value?.string, $0.display?.value?.string] } == [[expected[2], expected[3]]])
         }
     }
 
     @Test("Interval flags emit their one fixed result code")
-    func fixedResultCodes() throws {
-        let pregnancy = try converter.convert(
+    func fixedResultCodes() async throws {
+        let pregnancy = try await ExporterFixtures.export(
             categorySample(.pregnancy, value: HKCategoryValue.notApplicable.rawValue),
-            context: context
+            inputs
         ).observation
-        let lactation = try converter.convert(
+        let lactation = try await ExporterFixtures.export(
             categorySample(.lactation, value: HKCategoryValue.notApplicable.rawValue),
-            context: context
+            inputs
         ).observation
-        let spotting = try converter.convert(
+        let spotting = try await ExporterFixtures.export(
             categorySample(.intermenstrualBleeding, value: HKCategoryValue.notApplicable.rawValue),
-            context: context
+            inputs
         ).observation
 
         #expect(try codings(pregnancy).map { $0.code?.value?.string } == ["pregnant"])
@@ -315,26 +354,26 @@ struct HealthKitFHIRCategoryConversionTests {
             ([:], "unknown")
         ]
     )
-    func sexualActivityProtection(metadata: [String: Bool], expected: String) throws {
+    func sexualActivityProtection(metadata: [String: Bool], expected: String) async throws {
         let sample = categorySample(
             .sexualActivity,
             value: HKCategoryValue.notApplicable.rawValue,
             metadata: metadata
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
 
         #expect(try codings(observation).first?.code?.value?.string == expected)
     }
 
     @Test("Interval sessions emit the Period duration in the profile's unit")
-    func sessionDurations() throws {
-        let mindful = try converter.convert(
+    func sessionDurations() async throws {
+        let mindful = try await ExporterFixtures.export(
             categorySample(.mindfulSession, value: HKCategoryValue.notApplicable.rawValue, interval: 600),
-            context: context
+            inputs
         ).observation
-        let handwashing = try converter.convert(
+        let handwashing = try await ExporterFixtures.export(
             categorySample(.handwashingEvent, value: HKCategoryValue.notApplicable.rawValue, interval: 22),
-            context: context
+            inputs
         ).observation
 
         func quantity(_ observation: Observation) throws -> Quantity {

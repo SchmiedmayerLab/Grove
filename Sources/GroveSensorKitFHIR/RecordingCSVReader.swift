@@ -103,19 +103,27 @@ public struct RecordingCSVReader: Sendable {
             return !digits.isEmpty && digits.utf8.allSatisfy { (0x30...0x39).contains($0) }
         }
 
+        /// Whether `value` is `-?[0-9]+(\.[0-9]+)?`, read in one pass over its bytes.
         private static func isPlainDecimal(_ value: String) -> Bool {
-            let unsigned = value.first == "-" ? value.dropFirst() : value[...]
-            guard !unsigned.isEmpty, !unsigned.contains("e"), !unsigned.contains("E") else {
-                return false
+            var unsigned = value.utf8[...]
+            if unsigned.first == 0x2D {
+                unsigned = unsigned.dropFirst()
             }
-            let pieces = unsigned.split(separator: ".", omittingEmptySubsequences: false)
-            guard pieces.count <= 2,
-                  pieces.allSatisfy({
-                      !$0.isEmpty && $0.utf8.allSatisfy { (0x30...0x39).contains($0) }
-                  }) else {
-                return false
+            var integerDigits = 0
+            var fractionDigits: Int?
+            for byte in unsigned {
+                switch byte {
+                case 0x30...0x39 where fractionDigits == nil:
+                    integerDigits += 1
+                case 0x30...0x39:
+                    fractionDigits? += 1
+                case 0x2E where fractionDigits == nil:
+                    fractionDigits = 0
+                default:
+                    return false
+                }
             }
-            return true
+            return integerDigits > 0 && fractionDigits != 0
         }
     }
 
@@ -175,15 +183,15 @@ public struct RecordingCSVReader: Sendable {
         guard text.hasSuffix("\n") else {
             throw ReaderError.missingFinalRowTerminator
         }
-        var parsed = try Self.parse(text)
-        guard !parsed.isEmpty else {
+        let parsed = try Self.parse(text)
+        guard let header = parsed.first else {
             throw ReaderError.missingHeader
         }
-        let header = parsed.removeFirst()
         guard header == expected else {
             throw ReaderError.unexpectedHeader(expected: expected, actual: header)
         }
-        for (offset, fields) in parsed.enumerated() where fields.count != expected.count {
+        let records = parsed.dropFirst()
+        for (offset, fields) in records.enumerated() where fields.count != expected.count {
             throw ReaderError.columnCountMismatch(
                 row: offset + 1,
                 expected: expected.count,
@@ -191,14 +199,20 @@ public struct RecordingCSVReader: Sendable {
             )
         }
         self.columns = expected
-        self.rows = parsed.map { Row(fields: $0, columns: expected) }
+        self.rows = records.map { Row(fields: $0, columns: expected) }
     }
 
     /// Splits the payload into rows of fields.
     ///
-    /// Parsed over unicode scalars in one pass rather than by splitting on newlines first: a
-    /// quoted field may contain the row terminator, and splitting would tear such a row in half.
+    /// Parsed in one pass rather than by splitting on newlines first: a quoted field may contain the row terminator,
+    /// and splitting would tear such a row in half. The pass reads UTF-8 bytes: every byte the grammar gives meaning
+    /// (quote, comma, LF, CR) is ASCII, which no byte of a multi-byte scalar equals, and each field becomes a String once.
     private static func parse(_ text: String) throws -> [[String]] {
+        var text = text
+        return try text.withUTF8 { try parse(utf8: $0) }
+    }
+
+    private static func parse(utf8 bytes: UnsafeBufferPointer<UInt8>) throws -> [[String]] {
         enum State {
             case fieldStart
             case unquoted
@@ -208,7 +222,7 @@ public struct RecordingCSVReader: Sendable {
 
         var rows: [[String]] = []
         var fields: [String] = []
-        var field = ""
+        var field: [UInt8] = []
         var state = State.fieldStart
         var row = 0
         var byteOffset = 0
@@ -217,57 +231,57 @@ public struct RecordingCSVReader: Sendable {
             error(row, fields.count, byteOffset)
         }
         func appendField() {
-            fields.append(field)
-            field = ""
+            fields.append(String(decoding: field, as: UTF8.self))
+            field.removeAll(keepingCapacity: true)
             state = .fieldStart
         }
         func appendRow() {
             appendField()
             rows.append(fields)
             fields = []
+            fields.reserveCapacity(rows[rows.count - 1].count)
             row += 1
         }
 
-        for scalar in text.unicodeScalars {
-            defer { byteOffset += scalar.utf8.count }
+        while byteOffset < bytes.count {
+            let byte = bytes[byteOffset]
             switch state {
             case .fieldStart:
-                switch scalar {
-                case "\"": state = .quoted
-                case ",": appendField()
-                case "\n": appendRow()
-                case "\r": throw locationError(ReaderError.unexpectedCarriageReturn)
+                switch byte {
+                case UInt8(ascii: "\""): state = .quoted
+                case UInt8(ascii: ","): appendField()
+                case UInt8(ascii: "\n"): appendRow()
+                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
                 default:
-                    field.unicodeScalars.append(scalar)
+                    field.append(byte)
                     state = .unquoted
                 }
             case .unquoted:
-                switch scalar {
-                case "\"": throw locationError(ReaderError.unexpectedQuote)
-                case ",": appendField()
-                case "\n": appendRow()
-                case "\r": throw locationError(ReaderError.unexpectedCarriageReturn)
-                default: field.unicodeScalars.append(scalar)
+                switch byte {
+                case UInt8(ascii: "\""): throw locationError(ReaderError.unexpectedQuote)
+                case UInt8(ascii: ","): appendField()
+                case UInt8(ascii: "\n"): appendRow()
+                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
+                default: field.append(byte)
                 }
             case .quoted:
-                if scalar == "\r" {
-                    throw locationError(ReaderError.unexpectedCarriageReturn)
-                } else if scalar == "\"" {
-                    state = .afterQuote
-                } else {
-                    field.unicodeScalars.append(scalar)
+                switch byte {
+                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
+                case UInt8(ascii: "\""): state = .afterQuote
+                default: field.append(byte)
                 }
             case .afterQuote:
-                switch scalar {
-                case "\"":
-                    field.unicodeScalars.append("\"")
+                switch byte {
+                case UInt8(ascii: "\""):
+                    field.append(byte)
                     state = .quoted
-                case ",": appendField()
-                case "\n": appendRow()
-                case "\r": throw locationError(ReaderError.unexpectedCarriageReturn)
+                case UInt8(ascii: ","): appendField()
+                case UInt8(ascii: "\n"): appendRow()
+                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
                 default: throw locationError(ReaderError.invalidCharacterAfterClosingQuote)
                 }
             }
+            byteOffset += 1
         }
         if state == .quoted {
             throw ReaderError.unterminatedQuote(row: rows.count)

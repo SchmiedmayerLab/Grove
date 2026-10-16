@@ -24,4 +24,18 @@ public enum Subject: Hashable, Sendable {
             identifier
         }
     }
+
+    /// The Patient a graph bundles for this subject: the deployment's, which always carries the pseudonym, or for a
+    /// logical subject one stating only the pseudonym, as Questionnaire's graphs bundle it.
+    package var bundledPatient: Patient {
+        switch self {
+        case .logical(let identifier):
+            return Patient(identifier: [identifier.fhirIdentifier])
+        case .bundled(let identifier, var patient):
+            if patient.identifier?.contains(identifier.fhirIdentifier) != true {
+                patient.identifier = (patient.identifier ?? []) + [identifier.fhirIdentifier]
+            }
+            return patient
+        }
+    }
 }

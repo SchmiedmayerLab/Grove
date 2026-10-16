@@ -155,10 +155,11 @@ class SensorSwiftContractTests(unittest.TestCase):
                 projected_registry,
             )
             self.assertIn(
-                "recordingFormatCodeSystem = "
+                "    package static let codeSystem = "
                 "\"https://example.org/sensor/CodeSystem/grove-recording-format\"",
                 projected_registry,
             )
+            self.assertNotIn("RecordingFormatContract", projected_registry)
             self.assertNotIn("sourceRecordIdentifierSystem", generated)
             self.assertNotIn("outputIdentifierSystem", generated)
             self.assertNotIn("ecgSessionGuidanceExtension", generated)
