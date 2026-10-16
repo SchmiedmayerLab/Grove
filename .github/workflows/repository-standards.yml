@@ -27,3 +27,5 @@ jobs:
   standards:
     name: Standards
     uses: SchmiedmayerLab/.github/.github/workflows/repository-standards.yml@v0.5
+    with:
+      globalping_hosts: 'www.bluetooth.com,zenodo.org'

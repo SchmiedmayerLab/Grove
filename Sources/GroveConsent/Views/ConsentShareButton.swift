@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 private import GroveFoundation
 public import GroveViews
 private import PencilKit
@@ -63,3 +64,4 @@ public struct ConsentShareButton: View {
         self._viewState = viewState
     }
 }
+#endif
