@@ -28,6 +28,7 @@ import SwiftUI
 /// ## Anchored Querying
 /// - ``fetchAnchored(_:batchSize:)``
 /// - ``resetQueryAnchors(for:)``
+/// - ``discardPendingBatches(for:)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable {
@@ -161,7 +162,23 @@ extension SensorKit {
     /// Resets the query anchors for the specified sensor.
     ///
     /// This will cause subsequent calls to ``fetchAnchored(_:batchSize:)`` to potentially re-fetch already-processed samples.
+    /// A batch that was delivered but never acknowledged is abandoned along with the cursor.
     public func resetQueryAnchors(for sensor: any AnySensor) async throws {
+        try await forEachQueryAnchor(of: sensor) { try $0.reset() }
+    }
+
+    /// Abandons every delivered-but-unacknowledged batch of the specified sensor, keeping the committed cursors.
+    ///
+    /// Use this to recover from ``QueryAnchorAcknowledgementError/pendingBatchMismatch``: SensorKit does not
+    /// promise to replay a pending batch exactly, and the fetcher refuses to continue until the pending batch is
+    /// resolved. After discarding, the next ``fetchAnchored(_:batchSize:)`` fetches the same range again under a
+    /// new reset generation, so its records get fresh acquisition coordinates and never collide with records the
+    /// consumer may already have published from the abandoned batch.
+    public func discardPendingBatches(for sensor: any AnySensor) async throws {
+        try await forEachQueryAnchor(of: sensor) { try $0.discardPendingBatch() }
+    }
+
+    private func forEachQueryAnchor(of sensor: any AnySensor, _ body: (ManagedQueryAnchor) throws -> Void) async throws {
         let devices = try await sensor.fetchDevices()
         try SensorKit.validateUniqueDevicePartitions(devices.map(\.productType))
         let rawKeyPrefix = "\(Self.queryAnchorKeyPrefix).\(sensor.id)."
@@ -175,7 +192,7 @@ extension SensorKit {
         for deviceProductType in partitions.sorted() {
             let key = QueryAnchorKey(sensor: sensor, deviceProductType: deviceProductType)
             let storageKey = queryAnchorKeys.storageKey(for: key)
-            try ManagedQueryAnchor(storageKey: storageKey, in: localStorage).reset()
+            try body(ManagedQueryAnchor(storageKey: storageKey, in: localStorage))
         }
     }
 }

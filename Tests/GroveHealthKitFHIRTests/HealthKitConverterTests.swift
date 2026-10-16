@@ -1005,12 +1005,50 @@ struct HealthKitFHIRConverterTests {
         }
     }
 
+    /// Step counts obey `grove-step-count-period-1`, which requires `end > start`.
     @Test
     func periodMetricsRejectZeroLengthIntervals() {
         let sample = quantitySample(.stepCount, unit: .count(), value: 431, interval: 0)
         #expect(throws: HealthKitConversionError.invalidValue(.stepCount, .effectivePeriodInvalid)) {
             try converter.convert(sample, context: context)
         }
+    }
+
+    @Test("A point-in-time source keeps its instant as an equal-endpoint Period")
+    func periodMetricsAdmitZeroLengthPointInTimeSources() throws {
+        let dietaryEnergy = quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 650, interval: 0)
+        // HealthKit gives every State of Mind a single date.
+        let stateOfMind = HKStateOfMind(
+            date: timestamp,
+            kind: .momentaryEmotion,
+            valence: 0.5,
+            labels: [.happy],
+            associations: [.work]
+        )
+        #expect(stateOfMind.startDate == stateOfMind.endDate)
+        for sample in [dietaryEnergy, stateOfMind] as [HKSample] {
+            let observation = try converter.convert(sample, context: context).observation
+            guard case .period(let period) = observation.effective else {
+                Issue.record("\(sample.sampleType.identifier) must emit an effectivePeriod")
+                continue
+            }
+            #expect(period.start != nil, "\(sample.sampleType.identifier) period start")
+            #expect(period.start == period.end, "\(sample.sampleType.identifier) period endpoints")
+        }
+    }
+
+    @Test
+    func reversedIntervalsAreNeverAnEffectivePeriod() throws {
+        // HealthKit does not build a reversed sample, so the rule is checked directly.
+        let contract = try #require(
+            HealthKitCatalog.binding(forSourceTypeIdentifier: HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue)
+        ).contract
+        #expect(HealthKitConverter.admitsEffectivePeriod(start: timestamp, end: timestamp, contract: contract))
+        #expect(!HealthKitConverter.admitsEffectivePeriod(
+            start: timestamp,
+            end: timestamp.addingTimeInterval(-1),
+            contract: contract
+        ))
     }
 
     @Test("Generated quantity domains reject invalid values and retain inclusive zero")

@@ -37,14 +37,18 @@ extension HealthKitConverter {
         return stateOfMind
     }
 
+    /// Emits a platform-computed session rate unchanged, in the contract's per-hour unit.
+    ///
+    /// HealthKit already stores `appleSleepingBreathingDisturbances` as disturbance events per hour of
+    /// the night (a Discrete (Arithmetic) type; `HKAppleSleepingBreathingDisturbancesClassification`
+    /// classifies this raw quantity directly), so the platform has performed the `session-rate`
+    /// division and dividing by the sample's duration again would shrink the value by the night's length.
     static func sessionRateValue(
         _ sample: HKSample,
         contract: HealthKitFHIRObservationContract
     ) throws -> Quantity {
-        let quantitySample = try quantitySample(sample)
-        let hours = quantitySample.endDate.timeIntervalSince(quantitySample.startDate) / 3_600
-        return try fhirQuantity(
-            value: quantitySample.quantity.doubleValue(for: .count()) / hours,
+        try fhirQuantity(
+            value: try quantitySample(sample).quantity.doubleValue(for: .count()),
             contract: quantityContract(contract)
         )
     }

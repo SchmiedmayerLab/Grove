@@ -30,6 +30,16 @@ extension HealthKitConverter {
         "oxygen-saturation": "Oxygen saturation in Arterial blood",
         "respiratory-rate": "Respiratory rate"
     ]
+    /// Period measurements that must span a non-zero interval: step and wheelchair-push counts
+    /// obey the IG invariant `grove-step-count-period-1` (`end > start`), and the shared
+    /// mobile-semantics corpus states "The Period is non-zero" for basal energy and mindfulness
+    /// sessions. Every other Period measurement admits a point-in-time source as `start == end`.
+    private static let nonZeroPeriodMeasurements: Set<String> = [
+        MeasurementCatalog.stepCount.id,
+        MeasurementCatalog.wheelchairPushCount.id,
+        MeasurementCatalog.basalEnergy.id,
+        MeasurementCatalog.mindfulnessSession.id
+    ]
 
     static func observation(
         for sample: HKSample,
@@ -163,7 +173,7 @@ extension HealthKitConverter {
             // a Period for a separately modeled aggregate such as ECG average heart rate.
             observation.effective = .dateTime(try effectiveDateTime(sample.startDate, sourceTimeZone: sourceTimeZone))
         case .period:
-            guard sample.endDate > sample.startDate else {
+            guard admitsEffectivePeriod(start: sample.startDate, end: sample.endDate, contract: contract) else {
                 throw HealthKitValueFailure.effectivePeriodInvalid
             }
             observation.effective = .period(try effectivePeriod(
@@ -172,6 +182,16 @@ extension HealthKitConverter {
                 sourceTimeZone: sourceTimeZone
             ))
         }
+    }
+
+    /// Whether a HealthKit interval can become the contract's effective Period.
+    ///
+    /// FHIR `per-1` admits `start == end`, so a point-in-time source such as an `HKStateOfMind` or
+    /// a manually logged dietary entry keeps its instant as an equal-endpoint Period. A reversed
+    /// interval never qualifies, nor does a zero-width one for a measurement that requires a
+    /// non-zero Period.
+    static func admitsEffectivePeriod(start: Date, end: Date, contract: HealthKitFHIRObservationContract) -> Bool {
+        end > start || (end == start && !nonZeroPeriodMeasurements.contains(contract.id))
     }
 
     /// An effective instant in the source's own time zone, which also travels as the `timezone`

@@ -179,13 +179,15 @@ extension SensorKit {
         case staleCursor
         /// The consumer requested another batch before acknowledging the outstanding one.
         case outstandingBatch
-        /// Reset was requested while a delivered batch still awaits durable acknowledgement.
+        /// A delivered batch still awaits durable acknowledgement.
         case unresolvedPendingBatch
         /// The persisted cursor has exhausted its reset-generation space.
         case exhaustedResetGeneration
         /// The cursor cannot assign another acquisition-batch sequence in this reset generation.
         case exhaustedBatchSequence
         /// A crash retry did not reproduce the persisted delivery boundary.
+        ///
+        /// Recover with ``SensorKit/discardPendingBatches(for:)``.
         case pendingBatchMismatch
         /// SensorKit delivered source records without the cursor needed to acknowledge them durably.
         case missingDeliveryAnchor

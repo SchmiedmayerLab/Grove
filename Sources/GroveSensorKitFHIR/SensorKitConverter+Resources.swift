@@ -235,12 +235,12 @@ extension SensorKitConverter {
         )])
         observation.effective = .period(Period(
             end: FHIRPrimitive(try exactDateTime(
-                record.startDate,
+                validated.firstSampleDate,
                 offsetSeconds: validated.lastOffsetSeconds,
                 timeZone: context.sourceTimeZone
             )),
             start: FHIRPrimitive(try exactDateTime(
-                record.startDate,
+                validated.firstSampleDate,
                 offsetSeconds: 0,
                 timeZone: context.sourceTimeZone
             ))

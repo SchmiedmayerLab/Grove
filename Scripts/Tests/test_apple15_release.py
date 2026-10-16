@@ -49,7 +49,7 @@ class ReleaseRulesTests(unittest.TestCase):
 
     def test_default_manifest_validation(self):
         dump = {"platforms": [{"platformName": name, "version": version} for name, version in
-                              (("ios", "15.0"), ("macos", "12.0"), ("watchos", "9.0"))],
+                              (("ios", "15.0"), ("macos", "12.0"), ("watchos", "8.0"))],
                 "traits": [{"name": "default", "enabledTraits": []}]}
         release.validate_defaults(dump)
         dump["traits"][0]["enabledTraits"] = ["Textual"]

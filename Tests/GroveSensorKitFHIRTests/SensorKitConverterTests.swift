@@ -70,6 +70,24 @@ struct GroveSensorKitFHIRConverterTests {
         )
     }
 
+    /// Builds a 500 Hz ECG record the way `SensorKitECGRecord(session:)` does: batch offsets and the
+    /// duration are `Double` intervals from the session's begin marker to each chunk's `Date`.
+    private static func ecgRecord(beginMarker: Date, chunkDates: [Date]) throws -> SensorKitECGRecord {
+        let batches = chunkDates.map { date in
+            SensorKitECGBatch(offsetSeconds: date.timeIntervalSince(beginMarker), millivolts: [0.1, 0.2])
+        }
+        return SensorKitECGRecord(
+            sourceRecordID: try sourceID,
+            startDate: beginMarker,
+            durationSeconds: (batches.last?.offsetSeconds ?? 0) + 1.0 / 500,
+            frequencyHertz: 500,
+            lead: .leftArmMinusRightArm,
+            guidance: .guided,
+            batches: batches,
+            nativeRecording: try native()
+        )
+    }
+
     @Test(arguments: [
         "sampled-data",
         "native-recording",
@@ -120,6 +138,28 @@ struct GroveSensorKitFHIRConverterTests {
         }
         #expect(occurred.value?.description == "2026-08-17T23:31:00Z")
         #expect(effective.start?.value?.description == "2026-08-17T16:30:00-07:00")
+    }
+
+    /// Each period starts in the first occurrence of the repeated fall-back hour and ends in the second one.
+    @Test("Effective bounds in the repeated DST hour keep their instants", arguments: [
+        ("America/Los_Angeles", "2025-11-02T08:55:00Z", "2025-11-02T09:05:00Z", "2025-11-02T01:05:00-08:00"),
+        ("Europe/Berlin", "2025-10-26T00:55:00Z", "2025-10-26T01:30:00Z", "2025-10-26T02:30:00+01:00")
+    ])
+    func repeatedHourBoundsKeepTheirInstants(_ zoneName: String, _ startText: String, _ endText: String, _ endLexical: String) throws {
+        let zone = try #require(TimeZone(identifier: zoneName))
+        let start = try #require(ISO8601DateFormatter().date(from: startText))
+        let end = try #require(ISO8601DateFormatter().date(from: endText))
+        let periods = try [
+            SensorKitConverter.period(start: start, end: end, timeZone: zone),
+            SensorConverter.period(start: start, end: end, sourceTimeZone: zone)
+        ]
+        for period in periods {
+            let decoded = try JSONDecoder().decode(Period.self, from: JSONEncoder().encode(period))
+            #expect(try #require(decoded.start?.value).asNSDate() == start)
+            #expect(try #require(decoded.end?.value).asNSDate() == end)
+            #expect(decoded.end?.value?.description == endLexical)
+        }
+        #expect(try SensorKitConverter.exactInstant(end, timeZone: zone).asNSDate() == end)
     }
 
     @Test
@@ -356,6 +396,64 @@ struct GroveSensorKitFHIRConverterTests {
             nativeRecording: try Self.native()
         )
         #expect(throws: SensorKitConversionError.invalidRecord(.nonUniformTiming(index: 2))) {
+            try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
+        }
+    }
+
+    @Test("ECG timing and the waveform start at the first voltage chunk, not the earlier begin marker")
+    func ecgBeginMarkerBeforeFirstChunkIsAdmitted() throws {
+        let record = try Self.ecgRecord(
+            beginMarker: Self.start.addingTimeInterval(-0.375),
+            chunkDates: [Self.start, Self.start.addingTimeInterval(0.004)]
+        )
+        let conversion = try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
+        let observation = try #require(conversion.observations.first)
+        guard case .period(let effective) = observation.effective else {
+            Issue.record("ECG must emit a Period")
+            return
+        }
+
+        #expect(effective.start?.value?.description == "2026-08-17T16:30:00-07:00")
+        #expect(effective.end?.value?.description == "2026-08-17T16:30:00.006-07:00")
+    }
+
+    @Test("ECG chunk dates that are not exactly representable as Double still form one uniform series")
+    func ecgDoubleRepresentationNoiseIsAdmitted() throws {
+        // Each chunk date rounds to `Date`'s 2^-23 s grid, so the offsets miss the exact 4 ms
+        // multiples by tens of nanoseconds (0.004 arrives as 0.003999948501586914).
+        let firstChunk = Date(timeIntervalSinceReferenceDate: 808_702_200.123_456_7)
+        let chunkDates = (0..<5).map { firstChunk.addingTimeInterval(Double($0) * 0.004) }
+        let record = try Self.ecgRecord(beginMarker: firstChunk, chunkDates: chunkDates)
+        #expect(record.batches[1].offsetSeconds != 0.004)
+
+        let conversion = try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
+        let observation = try #require(conversion.observations.first)
+        guard case .period(let effective) = observation.effective,
+              case .sampledData(let waveform) = observation.component?.first?.value else {
+            Issue.record("ECG must emit one SampledData lead over a Period")
+            return
+        }
+        let expectedStart = try SensorKitConverter.exactDateTime(
+            firstChunk,
+            timeZone: try #require(TimeZone(identifier: "America/Los_Angeles"))
+        )
+
+        #expect(effective.start?.value?.description == expectedStart.description)
+        #expect(waveform.data?.value?.string.split(separator: " ").count == 10)
+    }
+
+    @Test(
+        "A missing sample or a sub-period shift still fails closed despite the noise tolerance",
+        arguments: [0.010, 0.008_05]
+    )
+    func ecgRealTimingGapFailsClosed(thirdChunkOffset: TimeInterval) throws {
+        let firstChunk = Date(timeIntervalSinceReferenceDate: 808_702_200.123_456_7)
+        let record = try Self.ecgRecord(
+            beginMarker: firstChunk.addingTimeInterval(-0.375),
+            chunkDates: [0, 0.004, thirdChunkOffset].map { firstChunk.addingTimeInterval($0) }
+        )
+
+        #expect(throws: SensorKitConversionError.invalidRecord(.nonUniformTiming(index: 4))) {
             try SensorKitConverter().convert(.electrocardiogram(record), context: Self.context)
         }
     }

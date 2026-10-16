@@ -201,10 +201,13 @@ extension SensorConverter {
     }
 
     /// An effective period in the source's own time zone, or in UTC when the context names none.
+    ///
+    /// Each bound carries the zone's offset at its own instant, so bounds in the repeated DST hour keep their instants.
     static func period(start: Date, end: Date, sourceTimeZone: TimeZone?) throws -> Period {
-        Period(
-            end: FHIRPrimitive(try DateTime(date: end, timeZone: sourceTimeZone ?? .utc)),
-            start: FHIRPrimitive(try DateTime(date: start, timeZone: sourceTimeZone ?? .utc))
+        let zone = sourceTimeZone ?? .utc
+        return Period(
+            end: FHIRPrimitive(try DateTime(date: end, timeZone: zone.fixedOffset(at: end))),
+            start: FHIRPrimitive(try DateTime(date: start, timeZone: zone.fixedOffset(at: start)))
         )
     }
 
