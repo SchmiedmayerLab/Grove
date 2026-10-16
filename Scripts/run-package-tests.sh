@@ -43,6 +43,10 @@ swift --version
 # platform's build, so passing all of them to every invocation is safe.
 TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYMENT_TARGET=26.0 WATCHOS_DEPLOYMENT_TARGET=26.0 TVOS_DEPLOYMENT_TARGET=26.0 XROS_DEPLOYMENT_TARGET=26.0"
 
+# Apple tests run on Apple Silicon Macs or simulators. Restrict host tools as well as test targets;
+# device architecture coverage, including watchOS arm64_32, remains in build-floor.sh.
+TESTING_ARCHITECTURES="ARCHS=arm64"
+
 # The optional integrations (Textual, MLX, ResearchKit) are behind default-off package traits so that
 # an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
 # traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
@@ -182,7 +186,7 @@ run() { # <package> <platform> [mode: "ui"]
       # Requires the `firebase` CLI (firebase-tools) on the runner — as the upstream CI also relied on.
       local root; root="$(pwd)"
       ( cd "$uidir" \
-        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -parallel-testing-enabled NO -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
+        && firebase emulators:exec "xcodebuild test -project UITests.xcodeproj -scheme TestApp -configuration Debug -destination '$(dest "$2")' -parallel-testing-enabled NO -resultBundlePath '$root/$result' -derivedDataPath '$DERIVED_DATA_PATH' -skipMacroValidation -skipPackagePluginValidation $TESTING_ARCHITECTURES $TESTING_FLOOR_DEPLOYMENT_TARGETS" ) \
       | beautify
       return
     fi
@@ -198,6 +202,7 @@ run() { # <package> <platform> [mode: "ui"]
       -skipPackagePluginValidation \
       -derivedDataPath "$DERIVED_DATA_PATH" \
       -packageCachePath "$PACKAGE_CACHE_PATH" \
+      "$TESTING_ARCHITECTURES" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify
     return
@@ -255,6 +260,7 @@ run() { # <package> <platform> [mode: "ui"]
       -skipPackagePluginValidation \
       -derivedDataPath "$DERIVED_DATA_PATH" \
       -packageCachePath "$PACKAGE_CACHE_PATH" \
+      "$TESTING_ARCHITECTURES" \
       $TESTING_FLOOR_DEPLOYMENT_TARGETS \
     | beautify || rc=1
     if [ -d "$part_path" ]; then
