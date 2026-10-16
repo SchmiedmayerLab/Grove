@@ -17,10 +17,10 @@ import PackageDescription
 /// Toggle SwiftLint by setting this to `true`.
 let enableSwiftLint = false
 
-// Lowered deployment targets (iOS 15 / macOS 12 / watchOS 9) are temporarily enabled for the study app,
-// with default traits disabled. Set GROVE_LOWERED_DEPLOYMENT_TARGETS=0 to use the standard configuration.
-// Regular tests use the standard configuration; Scripts/build-floor.sh checks the lowered targets.
-let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] != "0"
+// Standard deployment targets (iOS 18 / macOS 15 / watchOS 11) are enabled by default.
+// Set GROVE_LOWERED_DEPLOYMENT_TARGETS=1 to opt into the lowered targets and disable default traits.
+// Scripts/build-floor.py checks the lowered targets.
+let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] == "1"
 
 // FHIRModels >= 0.9 cannot link for armv7k: its struct-based models exceed the 32-bit Mach-O
 // scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
