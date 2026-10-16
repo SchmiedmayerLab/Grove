@@ -9,7 +9,6 @@
 // FHIR R4 resource constructors intentionally spell out every audit and identity field together.
 // swiftlint:disable multiline_literal_brackets
 
-import CryptoKit
 import FHIRModelsExtensions
 import Foundation
 import GroveFHIRContract
@@ -226,7 +225,7 @@ extension SensorKitConverter {
         }
         var attachment = Attachment(
             contentType: recording.contentType.asFHIRStringPrimitive(),
-            hash: FHIRPrimitive(Base64Binary(with: Data(Insecure.SHA1.hash(data: recording.bytes)))),
+            hash: FHIRPrimitive(Base64Binary(with: recording.bytes.attachmentSHA1)),
             size: FHIRPrimitive(FHIRUnsignedInteger(size)),
             title: recording.title.asFHIRStringPrimitive()
         )

@@ -9,7 +9,6 @@
 #if canImport(HealthKit)
 
 import CoreLocation
-import CryptoKit
 import Foundation
 import GroveFHIRContract
 import HealthKit
@@ -129,7 +128,7 @@ struct DocumentPlan: Sendable {
         let attachment = Attachment(
             contentType: contentType?.asFHIRStringPrimitive(),
             data: FHIRPrimitive(Base64Binary(with: payload)),
-            hash: FHIRPrimitive(Base64Binary(with: Data(Insecure.SHA1.hash(data: payload)))),
+            hash: FHIRPrimitive(Base64Binary(with: payload.attachmentSHA1)),
             size: FHIRPrimitive(FHIRUnsignedInteger(size)),
             title: title.asFHIRStringPrimitive()
         )

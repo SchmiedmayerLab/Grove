@@ -1438,7 +1438,6 @@ var targets: [Target] = [
             .target(name: "GroveQuestionnaireExtraction"),
             .target(name: "GroveFHIRContract"),
             .target(name: "GroveQuestionnaire"),
-            .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .target(name: "FHIRModelsExtensions"),
             .target(name: "FHIRPathParser"),

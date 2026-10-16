@@ -6,11 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(CryptoKit)
-import CryptoKit
-#else
-import Crypto
-#endif
 import Foundation
 import ModelsR4
 
@@ -373,7 +368,7 @@ extension ExchangeGraph {
             throw diagnostic(.sensorRecordingDocumentEmbeddedIntegrity, location: "DocumentReference.content[0].attachment.size")
         }
         if let hash = attachment.hash?.value?.dataString,
-           Data(base64Encoded: hash) != Data(Insecure.SHA1.hash(data: data)) {
+           Data(base64Encoded: hash) != data.attachmentSHA1 {
             throw diagnostic(.sensorRecordingDocumentEmbeddedIntegrity, location: "DocumentReference.content[0].attachment.hash")
         }
     }
