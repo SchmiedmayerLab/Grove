@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if canImport(SwiftUI)
 private import GroveFoundation
 private import GroveViews
 public import PencilKit
@@ -256,4 +257,5 @@ extension View {
         )
     )
 }
+#endif
 #endif

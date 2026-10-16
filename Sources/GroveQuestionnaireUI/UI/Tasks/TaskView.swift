@@ -173,6 +173,8 @@ struct TaskView: View {
             MoveKeyframe(0.0)
             LinearKeyframe(1.0, duration: reduceMotion ? 0.01 : growing ? messageOpening : messageClosing)
         }
+        // Retained animation content must not announce a warning after the answer has resolved it.
+        .accessibilityHidden(current == nil)
         .background(alignment: .top) {
             measure(current)
         }
