@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 #
-"""Generate all UITests.xcodeproj files from the canonical Grove reference project."""
+"""Generate UITests.xcodeproj files (and TestApp schemes with launch arguments) from the manifest."""
 
 from __future__ import annotations
 
@@ -54,6 +54,157 @@ def stable_id(*parts: str) -> str:
 
 def quoted(value: str) -> str:
     return json.dumps(value)
+
+
+def xml_escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def parse_launch_arguments(package: str, spec: dict[str, object]) -> list[tuple[str, bool]]:
+    """Normalize `launch_arguments` entries from UITestProjects.toml.
+
+    Strings are enabled by default. Tables use `{ argument = "...", enabled = bool }`.
+    """
+    raw = spec.get("launch_arguments", [])
+    if not isinstance(raw, list):
+        raise ValueError(f"{package}: launch_arguments must be an array")
+    parsed: list[tuple[str, bool]] = []
+    for index, entry in enumerate(raw):
+        if isinstance(entry, str):
+            parsed.append((entry, True))
+            continue
+        if isinstance(entry, dict):
+            if "argument" not in entry:
+                raise ValueError(f"{package}: launch_arguments[{index}] is missing `argument`")
+            argument = entry["argument"]
+            if not isinstance(argument, str) or not argument:
+                raise ValueError(f"{package}: launch_arguments[{index}].argument must be a non-empty string")
+            enabled = entry.get("enabled", True)
+            if not isinstance(enabled, bool):
+                raise ValueError(f"{package}: launch_arguments[{index}].enabled must be a boolean")
+            unexpected = set(entry) - {"argument", "enabled"}
+            if unexpected:
+                raise ValueError(
+                    f"{package}: launch_arguments[{index}] has unsupported keys: {sorted(unexpected)}"
+                )
+            parsed.append((argument, enabled))
+            continue
+        raise ValueError(
+            f"{package}: launch_arguments[{index}] must be a string or "
+            "{ argument = \"...\", enabled = bool }"
+        )
+    return parsed
+
+
+def render_scheme(launch_arguments: list[tuple[str, bool]]) -> str:
+    """Render a shared TestApp.xcscheme for a generated UITests project."""
+    command_line_arguments = ""
+    if launch_arguments:
+        entries = "\n".join(
+            "         <CommandLineArgument\n"
+            f'            argument = "{xml_escape(argument)}"\n'
+            f'            isEnabled = "{"YES" if enabled else "NO"}">\n'
+            "         </CommandLineArgument>"
+            for argument, enabled in launch_arguments
+        )
+        command_line_arguments = (
+            "\n      <CommandLineArguments>\n"
+            f"{entries}\n"
+            "      </CommandLineArguments>"
+        )
+
+    app_ref = (
+        "            <BuildableReference\n"
+        '               BuildableIdentifier = "primary"\n'
+        f'               BlueprintIdentifier = "{APP_TARGET_ID}"\n'
+        '               BuildableName = "TestApp.app"\n'
+        '               BlueprintName = "TestApp"\n'
+        '               ReferencedContainer = "container:UITests.xcodeproj">\n'
+        "            </BuildableReference>"
+    )
+    test_ref = (
+        "            <BuildableReference\n"
+        '               BuildableIdentifier = "primary"\n'
+        f'               BlueprintIdentifier = "{TEST_TARGET_ID}"\n'
+        '               BuildableName = "TestAppUITests.xctest"\n'
+        '               BlueprintName = "TestAppUITests"\n'
+        '               ReferencedContainer = "container:UITests.xcodeproj">\n'
+        "            </BuildableReference>"
+    )
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<Scheme\n"
+        '   LastUpgradeVersion = "2600"\n'
+        '   version = "1.7">\n'
+        "   <BuildAction\n"
+        '      parallelizeBuildables = "YES"\n'
+        '      buildImplicitDependencies = "YES">\n'
+        "      <BuildActionEntries>\n"
+        "         <BuildActionEntry\n"
+        '            buildForTesting = "YES"\n'
+        '            buildForRunning = "YES"\n'
+        '            buildForProfiling = "YES"\n'
+        '            buildForArchiving = "YES"\n'
+        '            buildForAnalyzing = "YES">\n'
+        f"{app_ref}\n"
+        "         </BuildActionEntry>\n"
+        "      </BuildActionEntries>\n"
+        "   </BuildAction>\n"
+        "   <TestAction\n"
+        '      buildConfiguration = "Debug"\n'
+        '      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"\n'
+        '      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"\n'
+        '      shouldUseLaunchSchemeArgsEnv = "YES">\n'
+        "      <Testables>\n"
+        "         <TestableReference\n"
+        '            skipped = "NO"\n'
+        '            parallelizable = "YES">\n'
+        f"{test_ref}\n"
+        "         </TestableReference>\n"
+        "      </Testables>\n"
+        "   </TestAction>\n"
+        "   <LaunchAction\n"
+        '      buildConfiguration = "Debug"\n'
+        '      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"\n'
+        '      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"\n'
+        '      launchStyle = "0"\n'
+        '      useCustomWorkingDirectory = "NO"\n'
+        '      ignoresPersistentStateOnLaunch = "NO"\n'
+        '      debugDocumentVersioning = "YES"\n'
+        '      debugServiceExtension = "internal"\n'
+        '      allowLocationSimulation = "YES">\n'
+        "      <BuildableProductRunnable\n"
+        '         runnableDebuggingMode = "0">\n'
+        f"{app_ref}\n"
+        "      </BuildableProductRunnable>"
+        f"{command_line_arguments}\n"
+        "   </LaunchAction>\n"
+        "   <ProfileAction\n"
+        '      buildConfiguration = "Release"\n'
+        '      shouldUseLaunchSchemeArgsEnv = "YES"\n'
+        '      savedToolIdentifier = ""\n'
+        '      useCustomWorkingDirectory = "NO"\n'
+        '      debugDocumentVersioning = "YES">\n'
+        "      <BuildableProductRunnable\n"
+        '         runnableDebuggingMode = "0">\n'
+        f"{app_ref}\n"
+        "      </BuildableProductRunnable>\n"
+        "   </ProfileAction>\n"
+        "   <AnalyzeAction\n"
+        '      buildConfiguration = "Debug">\n'
+        "   </AnalyzeAction>\n"
+        "   <ArchiveAction\n"
+        '      buildConfiguration = "Release"\n'
+        '      revealArchiveInOrganizer = "YES">\n'
+        "   </ArchiveAction>\n"
+        "</Scheme>\n"
+    )
 
 
 def replace_section(text: str, name: str, body: str) -> str:
@@ -386,32 +537,64 @@ def main() -> int:
         raise SystemExit(f"Unknown UI-test packages: {sorted(unknown)}")
 
     template = TEMPLATE.read_text()
-    failures = []
-    for package in sorted(selected):
-        project = ROOT / "Tests" / f"{package}Tests" / "UITests" / "UITests.xcodeproj" / "project.pbxproj"
-        generated = render_project(package, project_specs[package], packages[package]["uiTests"], template)
-        if args.check:
-            actual = project.read_text()
-            if actual != generated:
-                failures.append(package)
-                sys.stdout.writelines(
-                    difflib.unified_diff(
-                        actual.splitlines(keepends=True),
-                        generated.splitlines(keepends=True),
-                        fromfile=str(project.relative_to(ROOT)),
-                        tofile=f"generated/{project.relative_to(ROOT)}",
-                        n=2,
-                    )
+    failures: list[str] = []
+
+    def check_path(path: Path, generated: str) -> None:
+        if not path.is_file() or path.read_text() != generated:
+            failures.append(str(path.relative_to(ROOT)))
+            actual_lines = path.read_text().splitlines(keepends=True) if path.is_file() else []
+            sys.stdout.writelines(
+                difflib.unified_diff(
+                    actual_lines,
+                    generated.splitlines(keepends=True),
+                    fromfile=str(path.relative_to(ROOT)),
+                    tofile=f"generated/{path.relative_to(ROOT)}",
+                    n=2,
                 )
+            )
+
+    for package in sorted(selected):
+        project_dir = ROOT / "Tests" / f"{package}Tests" / "UITests" / "UITests.xcodeproj"
+        project = project_dir / "project.pbxproj"
+        scheme = project_dir / "xcshareddata" / "xcschemes" / "TestApp.xcscheme"
+        generated_project = render_project(
+            package, project_specs[package], packages[package]["uiTests"], template
+        )
+        launch_arguments = parse_launch_arguments(package, project_specs[package])
+        generated_scheme = render_scheme(launch_arguments) if launch_arguments else None
+        if args.check:
+            check_path(project, generated_project)
+            if generated_scheme is None:
+                if scheme.is_file():
+                    failures.append(str(scheme.relative_to(ROOT)))
+                    print(
+                        f"{scheme.relative_to(ROOT)}: unexpected scheme "
+                        "(remove it or declare launch_arguments in UITestProjects.toml)",
+                        file=sys.stderr,
+                    )
+            else:
+                check_path(scheme, generated_scheme)
         else:
-            project.write_text(generated)
+            project.write_text(generated_project)
             print(f"Generated {project.relative_to(ROOT)}")
+            if generated_scheme is None:
+                if scheme.is_file():
+                    scheme.unlink()
+                    print(f"Removed {scheme.relative_to(ROOT)}")
+                    # Drop empty scheme containers left behind after removal.
+                    for parent in (scheme.parent, scheme.parent.parent):
+                        if parent.is_dir() and not any(parent.iterdir()):
+                            parent.rmdir()
+            else:
+                scheme.parent.mkdir(parents=True, exist_ok=True)
+                scheme.write_text(generated_scheme)
+                print(f"Generated {scheme.relative_to(ROOT)}")
 
     if failures:
         print(f"UI-test projects out of date: {', '.join(failures)}", file=sys.stderr)
         return 1
     if args.check:
-        print(f"All {len(selected)} UI-test projects match the canonical template.")
+        print(f"All {len(selected)} UI-test projects and schemes match the generator.")
     return 0
 
 

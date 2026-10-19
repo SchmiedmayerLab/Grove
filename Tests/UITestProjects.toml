@@ -11,6 +11,9 @@
 # TestApps whose products require them (CI additionally enables all default traits via the
 # GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS environment variable; the project-level declaration is what
 # makes the TestApp build in Xcode and in plain xcodebuild invocations).
+# `launch_arguments` generate a shared TestApp.xcscheme with those Run-action defaults. Use a string
+# for an enabled argument, or `{ argument = "...", enabled = false }` for a disabled discoverability
+# entry. Packages without `launch_arguments` do not get a generated scheme.
 
 [GroveHealthKitFHIR]
 app_products = ["GroveHealthKitFHIR", "Grove", "GroveHealthKit"]
@@ -36,6 +39,18 @@ app_products = ["Grove", "GroveAccessGuard", "GroveFoundation", "GroveViews"]
 [GroveAccount]
 app_products = ["ArgumentParser", "Grove", "GroveAccount", "GroveAccountPhoneNumbers", "GroveValidation", "GroveViews"]
 test_products = ["XCTestExtensions", "XCTGroveAccount"]
+launch_arguments = [
+    "--service-type",
+    "both",
+    { argument = "--configuration-type", enabled = false },
+    { argument = "keysWithOptions", enabled = false },
+    { argument = "withSetupView", enabled = false },
+    { argument = "allRequired", enabled = false },
+    { argument = "allRequiredWithBio", enabled = false },
+    "--credentials",
+    "createAndSignIn",
+    "--include-invitation-code",
+]
 [GroveAccount.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
@@ -68,6 +83,7 @@ app_products = ["GroveContact"]
 [GroveDevices]
 app_products = ["ByteCoding", "Grove", "GroveBluetooth", "GroveBluetoothServices", "GroveDevices", "GroveDevicesUI", "GroveOmron", "GroveViews"]
 test_products = ["XCTestExtensions"]
+launch_arguments = [{ argument = "--testTips", enabled = false }]
 [GroveDevices.app_settings]
 "INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription" = "Uses Bluetooth for testing."
 
@@ -83,6 +99,7 @@ test_products = ["XCTestExtensions"]
 [GroveFirebase]
 app_products = ["Grove", "GroveAccount", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveFirestore", "GroveFirebaseStorage", "GrovePersonalInfo", "GroveValidation", "GroveViews"]
 test_products = ["XCTestExtensions", "XCTGroveAccount"]
+launch_arguments = ["--account-storage"]
 [GroveFirebase.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 [GroveFirebase.test_settings]
@@ -95,6 +112,7 @@ test_products = ["XCTestExtensions"]
 [GroveHealthKit]
 app_products = ["Algorithms", "Grove", "GroveFoundation", "GroveHealthKit", "GroveHealthKitBulkExport", "GroveHealthKitUI", "GroveViews"]
 test_products = ["XCTestExtensions", "GroveHealthKit", "XCTHealthKit"]
+launch_arguments = ["--collectedSamplesOnly"]
 [GroveHealthKit.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_KEY_CFBundleAllowMixedLocalizations" = "YES"
@@ -112,6 +130,11 @@ test_products = ["XCTestExtensions"]
 # Declaring traits replaces the defaults, so Textual has to be named alongside MLX: the chat this
 # app drives is meant to render the way every consumer sees it.
 traits = ["MLX", "Textual"]
+launch_arguments = [
+    { argument = "--showOnboarding", enabled = false },
+    { argument = "--mockMode", enabled = false },
+    { argument = "--resetSecureStorage", enabled = false },
+]
 [GroveLLM.app_settings]
 "INFOPLIST_KEY_NSMicrophoneUsageDescription" = "The Test Application uses the micophone to test the dication functionality."
 "INFOPLIST_KEY_NSSpeechRecognitionUsageDescription" = "Speech recognition necessary for transcribing voice input."
@@ -190,6 +213,7 @@ test_products = ["XCTHealthKit", "XCTestExtensions"]
 [Grove]
 app_products = ["XCTestApp", "Grove"]
 test_products = ["XCTestExtensions"]
+launch_arguments = ["--lifecycleTests"]
 [Grove.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 
