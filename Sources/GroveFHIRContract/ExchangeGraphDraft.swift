@@ -137,6 +137,8 @@ package struct ExchangeOutputDraft: Sendable {
     package let discriminator: String
     package var resource: Resource
     package var links: Links
+    /// Whether the primary Observation lists this child through a resolving `hasMember` reference.
+    package var memberOfPrimary: Bool
     /// Whether this output states the primary under `derivedFrom`; never set on the primary itself.
     package var derivedFromPrimary: Bool
     /// The native artifact a document output carries, named by its registered format code.
@@ -154,6 +156,7 @@ package struct ExchangeOutputDraft: Sendable {
         discriminator: String = "single",
         resource: Resource,
         links: Links = .all,
+        memberOfPrimary: Bool = false,
         derivedFromPrimary: Bool = false,
         artifactFormatCode: String? = nil,
         clearIdentifiers: [Identifier] = [],
@@ -165,6 +168,7 @@ package struct ExchangeOutputDraft: Sendable {
         self.discriminator = discriminator
         self.resource = resource
         self.links = links
+        self.memberOfPrimary = memberOfPrimary
         self.derivedFromPrimary = derivedFromPrimary
         self.artifactFormatCode = artifactFormatCode
         self.clearIdentifiers = clearIdentifiers

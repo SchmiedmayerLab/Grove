@@ -122,6 +122,9 @@ struct HealthKitWorkoutContent: Sendable {
         }
         observation.component = components
         observation.value = .codeableConcept(activity.value)
+        if activities[workout.workoutActivityType.rawValue] == nil {
+            observation.extension = (observation.extension ?? []) + [Self.unmappedValue(String(workout.workoutActivityType.rawValue))]
+        }
     }
 }
 

@@ -173,6 +173,13 @@ extension ExchangeGraphAssembler {
                 outputs[index].resource = .observation(observation)
             }
         }
+        let members = zip(draft.outputs, outputs).filter { $0.0.memberOfPrimary }.map(\.1.url)
+        if !members.isEmpty, case .observation(var observation) = outputs[0].resource {
+            observation.hasMember = (observation.hasMember ?? []) + members.map {
+                Reference(reference: $0.asFHIRStringPrimitive(), type: "Observation".asFHIRURIPrimitive())
+            }
+            outputs[0].resource = .observation(observation)
+        }
         return outputs
     }
 

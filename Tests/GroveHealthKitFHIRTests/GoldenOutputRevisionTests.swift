@@ -81,7 +81,7 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("high-heart-rate-threshold", digest: "cWUiAW1PvdZYPxyRUf9aVycunYrg_yxVhJkYIfRmNMs", assembler: 1, healthKit: 16),
         GoldenRevision("insulin-delivery-bolus", digest: "R8yU3lrWsgJLI5F5S77onqZ7xEolIhlKdunbaVdAZiU", assembler: 1, healthKit: 15),
         GoldenRevision("native-identifier-disclosure", digest: "jxC3bnInVPTCS7fo985UkoivoSwo0VDa2JF3F1Kk6sQ", assembler: 1, healthKit: 15),
-        GoldenRevision("outlines", digest: "cRm98HOWfIsQdIOAcNCsy_Ah628VkSXCEBWpNRprLzE", assembler: 1, healthKit: 16),
+        GoldenRevision("outlines", digest: "d1lewPa3eb2y9fT1VcMFV_ZMmBEzGsCRPhWVL-wXx50", assembler: 1, healthKit: 18),
         GoldenRevision("retraction-blood-pressure", digest: "x4muVgyjqh8AfgVGhaS55MeMVmxJ58UR0hsghhedkEA", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-electrocardiogram", digest: "K6KSuYLUUK8MtIKDYjC12GUYxMRLxKcQ_qm2RP6DdiQ", assembler: 1, healthKit: 17),
         GoldenRevision("retraction-heart-rate-native-identifier", digest: "2nx6odq_wixvjnzRfksJPRgR_UcNs4LkE2l3El_38r4", assembler: 1, healthKit: 1),
@@ -95,8 +95,8 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("udi-disclosure", digest: "Of8xURSmhS7NCWyOBgTfvl0-jOGKHewGj_J-0S4qUBU", assembler: 1, healthKit: 15),
         GoldenRevision("walking-steadiness-notification", digest: "4GDfcRlqW7iWMWgzyRoYUBngUiO3SzwxK73_ZqbTiV8", assembler: 1, healthKit: 15),
         GoldenRevision("workout-route", digest: "pStwosZN1HtBQsuu2EICXhNSHOeyBmTIebjh8KGhu1g", assembler: 1, healthKit: 15),
-        GoldenRevision("workout-session", digest: "tejX1Pfk_LGRrXWm5TNrqd9hUzSl4dKLV62bDdMkotU", assembler: 1, healthKit: 15),
-        GoldenRevision("workout-session-context", digest: "WD7uThlrnfW3z9oXs3i0dtB0nMs5EFuj6Z76VzPSx6A", assembler: 1, healthKit: 15),
+        GoldenRevision("workout-session", digest: "OY_G-xE9VjID4wG_8MLkGAobPdWmqfaPT1VAj1hTxWs", assembler: 1, healthKit: 18),
+        GoldenRevision("workout-session-context", digest: "dgcOjWk3Dx519becxozN1mzOOGrE4QOlG-ROt3CtwgM", assembler: 1, healthKit: 18),
         GoldenRevision("writer-blank-name-with-sync-identity", digest: "J4jTxgQjwtk72DWzmiIEYpbbS9JnooGXZTAQn5N6HJU", assembler: 1, healthKit: 15),
         GoldenRevision("writer-foreign-application", digest: "3tZGg1hKs5Mr4EwoTa1Bo3DuMIJ7yxaMFDoGHWh21bk", assembler: 1, healthKit: 14),
         GoldenRevision("writer-host-equals-converter-host", digest: "sx9ApJAu_tnYMwa_DtLm2yxbVVdefwA7xnsTulRwhZE", assembler: 1, healthKit: 14),
@@ -111,7 +111,7 @@ struct GoldenOutputRevisionTests {
 
     /// The content corpus pins the content layer's output, refusals included, for every vector, so a changed output
     /// bumps a revision as a changed golden does, even where no golden changes.
-    static let contentCorpus = GoldenRevision("content-corpus", digest: "VWow6tdSMbfGSR5LU2iOpLUMHSWC91FQZuZqEgP4w3o", assembler: 1, healthKit: 15)
+    static let contentCorpus = GoldenRevision("content-corpus", digest: "_ly3R44rKY4GTurue8EdZuhrUjFzfFoEv9Rn6UQg2q8", assembler: 1, healthKit: 18)
 
     /// Expects `data` to hash to `row`'s digest, and `row` to name revisions the code has reached.
     private static func expect(_ row: GoldenRevision, matches data: Data) {

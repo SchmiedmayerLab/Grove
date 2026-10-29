@@ -105,6 +105,7 @@ enum StoredSampleFixtures {
             ("HKCorrelation", ["objects"]),
             ("HKWorkout", ["workoutActivityType", "duration", "primaryActivity", "subActivities"]),
             ("HKWorkoutActivity", ["statisticsPerType", "workoutEvents"]),
+            ("HKWorkoutEvent", ["type"]),
             ("HKStatistics", ["dataType", "sumQuantity", "averageQuantity", "minimumQuantity", "maximumQuantity"]),
             ("HKStateOfMind", ["kind", "valence", "labels", "associations"]),
             ("HKScoredAssessment", ["score"]),

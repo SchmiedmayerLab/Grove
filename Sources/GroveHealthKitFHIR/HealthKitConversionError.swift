@@ -178,6 +178,8 @@ extension HealthKitConversionError {
         case unsupportedMetadataValue(MetadataField)
         case invalidMetadataValue(MetadataField)
         case requiredMetadataMissing(MetadataField)
+        /// A workout activity is still open and cannot state its required interval.
+        case workoutActivityEndMissing
         /// A panel is missing one of its catalog components, named by the component id.
         case requiredComponentMissing(component: String)
         /// The effective time is not a valid FHIR date-time, or its period is reversed, or empty where the
@@ -207,7 +209,7 @@ extension HealthKitConversionError.ValueFailure {
         case .shapeInvalid, .invalidMetadataValue, .missingNormativeCode: .mobileInputValueShapeInvalid
         case .outsideDomain: .mobileInputValueOutsideDomain
         case .unsupportedValue, .unsupportedMetadataValue: .mobileInputUnsupportedSourceValue
-        case .requiredMetadataMissing: .mobileInputRequiredMetadataMissing
+        case .requiredMetadataMissing, .workoutActivityEndMissing: .mobileInputRequiredMetadataMissing
         case .requiredComponentMissing: .mobileInputRequiredComponentMissing
         case .effectivePeriodInvalid: .mobileInputEffectivePeriodInvalid
         case .emptyRecordingSeries: .mobileInputEmptyRecordingSeries
@@ -221,6 +223,7 @@ extension HealthKitConversionError.ValueFailure {
         case .unsupportedMetadataValue(let field), .invalidMetadataValue(let field), .requiredMetadataMissing(let field):
             "HKSample.metadata[\(field.key)]"
         case .requiredComponentMissing(let component): "HKCorrelation.objects[\(component)]"
+        case .workoutActivityEndMissing: "HKWorkout.workoutActivities.endDate"
         case .effectivePeriodInvalid: "HKSample.startDate"
         case .emptyRecordingSeries, .recordingPayloadTooLarge: "HKSample"
         }

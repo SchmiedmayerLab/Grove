@@ -157,21 +157,20 @@ struct GoldenGraphTests {
         }
     }
 
-    /// A workout exports its session alone, events or not: one Observation, no members, one Provenance target.
-    /// (The old converter refused every workout: its segment children claimed a profile the Provenance contract
-    /// does not admit.)
+    /// Every event and activity is an addressable child of its workout session.
     @Test(arguments: [false, true])
-    func workoutsExportTheSessionAlone(withEvents: Bool) async throws {
+    func workoutsExportEverySegment(withEvents: Bool) async throws {
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
         var inputs = ExportInputs()
         inputs.sequence = 200
         let conversion = try await ExporterFixtures.export(workout, inputs)
         let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
-        #expect(observations.count == 1)
-        #expect(observations.first?.hasMember == nil)
-        #expect(conversion.primary.identifiers.childOutputs.isEmpty)
+        let childCount = (workout.workoutEvents ?? []).count + workout.workoutActivities.count
+        #expect(observations.count == childCount + 1)
+        #expect((observations.first?.hasMember ?? []).count == childCount)
+        #expect(conversion.primary.identifiers.childOutputs.count == childCount)
         let provenance = try #require(conversion.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        #expect(provenance.target.count == 1)
+        #expect(provenance.target.count == childCount + 1)
     }
 
     /// A workout deletion retracts its whole source record without retaining the emitted segment list.

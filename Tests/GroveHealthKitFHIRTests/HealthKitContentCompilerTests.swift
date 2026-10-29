@@ -45,6 +45,7 @@ struct ContractDraft {
             resultCodeSystem: resultCodeSystem,
             allowedValues: allowedValues,
             resultCodes: resultCodes,
+            additionalResultBindings: base.additionalResultBindings,
             method: base.method,
             methodChoice: base.methodChoice,
             effective: base.effective,
