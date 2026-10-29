@@ -203,13 +203,30 @@ struct SensorKitFHIRExporterTests {
         }
     }
 
+    @Test("Changing only primary membership changes the request fingerprint")
+    func primaryMembershipChangesFingerprint() throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let key = ExchangeEventKey(kind: .active, adapterID: SensorKitConverter.adapterID, sourceRecord: "membership")
+        var output = ExchangeOutputDraft(
+            role: "structured",
+            resource: .observation(Observation(code: CodeableConcept(), status: .init(.final)))
+        )
+        let withoutMembership = try SensorKitFHIRExporter.Plan.contentParts(outputs: [output], recordingDevice: nil)
+        output.memberOfPrimary = true
+        let withMembership = try SensorKitFHIRExporter.Plan.contentParts(outputs: [output], recordingDevice: nil)
+        #expect(
+            exporter.context.request(for: key, recordParts: withoutMembership).fingerprint
+                != exporter.context.request(for: key, recordParts: withMembership).fingerprint
+        )
+    }
+
     /// A reservation keeps the fingerprint it was made under, and every later export compares against it, across launches
     /// and app updates: a build that derives the same request's fingerprint differently gives every pending reservation a
     /// new sequence on redelivery, so the derivation, call parts and record parts alike, changes only on purpose, as
     /// with an output revision.
     @Test("A fixed record's request fingerprints to a known answer")
     func requestFingerprintIsAKnownAnswer() throws {
-        try #require(ExchangeGraphAssembler.outputRevision == 1 && SensorKitConverter.outputRevision == 2, "a revision bump restates the answer")
+        try #require(ExchangeGraphAssembler.outputRevision == 1 && SensorKitConverter.outputRevision == 3, "a revision bump restates the answer")
         let exporter = try Fixtures.exporter(Fixtures.producer(), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
         let plan = SensorKitFHIRExporter.Plan(
             try Self.wristTemperature(8),
@@ -221,7 +238,7 @@ struct SensorKitFHIRExporterTests {
             exporter: exporter
         )
         let request = try plan.content.get().request
-        #expect(request.fingerprint == "EINQ8fGtTf7ty2TQrJQkcB2x_yBO681zON8z5KVlIOE")
+        #expect(request.fingerprint == "NeRemjCcIYk3a6WZLylmdaMtvHsP1Z1qw9S9TOutsNA")
     }
 
     @Test("Every converter-clock instant states the reservation's millisecond, kept on a redelivery")

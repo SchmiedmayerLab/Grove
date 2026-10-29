@@ -53,6 +53,7 @@ extension ExchangeOutputDraft {
                 ("discriminator", [discriminator]),
                 ("resource", [resourceJSON]),
                 ("links", [String(links.rawValue)]),
+                ("memberOfPrimary", [String(memberOfPrimary)]),
                 ("derivedFromPrimary", [String(derivedFromPrimary)]),
                 ("artifactFormatCode", artifactFormatCode.map { ["some", $0] } ?? ["none"]),
                 ("clearIdentifiers", [try canonicalJSON(clearIdentifiers)]),
