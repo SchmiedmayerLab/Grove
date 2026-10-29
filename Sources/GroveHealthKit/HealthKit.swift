@@ -606,7 +606,10 @@ extension HealthKit {
         if !collector.isActive,
            collector.deliverySetting.startSetting == .automatic,
            await didAskForAuthorization(toRead: collector.sampleType) {
-            await collector.startDataCollection()
+            // Automatic collection outlives the screen that requested authorization.
+            await Task { @MainActor in
+                await collector.startDataCollection()
+            }.value
         }
     }
     
