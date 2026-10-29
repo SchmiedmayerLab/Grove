@@ -105,7 +105,10 @@ struct HealthKitFHIRExporterWriterTests {
     private static func statesWriter(_ writer: StoredSampleFixtures.Writer, in bundle: ModelsR4.Bundle) throws -> Bool {
         let stated = try #require(device(stating: writer.bundleIdentifier, in: bundle))
         #expect(stated.device.deviceName?.first?.name.value?.string == writer.name)
-        #expect(stated.device.version?.contains { $0.value.value?.string == writer.version } == true)
+        #expect(stated.device.version?.contains { version in
+            version.value.value?.string == writer.version && version.type?.coding?.contains { $0.code == "build" } == true
+        } == true)
+        #expect(stated.device.version?.contains { $0.type?.coding?.contains { $0.code == "531975" } == true } != true)
         #expect(author(bundle) == stated.url, "the writer is the Provenance author")
         return true
     }

@@ -194,7 +194,7 @@ package struct ExchangeRecordingDeviceDraft: Sendable {
 package struct ExchangeWriterDraft: Sendable {
     package let application: ApplicationDevice
     package let host: HostDevice
-    /// False when the source named no version, so the application Device carries none.
+    /// Whether the source states its marketing version. Its build remains independent of this choice.
     package let statesVersion: Bool
 
     package init(application: ApplicationDevice, host: HostDevice, statesVersion: Bool) {

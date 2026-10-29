@@ -119,12 +119,12 @@ extension HealthKitAssembly.SourceFacts {
             let version = revision.version?.nonBlank
             do {
                 return ExchangeWriterDraft(
-                    application: try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: version ?? "unknown"),
+                    application: try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: "unknown", build: version),
                     host: try HostDevice(
                         operatingSystemVersion: operatingSystemVersion(revision.operatingSystemVersion),
                         modelNumber: revision.productType?.nonBlank
                     ),
-                    statesVersion: version != nil
+                    statesVersion: false
                 )
             } catch {
                 throw HealthKitConversionError.sourceApplicationInvalid
