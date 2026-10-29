@@ -51,7 +51,7 @@ private final class ResponseState: Sendable {
         var values: [GroveQuestionnaire.Questionnaire.ExpressionScope: [String: QuestionnaireResponses.Response.Value?]] = [:]
     }
 
-    let revision: QuestionnaireResponses.Revision
+    let revision: QuestionnaireResponses.Revision?
     let node: FHIRPathNode
     let items: [String: [FHIRPathNode]]
     /// What every expression of this state reads as `now()`: time moves on with the answers, so a page asked twice
@@ -62,7 +62,7 @@ private final class ResponseState: Sendable {
     private let results = Mutex(Results())
 
     init(
-        revision: QuestionnaireResponses.Revision,
+        revision: QuestionnaireResponses.Revision?,
         node: FHIRPathNode,
         items: [String: [FHIRPathNode]],
         clock: FHIRPathClock,
@@ -210,6 +210,26 @@ public final class FHIRQuestionnaireExpressionEngine: QuestionnaireExpressionEng
     /// The same engine reading another clock; what depends on the questionnaire alone is shared.
     func reading(_ clock: QuestionnaireClock) -> FHIRQuestionnaireExpressionEngine {
         FHIRQuestionnaireExpressionEngine(self, clock: clock)
+    }
+
+    /// Uses the same item scopes and variables as the form, with the exact submitted resource as its state.
+    func pairEvaluator(response: ModelsR4.QuestionnaireResponse) throws -> PairExpressionEvaluator {
+        let node = try FHIRPathNode.encoding(response)
+        let state = ResponseState(
+            revision: nil,
+            node: node,
+            items: Self.itemsByLinkId(in: node),
+            clock: FHIRPathClock(instant: clock.instant(), timeZone: clock.timeZone),
+            questionnaireDescendants: questionnaireDescendants
+        )
+        return PairExpressionEvaluator(scopedEvaluation: { expression, _, scope in
+            let context = try self.evaluationContext(scope: scope, state: state, clock: state.clock)
+            return switch try self.expressions.expression(expression).evaluateBoolean(context: context) {
+            case .true: true
+            case .false: false
+            case .empty: nil
+            }
+        })
     }
 
     public func evaluateBoolean(

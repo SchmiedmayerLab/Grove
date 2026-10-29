@@ -278,7 +278,8 @@ struct PairContext {
                     do {
                         enabled = try expressionEvaluator.evaluate(
                             expression,
-                            path: "\(path).\(linkID)"
+                            path: "\(path).\(linkID)",
+                            scope: .item(linkID)
                         )
                     } catch {
                         enabled = nil

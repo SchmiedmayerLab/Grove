@@ -243,11 +243,14 @@ extension PairContext {
         guard completed else {
             return
         }
+        let linkID = element["linkId"] as? String
+        let hasAnswer = linkID.map { !(allAnswers[$0] ?? []).isEmpty } ?? true
+        let isContainer = ["group", "display"].contains(element["type"] as? String ?? "")
         for constraint in PairRules.extensions(
             element,
             url: PairRules.URL.targetConstraint
-        ) {
-            evaluateTargetConstraint(constraint, path: path)
+        ) where hasAnswer || isContainer {
+            evaluateTargetConstraint(constraint, path: path, linkID: linkID)
         }
         for (index, item) in (element["item"] as? [FHIRJSONObject] ?? []).enumerated() {
             let linkID = item["linkId"] as? String ?? "[\(index)]"
@@ -260,7 +263,8 @@ extension PairContext {
 
     private mutating func evaluateTargetConstraint(
         _ constraint: FHIRJSONObject,
-        path: String
+        path: String,
+        linkID: String?
     ) {
         let parts = Dictionary(
             (constraint["extension"] as? [FHIRJSONObject] ?? []).compactMap { part in
@@ -283,7 +287,11 @@ extension PairContext {
         }
         do {
             guard let expression,
-                  try expressionEvaluator.evaluate(expression, path: path) == true else {
+                  try expressionEvaluator.evaluate(
+                    expression,
+                    path: path,
+                    scope: linkID.map { .answer($0) } ?? .questionnaire
+                  ) == true else {
                 issues.append(.init(
                     severity: severity,
                     code: .targetConstraint,

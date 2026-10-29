@@ -211,7 +211,7 @@ extension GroveQuestionnaire.Questionnaire {
     /// Duplicate linkIds are invalid FHIR (que-2) but author-suppliable; walking the tree covers
     /// group linkIds too, and surfaces a conversion error rather than tripping the native model's
     /// programmer-error check.
-    private static func expressionUsage(
+    static func expressionUsage(
         of other: ModelsR4.Questionnaire
     ) throws(ConversionError) -> (usesExpressions: Bool, variables: [FHIRQuestionnaireExpressionEngine.Variable]) {
         var seenIds: Set<String> = []

@@ -485,6 +485,49 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(pair.warnings.first?.code == .expressionEngineRequired)
     }
 
+    @Test("Built-in pair expressions share the form's item scopes and variables", arguments: [true, false])
+    func builtInPairExpressionScopes(validAnswer: Bool) throws {
+        var objects = try basePairObjects()
+        appendExtension([
+            "url": "http://hl7.org/fhir/StructureDefinition/variable",
+            "valueExpression": ["language": "text/fhirpath", "name": "globalValue", "expression": "1"]
+        ], to: &objects.questionnaire)
+        var definition = try question(in: objects.questionnaire)
+        appendExtension([
+            "url": "http://hl7.org/fhir/StructureDefinition/variable",
+            "valueExpression": ["language": "text/fhirpath", "name": "itemValue", "expression": "%globalValue + 1"]
+        ], to: &definition)
+        appendExtension([
+            "url": enableWhenExpression,
+            "valueExpression": ["language": "text/fhirpath", "expression": "%itemValue = 2 and $this.linkId = 'question'"]
+        ], to: &definition)
+        appendExtension(targetConstraint(
+            severity: "error",
+            key: "answer-scope",
+            expression: "$this = \(validAnswer) and %itemValue = 2 and %qitem.linkId = 'question' and %context.linkId = 'question'"
+        ), to: &definition)
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        let resources = try decodePair(objects)
+        let evaluator = try PairExpressionEvaluator.fhirPath(questionnaire: resources.questionnaire, response: resources.response)
+        let issues = PairValidator(expressionEvaluator: evaluator).issues(questionnaire: resources.questionnaire, response: resources.response)
+        #expect(!issues.contains { [.expressionEvaluation, .enableWhenEvaluation, .itemDisabled].contains($0.code) })
+        #expect(issues.contains { $0.code == .targetConstraint } == !validAnswer)
+    }
+
+    @Test("An unanswered optional item has no answer constraint to evaluate")
+    func unansweredOptionalItemConstraint() throws {
+        var objects = try basePairObjects()
+        var definition = try question(in: objects.questionnaire)
+        definition["required"] = false
+        appendExtension(targetConstraint(severity: "error", key: "optional", expression: "$this = true"), to: &definition)
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        objects.response["item"] = []
+        let resources = try decodePair(objects)
+        let evaluator = try PairExpressionEvaluator.fhirPath(questionnaire: resources.questionnaire, response: resources.response)
+        let issues = PairValidator(expressionEvaluator: evaluator).issues(questionnaire: resources.questionnaire, response: resources.response)
+        #expect(!issues.contains { [.expressionEvaluation, .targetConstraint].contains($0.code) })
+    }
+
     @Test("Blocks unresolved error target constraints", arguments: ConstraintLocation.allCases)
     func errorTargetConstraintBlocksPair(location: ConstraintLocation) throws {
         var objects = try basePairObjects()
@@ -728,7 +771,7 @@ extension GroveQuestionnaireFHIRPairRuleTests {
         return quantity
     }
 
-    private func targetConstraint(severity: String, key: String) -> JSONObject {
+    private func targetConstraint(severity: String, key: String, expression: String = "true") -> JSONObject {
         [
             "url": targetConstraintURL,
             "extension": [
@@ -737,7 +780,7 @@ extension GroveQuestionnaireFHIRPairRuleTests {
                 ["url": "human", "valueString": "Review this answer."],
                 [
                     "url": "expression",
-                    "valueExpression": ["language": "text/fhirpath", "expression": "true"]
+                    "valueExpression": ["language": "text/fhirpath", "expression": expression]
                 ]
             ]
         ]
