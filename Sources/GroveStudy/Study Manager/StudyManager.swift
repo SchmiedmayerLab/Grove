@@ -173,11 +173,6 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
 
     @MainActor
     private func _configure() async throws { // swiftlint:disable:this function_body_length
-        let enrollments = try modelContext.fetch(FetchDescriptor<StudyEnrollment>())
-        try registerStudyTasksWithScheduler(for: enrollments)
-        try await setupStudyBackgroundComponents(for: enrollments)
-        try removeOrphanedTasks()
-        try removeOrphanedStudyBundles()
         #if targetEnvironment(simulator)
         if autosaveTask == nil {
             autosaveTask = Swift::Task {
@@ -229,6 +224,11 @@ public final class StudyManager: Module, EnvironmentAccessible, Sendable {
         } catch {
             logger.error("-fixTaskContextAndDuplicateVersions failed: \(error)")
         }
+        let enrollments = try modelContext.fetch(FetchDescriptor<StudyEnrollment>())
+        try registerStudyTasksWithScheduler(for: enrollments)
+        try await setupStudyBackgroundComponents(for: enrollments)
+        try removeOrphanedTasks()
+        try removeOrphanedStudyBundles()
     }
     
     
