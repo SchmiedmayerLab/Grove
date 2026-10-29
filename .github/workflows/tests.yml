@@ -294,7 +294,7 @@ jobs:
           echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-$RESOLVED_GROVE_FHIR_SHA-${{ hashFiles('.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
       - name: Restore built implementation guides
         id: guide-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             .fhir/grove-fhir/.build/fhir-home
@@ -344,6 +344,19 @@ jobs:
             esac
           done
           ./Scripts/build-guides.sh "${GUIDES[@]}"
+      - name: Save built implementation guides
+        if: steps.guide-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .fhir/grove-fhir/.build/fhir-home
+            .fhir/grove-fhir/.build/fhir-tools
+            .fhir/grove-fhir/mobile/output/package.tgz
+            .fhir/grove-fhir/sensor/output/package.tgz
+            .fhir/grove-fhir/sensorkit/output/package.tgz
+            .fhir/grove-fhir/healthkit/output/package.tgz
+            .fhir/grove-fhir/questionnaire/output/package.tgz
+          key: ${{ steps.guide-cache.outputs.cache-primary-key }}
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
