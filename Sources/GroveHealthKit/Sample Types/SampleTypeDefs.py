@@ -1144,6 +1144,12 @@ category_types: list[SampleType] = [
         doc='A category sample type for high heart rate events.'
     ),
     category_type(
+        availability=Availability(iOS='26.2', watchOS='26.2', macOS='26.2', visionOS='26.2'),
+        identifier='hypertensionEvent',
+        canonical_title='Hypertension Event',
+        doc='A category sample type for hypertension events.'
+    ),
+    category_type(
         identifier='irregularHeartRhythmEvent',
         canonical_title='Irregular Heart Rhythm Event',
         doc='A category sample type for irregular heart rhythm events.'

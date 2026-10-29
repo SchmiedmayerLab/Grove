@@ -2247,6 +2247,18 @@ extension SampleType where Sample == HKCategorySample {
             )
         )
     }
+    /// A category sample type for hypertension events.
+    @available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *)
+    @inlinable public static var hypertensionEvent: SampleType<HKCategorySample> {
+        SampleTypeCache.get(
+            identifier: Sample._SampleType._Identifier.hypertensionEvent.rawValue,
+            as: SampleType<HKCategorySample>.self,
+            default: .category(
+                .hypertensionEvent,
+                canonicalTitle: "Hypertension Event",
+            )
+        )
+    }
     /// A category sample type for irregular heart rhythm events.
     @inlinable public static var irregularHeartRhythmEvent: SampleType<HKCategorySample> {
         SampleTypeCache.get(
@@ -2827,6 +2839,8 @@ extension SampleType where Sample == HKCategorySample {
             self = .lowHeartRateEvent
         } else if identifier == .highHeartRateEvent {
             self = .highHeartRateEvent
+        } else if #available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *), identifier == .hypertensionEvent {
+            self = .hypertensionEvent
         } else if identifier == .irregularHeartRhythmEvent {
             self = .irregularHeartRhythmEvent
         } else if identifier == .appleWalkingSteadinessEvent {
@@ -2979,6 +2993,9 @@ extension HKCategoryTypeIdentifier {
         identifiers.insert(Self.headphoneAudioExposureEvent)
         identifiers.insert(Self.lowHeartRateEvent)
         identifiers.insert(Self.highHeartRateEvent)
+        if #available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *) {
+            identifiers.insert(Self.hypertensionEvent)
+        }
         identifiers.insert(Self.irregularHeartRhythmEvent)
         identifiers.insert(Self.appleWalkingSteadinessEvent)
         identifiers.insert(Self.mindfulSession)

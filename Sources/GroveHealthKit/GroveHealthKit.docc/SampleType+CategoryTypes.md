@@ -42,6 +42,7 @@ Well-known category sample types
 ### Vital Signs
 - ``SampleType/lowHeartRateEvent``
 - ``SampleType/highHeartRateEvent``
+- ``SampleType/hypertensionEvent``
 - ``SampleType/irregularHeartRhythmEvent``
 
 ### Mobility

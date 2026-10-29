@@ -38,6 +38,7 @@
 "HKCategoryTypeIdentifierHeadphoneAudioExposureEvent" = "Headphone Notifications";
 "HKCategoryTypeIdentifierHeartburn" = "Heartburn";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "High Heart Rate Notifications";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Hypertension Notifications";
 "HKCategoryTypeIdentifierHotFlashes" = "Hot Flashes";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Infrequent Periods";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Spotting";
