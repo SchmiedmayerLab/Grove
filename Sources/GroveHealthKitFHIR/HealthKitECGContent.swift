@@ -30,8 +30,8 @@ struct HealthKitECGContent: Sendable {
     struct Evidence: Sendable {
         /// The ECG.
         let electrocardiogram: HKElectrocardiogram
-        /// The zone its instants are stated in: the one its metadata names, else UTC.
-        let zone: TimeZone
+        /// The zone its metadata names, if any; instants without a source zone are stated in UTC.
+        let zone: TimeZone?
         /// Its validated voltages.
         let waveform: Waveform
         /// The algorithm version its metadata states, if any.
@@ -148,7 +148,7 @@ struct HealthKitECGContent: Sendable {
         voltages: [HKElectrocardiogram.VoltageMeasurement],
         metadata: HealthKitSampleMetadata
     ) throws -> Evidence {
-        let zone = try metadata.timeZone() ?? .utc
+        let zone = try metadata.timeZone()
         return Evidence(
             electrocardiogram: ecg,
             zone: zone,
@@ -246,9 +246,10 @@ extension HealthKitECGContent.Evidence {
     /// The Period from `start` plus `startOffset` seconds to `end` plus `endOffset`, each instant exact in the zone;
     /// the end is stated first, as its failure takes precedence.
     private func period(start: Date, plus startOffset: Decimal, end: Date, plus endOffset: Decimal) throws(HealthKitConversionError) -> Period {
-        let end = try HealthKitEffectiveTime.exactDateTime(end, offset: endOffset, zone: zone)
-        let start = try HealthKitEffectiveTime.exactDateTime(start, offset: startOffset, zone: zone)
-        return Period(end: FHIRPrimitive(end), start: FHIRPrimitive(start))
+        let end = try HealthKitEffectiveTime.exactDateTime(end, offset: endOffset, zone: zone ?? .utc)
+        let start = try HealthKitEffectiveTime.exactDateTime(start, offset: startOffset, zone: zone ?? .utc)
+        let extensions = zone.map { [Extension(url: Canonicals.timezone, value: .code($0.identifier.asFHIRStringPrimitive()))] }
+        return Period(end: FHIRPrimitive(end, extension: extensions), start: FHIRPrimitive(start, extension: extensions))
     }
 }
 

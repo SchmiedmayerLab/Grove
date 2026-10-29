@@ -57,6 +57,22 @@
           "reference" : "urn:uuid:74b08d9e-cbc8-50d1-9680-4c3f9286f1f3"
         },
         "effectivePeriod" : {
+          "_end" : {
+            "extension" : [
+              {
+                "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                "valueCode" : "America/Los_Angeles"
+              }
+            ]
+          },
+          "_start" : {
+            "extension" : [
+              {
+                "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                "valueCode" : "America/Los_Angeles"
+              }
+            ]
+          },
           "end" : "2026-08-17T15:30:00.256-07:00",
           "start" : "2026-08-17T15:30:00.25-07:00"
         },
@@ -72,6 +88,22 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-ecg-source-period",
             "valuePeriod" : {
+              "_end" : {
+                "extension" : [
+                  {
+                    "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                    "valueCode" : "America/Los_Angeles"
+                  }
+                ]
+              },
+              "_start" : {
+                "extension" : [
+                  {
+                    "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                    "valueCode" : "America/Los_Angeles"
+                  }
+                ]
+              },
               "end" : "2026-08-17T15:30:30-07:00",
               "start" : "2026-08-17T15:30:00-07:00"
             }
@@ -187,6 +219,22 @@
           "reference" : "urn:uuid:74b08d9e-cbc8-50d1-9680-4c3f9286f1f3"
         },
         "effectivePeriod" : {
+          "_end" : {
+            "extension" : [
+              {
+                "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                "valueCode" : "America/Los_Angeles"
+              }
+            ]
+          },
+          "_start" : {
+            "extension" : [
+              {
+                "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                "valueCode" : "America/Los_Angeles"
+              }
+            ]
+          },
           "end" : "2026-08-17T15:30:00.256-07:00",
           "start" : "2026-08-17T15:30:00.25-07:00"
         },

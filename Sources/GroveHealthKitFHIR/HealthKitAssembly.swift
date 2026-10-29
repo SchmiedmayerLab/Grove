@@ -74,7 +74,7 @@ struct HealthKitAssembly: Sendable {
     /// The revision of the graphs this adapter's assembly builds. Bump it whenever the bytes it emits can
     /// change for equal inputs: it enters every exporter's context fingerprint, so an event reserved under an
     /// older revision is never redelivered under the same identifier with different bytes.
-    static let outputRevision: UInt = 18
+    static let outputRevision: UInt = 19
 
     /// The HealthKit adapter: its closed token, which every HealthKit identity preimage and event key carries, and the
     /// profiles and application identifier its envelopes state.

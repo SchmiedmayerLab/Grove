@@ -54,14 +54,14 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("bundled-patient-subject", digest: "ZL1WXYisQ7TZxoeQ5DhD7_3VYvlwsDeF7Ul8zF04CcY", assembler: 1, healthKit: 15),
         GoldenRevision("clinical-document", digest: "ThgTRu-qfEtK5IuJbOmhktZ1dH4zHrHFv18zIHc2Dxw", assembler: 1, healthKit: 15),
         GoldenRevision("electrocardiogram-symptom-companion", digest: "z26WsI8NEKUFdnMx-eKQzqWFwgs0N9ehWEHQxyEfHow", assembler: 1, healthKit: 15),
-        GoldenRevision("electrocardiogram-with-symptom", digest: "gfk2cARfiqLHmkctOEjoBRJRnqWS4AzjKJcoE8vKSUc", assembler: 1, healthKit: 15),
-        GoldenRevision("electrocardiogram", digest: "gU0D6g7qXluXploBYwIJVP0svrLmneA339b-OBX1HGE", assembler: 1, healthKit: 15),
+        GoldenRevision("electrocardiogram-with-symptom", digest: "BtxrfMakMq_PHxCbCB0TPsZCX2IpnFAhSLKmGZUpxlg", assembler: 1, healthKit: 19),
+        GoldenRevision("electrocardiogram", digest: "WG9WdpFAa0N6G8uxcpOhFyeAEtZcVAa2XFmHE-bLiss", assembler: 1, healthKit: 19),
         GoldenRevision("exporter-clinical-record-dstu2", digest: "3_10kyCDnXOzOI50ozg0E5UOAdrtoqJmDgVgqqsf740", assembler: 1, healthKit: 15),
         GoldenRevision("exporter-clinical-record-r4", digest: "zwko977-YJ7gfUUJ8KPdo77YKxH-41XiIlcY3SZUEmM", assembler: 1, healthKit: 15),
         GoldenRevision("exporter-default-apple-watch-heart-rate", digest: "E9iO-H0JWtp0dPqTbhoyLrA6V3gKehjktYtqR46vbfo", assembler: 1, healthKit: 15),
         GoldenRevision("exporter-default-apple-watch-heart-rate-without-unit-token", digest: "Z0bPlx97OlrBV6X3UL9RGnsk8LOo7l2w6xcIAX_vlck", assembler: 1, healthKit: 15),
         GoldenRevision("exporter-deployment-blood-pressure", digest: "aYlaX3U_L7u0aR0kno7OlQGf8NYAM8FvoymhoDuJi28", assembler: 1, healthKit: 15),
-        GoldenRevision("exporter-deployment-electrocardiogram", digest: "bnJmlf8K8oE4AamSWKyQXOVdgOWkprW1UgIiM0lbzhE", assembler: 1, healthKit: 15),
+        GoldenRevision("exporter-deployment-electrocardiogram", digest: "dt4lSeoaMaPlWnNmfIL_b3U1ZK90hxVreBxtHng3NFQ", assembler: 1, healthKit: 19),
         GoldenRevision("exporter-deployment-electrocardiogram-symptom", digest: "urdB2kblWuSQ01lfa399p-hhe0u9V-BpwSBqj-FdQAE", assembler: 1, healthKit: 15),
         GoldenRevision("exporter-deployment-own-heart-rate", digest: "Bhep60lfUbw4c5CgJxHSvLC1EAKbJSaFSN_7JsNYnxw", assembler: 1, healthKit: 14),
         GoldenRevision("exporter-deployment-retraction", digest: "U0OhQ98ldoCEGN0VyAITsm7MXSUoLGSztHpQhRJ2TwQ", assembler: 1, healthKit: 2),
@@ -81,7 +81,7 @@ struct GoldenOutputRevisionTests {
         GoldenRevision("high-heart-rate-threshold", digest: "cWUiAW1PvdZYPxyRUf9aVycunYrg_yxVhJkYIfRmNMs", assembler: 1, healthKit: 16),
         GoldenRevision("insulin-delivery-bolus", digest: "R8yU3lrWsgJLI5F5S77onqZ7xEolIhlKdunbaVdAZiU", assembler: 1, healthKit: 15),
         GoldenRevision("native-identifier-disclosure", digest: "jxC3bnInVPTCS7fo985UkoivoSwo0VDa2JF3F1Kk6sQ", assembler: 1, healthKit: 15),
-        GoldenRevision("outlines", digest: "d1lewPa3eb2y9fT1VcMFV_ZMmBEzGsCRPhWVL-wXx50", assembler: 1, healthKit: 18),
+        GoldenRevision("outlines", digest: "8PaDgojfEtS-JZE_UlNEJXhz0slG95HPTyoFKubdaRo", assembler: 1, healthKit: 19),
         GoldenRevision("retraction-blood-pressure", digest: "x4muVgyjqh8AfgVGhaS55MeMVmxJ58UR0hsghhedkEA", assembler: 1, healthKit: 1),
         GoldenRevision("retraction-electrocardiogram", digest: "K6KSuYLUUK8MtIKDYjC12GUYxMRLxKcQ_qm2RP6DdiQ", assembler: 1, healthKit: 17),
         GoldenRevision("retraction-heart-rate-native-identifier", digest: "2nx6odq_wixvjnzRfksJPRgR_UcNs4LkE2l3El_38r4", assembler: 1, healthKit: 1),
@@ -111,7 +111,7 @@ struct GoldenOutputRevisionTests {
 
     /// The content corpus pins the content layer's output, refusals included, for every vector, so a changed output
     /// bumps a revision as a changed golden does, even where no golden changes.
-    static let contentCorpus = GoldenRevision("content-corpus", digest: "_ly3R44rKY4GTurue8EdZuhrUjFzfFoEv9Rn6UQg2q8", assembler: 1, healthKit: 18)
+    static let contentCorpus = GoldenRevision("content-corpus", digest: "OdAr_EwrHx49ZeuyOjzTphhq9AgsUkJ26PHCI0wfB5Q", assembler: 1, healthKit: 19)
 
     /// Expects `data` to hash to `row`'s digest, and `row` to name revisions the code has reached.
     private static func expect(_ row: GoldenRevision, matches data: Data) {

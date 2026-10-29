@@ -53,9 +53,9 @@ struct HealthKitECGContentTests {
         samplingFrequencyHertz: Double?,
         points: [VoltagePoint],
         metadata: [String: any Sendable] = [:],
-        averageHeartRate: Double? = nil
+        averageHeartRate: Double? = nil,
+        start: Date = GoldenFixtures.sampleStart
     ) throws -> ECGRecording {
-        let start = GoldenFixtures.sampleStart
         let facts = StoredSampleFixtures.SampleFacts(
             uuid: GoldenFixtures.uuid(0xC0),
             start: start,
@@ -124,7 +124,7 @@ struct HealthKitECGContentTests {
     }
 
     /// What the record path reads off an `HKElectrocardiogram`'s metadata beside its voltages.
-    @Test("An ECG's evidence states the zone and algorithm version its metadata names, else UTC and none")
+    @Test("An ECG's evidence retains the zone and algorithm version only when its metadata names them")
     func evidenceReadsTheMetadata() throws {
         let plan = HealthKitContentPlan[.electrocardiogram]
         let metadata: [String: any Sendable] = [
@@ -134,13 +134,38 @@ struct HealthKitECGContentTests {
         let stated = try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints, metadata: metadata)
         let evidence = try plan.ecgEvidence(stated.electrocardiogram, voltages: stated.voltageMeasurements)
         #expect(evidence.electrocardiogram === stated.electrocardiogram)
-        #expect(evidence.zone.identifier == GoldenFixtures.timeZone)
+        #expect(evidence.zone?.identifier == GoldenFixtures.timeZone)
         #expect(evidence.algorithmVersion == HKAppleECGAlgorithmVersion.version2.rawValue)
         #expect(evidence.waveform.data == "0 1 -2 3")
         let bare = try Self.record(reportedCount: 4, samplingFrequencyHertz: 500, points: Self.validPoints)
         let bareEvidence = try plan.ecgEvidence(bare.electrocardiogram, voltages: bare.voltageMeasurements)
-        #expect(bareEvidence.zone.secondsFromGMT(for: GoldenFixtures.sampleStart) == 0)
+        #expect(bareEvidence.zone == nil)
         #expect(bareEvidence.algorithmVersion == nil)
+    }
+
+    @Test("ECG periods retain the source zone across a DST change and invent none for UTC fallback", arguments: ["America/Los_Angeles", nil] as [String?])
+    func periodsRetainOnlyTheSourceTimeZone(_ zoneName: String?) throws {
+        let start = try #require(ISO8601DateFormatter().date(from: "2025-11-02T08:59:59Z"))
+        let record = try Self.record(
+            reportedCount: 2,
+            samplingFrequencyHertz: 1,
+            points: [VoltagePoint(offset: 0.25, millivolts: 0), VoltagePoint(offset: 1.25, millivolts: 1)],
+            metadata: zoneName.map { [HKMetadataKeyTimeZone: $0] } ?? [:],
+            start: start
+        )
+        let evidence = try HealthKitContentPlan[.electrocardiogram].ecgEvidence(record.electrocardiogram, voltages: record.voltageMeasurements)
+        let effective = try evidence.effectivePeriod()
+        let source = try evidence.sourcePeriod()
+        for endpoint in [effective.start, effective.end, source.start, source.end] {
+            let endpoint = try #require(endpoint)
+            let zones = endpoint.extension?.filter { $0.url == Canonicals.timezone } ?? []
+            #expect(zones.count == (zoneName == nil ? 0 : 1))
+            #expect(zones.first?.value == zoneName.map { .code($0.asFHIRStringPrimitive()) })
+        }
+        #expect(effective.start?.value?.description == (zoneName == nil ? "2025-11-02T08:59:59.25Z" : "2025-11-02T01:59:59.25-07:00"))
+        #expect(effective.end?.value?.description == (zoneName == nil ? "2025-11-02T09:00:00.25Z" : "2025-11-02T01:00:00.25-08:00"))
+        #expect(try source.start?.value?.asNSDate() == start)
+        #expect(try source.end?.value?.asNSDate() == start.addingTimeInterval(30))
     }
 
     /// Heart rate has no value domain, so an average the adapter cannot state exactly is evidence it cannot represent:
@@ -416,12 +441,10 @@ struct HealthKitECGContentTests {
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")
         ]
-        // The ECG states its zone's offset but not its name, so the name is withheld; the symptom names none.
-        let ecgWarnings = [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")]
-        #expect(set.primary.warnings == ecgWarnings)
-        #expect(try AssemblyFixtures.conversions(record).first?.withheldMetadataKeys == [HKMetadataKeyTimeZone])
+        #expect(set.primary.warnings.isEmpty)
+        #expect(try AssemblyFixtures.conversions(record).first?.withheldMetadataKeys.isEmpty == true)
         #expect(set.companions.map(\.warnings) == [symptomWarnings])
-        #expect(set.warnings == ecgWarnings + symptomWarnings)
+        #expect(set.warnings == symptomWarnings)
     }
 
     /// Each symptom is a source record of its own, so it converts under an event of its own beside the ECG's.
