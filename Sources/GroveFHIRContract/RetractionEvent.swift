@@ -155,6 +155,7 @@ extension RetractionEvent {
             case childOutput = "child-output"
             case specimen
             case deviceSnapshot = "device-snapshot"
+            case sourceRecord = "source-record"
         }
 
         /// Why an identity cannot be a target in the role stated for it.
@@ -167,7 +168,7 @@ extension RetractionEvent {
         }
 
         package let identifier: RoledIdentifier
-        package let resourceType: ResourceType
+        package let resourceType: ResourceType?
         package let role: Role
         /// The adapter's own record identifier for the retracted record, carried beside the opaque
         /// Grove identity so a consumer can delete the exact native record.
@@ -177,7 +178,18 @@ extension RetractionEvent {
         /// target's native-record-identifier extension.
         package let nativeRecordIdentifier: BusinessIdentifier?
 
-        package init(
+        /// Retract all outputs of a source record, including children unavailable in a deletion notification.
+        package init(sourceRecord identifier: RoledIdentifier, nativeRecordIdentifier: BusinessIdentifier? = nil) throws(ValidationError) {
+            guard identifier.role == .sourceRecord else {
+                throw .identifierRoleMismatch(targetRole: .sourceRecord, identifierRole: identifier.role)
+            }
+            self.identifier = identifier
+            resourceType = nil
+            role = .sourceRecord
+            self.nativeRecordIdentifier = nativeRecordIdentifier
+        }
+
+        package init( // swiftlint:disable:this cyclomatic_complexity
             identifier: RoledIdentifier,
             resourceType: ResourceType,
             role: Role,
@@ -188,6 +200,8 @@ extension RetractionEvent {
                 .sourceOutput
             case .deviceSnapshot:
                 .deviceSnapshot
+            case .sourceRecord:
+                .sourceRecord
             }
             guard identifier.role == expectedIdentifierRole else {
                 throw ValidationError.identifierRoleMismatch(
@@ -206,6 +220,8 @@ extension RetractionEvent {
                 [.specimen]
             case .deviceSnapshot:
                 [.device]
+            case .sourceRecord:
+                []
             }
             guard allowedResourceTypes.contains(resourceType) else {
                 throw ValidationError.resourceTypeMismatch(role: role, resourceType: resourceType)
@@ -243,7 +259,7 @@ extension RetractionEvent.Target {
         return Reference(
             extension: extensions,
             identifier: identifier.fhirIdentifier,
-            type: FHIRPrimitive(FHIRURI(stringLiteral: resourceType.rawValue))
+            type: resourceType.map { FHIRPrimitive(FHIRURI(stringLiteral: $0.rawValue)) }
         )
     }
 }
