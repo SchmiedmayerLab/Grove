@@ -46,14 +46,15 @@ struct LegacyIdentifierInventoryTests {
         LegacyStorageKeyPrefix.bulkExportSessions,
         LegacyStorageKeyPrefix.accountDetailsCache,
         LegacyStudyTaskIdentifiers.componentTaskPrefix,
-        LegacyStudyTaskIdentifiers.categoryPrefix
+        LegacyStudyTaskIdentifiers.categoryPrefix,
+        LegacySceneStorageKey.accountStartupCheck
     ]
 
     /// A count, not a set: two identifiers may legitimately share a value, and losing one to a
     /// deduplicating collection is exactly the accident this pins against.
     @Test
     func theVaultHoldsTheIdentifiersItShipped() {
-        #expect(Self.transitional.count == 27)
+        #expect(Self.transitional.count == 28)
     }
 
     @Test
