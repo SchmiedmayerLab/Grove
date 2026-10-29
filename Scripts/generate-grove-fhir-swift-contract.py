@@ -445,6 +445,18 @@ def measurement_lines(
         lines.append("        ],")
     else:
         lines.append("        resultCodes: [],")
+    result_bindings = measurement.get("additionalResultBindings", [])
+    if result_bindings:
+        lines.append("        additionalResultBindings: [")
+        for binding in result_bindings:
+            values = ", ".join(swift_string(value) for value in binding["allowedValues"])
+            lines.append(
+                "            ResultBindingContract("
+                f"system: {swift_string(binding['system'])}, allowedValues: [{values}]),"
+            )
+        lines.append("        ],")
+    else:
+        lines.append("        additionalResultBindings: [],")
     method = measurement.get("method")
     if method:
         lines.append(
@@ -1016,6 +1028,13 @@ def generate(catalog_directory: Path) -> str:
         "}",
         "",
         "",
+        "/// An additional result-code system and the codes admitted specifically from that system.",
+        "package struct ResultBindingContract: Hashable, Sendable {",
+        "    package let system: String",
+        "    package let allowedValues: [String]",
+        "}",
+        "",
+        "",
         "/// One generated shared mobile measurement contract.",
         "package struct MeasurementContract: Sendable {",
         "    package let id: String",
@@ -1027,11 +1046,23 @@ def generate(catalog_directory: Path) -> str:
         "    package let resultCodeSystem: String?",
         "    package let allowedValues: [String]",
         "    package let resultCodes: [ResultCodeContract]",
+        "    package let additionalResultBindings: [ResultBindingContract]",
         "    package let method: MethodContract?",
         "    package let methodChoice: [String]",
         "    package let effective: MeasurementEffective",
         "    /// The Observation category the catalog fixes for the measurement, if it fixes one.",
         "    package let category: CodingContract?",
+        "",
+        "    /// Whether this exact code and system belong to the measurement's closed result value set.",
+        "    package func admitsResult(code: String, system: String) -> Bool {",
+        "        if system == resultCodeSystem,",
+        "           allowedValues.contains(code) || resultCodes.contains(where: { $0.code == code }) {",
+        "            return true",
+        "        }",
+        "        return additionalResultBindings.contains {",
+        "            $0.system == system && $0.allowedValues.contains(code)",
+        "        }",
+        "    }",
         "}",
         "",
         "",

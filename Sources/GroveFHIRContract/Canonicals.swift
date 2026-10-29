@@ -57,6 +57,8 @@ public enum Canonicals {
     public static let healthKitAppetiteChanges = uri("/healthkit/CodeSystem/healthkit-appetite-changes")
     public static let healthKitAppleStandHourValue = uri("/healthkit/CodeSystem/healthkit-apple-stand-hour-value")
     public static let healthKitWorkoutActivity = uri("/healthkit/CodeSystem/healthkit-workout-activity")
+    public static let healthKitWorkoutEventType = uri("/healthkit/CodeSystem/healthkit-workout-event-type")
+    public static let healthKitUnmappedSourceValue = uri("/healthkit/StructureDefinition/healthkit-unmapped-source-value")
     public static let healthKitMeasurementCodeSystem = uri("/healthkit/CodeSystem/healthkit-measurement")
     public static let healthKitCervicalMucusQuality = uri("/healthkit/CodeSystem/healthkit-cervical-mucus-quality")
     public static let healthKitContraceptive = uri("/healthkit/CodeSystem/healthkit-contraceptive")

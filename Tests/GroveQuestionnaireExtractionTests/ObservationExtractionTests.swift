@@ -426,6 +426,46 @@ struct ObservationExtractionTests {
 
     // MARK: Beyond the Guide's Example
 
+    @Test("Workout segment codes remain bound to their declared systems", arguments: [
+        ("lap", "grove-workout-segment-type", true),
+        ("running", "grove-workout-activity", true),
+        ("running", "grove-workout-segment-type", false),
+        ("lap", "grove-workout-activity", false),
+        ("not-a-segment", "grove-workout-segment-type", false),
+        ("running", "not-a-system", false)
+    ])
+    func workoutSegmentResultBindings(code: String, system: String, admitted: Bool) {
+        #expect(MeasurementCatalog.workoutSegment.admitsResult(
+            code: code,
+            system: "https://grovealliance.org/fhir/mobile/CodeSystem/\(system)"
+        ) == admitted)
+    }
+
+    @Test("A coded answer uses allowedValues when the catalog has no display-bearing resultCodes")
+    func codedAnswerUsesAllowedValues() throws {
+        let contract = HealthKitMeasurementCatalog.bladderIncontinence
+        #expect(contract.resultCodes.isEmpty)
+        let system = try #require(contract.resultCodeSystem)
+        let (questionnaire, response) = try Self.syntheticPair(
+            code: (system: contract.code.system, value: contract.code.code),
+            marking: Extension(
+                url: FHIRPrimitive(FHIRURI(stringLiteral: ExtractionCanonical.observationExtract)),
+                value: .boolean(FHIRPrimitive(FHIRBool(true)))
+            ),
+            answer: .coding(Coding(
+                code: "mild".asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: system))
+            ))
+        )
+        let extracted = try QuestionnaireObservationExtractor(questionnaire: questionnaire, response: response).extract()
+        let measurement = try #require(extracted.first { $0.contract.id == contract.id })
+        guard case .codeableConcept(let concept) = measurement.value else {
+            Issue.record("coded answer did not extract as a CodeableConcept")
+            return
+        }
+        #expect(concept.coding?.first?.code?.value?.string == "mild")
+    }
+
     @Test("A coded answer the measurement admits extracts as a CodeableConcept")
     func codedAnswerExtracts() throws {
         let (questionnaire, response) = try Self.syntheticPair(

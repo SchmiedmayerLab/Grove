@@ -248,10 +248,10 @@ struct QuestionnaireObservationExtractor {
         contract: MeasurementContract,
         linkID: String
     ) throws -> ExtractedValue {
-        if let system = contract.resultCodeSystem {
+        if contract.resultCodeSystem != nil || !contract.additionalResultBindings.isEmpty {
             let answered = coding.code?.value?.string ?? ""
-            guard coding.system?.value?.url.absoluteString == system,
-                  contract.resultCodes.contains(where: { $0.code == answered }) else {
+            guard let system = coding.system?.value?.url.absoluteString,
+                  contract.admitsResult(code: answered, system: system) else {
                 throw ObservationExtractionError.answerNotInMeasurement(linkID: linkID, code: answered)
             }
         }

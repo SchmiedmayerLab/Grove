@@ -841,6 +841,24 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn("package func contains(_ value: Decimal) -> Bool", generated)
         self.assertNotIn("stepCadence", generated)
 
+    def test_generates_additional_result_bindings_without_combining_namespaces(self):
+        measurement = {
+            **HEART_RATE,
+            "resultCodeSystem": "https://example.org/structural",
+            "allowedValues": ["lap"],
+            "additionalResultBindings": [
+                {"system": "https://example.org/activity", "allowedValues": ["running"]}
+            ],
+        }
+        generated = "\n".join(MODULE.measurement_lines(measurement))
+        self.assertIn('resultCodeSystem: "https://example.org/structural",', generated)
+        self.assertIn('allowedValues: ["lap"],', generated)
+        self.assertIn(
+            'ResultBindingContract(system: "https://example.org/activity", allowedValues: ["running"]),',
+            generated,
+        )
+        self.assertNotIn('allowedValues: ["lap", "running"]', generated)
+
     def test_preserves_effective_datetime_or_period_choice(self):
         catalogs = self.catalogs()
         catalogs["measurement-catalog.json"]["measurements"] = [
@@ -935,7 +953,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
         generated = self.generate(catalogs)
 
-        self.assertIn("    package let category: CodingContract?\n}", generated)
+        self.assertIn("    package let category: CodingContract?\n", generated)
         self.assertIn(
             '        effective: .dateTimeOrPeriod,\n'
             '        category: CodingContract(system: "http://terminology.hl7.org/CodeSystem/observation-category", '
@@ -959,6 +977,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             "        resultCodeSystem: nil,\n"
             "        allowedValues: [],\n"
             "        resultCodes: [],\n"
+            "        additionalResultBindings: [],\n"
             "        method: nil,\n"
             "        methodChoice: [],\n"
             "        effective: .dateTime,\n"
