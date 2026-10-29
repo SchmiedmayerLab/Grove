@@ -485,6 +485,37 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(pair.warnings.first?.code == .expressionEngineRequired)
     }
 
+    @Test("Coded enableWhen uses a system only when the condition declares one", arguments: [false, true])
+    func codedConditionSystemMatching(negated: Bool) throws {
+        for expectedSystem in [nil, Self.codingSystem, "https://example.org/other-codes"] {
+            var objects = try basePairObjects()
+            var group = try group(in: objects.questionnaire)
+            var trigger = try question(in: objects.questionnaire)
+            var target = trigger
+            let coding: JSONObject = ["system": Self.codingSystem, "code": "allowed"]
+            trigger["type"] = "choice"
+            trigger["answerOption"] = [["valueCoding": coding]]
+            var expected: JSONObject = ["code": "allowed"]
+            expected["system"] = expectedSystem
+            target["linkId"] = "target"
+            target["required"] = true
+            target["enableWhen"] = [["question": "question", "operator": negated ? "!=" : "=", "answerCoding": expected]]
+            group["item"] = [trigger, target]
+            try replaceGroup(in: &objects.questionnaire, with: group)
+            var responseGroup = try self.group(in: objects.response)
+            var triggerResponse = try question(in: objects.response)
+            var targetResponse = triggerResponse
+            triggerResponse["answer"] = [["valueCoding": coding]]
+            targetResponse["linkId"] = "target"
+            let matches = expectedSystem == nil || expectedSystem == Self.codingSystem
+            responseGroup["item"] = matches != negated ? [triggerResponse, targetResponse] : [triggerResponse]
+            try replaceGroup(in: &objects.response, with: responseGroup)
+            let pair = try decodePair(objects)
+            let issues = PairValidator().issues(questionnaire: pair.questionnaire, response: pair.response)
+            #expect(issues.isEmpty)
+        }
+    }
+
     @Test("Built-in pair expressions share the form's item scopes and variables", arguments: [true, false])
     func builtInPairExpressionScopes(validAnswer: Bool) throws {
         var objects = try basePairObjects()

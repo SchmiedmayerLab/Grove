@@ -206,9 +206,9 @@ extension PairContext {
                 }
                 outcomes.append((!values.isEmpty) == expected)
             case "=":
-                outcomes.append(values.contains { PairRules.valuesEqual($0, expectedValue) })
+                outcomes.append(values.contains { PairRules.enableWhenMatches($0, expected: expectedValue) })
             case "!=":
-                outcomes.append(values.contains { !PairRules.valuesEqual($0, expectedValue) })
+                outcomes.append(values.contains { !PairRules.enableWhenMatches($0, expected: expectedValue) })
             case ">", "<", ">=", "<=":
                 guard let operation = condition["operator"] as? String else {
                     return nil
