@@ -114,6 +114,22 @@ def nested_fhir_resources(
     return resources
 
 
+def matches_coded_result(resource: dict[str, Any], expected: Any) -> bool:
+    if not isinstance(expected, dict) or expected.get("type") != "CodeableConcept":
+        return False
+    system, code = expected.get("system"), expected.get("code")
+    if not isinstance(system, str) or not isinstance(code, str):
+        return False
+    value = resource.get("valueCodeableConcept")
+    codings = value.get("coding") if isinstance(value, dict) else None
+    return isinstance(codings, list) and sum(
+        isinstance(coding, dict)
+        and coding.get("system") == system
+        and coding.get("code") == code
+        for coding in codings
+    ) == 1
+
+
 def semantic_vector_bindings(
     resources: list[tuple[str, dict[str, Any]]],
     corpus_path: Path | None,
@@ -125,6 +141,7 @@ def semantic_vector_bindings(
     if not isinstance(vectors, list):
         raise ManifestError("Mobile semantic-vector corpus has no vectors array")
     vector_profiles: dict[str, str] = {}
+    vector_results: dict[str, Any] = {}
     for vector in vectors:
         if not isinstance(vector, dict):
             raise ManifestError("Mobile semantic-vector corpus contains a non-object vector")
@@ -135,8 +152,9 @@ def semantic_vector_bindings(
         if vector_id in vector_profiles or profile in vector_profiles.values():
             raise ManifestError("Mobile semantic-vector ids and profiles must be unique")
         vector_profiles[vector_id] = profile
+        vector_results[vector_id] = vector.get("result")
 
-    candidates: dict[str, list[tuple[str, str]]] = {vector_id: [] for vector_id in vector_profiles}
+    candidates: dict[str, list[tuple[str, str, dict[str, Any]]]] = {vector_id: [] for vector_id in vector_profiles}
     for relative, root in resources:
         for pointer, resource in nested_fhir_resources(root):
             profiles = resource.get("meta", {}).get("profile", [])
@@ -144,7 +162,7 @@ def semantic_vector_bindings(
                 continue
             for vector_id, profile in vector_profiles.items():
                 if profile in profiles:
-                    candidates[vector_id].append((relative, pointer))
+                    candidates[vector_id].append((relative, pointer, resource))
 
     bindings: list[dict[str, str]] = []
     for vector_id, occurrences in sorted(candidates.items()):
@@ -155,12 +173,19 @@ def semantic_vector_bindings(
             for occurrence in occurrences
             if Path(occurrence[0]).stem == vector_id
         ]
+        if len(named) > 1:
+            # A workout bundle can contain several segment classifications. Bind only the exact
+            # coded result, leaving its interval and full result to the IG's semantic validator.
+            named = [
+                occurrence for occurrence in named
+                if matches_coded_result(occurrence[2], vector_results[vector_id])
+            ]
         if len(named) != 1:
             raise ManifestError(
                 f"shared Mobile profile {vector_profiles[vector_id]} must have exactly one "
                 f"binding candidate in {vector_id}.json; found {len(named)}"
             )
-        relative, pointer = named[0]
+        relative, pointer, _ = named[0]
         bindings.append({
             "id": vector_id,
             "path": relative,
