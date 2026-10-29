@@ -103,10 +103,15 @@ final class ExampleUITests: XCTestCase {
         let otherField = app.textViews.element(boundBy: 0)
         otherField.tap()
         otherField.typeText("Cookie Dough")
+
+        let keyboardDone = app.toolbars.buttons["Done"]
+        XCTAssert(keyboardDone.waitForExistence(timeout: 2))
+        keyboardDone.tap()
         
         app.buttons["Next"].tap()
 
         // Enter in a date on the next screen
+        XCTAssert(app.pickerWheels.element(boundBy: 0).waitForExistence(timeout: 2))
         app.pickerWheels.element(boundBy: 0).adjust(toPickerWheelValue: "August")
         app.pickerWheels.element(boundBy: 1).adjust(toPickerWheelValue: "31")
         app.pickerWheels.element(boundBy: 2).adjust(toPickerWheelValue: "2021")
