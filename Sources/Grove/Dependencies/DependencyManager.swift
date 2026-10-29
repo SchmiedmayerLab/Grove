@@ -37,6 +37,13 @@ public class DependencyManager: Sendable {
     private var currentPushedModule: ModuleReference?
     private var searchStacks: [ModuleReference: [any Module.Type]] = [:]
 
+    /// Required dependency edges collected during ``require(_:type:defaultValue:)``.
+    ///
+    /// Used to detect peer cycles (both modules listed in the configuration) that the search-stack
+    /// algorithm misses when the dependency is already queued or initialized.
+    private var requiredDependencyEdges: [ObjectIdentifier: Set<ObjectIdentifier>] = [:]
+    private var moduleTypeNames: [ObjectIdentifier: String] = [:]
+
     private var nextTypeOrderIndex: UInt64 = 0
     private var moduleTypeOrder: [ObjectIdentifier: UInt64] = [:]
 
@@ -65,20 +72,24 @@ public class DependencyManager: Sendable {
             try push(nextModule)
         }
 
+        try detectRequiredDependencyCycles()
+
         try injectDependencies()
         assert(searchStacks.isEmpty, "`searchStacks` are not getting cleaned up!")
         assert(currentPushedModule == nil, "`currentPushedModule` is never reset!")
         assert(modulesWithDependencies.isEmpty, "modulesWithDependencies has remaining entries \(modulesWithDependencies)")
 
-        buildTypeOrder()
+        try buildTypeOrder()
 
         initializedModules.sort { lhs, rhs in
             retrieveTypeOrder(for: lhs) < retrieveTypeOrder(for: rhs)
         }
     }
 
-    private func buildTypeOrder() {
-        // when this method is called, we already know there is no cycle
+    private func buildTypeOrder() throws(DependencyManagerError) {
+        var completed: Set<ObjectIdentifier> = []
+        var inProgress: Set<ObjectIdentifier> = []
+        var recursionStack: [any Module.Type] = []
 
         func nextEntry(for module: any Module.Type) {
             let id = ObjectIdentifier(module)
@@ -89,17 +100,38 @@ public class DependencyManager: Sendable {
             nextTypeOrderIndex += 1
         }
 
-        func depthFirstSearch(for module: any Module) {
+        func depthFirstSearch(for module: any Module) throws(DependencyManagerError) {
+            let typeId = ObjectIdentifier(type(of: module))
+
+            if completed.contains(typeId) {
+                return
+            }
+            if inProgress.contains(typeId) {
+                let dependencyChain = recursionStack.map { String(describing: $0) }
+                throw DependencyManagerError.searchStackCycle(
+                    module: String(describing: recursionStack.last.unsafelyUnwrapped),
+                    requestedModule: String(describing: type(of: module)),
+                    dependencyChain: dependencyChain
+                )
+            }
+
+            inProgress.insert(typeId)
+            recursionStack.append(type(of: module))
+
             for declaration in module.dependencyDeclarations {
                 for dependency in declaration.unsafeInjectedModules {
-                    depthFirstSearch(for: dependency)
+                    try depthFirstSearch(for: dependency)
                 }
             }
+
+            recursionStack.removeLast()
+            inProgress.remove(typeId)
+            completed.insert(typeId)
             nextEntry(for: type(of: module))
         }
 
         for module in originalModules {
-            depthFirstSearch(for: module)
+            try depthFirstSearch(for: module)
         }
     }
 
@@ -141,6 +173,10 @@ public class DependencyManager: Sendable {
     ///   - defaultValue: A default instance of the dependency that is used when the `dependencyType` is not present in the `initializedModules` or `modulesWithDependencies`.
     func require<M: Module>(_ dependency: M.Type, type dependencyType: DependencyType, defaultValue: (() -> M)?) throws(DependencyManagerError) {
         try testForSearchStackCycles(M.self)
+
+        if dependencyType.isRequired {
+            recordRequiredDependencyEdge(to: M.self)
+        }
 
         // 1. Check if it is actively requested to load this module.
         if case .load = dependencyType {
@@ -237,6 +273,61 @@ public class DependencyManager: Sendable {
                     .map { String(describing: $0) }
                 throw DependencyManagerError.searchStackCycle(module: module, requestedModule: "\(M.self)", dependencyChain: dependencyChain)
             }
+        }
+    }
+
+    private func recordRequiredDependencyEdge<M: Module>(to dependency: M.Type) {
+        guard let currentPushedModule,
+              let fromType = searchStacks[currentPushedModule]?.last else {
+            return
+        }
+
+        let fromId = ObjectIdentifier(fromType)
+        let toId = ObjectIdentifier(dependency)
+        moduleTypeNames[fromId] = String(describing: fromType)
+        moduleTypeNames[toId] = String(describing: dependency)
+        requiredDependencyEdges[fromId, default: []].insert(toId)
+    }
+
+    /// Detects required dependency cycles that the search-stack algorithm cannot see.
+    ///
+    /// Peer modules that are both present in the configuration never extend the search stack when they
+    /// require each other (``require(_:type:defaultValue:)`` returns early), so cycles like `A ↔ B`
+    /// are found here instead.
+    private func detectRequiredDependencyCycles() throws(DependencyManagerError) {
+        var visited: Set<ObjectIdentifier> = []
+        var inProgress: Set<ObjectIdentifier> = []
+        var recursionStack: [ObjectIdentifier] = []
+
+        func depthFirstSearch(_ node: ObjectIdentifier) throws(DependencyManagerError) {
+            if inProgress.contains(node) {
+                let cycleStart = recursionStack.firstIndex(of: node).unsafelyUnwrapped
+                let dependencyChain = recursionStack[cycleStart...]
+                    .map { moduleTypeNames[$0].unsafelyUnwrapped }
+                throw DependencyManagerError.searchStackCycle(
+                    module: moduleTypeNames[recursionStack.last.unsafelyUnwrapped].unsafelyUnwrapped,
+                    requestedModule: moduleTypeNames[node].unsafelyUnwrapped,
+                    dependencyChain: Array(dependencyChain)
+                )
+            }
+            if visited.contains(node) {
+                return
+            }
+
+            visited.insert(node)
+            inProgress.insert(node)
+            recursionStack.append(node)
+
+            for neighbor in requiredDependencyEdges[node, default: []] {
+                try depthFirstSearch(neighbor)
+            }
+
+            recursionStack.removeLast()
+            inProgress.remove(node)
+        }
+
+        for node in requiredDependencyEdges.keys {
+            try depthFirstSearch(node)
         }
     }
 }
