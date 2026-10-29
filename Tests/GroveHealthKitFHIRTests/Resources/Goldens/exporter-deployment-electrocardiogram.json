@@ -684,6 +684,25 @@
         ],
         "entity" : [
           {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "version",
+                    "valueString" : "42"
+                  },
+                  {
+                    "url" : "productType",
+                    "valueString" : "iPhone17,1"
+                  },
+                  {
+                    "url" : "operatingSystemVersion",
+                    "valueString" : "26.1.0"
+                  }
+                ],
+                "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-revision"
+              }
+            ],
             "role" : "source",
             "what" : {
               "identifier" : {

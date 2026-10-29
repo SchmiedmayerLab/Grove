@@ -398,6 +398,25 @@
         ],
         "entity" : [
           {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "version",
+                    "valueString" : "26.1"
+                  },
+                  {
+                    "url" : "productType",
+                    "valueString" : "Watch7,12"
+                  },
+                  {
+                    "url" : "operatingSystemVersion",
+                    "valueString" : "26.1.0"
+                  }
+                ],
+                "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-revision"
+              }
+            ],
             "role" : "source",
             "what" : {
               "identifier" : {

@@ -244,6 +244,8 @@ package struct ExchangeGraphDraft: Sendable {
     package var outputs: [ExchangeOutputDraft]
     package var recordingDevice: ExchangeRecordingDeviceDraft?
     package var writer: ExchangeWriterDraft?
+    /// Adapter facts about the consumed source record, independent of its author agent.
+    package var sourceExtensions: [Extension]
     package var converterRole: ConverterRole
     /// The logical id the Bundle states; only HealthKit's transitional legacy `Bundle.id` names one, and no other node
     /// carries a repository id.
@@ -256,6 +258,7 @@ package struct ExchangeGraphDraft: Sendable {
         outputs: [ExchangeOutputDraft],
         recordingDevice: ExchangeRecordingDeviceDraft? = nil,
         writer: ExchangeWriterDraft? = nil,
+        sourceExtensions: [Extension] = [],
         converterRole: ConverterRole = .assembler,
         bundleID: RepositoryID? = nil
     ) {
@@ -265,6 +268,7 @@ package struct ExchangeGraphDraft: Sendable {
         self.outputs = outputs
         self.recordingDevice = recordingDevice
         self.writer = writer
+        self.sourceExtensions = sourceExtensions
         self.converterRole = converterRole
         self.bundleID = bundleID
     }

@@ -15,10 +15,13 @@ public import HealthKit
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
     /// The HealthKit-specific choices of one exporter: how sources, devices and identifiers are stated,
-    /// and which disclosures the deployment authorizes. Every disclosure defaults to omission.
+    /// and which disclosures the deployment authorizes. Source names and identifiers default to omission.
     public struct Options: Sendable {
-        /// How the source that wrote a sample is stated: by default not at all. See ``WriterPolicy``.
+        /// Whether the source is stated as an author. Unclassified sources instead carry ``sourceRevision`` facts.
         public var writer: WriterPolicy = .omit
+        /// The facts an unclassified source carries on its Provenance entity. Names and bundle identifiers require
+        /// explicit authorization; the guide emits build, product type and operating-system version by default.
+        public var sourceRevision: SourceRevisionFields = [.version, .productType, .operatingSystemVersion]
         /// How the physical unit behind a sample's `HKDevice` is identified. See ``RecordingDevicePolicy``.
         public var recordingDevice: RecordingDevicePolicy = .localIdentifier
         /// How the converting application relates to each measurement. See ``RolePolicy``.

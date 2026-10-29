@@ -34,6 +34,7 @@ extension HealthKitFHIRExporter.Options {
     var fingerprintParts: [(property: String, parts: [String])] {
         let options: [(String, any ExchangeContextFingerprinted)] = [
             ("writer", writer),
+            ("sourceRevision", sourceRevision),
             ("recordingDevice", recordingDevice),
             ("role", role),
             ("nativeIdentifier", nativeIdentifier),

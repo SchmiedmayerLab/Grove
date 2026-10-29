@@ -22,6 +22,7 @@ extension HealthKitAssembly {
     struct SourceFacts {
         let recordingDevice: ExchangeRecordingDeviceDraft?
         let writer: ExchangeWriterDraft?
+        let sourceRevision: Extension?
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
         let wasUserEntered: Bool
@@ -51,6 +52,7 @@ extension HealthKitAssembly {
             }
             self.recordingDevice = recordingDevice
             self.writer = try Self.writer(revision, classification: policies.writer)
+            self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision, fields: options.sourceRevision) : nil
             self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
             self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
             self.wasUserEntered = metadata.wasUserEntered

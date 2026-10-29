@@ -42,6 +42,12 @@ struct HealthKitFHIRExporterFingerprintTests {
         let otherSystem: IdentifierSystem = "https://study.example.org/fhir/CodeSystem/other-type"
         return [
             ("route", { $0.route = .authorized }),
+            ("sourceRevision none", { $0.sourceRevision = [] }),
+            ("sourceRevision name", { $0.sourceRevision.insert(.sourceName) }),
+            ("sourceRevision bundle", { $0.sourceRevision.insert(.sourceBundleIdentifier) }),
+            ("sourceRevision without build", { $0.sourceRevision.remove(.version) }),
+            ("sourceRevision without product", { $0.sourceRevision.remove(.productType) }),
+            ("sourceRevision without OS", { $0.sourceRevision.remove(.operatingSystemVersion) }),
             ("legacyBundleID", { $0.legacyBundleID = .healthKitUUID }),
             ("writer applications", { $0.writer = .applications(["org.example.writer"]) }),
             // The size of the set above with another member: only the members tell the two apart.
@@ -181,7 +187,7 @@ struct HealthKitFHIRExporterFingerprintTests {
             $0.writer = writer
         }
         let key = ExchangeEventKey.active(type: .heartRate, uuid: GoldenFixtures.uuid(1))
-        #expect(exporter.context.request(for: key).fingerprint == "Y9AmAuXc9kZTd8ZjijBhBS7QD_7A8w4YKQLk7RXFRig")
+        #expect(exporter.context.request(for: key).fingerprint == "NwBbu_4ggxw-GOp7jUclwvzwQwlzi7frZ8xggtjoeM8")
     }
 
     /// A record's own parts follow the call parts: what the writer and recording-device policies answered for its
@@ -200,7 +206,7 @@ struct HealthKitFHIRExporterFingerprintTests {
         ])
         let planned = try #require(HealthKitFHIRExporter.Plan(.sample(sample), exporter: exporter).primary?.request)
         #expect(planned.fingerprint == exporter.context.request(for: planned.key, recordParts: policies.fingerprintParts).fingerprint)
-        #expect(planned.fingerprint == "4ViljxvhC5STfq5O5V-a8ML-YL42xAqmwAycm0BO414")
+        #expect(planned.fingerprint == "_PAumBzBXdm3vMw-qb3dBBya_V3AR8I0HXqX0j79b00")
     }
 
     @Test("G3b: the fingerprint covers every stored option, each under its own name and with its own value")

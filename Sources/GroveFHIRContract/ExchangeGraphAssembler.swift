@@ -101,6 +101,7 @@ package struct ExchangeGraphAssembler: Sendable {
             assemblerURL: devices.converter.application.url,
             // The writer application is the Provenance author; without one the Provenance names none.
             authorURL: devices.writer?.application.url,
+            sourceExtensions: draft.sourceExtensions,
             profile: envelope.adapter.provenanceProfile,
             at: draft.instant
         )
@@ -327,12 +328,14 @@ extension ExchangeGraphAssembler {
         targetURLs: [String],
         assemblerURL: String,
         authorURL: String? = nil,
+        sourceExtensions: [Extension] = [],
         profile: FHIRPrimitive<Canonical>,
         at instant: Date,
         occurredOffset: TimeZone = .utc
     ) throws -> Provenance {
         let times = try conversionTimes.forms(of: instant, occurredOffset: occurredOffset)
         var entity = ProvenanceEntity(role: FHIRPrimitive(.source), what: Reference(identifier: source.identifier.fhirIdentifier))
+        entity.extension = sourceExtensions.isEmpty ? nil : sourceExtensions
         entity.agent = authorURL.map { url in
             [ProvenanceAgent(
                 type: CodeableConcept(coding: [Coding(code: "author", display: "Author", system: Canonicals.provenanceParticipantType)]),

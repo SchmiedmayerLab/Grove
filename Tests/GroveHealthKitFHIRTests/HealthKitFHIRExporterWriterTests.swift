@@ -110,6 +110,7 @@ struct HealthKitFHIRExporterWriterTests {
         } == true)
         #expect(stated.device.version?.contains { $0.type?.coding?.contains { $0.code == "531975" } == true } != true)
         #expect(author(bundle) == stated.url, "the writer is the Provenance author")
+        #expect(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.extension == nil)
         return true
     }
 
@@ -142,6 +143,15 @@ struct HealthKitFHIRExporterWriterTests {
         let bundles = try [bare, declined, resolved].map { try #require(exports[$0.uuid]?.graph?.bundle) }
         for bundle in bundles {
             Self.statesNoWriter(bundle, source: Self.watchSource)
+            let entity = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first)
+            let extensions = try #require(entity.extension)
+            #expect(extensions.count == 1)
+            let revision = try #require(extensions.first)
+            #expect(revision.url.value?.url.absoluteString == "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-revision")
+            #expect(revision.extension?.map { $0.url.value?.url.absoluteString } == ["version", "productType", "operatingSystemVersion"])
+            #expect(revision.extension?.map(\.value) == [
+                .string("26.1"), .string("Watch7,12"), .string("26.1.0")
+            ])
         }
         // No `HKDevice`: no recording Device and nothing to report.
         #expect(Self.recordingDevices(bundles[0]).isEmpty)
@@ -152,6 +162,21 @@ struct HealthKitFHIRExporterWriterTests {
         // An `HKDevice` the policy resolved: its recording Device, named by the `HKDevice`, and no warning.
         #expect(Self.recordingDevices(bundles[2]).map { $0.deviceName?.first?.name.value?.string } == ["Apple Watch"])
         #expect(exports[resolved.uuid]?.warnings.isEmpty == true)
+    }
+
+    @Test("Source revision names require authorization, and all revision facts may be withheld")
+    func sourceRevisionDisclosure() async throws {
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x34), writer: Self.watchSource)
+        let hidden = try Fixtures.exporter { $0.sourceRevision = [] }
+        let hiddenBundle = try await #require(Self.exports(hidden, [sample])[sample.uuid]?.graph?.bundle)
+        #expect(hiddenBundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.extension == nil)
+        let named = try Fixtures.exporter { $0.sourceRevision = [.sourceName, .sourceBundleIdentifier] }
+        let namedBundle = try await #require(Self.exports(named, [sample])[sample.uuid]?.graph?.bundle)
+        let entity = try #require(namedBundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first)
+        #expect(entity.agent == nil)
+        #expect(entity.extension?.first?.extension?.map(\.value) == [
+            .string(Self.watchSource.name.asFHIRStringPrimitive()), .string(Self.watchSource.bundleIdentifier.asFHIRStringPrimitive())
+        ])
     }
 
     @Test("W2: a listed bundle identifier states its application writer from the sample's own source revision; others state none")
