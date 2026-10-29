@@ -150,6 +150,21 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(issues.isEmpty)
     }
 
+    @Test("Text length uses the same characters as the form", arguments: ["👍🏽", "🇦🇹", "e\u{301}"])
+    func textLengthMatchesForm(value: String) throws {
+        var objects = try basePairObjects()
+        var definition = try question(in: objects.questionnaire)
+        definition["type"] = "string"
+        definition["maxLength"] = 1
+        appendExtension(["url": minLength, "valueInteger": 1], to: &definition)
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        var response = try question(in: objects.response)
+        response["answer"] = [["valueString": value]]
+        try replaceQuestion(in: &objects.response, with: response)
+        let pair = try decodePair(objects)
+        #expect(PairValidator().issues(questionnaire: pair.questionnaire, response: pair.response).isEmpty)
+    }
+
     @Test("Response item text may be omitted or equal the base text", arguments: [nil, "Question"])
     func acceptsOmittedOrBaseResponseText(text: String?) throws {
         var objects = try basePairObjects()

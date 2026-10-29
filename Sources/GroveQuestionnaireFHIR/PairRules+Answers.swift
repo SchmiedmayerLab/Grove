@@ -145,7 +145,7 @@ extension PairContext {
               let value = answer.value as? String else {
             return
         }
-        let length = value.unicodeScalars.count
+        let length = value.count
         let minimumExtension = PairRules.firstExtensionValue(
             definition,
             url: PairRules.URL.minLength
