@@ -123,6 +123,8 @@ extension HealthKitConversionError {
         case syncVersion
         case wasUserEntered
         case heartRateMotionContext
+        case heartRateEventThreshold
+        case lowCardioFitnessEventThreshold
         case insulinDeliveryReason
         case menstrualCycleStart
         case sexualActivityProtectionUsed
@@ -135,6 +137,8 @@ extension HealthKitConversionError {
             case .syncVersion: HKMetadataKeySyncVersion
             case .wasUserEntered: HKMetadataKeyWasUserEntered
             case .heartRateMotionContext: HKMetadataKeyHeartRateMotionContext
+            case .heartRateEventThreshold: HKMetadataKeyHeartRateEventThreshold
+            case .lowCardioFitnessEventThreshold: HKMetadataKeyLowCardioFitnessEventThreshold
             case .insulinDeliveryReason: HKMetadataKeyInsulinDeliveryReason
             case .menstrualCycleStart: HKMetadataKeyMenstrualCycleStart
             case .sexualActivityProtectionUsed: HKMetadataKeySexualActivityProtectionUsed
@@ -152,6 +156,8 @@ extension HealthKitConversionError {
             switch self {
             case .heartRateMotionContext, .appleECGAlgorithmVersion:
                 (value as? NSNumber) != nil
+            case .heartRateEventThreshold, .lowCardioFitnessEventThreshold:
+                (value as? HKQuantity) != nil
             case .insulinDeliveryReason, .menstrualCycleStart, .sexualActivityProtectionUsed:
                 true
             case .timeZone, .syncIdentifier, .syncVersion, .wasUserEntered:

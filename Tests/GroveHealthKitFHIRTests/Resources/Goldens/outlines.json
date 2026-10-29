@@ -2019,6 +2019,56 @@
       "mobile-omission.unmodeled-metadata@HKSample.metadata"
     ]
   },
+  "high-heart-rate-threshold" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+        ],
+        "fullUrl" : "urn:uuid:8307fa9b-4c3e-5318-9ed7-2bdbcc7dc3ec",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:AUdiu4IJO1EmndSXU77IVQ10gEQe0Za8zzKx7aAuZsA",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:i3G4ZCx6c6sTQ8RTyGrsemQ4hwR6EVUi5hFYB2JNuhw"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:757e8294-f230-53e3-878e-2f4f86c1cdc7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:HfGbIrieVKHU5tJ2RP8T4Bcq_Dw1WJbtfhIPk54olFg"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:e9850d8d-f5ed-5b42-a344-27a36a4f01d7",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:JLGT8XD4ZItMMPLcajeCPcM86zqAjkY_Fpfdh1r__rk",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:8ec9c4ec-b712-51c3-a92c-1ceb6ead3dc3",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+      "mobile-omission.source-offset@Observation.effectivePeriod.start",
+      "mobile-omission.source-offset@Observation.effectivePeriod.end"
+    ]
+  },
   "insulin-delivery-bolus" : {
     "entries" : [
       {

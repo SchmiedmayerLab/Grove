@@ -18,7 +18,23 @@ import ModelsR4
 /// The Observation-graph shapes the goldens pin: one sample each, exported through `HealthKitFHIRExporter`.
 extension GoldenCase {
     /// Every pinned shape, in the order the goldens directory lists them.
-    static let all: [GoldenCase] = observations + writers + disclosures + documents + retractions + exporter + guideExamples
+    static let all: [GoldenCase] = observations + writers + disclosures + documents + retractions + exporter + guideExamples + thresholds
+
+    static let thresholds: [GoldenCase] = [
+        GoldenCase("high-heart-rate-threshold", sequence: 150) { sequence in
+            let sample = HKCategorySample(
+                type: HKCategoryType(.highHeartRateEvent),
+                value: HKCategoryValue.notApplicable.rawValue,
+                start: GoldenFixtures.sampleStart,
+                end: GoldenFixtures.sampleStart,
+                metadata: [HKMetadataKeyHeartRateEventThreshold: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 120)]
+            )
+            return try await GoldenFixtures.export(
+                StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0x96), writer: .unattributed),
+                sequence: sequence
+            )
+        }
+    ]
 
     /// Sequences 1-19: the measurement shapes under the default context.
     static let observations: [GoldenCase] = [

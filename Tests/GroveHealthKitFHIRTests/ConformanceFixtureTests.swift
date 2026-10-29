@@ -88,6 +88,7 @@ struct ConformanceFixtureTests {
     /// invariant admits -1 through 1, an IG defect.
     private static let validatedGoldens: Set<String> = [
         "guide-example-heart-rate",
+        "high-heart-rate-threshold",
         "workout-session",
         "workout-session-context",
         "writer-non-ascii-name",
