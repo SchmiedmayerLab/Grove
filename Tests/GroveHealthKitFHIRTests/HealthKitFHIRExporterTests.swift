@@ -300,19 +300,31 @@ struct HealthKitFHIRExporterTests {
         #expect(period.end != nil)
     }
 
-    @Test("F1: an exported workout is its session alone, and its retraction targets exactly that session")
+    @Test("An exported workout includes every segment, and its deletion retracts their source record")
     func workoutExportAndRetraction() async throws {
         let exporter = try Self.exporter()
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA3))
         let (exports, _) = try await Self.collect(exporter, [workout])
-        let observations = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) })
-        try #require(observations.count == 1)
-        let session = try #require(observations[0].identifier?.first { (try? RoledIdentifier($0).role) == .sourceOutput }?.value?.value?.string)
+        let entries = try #require(exports.first?.graph?.bundle.entry)
+        let observationEntries = entries.filter { $0.resource?.get(if: Observation.self) != nil }
+        let observations = observationEntries.compactMap { $0.resource?.get(if: Observation.self) }
+        let segments = (workout.workoutEvents ?? []).count + workout.workoutActivities.count
+        try #require(observations.count == 1 + segments)
+        let session = try #require(observations.first)
+        #expect(session.hasMember?.compactMap { $0.reference?.value?.string }
+            == observationEntries.dropFirst().compactMap { $0.fullUrl?.value?.url.absoluteString })
+        let source = try #require(entries.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.what.identifier)
+        #expect(try RoledIdentifier(source).role == .sourceRecord)
         var retractions: [HealthKitFHIRExporter.Retraction] = []
         let deletion = HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant)
         _ = try await exporter.retract([deletion], at: GoldenFixtures.conversionInstant) { retractions.append($0) }
         let provenance = try #require(retractions.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == [session])
+        try #require(provenance.target.count == 1)
+        let target = try #require(provenance.target.first)
+        #expect(target.identifier == source)
+        #expect(target.type == nil)
+        let role = target.extension?.first { $0.url == Canonicals.retractionTargetRole }
+        #expect(role?.value == .code("source-record".asFHIRStringPrimitive()))
     }
 
     /// One refusal per record, chosen in a fixed order whatever the options: content, then writer, then sync pair.
