@@ -70,6 +70,7 @@ public struct SensorKitPPGRecording: Equatable, Sendable {
             end = end.map { Swift.max($0, instant) } ?? instant
         }
         for record in records {
+            include(record.startDate)
             include(record.instant)
             for sample in record.opticalSamples {
                 include(record.startDate.addingTimeInterval(Double(sample.nanosecondsSinceStart) / 1_000_000_000))

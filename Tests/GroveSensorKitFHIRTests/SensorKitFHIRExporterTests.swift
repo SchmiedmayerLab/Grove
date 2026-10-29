@@ -209,7 +209,7 @@ struct SensorKitFHIRExporterTests {
     /// with an output revision.
     @Test("A fixed record's request fingerprints to a known answer")
     func requestFingerprintIsAKnownAnswer() throws {
-        try #require(ExchangeGraphAssembler.outputRevision == 1 && SensorKitConverter.outputRevision == 1, "a revision bump restates the answer")
+        try #require(ExchangeGraphAssembler.outputRevision == 1 && SensorKitConverter.outputRevision == 2, "a revision bump restates the answer")
         let exporter = try Fixtures.exporter(Fixtures.producer(), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
         let plan = SensorKitFHIRExporter.Plan(
             try Self.wristTemperature(8),
@@ -221,7 +221,7 @@ struct SensorKitFHIRExporterTests {
             exporter: exporter
         )
         let request = try plan.content.get().request
-        #expect(request.fingerprint == "PNvoLV5fSCGtYfNmnKkauM15zWRYxnKfHBirLjcUDR8")
+        #expect(request.fingerprint == "EINQ8fGtTf7ty2TQrJQkcB2x_yBO681zON8z5KVlIOE")
     }
 
     @Test("Every converter-clock instant states the reservation's millisecond, kept on a redelivery")

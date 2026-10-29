@@ -28,7 +28,7 @@ enum SensorKitConverter {
     /// The revision of the content this adapter drafts. Bump it whenever the bytes it emits can change for equal
     /// inputs: it enters every exporter's context fingerprint, so an event reserved under an older revision is
     /// never redelivered under the same identifier with different bytes.
-    static let outputRevision: UInt = 1
+    static let outputRevision: UInt = 2
 
     static let adapter = ExchangeAdapterContract(
         adapterID: adapterID,
