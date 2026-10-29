@@ -42,10 +42,11 @@ permissions:
   contents: read
 
 env:
-  # TEMPORARY: Swift 6.4 can link _swift_initBorrow when targeting the iOS 26.5 runtime.
-  # Keep every Apple test job on Swift 6.3.3 until the back-deployment fix ships.
+  # Match MHC's installed Xcode selection; some runners no longer retain Xcode 26.6.
+  # Tests keep their 26.5 simulator destinations. Package.swift excludes swift-collections 1.7.0,
+  # whose Ref helpers linked _swift_initBorrow on older runtimes with Swift 6.4.
   # https://github.com/apple/swift-collections/issues/733
-  TEST_XCODE_VERSION: '26.6'
+  TEST_XCODE_VERSION: 'latest-stable'
 
 jobs:
   detect:
