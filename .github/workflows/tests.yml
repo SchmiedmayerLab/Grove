@@ -18,7 +18,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: 9c5eff45622af55217c489cc985b162e6d9b8c75
+        default: eff5af8f58cdd99bb8988c237f2996e9e1de75ff
       fhir_only:
         description: Run only producer conformance against the selected grove-fhir contract.
         type: boolean
@@ -32,7 +32,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: 9c5eff45622af55217c489cc985b162e6d9b8c75
+        default: eff5af8f58cdd99bb8988c237f2996e9e1de75ff
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -280,12 +280,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || '9c5eff45622af55217c489cc985b162e6d9b8c75' }}
+          ref: ${{ inputs.grove_fhir_ref || 'eff5af8f58cdd99bb8988c237f2996e9e1de75ff' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '9c5eff45622af55217c489cc985b162e6d9b8c75' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || 'eff5af8f58cdd99bb8988c237f2996e9e1de75ff' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Pin the implementation-guide cache key
         run: |
@@ -346,7 +346,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '9c5eff45622af55217c489cc985b162e6d9b8c75' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || 'eff5af8f58cdd99bb8988c237f2996e9e1de75ff' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

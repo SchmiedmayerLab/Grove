@@ -124,12 +124,13 @@ struct HealthKitFHIRAggregateConversionTests {
         ])
     }
 
-    @Test("Sleeping breathing disturbances normalize to events per hour of the session")
-    func sessionRateNormalizesToHours() throws {
+    @Test("Sleeping breathing disturbances pass HealthKit's per-hour rate through unchanged")
+    func sessionRatePassesPlatformRateThrough() throws {
+        // HealthKit stores this type as events per hour already; a night-long sample must not be divided again.
         let sample = quantitySample(
             .appleSleepingBreathingDisturbances,
             unit: .count(),
-            value: 21,
+            value: 4.2,
             interval: 7 * 3_600
         )
         let observation = try converter.convert(sample, context: context).observation
@@ -141,7 +142,7 @@ struct HealthKitFHIRAggregateConversionTests {
         }())
 
         #expect(quantity.code?.value?.string == "/h")
-        #expect(quantity.value?.value?.decimal.description == "3")
+        #expect(quantity.value?.value?.decimal.description == "4.2")
         #expect(observation.method?.coding?.first?.code?.value?.string == "session-rate")
     }
 

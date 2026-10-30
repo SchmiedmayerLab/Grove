@@ -11,6 +11,7 @@ private import CryptoKit
 #else
 private import Crypto
 #endif
+private import FHIRModelsExtensions
 public import Foundation
 public import GroveFHIRContract
 public import GroveQuestionnaire
@@ -153,7 +154,8 @@ extension ModelsR4.QuestionnaireResponse {
             guard let authoredTimeZone else {
                 throw FHIRResponseConversionError("authoredTimeZone is required with authored")
             }
-            self.authored = try FHIRPrimitive(DateTime(date: authored, timeZone: authoredTimeZone))
+            // The offset at `authored` itself: a named zone would put the repeated DST hour one hour early.
+            self.authored = try FHIRPrimitive(DateTime(date: authored, timeZone: authoredTimeZone.fixedOffset(at: authored)))
         }
         self.subject = subject
         self.author = author

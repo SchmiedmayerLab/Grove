@@ -189,10 +189,6 @@ struct SensorKitTests {
         let afterRestart = try anchor.value
         #expect(afterRestart.pendingBatch?.sampleCount == 2)
         #expect(afterRestart.acquisitionBatchCoordinate == initial.acquisitionBatchCoordinate)
-        #expect(throws: SensorKit.QueryAnchorAcknowledgementError.unresolvedPendingBatch) {
-            try anchor.reset()
-        }
-        #expect(try anchor.value == afterRestart)
 
         let firstCommitted = try afterRestart.committingPendingBatch()
         #expect(try anchor.update(from: afterRestart, to: firstCommitted))
@@ -211,6 +207,48 @@ struct SensorKitTests {
         #expect(try anchor.update(from: secondPending, to: secondCommitted))
         #expect(secondCommitted.batchSequence == 2)
         #expect(secondCommitted.timestamp == timestamp)
+    }
+
+    @Test("Reset abandons a pending batch under a new generation")
+    @available(iOS 18, *)
+    func resetAbandonsPendingBatch() throws {
+        let timestamp = Date(timeIntervalSinceReferenceDate: 5_000)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: timestamp)
+        let initial = try anchor.value
+        let pending = initial.preparing(.sampleCount(deliveryTimestamp: timestamp, sampleCount: 3))
+        #expect(try anchor.update(from: initial, to: pending))
+
+        try anchor.reset()
+
+        let reset = try anchor.value
+        #expect(reset.pendingBatch == nil)
+        #expect(reset.timestamp == .distantPast)
+        #expect(reset.resetGeneration == initial.resetGeneration + 1)
+        // The abandoned batch's acknowledgement can no longer move the cursor.
+        #expect(try !anchor.update(from: pending, to: pending.committingPendingBatch()))
+    }
+
+    @Test("Discarding a pending batch keeps the cursor and never reuses its coordinates")
+    @available(iOS 18, *)
+    func discardPendingBatchKeepsCursor() throws {
+        let timestamp = Date(timeIntervalSinceReferenceDate: 6_000)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: timestamp)
+        let initial = try anchor.value
+        let pending = initial.preparing(.timeRange(timestamp..<timestamp.addingTimeInterval(60), sampleCount: 4))
+        #expect(try anchor.update(from: initial, to: pending))
+
+        try anchor.discardPendingBatch()
+
+        let discarded = try anchor.value
+        #expect(discarded.pendingBatch == nil)
+        #expect(discarded.timestamp == timestamp)
+        #expect(discarded.resetGeneration == initial.resetGeneration + 1)
+        #expect(discarded.acquisitionBatchCoordinate != pending.acquisitionBatchCoordinate)
+        #expect(try !anchor.update(from: pending, to: pending.committingPendingBatch()))
+
+        // Without a pending batch, discarding is a no-op.
+        try anchor.discardPendingBatch()
+        #expect(try anchor.value == discarded)
     }
 
     @Test("Duplicate device partitions fail closed")

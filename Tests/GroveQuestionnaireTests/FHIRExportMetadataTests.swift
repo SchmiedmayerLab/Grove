@@ -208,6 +208,30 @@ struct FHIRExportMetadataTests {
         #expect(try encoder.encode(first) == encoder.encode(second))
     }
 
+    /// `authored` falls in the second occurrence of the repeated fall-back hour.
+    @Test(arguments: [
+        ("America/Los_Angeles", "2025-11-02T09:05:00Z", "2025-11-02T01:05:00-08:00"),
+        ("Europe/Berlin", "2025-10-26T01:30:00Z", "2025-10-26T02:30:00+01:00")
+    ])
+    func authoredInTheRepeatedDSTHourKeepsItsInstant(_ zoneName: String, _ authoredText: String, _ lexical: String) throws {
+        let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Export") {
+            Section("s1") {
+                BooleanQuestion("agree", "Agree?")
+            }
+        }
+        let zone = try #require(TimeZone(identifier: zoneName))
+        let authored = try #require(ISO8601DateFormatter().date(from: authoredText))
+        let response = try ModelsR4.QuestionnaireResponse(
+            QuestionnaireResponses(questionnaire: questionnaire),
+            renderedIn: questionnaireResponseTestLocale,
+            authored: authored,
+            authoredTimeZone: zone
+        )
+        let value = try #require(response.authored?.value)
+        #expect(value.description == lexical)
+        #expect(try value.asNSDate() == authored)
+    }
+
     @Test
     func expressionEvaluationSnapshotHasNoHiddenClock() throws {
         let questionnaire = GroveQuestionnaire.Questionnaire(url: Self.url, version: "1.0.0", language: "en-US", title: "Evaluation") {

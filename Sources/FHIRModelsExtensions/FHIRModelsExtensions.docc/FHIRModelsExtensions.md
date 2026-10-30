@@ -27,3 +27,4 @@ Reusable utilies when working with the [apple/FHIRModels](https://github.com/app
 ### Foundation Utilities
 - ``Foundation/Decimal/intValue``
 - ``Foundation/Decimal/doubleValue``
+- ``Foundation/TimeZone/fixedOffset(at:)``

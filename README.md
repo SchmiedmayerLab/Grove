@@ -156,7 +156,7 @@ Use an Xcode or Swift toolchain that supports Swift Package tools version 6.2.
 If Xcode cannot resolve the package, confirm that the package URL and selected version are correct, then use **File > Packages > Resolve Package Versions**.
 
 > [!NOTE]
-> For iOS 15, macOS 12 and watchOS 9, use an exact `-apple15` compatibility tag with default traits disabled.
+> For iOS 15, macOS 12 and watchOS 8, use an exact `-apple15` compatibility tag with default traits disabled.
 > See [Apple 15 releases](Scripts/APPLE15_RELEASES.md) for version selection.
 
 
