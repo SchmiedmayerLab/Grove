@@ -44,7 +44,7 @@ swift --version
 TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYMENT_TARGET=26.0 WATCHOS_DEPLOYMENT_TARGET=26.0 TVOS_DEPLOYMENT_TARGET=26.0 XROS_DEPLOYMENT_TARGET=26.0"
 
 # Apple tests run on Apple Silicon Macs or simulators. Restrict host tools as well as test targets;
-# device architecture coverage, including watchOS arm64_32, remains in build-floor.sh.
+# device architecture coverage, including watchOS arm64_32, remains in build-floor.py.
 TESTING_ARCHITECTURES="ARCHS=arm64"
 
 # The optional integrations (Textual, MLX, ResearchKit) are behind default-off package traits so that
