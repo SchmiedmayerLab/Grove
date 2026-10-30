@@ -14,10 +14,31 @@ public import Crypto
 import Foundation
 
 
+/// The closed domain-separation token fed to the Grove HMAC preimage.
+package enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
+    case sourceRecord = "source-record"
+    case sourceOutput = "source-output"
+    case writerRecord = "writer-record"
+    case providerRecord = "provider-record"
+    case providerOutput = "provider-output"
+    case sourceArtifact = "source-artifact"
+    case providerArtifact = "provider-artifact"
+    case sourceContext = "source-context"
+    case recordingDevice = "recording-device"
+    case deviceSnapshot = "device-snapshot"
+
+    /// The frozen number of typed fields in this identity kind's protocol preimage.
+    package var componentCount: Int {
+        componentNames.count
+    }
+}
+
+
 /// The deployment-owned, key-epoch-specific scope that mints every opaque identity.
 ///
-/// The systems are deliberately supplied by the deployment. Grove publishes no global namespace,
-/// because the same clear source identity must not be linkable across unrelated studies.
+/// The systems derive from the deployment's own root (``DeploymentIdentifierSystems/derived(root:keyID:epoch:)``).
+/// Grove publishes no global namespace, because the same clear source identity must not be linkable across unrelated
+/// studies.
 /// Debug output prints the key id and epoch only; the key never leaves the scope.
 @DebugDescription
 public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
@@ -32,6 +53,22 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         "OpaqueIdentityScope(keyID: \(keyID), epoch: \(epoch.rawValue))"
     }
 
+    /// Distinguishes the identity scopes one exchange ledger may serve, without revealing the key.
+    ///
+    /// HMAC-SHA-256 under the scope's key, base64url without padding, over the length-framed label
+    /// `org.grovealliance.grove.ledger-context.v0`, the key id, the epoch and every derived system, in
+    /// their fixed order. A different key, key id, epoch or system yields a different value.
+    package var ledgerFingerprint: String {
+        let parts = ["org.grovealliance.grove.ledger-context.v0", keyID, epoch.rawValue] + systems.all.map(\.rawValue)
+        let framed: Data
+        do {
+            framed = try Data(lengthFramedUTF8: parts)
+        } catch {
+            preconditionFailure("A validated identity-scope part exceeds the framing limit: \(error)")
+        }
+        return Data(HMAC<SHA256>.authenticationCode(for: framed, using: key)).base64URLEncodedStringWithoutPadding
+    }
+
     /// Creates one identity scope.
     ///
     /// Keys shorter than 256 bits are rejected. `keyID` is wire-visible and therefore restricted
@@ -41,7 +78,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         keyID: String,
         epoch: EventSequence,
         key: SymmetricKey
-    ) throws(OpaqueIdentityError) {
+    ) throws(ExchangeIdentityError) {
         try self.init(
             systems: systems,
             keyID: keyID,
@@ -51,13 +88,37 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         )
     }
 
+    /// Creates the identity scope of one deployment root, with its twelve systems in the exchange
+    /// protocol's recommended form: ``DeploymentIdentifierSystems/derived(root:keyID:epoch:)``
+    /// followed by ``init(systems:keyID:epoch:key:)``.
+    ///
+    /// A key id the systems cannot carry is reported as ``ExchangeIdentityError/invalidKeyID(_:)``;
+    /// a root the recommended form cannot be built under as ``ExchangeIdentityError/invalidDeploymentRoot(_:)``.
+    public init(
+        root: IdentifierSystem,
+        keyID: String,
+        epoch: EventSequence,
+        key: SymmetricKey
+    ) throws(ExchangeIdentityError) {
+        guard Self.isValidKeyID(keyID) else {
+            throw .invalidKeyID(keyID)
+        }
+        let systems: DeploymentIdentifierSystems
+        do {
+            systems = try DeploymentIdentifierSystems.derived(root: root, keyID: keyID, epoch: epoch)
+        } catch {
+            throw .invalidDeploymentRoot(root.rawValue)
+        }
+        try self.init(systems: systems, keyID: keyID, epoch: epoch, key: key)
+    }
+
     private init(
         systems: DeploymentIdentifierSystems,
         keyID: String,
         epoch: EventSequence,
         key: SymmetricKey,
         permitsPublishedConformanceKey: Bool
-    ) throws(OpaqueIdentityError) {
+    ) throws(ExchangeIdentityError) {
         guard Self.isValidKeyID(keyID) else {
             throw .invalidKeyID(keyID)
         }
@@ -79,7 +140,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         systems: DeploymentIdentifierSystems,
         keyID: String,
         epoch: EventSequence
-    ) throws(OpaqueIdentityError) -> Self {
+    ) throws(ExchangeIdentityError) -> Self {
         try Self(
             systems: systems,
             keyID: keyID,
@@ -89,7 +150,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         )
     }
 
-    static func isValidKeyID(_ keyID: String) -> Bool {
+    static func isValidKeyID(_ keyID: some StringProtocol) -> Bool {
         !keyID.isEmpty && keyID.utf8.allSatisfy {
             $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E || $0 == 0x5F
         }
@@ -100,38 +161,37 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     /// The HMAC preimage is the ordered sequence of unsigned 32-bit big-endian UTF-8 lengths and
     /// bytes for the protocol label, identity kind, and every typed component. Delimiters are not
     /// special and supplementary Unicode scalars are encoded as their ordinary UTF-8 bytes.
-    package func identifier(kind: OpaqueIdentityKind, components: [String]) throws(OpaqueIdentityError) -> RoledIdentifier {
+    package func identifier(kind: OpaqueIdentityKind, components: [String]) throws(ExchangeIdentityError) -> RoledIdentifier {
         guard components.count == kind.componentCount else {
-            throw .invalidComponentCount(kind: kind, expected: kind.componentCount, actual: components.count)
+            throw .invalidComponentCount(kind: kind.rawValue, expected: kind.componentCount, actual: components.count)
         }
         for (name, component) in zip(kind.componentNames, components) {
-            let path = "\(kind.rawValue).\(name)"
             guard !component.isEmpty else {
-                throw .emptyComponent(path)
+                throw .emptyComponent("\(kind.rawValue).\(name)")
             }
             guard !OpaqueIdentityKind.unsignedDecimalComponents.contains(name) || CanonicalNonnegativeDecimal.isCanonical(component) else {
-                throw .nonCanonicalPartIndex(path)
+                throw .nonCanonicalPartIndex("\(kind.rawValue).\(name)")
             }
         }
         if [.sourceRecord, .sourceOutput, .sourceArtifact].contains(kind), let adapterID = components.first {
             try validateGenericAdapterID(adapterID)
         }
-        let input = try LengthFramedUTF8.encode(["org.grovealliance.fhir.identity.v0", kind.rawValue] + components)
+        let input = try Data(lengthFramedUTF8: ["org.grovealliance.fhir.identity.v0", kind.rawValue] + components)
         let digest = Data(HMAC<SHA256>.authenticationCode(for: input, using: key)).base64URLEncodedStringWithoutPadding
         return RoledIdentifier(
-            identifier: BusinessIdentifier(system: systems.opaque[kind], nonemptyValue: "v0:\(keyID):\(epoch.rawValue):\(digest)"),
+            identifier: BusinessIdentifier(system: systems[kind], nonemptyValue: "v0:\(keyID):\(epoch.rawValue):\(digest)"),
             role: kind.identifierRole
         )
     }
 
-    private func validateGenericAdapterID(_ value: String) throws(OpaqueIdentityError) {
-        guard GroveProviderCode(rawValue: value) == nil else {
+    private func validateGenericAdapterID(_ value: String) throws(ExchangeIdentityError) {
+        guard ProviderCode(rawValue: value) == nil else {
             throw .providerKindRequired(value)
         }
     }
 
     /// An empty token is left to the minting path, which reports it with the component's path.
-    func validateCodeToken(_ value: String, field: String) throws(OpaqueIdentityError) {
+    func validateCodeToken(_ value: String, field: String) throws(ExchangeIdentityError) {
         guard let first = value.utf8.first else {
             return
         }
@@ -139,5 +199,25 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
               value.utf8.allSatisfy({ (0x61...0x7A).contains($0) || (0x30...0x39).contains($0) || $0 == 0x2D }) else {
             throw .invalidCodeToken(field: field, value: value)
         }
+    }
+}
+
+
+extension OpaqueIdentityScope {
+    /// The providers admitted by the Grove identity protocol.
+    ///
+    /// Provider-owned records use a provider identity kind. Rejecting these values from generic
+    /// `source-*` constructors prevents two names for the same provider preimage.
+    package enum ProviderCode: String, CaseIterable, Hashable, Sendable {
+        case googleHealthAPI = "google-health-api"
+        case oura
+        case withings
+    }
+
+    /// The closed resource-kind role used by an immutable event-time Device snapshot.
+    package enum DeviceRole: String, CaseIterable, Hashable, Sendable {
+        case application
+        case host
+        case recordingDevice = "recording-device"
     }
 }

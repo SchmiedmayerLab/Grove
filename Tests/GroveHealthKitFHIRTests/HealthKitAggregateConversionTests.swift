@@ -54,20 +54,31 @@ struct HealthKitFHIRAggregateConversionTests {
         )
     ]
 
-    private let converter = HealthKitConverter()
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    private var context: HealthKitConversionContext {
-        HealthKitConversionContext(
-            subject: .testPatient,
-            converter: ApplicationDevice.test(
-                name: "Example Study",
-                bundleIdentifier: "org.grovealliance.example-study",
-                version: "2.0.0 (42)"
-            ),
-            graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-            conversionInstant: timestamp
+    private var inputs: ExportInputs {
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
         )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = timestamp
+        return inputs
+    }
+
+    /// The assembly under the test context's scope, and a request for one event of that context.
+    private static func assembly() -> (HealthKitAssembly, HealthKitAssembly.Request) {
+        let base = TestEvent.test()
+        let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
+            adapter: HealthKitAssembly.adapter,
+            identityScope: base.identityScope,
+            subject: base.subject,
+            repositoryScope: base.repositoryScope
+        ))
+        let facts = ExchangeEventFacts(application: base.application, host: base.host, studies: [])
+        return (assembly, HealthKitAssembly.Request(event: base.event, instant: base.conversionInstant, facts: facts))
     }
 
     private func quantitySample(
@@ -87,9 +98,9 @@ struct HealthKitFHIRAggregateConversionTests {
     }
 
     @Test("Windowed aggregates carry their fixed aggregation method", arguments: methodCases)
-    func aggregateMethod(testCase: MethodCase) throws {
+    func aggregateMethod(testCase: MethodCase) async throws {
         let sample = quantitySample(testCase.identifier, unit: testCase.unit, value: testCase.value)
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let method = try #require(testCase.measurement.method)
         let coding = try #require(observation.method?.coding?.first)
 
@@ -100,15 +111,16 @@ struct HealthKitFHIRAggregateConversionTests {
     }
 
     @Test("A point measurement asserts no aggregation method")
-    func pointMeasurementsHaveNoMethod() throws {
-        let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
-        let observation = try converter.convert(sample, context: context).observation
-        let resting = try converter.convert(
+    func pointMeasurementsHaveNoMethod() async throws {
+        let sample = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72, interval: 0)
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
+        let resting = try await ExporterFixtures.export(
             quantitySample(.restingHeartRate, unit: .count().unitDivided(by: .minute()), value: 58),
-            context: context
+            inputs
         ).observation
 
         #expect(observation.method == nil)
+        #expect(observation.effective?.isPeriod == false)
         #expect(MeasurementCatalog.heartRate.method == nil)
         #expect(resting.method == nil)
         #expect(resting.effective?.isPeriod == false)
@@ -125,7 +137,7 @@ struct HealthKitFHIRAggregateConversionTests {
     }
 
     @Test("Sleeping breathing disturbances pass HealthKit's per-hour rate through unchanged")
-    func sessionRatePassesPlatformRateThrough() throws {
+    func sessionRatePassesPlatformRateThrough() async throws {
         // HealthKit stores this type as events per hour already; a night-long sample must not be divided again.
         let sample = quantitySample(
             .appleSleepingBreathingDisturbances,
@@ -133,7 +145,7 @@ struct HealthKitFHIRAggregateConversionTests {
             value: 4.2,
             interval: 7 * 3_600
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let quantity: Quantity = try #require({
             guard case .quantity(let quantity) = observation.value else {
                 return nil
@@ -152,14 +164,14 @@ struct HealthKitFHIRAggregateConversionTests {
         "Insulin delivery retains its delivery reason as a component",
         arguments: [HKInsulinDeliveryReason.basal, .bolus]
     )
-    func insulinDeliveryReasonIsRetained(reason: HKInsulinDeliveryReason) throws {
+    func insulinDeliveryReasonIsRetained(reason: HKInsulinDeliveryReason) async throws {
         let sample = quantitySample(
             .insulinDelivery,
             unit: .internationalUnit(),
             value: 4.5,
             metadata: [HKMetadataKeyInsulinDeliveryReason: NSNumber(value: reason.rawValue)]
         )
-        let observation = try converter.convert(sample, context: context).observation
+        let observation = try await ExporterFixtures.export(sample, inputs).observation
         let component = try #require(observation.component?.first)
         let expected = reason == .basal ? "basal" : "bolus"
 
@@ -173,34 +185,60 @@ struct HealthKitFHIRAggregateConversionTests {
         }() == expected)
     }
 
-    @Test("Rows outside this converter's Observation surface fail closed with their catalog reason")
+    /// The refusal of every registered type's bare sample, written out rather than derived from the rule the plans
+    /// compile: an admitted type no path emits yet is not yet convertible, a type admitted only as a recording document
+    /// is platform exclusive, and only an identifier outside the inventory is an unsupported source type. A deletion
+    /// of a type with no outputs is refused for the same reason by the assembly's retraction, which the exporter never
+    /// reaches for such a type: it reports that the deletion has nothing to retract.
+    @Test("Every registered type a bare sample cannot convert is refused for what its catalog row states")
     func unconvertibleRowsFailClosedWithTheirCatalogReason() throws {
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .labResultRecord)
-                == .platformExclusiveSourceType(.labResultRecord)
-        )
-        #expect(HealthKitConverter.unconvertibleSampleError(for: .workout) == .notYetConvertible(.workout))
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .bloodPressureSystolic)
-                == .componentRequiresCorrelation(.bloodPressureSystolic)
-        )
-        let reason = try #require(HealthKitCatalog[.nikeFuel].requirement)
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .nikeFuel)
-                == .intentionallyUnsupported(.nikeFuel, reason: reason)
-        )
-        #expect(
-            HealthKitConverter.unconvertibleSampleError(for: .heartbeatSeries)
-                == .platformExclusiveSourceType(.heartbeatSeries)
-        )
-        for error in [
-            HealthKitConverter.unconvertibleSampleError(for: .labResultRecord),
-            HealthKitConverter.unconvertibleSampleError(for: .workout),
-            HealthKitConverter.unconvertibleSampleError(for: .nikeFuel)
-        ] {
-            #expect(ExchangeGraphRule(rawValue: error.diagnostic.code) != nil)
-            #expect(error.diagnostic.code.hasPrefix("mobile-input."))
+        let notYetConvertible: Set<HealthKitSourceType> = [
+            .food, .audiogram, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse,
+            .visionPrescription, .medicationDoseEvent, .userAnnotatedMedicationConcept
+        ]
+        let recordingDocuments: Set<HealthKitSourceType> = [
+            .heartbeatSeries, .workoutRoute, .cda, .allergyRecord, .clinicalNoteRecord, .conditionRecord, .coverageRecord,
+            .immunizationRecord, .labResultRecord, .medicationRecord, .procedureRecord, .vitalSignRecord
+        ]
+        let members: Set<HealthKitSourceType> = [.bloodPressureSystolic, .bloodPressureDiastolic]
+        let intentionallyUnsupported: Set<HealthKitSourceType> = [.activityMoveMode, .nikeFuel]
+        // A refused route never reads the sample, and a clinical route refuses one that carries no clinical record.
+        let standIn = quantitySample(.heartRate, unit: .count().unitDivided(by: .minute()), value: 72)
+        let (assembly, request) = Self.assembly()
+        for type in HealthKitSourceType.allCases {
+            let reason = HealthKitCatalog[type].requirement ?? ""
+            let expected: (error: HealthKitConversionError, code: String)? = if notYetConvertible.contains(type) {
+                (.notYetConvertible(type), "mobile-input.not-yet-convertible")
+            } else if recordingDocuments.contains(type) {
+                (.platformExclusiveSourceType(type), "mobile-input.platform-exclusive-source-type")
+            } else if members.contains(type) {
+                (.componentRequiresCorrelation(type), "healthkit-input.component-requires-correlation")
+            } else if intentionallyUnsupported.contains(type) {
+                (.intentionallyUnsupported(type, reason: reason), "mobile-input.intentionally-unsupported-source-type")
+            } else if type == .electrocardiogram {
+                (.ecgEvidence(.evidenceRequired), "healthkit-input.ecg-evidence")
+            } else {
+                nil
+            }
+            guard let expected else {
+                let converts = if case .observation = HealthKitContentPlan[type].route { true } else { false }
+                #expect(converts && !HealthKitContentPlan[type].outputs.isEmpty, "\(type) converts no sample of its own")
+                continue
+            }
+            #expect(throws: expected.error, "\(type)") {
+                try assembly.convert(standIn, plan: HealthKitContentPlan[type], request: request)
+            }
+            #expect(expected.error.diagnostic.code == expected.code, "\(type)")
+            guard HealthKitContentPlan[type].outputs.isEmpty else {
+                continue
+            }
+            #expect(throws: expected.error, "\(type)") {
+                try assembly.retraction(of: standIn.uuid, type: type, request: request, occurred: .instant(request.instant))
+            }
         }
+        #expect(!intentionallyUnsupported.contains { HealthKitCatalog[$0].requirement?.isEmpty != false })
+        let emitsNothing = Set(HealthKitSourceType.allCases.filter { HealthKitContentPlan[$0].outputs.isEmpty })
+        #expect(emitsNothing == notYetConvertible.union(members).union(intentionallyUnsupported))
     }
 }
 

@@ -35,7 +35,7 @@ enum MobileSemanticVectorFixtures {
     static let all: [MobileSemanticVectorFixture] = [
         MobileSemanticVectorFixture(
             id: "active-energy",
-            effective: .period(start: "2026-08-20T08:00:00-07:00", end: "2026-08-20T09:00:00-07:00"),
+            effective: .period(start: "2026-08-20T00:00:00-07:00", end: "2026-08-21T00:00:00-07:00"),
             result: .quantity(value: 312.5)
         ),
         MobileSemanticVectorFixture(
@@ -298,7 +298,7 @@ enum MobileSemanticVectorFixtures {
         ),
         MobileSemanticVectorFixture(
             id: "distance",
-            effective: .period(start: "2026-08-20T07:00:00-07:00", end: "2026-08-20T07:30:00-07:00"),
+            effective: .period(start: "2026-08-20T00:00:00-07:00", end: "2026-08-21T00:00:00-07:00"),
             result: .quantity(value: 4820.5)
         ),
         MobileSemanticVectorFixture(
@@ -368,7 +368,7 @@ enum MobileSemanticVectorFixtures {
         ),
         MobileSemanticVectorFixture(
             id: "oxygen-saturation-daily-average",
-            effective: .period(start: "2026-08-19T22:40:00-07:00", end: "2026-08-20T06:55:00-07:00"),
+            effective: .period(start: "2026-08-20T00:00:00-07:00", end: "2026-08-21T00:00:00-07:00"),
             result: .quantity(value: 96.5)
         ),
         MobileSemanticVectorFixture(
@@ -433,7 +433,7 @@ enum MobileSemanticVectorFixtures {
         ),
         MobileSemanticVectorFixture(
             id: "step-count",
-            effective: .period(start: "2026-08-20T08:00:00-07:00", end: "2026-08-20T09:00:00-07:00"),
+            effective: .period(start: "2026-08-20T00:00:00-07:00", end: "2026-08-21T00:00:00-07:00"),
             result: .quantity(value: 1042)
         ),
         MobileSemanticVectorFixture(

@@ -8,20 +8,20 @@
 
 
 /// Complete business identities of one emitted exchange graph.
-public struct ExchangeGraphIdentifiers: Hashable, Sendable {
-    public let event: RoledIdentifier
-    public let sourceRecord: RoledIdentifier
-    public let primaryOutput: RoledIdentifier
-    public let applicationSnapshot: RoledIdentifier
-    public let hostSnapshot: RoledIdentifier
-    public let provenance: RoledIdentifier
-    public let childOutputs: [RoledIdentifier]
-    public let sourceArtifact: RoledIdentifier?
-    public let recordingDeviceSnapshot: RoledIdentifier?
-    public let writerSnapshot: RoledIdentifier?
-    public let writerHostSnapshot: RoledIdentifier?
+package struct ExchangeGraphIdentifiers: Hashable, Sendable {
+    package let event: RoledIdentifier
+    package let sourceRecord: RoledIdentifier
+    package let primaryOutput: RoledIdentifier
+    package let applicationSnapshot: RoledIdentifier
+    package let hostSnapshot: RoledIdentifier
+    package let provenance: RoledIdentifier
+    package let childOutputs: [RoledIdentifier]
+    package let sourceArtifact: RoledIdentifier?
+    package let recordingDeviceSnapshot: RoledIdentifier?
+    package let writerSnapshot: RoledIdentifier?
+    package let writerHostSnapshot: RoledIdentifier?
 
-    public init(
+    package init(
         event: RoledIdentifier,
         sourceRecord: RoledIdentifier,
         primaryOutput: RoledIdentifier,

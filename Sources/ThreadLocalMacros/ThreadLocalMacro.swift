@@ -67,7 +67,7 @@ extension ThreadLocalMacro: AccessorMacro {
 
 
 extension ThreadLocalMacro: PeerMacro {
-    public static func expansion( // swiftlint:disable:this function_body_length cyclomatic_complexity
+    public static func expansion(
         of node: AttributeSyntax,
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
@@ -97,45 +97,72 @@ extension ThreadLocalMacro: PeerMacro {
         guard let typeAnnotation = binding.typeAnnotation else {
             throw DiagnosticsError(syntax: binding, message: "Variable binding is missing a type annotation", id: .invalidSyntax)
         }
-
-        let valueTypeInitializer: TypeSyntax
-        if let optionalType = typeAnnotation.type.as(OptionalTypeSyntax.self) {
-            valueTypeInitializer = optionalType.wrappedType
-        } else {
-            valueTypeInitializer = typeAnnotation.type
-            if binding.initializer == nil {
-                throw DiagnosticsError(
-                    syntax: binding,
-                    message: "A non-optional type requires an initializer expression to provide a default value",
-                    id: .invalidSyntax
-                )
-            }
+        // An optional stores its whole type, so `nil` is a value a thread can set; without an initializer it defaults to
+        // `nil`, which the getter passes.
+        let storage = typeAnnotation.type.threadLocalStorage
+        if !storage.isOptional && binding.initializer == nil {
+            throw DiagnosticsError(
+                syntax: binding,
+                message: "A non-optional type requires an initializer expression to provide a default value",
+                id: .invalidSyntax
+            )
         }
 
-        let args: SwiftSyntax.LabeledExprListSyntax?
-        switch node.arguments {
-        case nil:
-            args = nil
-        case .argumentList(let argList):
-            guard let arg = argList.first, arg.label?.text == "deallocator" else {
-                throw SimpleError("invalid args")
-            }
-            args = [LabeledExprSyntax(label: "_deallocator", expression: arg.expression)]
-        default:
-            throw SimpleError("unexpected")
-        }
+        let args = try initializerArguments(of: node)
 
         let attrs: AttributeSyntax? = variableDeclaration.isInlinable ? "@usableFromInline" : nil
         let modifiers = DeclModifierSyntax(name: variableDeclaration.isInlinable ? "internal" : "private")
 
         return [
-            "\(attrs) \(modifiers) static let _\(identifier) = ThreadLocal<\(valueTypeInitializer.trimmed)>(\(args))"
+            "\(attrs) \(modifiers) static let _\(identifier) = ThreadLocal<\(storage.type)>(\(args))"
         ]
+    }
+
+    /// The arguments the peer `ThreadLocal` is created with: the deallocator, when the attribute names one.
+    private static func initializerArguments(of node: AttributeSyntax) throws -> LabeledExprListSyntax? {
+        switch node.arguments {
+        case nil:
+            return nil
+        case .argumentList(let arguments):
+            guard let argument = arguments.first else {
+                return nil // `@ThreadLocal()`
+            }
+            guard argument.label?.text == "deallocator" else {
+                throw SimpleError("invalid args")
+            }
+            return [LabeledExprSyntax(label: "_deallocator", expression: argument.expression)]
+        default:
+            throw SimpleError("unexpected")
+        }
     }
 }
 
 
 // MARK: Utils
+
+extension TypeSyntax {
+    /// The type a thread-local declared with this type stores, and whether it is an optional (`T?`, `T!`, `Optional<T>`
+    /// or `Swift.Optional<T>`); an implicitly unwrapped `T!` stores `T?`, as `T!` is no generic argument.
+    var threadLocalStorage: (type: TypeSyntax, isOptional: Bool) {
+        if let unwrapped = self.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+            return (TypeSyntax(OptionalTypeSyntax(wrappedType: unwrapped.wrappedType.trimmed)), true)
+        }
+        if self.is(OptionalTypeSyntax.self) {
+            return (trimmed, true)
+        }
+        if let named = self.as(IdentifierTypeSyntax.self), named.name.text == "Optional", named.genericArgumentClause != nil {
+            return (trimmed, true)
+        }
+        if let member = self.as(MemberTypeSyntax.self),
+           member.name.text == "Optional",
+           member.genericArgumentClause != nil,
+           member.baseType.trimmedDescription == "Swift" {
+            return (trimmed, true)
+        }
+        return (trimmed, false)
+    }
+}
+
 
 extension VariableDeclSyntax {
     var isStatic: Bool {

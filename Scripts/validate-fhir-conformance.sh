@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-eff5af8f58cdd99bb8988c237f2996e9e1de75ff}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-c078136f12b4713ceee19619b1bcd2ff96186ecc}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -98,6 +98,10 @@ if [ "$missing_package" = true ]; then
     echo "==> building ${GUIDE_NAMES[*]} implementation guides"
     (cd "$GUIDES" && npm ci && ./Scripts/build-guides.sh "${GUIDE_NAMES[@]}")
 fi
+# The content corpus converts the HealthKit guide's generated examples, read from its built package.
+if [ "$COMPONENT" = "healthkit" ]; then
+    python3 Scripts/generate-grove-fhir-guide-example-fixtures.py --guides "$GUIDES" --check
+fi
 
 mkdir -p "$OUT"
 find "$OUT" -type f -delete
@@ -130,6 +134,9 @@ python3 "$GUIDES/Scripts/validate-producer.py" \
     --manifest "$MANIFEST" \
     --validator "$VALIDATOR" \
     "${package_arguments[@]}"
+
+echo "==> checking that the paired $COMPONENT guide examples are contained in Grove's output"
+python3 Scripts/check-ig-example-containment.py --guides "$GUIDES" --component "$COMPONENT"
 
 if [ "$COMPONENT" = "questionnaire" ]; then
     echo "==> validating the exact Questionnaire/Response pair"

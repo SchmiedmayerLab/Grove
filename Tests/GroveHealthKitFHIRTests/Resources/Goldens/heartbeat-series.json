@@ -1,0 +1,460 @@
+{
+  "entry" : [
+    {
+      "extension" : [
+        {
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "valueIdentifier" : {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "source-output",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:3pO4DxCljd8pc9tNwzRisHLlIAucD_p24zsWHiYObLI"
+          }
+        }
+      ],
+      "fullUrl" : "urn:uuid:1628b7cd-7e64-5b1d-9318-de22a56a938c",
+      "resource" : {
+        "author" : [
+          {
+            "reference" : "urn:uuid:61196f1c-10d4-56f5-8096-cb4c72f9b8ff"
+          },
+          {
+            "reference" : "urn:uuid:a459949b-1d5b-57b5-96fa-16f81714298c"
+          }
+        ],
+        "content" : [
+          {
+            "attachment" : {
+              "contentType" : "text/csv",
+              "data" : "dGltZXN0YW1wLHByZWNlZGVkQnlHYXAKMTc4NzAwNTgwMCwwCjE3ODcwMDU4MDAuODQsMAoxNzg3MDA1ODAxLjcxLDEK",
+              "hash" : "PznINcuYWCKX6a0UnspSBwERECs=",
+              "size" : 69,
+              "title" : "Heartbeat series beat intervals"
+            },
+            "format" : {
+              "code" : "beat-interval-series",
+              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+            }
+          }
+        ],
+        "date" : "2026-08-17T23:30:00Z",
+        "extension" : [
+          {
+            "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+            "valueCode" : "HKDataTypeIdentifierHeartbeatSeries"
+          }
+        ],
+        "identifier" : [
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "source-record",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:2k0tuZSOvNmO-Sba43w3uUkdUrfF1yb46WU0ZXNL7sw"
+          },
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "source-output",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:3pO4DxCljd8pc9tNwzRisHLlIAucD_p24zsWHiYObLI"
+          },
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "source-artifact",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:0m696r-5hPLWnq6y0mjPQ3UXXMj39DkqI0cXJQxSS6Q"
+          }
+        ],
+        "meta" : {
+          "profile" : [
+            "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document",
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-recording-document"
+          ]
+        },
+        "resourceType" : "DocumentReference",
+        "status" : "current",
+        "subject" : {
+          "identifier" : {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/patient",
+            "value" : "example"
+          },
+          "type" : "Patient"
+        },
+        "type" : {
+          "coding" : [
+            {
+              "code" : "beat-interval-series",
+              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "extension" : [
+        {
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "valueIdentifier" : {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "device-snapshot",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:S-28g42BNOx3dfVHaeYjmh1HvdwjwAa1BcT_IGnBekI"
+          }
+        }
+      ],
+      "fullUrl" : "urn:uuid:61196f1c-10d4-56f5-8096-cb4c72f9b8ff",
+      "resource" : {
+        "deviceName" : [
+          {
+            "name" : "Apple Watch",
+            "type" : "user-friendly-name"
+          }
+        ],
+        "identifier" : [
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "device-snapshot",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:S-28g42BNOx3dfVHaeYjmh1HvdwjwAa1BcT_IGnBekI"
+          },
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "recording-device",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:7ceeJ-0nPsZ-N0AFDq-WIajkv78fYDH6-t7S9p6t1XY"
+          }
+        ],
+        "manufacturer" : "Apple Inc.",
+        "meta" : {
+          "profile" : [
+            "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-recording-device"
+          ]
+        },
+        "modelNumber" : "Watch7,12",
+        "resourceType" : "Device",
+        "status" : "active",
+        "version" : [
+          {
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "531974",
+                  "display" : "MDC_ID_PROD_SPEC_HW",
+                  "system" : "urn:iso:std:iso:11073:10101"
+                }
+              ]
+            },
+            "value" : "Watch7,12"
+          },
+          {
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "531976",
+                  "display" : "MDC_ID_PROD_SPEC_FW",
+                  "system" : "urn:iso:std:iso:11073:10101"
+                }
+              ]
+            },
+            "value" : "1.0"
+          },
+          {
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "531975",
+                  "display" : "MDC_ID_PROD_SPEC_SW",
+                  "system" : "urn:iso:std:iso:11073:10101"
+                }
+              ]
+            },
+            "value" : "26.2.1"
+          }
+        ]
+      }
+    },
+    {
+      "extension" : [
+        {
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "valueIdentifier" : {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "device-snapshot",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:2EDaYUDR-dDUwtxTee763paCaDWqKSP8MboszwuQrVs"
+          }
+        }
+      ],
+      "fullUrl" : "urn:uuid:d92b490d-2a2b-551f-b17a-d6b66396b109",
+      "resource" : {
+        "deviceName" : [
+          {
+            "name" : "Grove Test Host",
+            "type" : "user-friendly-name"
+          }
+        ],
+        "identifier" : [
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "device-snapshot",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:2EDaYUDR-dDUwtxTee763paCaDWqKSP8MboszwuQrVs"
+          }
+        ],
+        "manufacturer" : "Example Device Company",
+        "meta" : {
+          "profile" : [
+            "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-host-device"
+          ]
+        },
+        "modelNumber" : "Phone One",
+        "resourceType" : "Device",
+        "status" : "active",
+        "version" : [
+          {
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "os-version",
+                  "display" : "Operating system version",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-application-version-type"
+                }
+              ]
+            },
+            "value" : "20.1"
+          }
+        ]
+      }
+    },
+    {
+      "extension" : [
+        {
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "valueIdentifier" : {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "device-snapshot",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:GhSmTTVkJf9pdJIvV5sSn0lepGBfCQO-hA0HgQ5_zgI"
+          }
+        }
+      ],
+      "fullUrl" : "urn:uuid:a459949b-1d5b-57b5-96fa-16f81714298c",
+      "resource" : {
+        "deviceName" : [
+          {
+            "name" : "Grove Test",
+            "type" : "user-friendly-name"
+          }
+        ],
+        "identifier" : [
+          {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "device-snapshot",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "v0:test:1:GhSmTTVkJf9pdJIvV5sSn0lepGBfCQO-hA0HgQ5_zgI"
+          },
+          {
+            "system" : "https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "apple-bundle-id",
+                  "system" : "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
+                }
+              ]
+            },
+            "value" : "org.grovealliance.test"
+          }
+        ],
+        "meta" : {
+          "profile" : [
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-application-device"
+          ]
+        },
+        "parent" : {
+          "reference" : "urn:uuid:d92b490d-2a2b-551f-b17a-d6b66396b109"
+        },
+        "resourceType" : "Device",
+        "status" : "active",
+        "version" : [
+          {
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "531975",
+                  "display" : "MDC_ID_PROD_SPEC_SW",
+                  "system" : "urn:iso:std:iso:11073:10101"
+                }
+              ]
+            },
+            "value" : "1.0"
+          }
+        ]
+      }
+    },
+    {
+      "extension" : [
+        {
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "valueIdentifier" : {
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/entry-node",
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "entry-node",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                }
+              ]
+            },
+            "value" : "n0:conversion-provenance:0:XhwlvRTJuxRNCMkujvlJIVBV2qNofAA7OE114qan3-s"
+          }
+        }
+      ],
+      "fullUrl" : "urn:uuid:788d39f2-4d35-55e3-a603-c312e815acc7",
+      "resource" : {
+        "activity" : {
+          "coding" : [
+            {
+              "code" : "transform",
+              "display" : "Transform/Translate Record Lifecycle Event",
+              "system" : "http://terminology.hl7.org/CodeSystem/iso-21089-lifecycle"
+            }
+          ]
+        },
+        "agent" : [
+          {
+            "type" : {
+              "coding" : [
+                {
+                  "code" : "assembler",
+                  "display" : "Assembler",
+                  "system" : "http://terminology.hl7.org/CodeSystem/provenance-participant-type"
+                }
+              ]
+            },
+            "who" : {
+              "reference" : "urn:uuid:a459949b-1d5b-57b5-96fa-16f81714298c"
+            }
+          }
+        ],
+        "entity" : [
+          {
+            "role" : "source",
+            "what" : {
+              "identifier" : {
+                "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1",
+                "type" : {
+                  "coding" : [
+                    {
+                      "code" : "source-record",
+                      "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                    }
+                  ]
+                },
+                "value" : "v0:test:1:2k0tuZSOvNmO-Sba43w3uUkdUrfF1yb46WU0ZXNL7sw"
+              }
+            }
+          }
+        ],
+        "meta" : {
+          "profile" : [
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-conversion-provenance"
+          ]
+        },
+        "occurredDateTime" : "2026-08-17T23:30:00Z",
+        "recorded" : "2026-08-17T23:30:00Z",
+        "resourceType" : "Provenance",
+        "target" : [
+          {
+            "reference" : "urn:uuid:1628b7cd-7e64-5b1d-9318-de22a56a938c"
+          }
+        ]
+      }
+    }
+  ],
+  "identifier" : {
+    "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/event",
+    "type" : {
+      "coding" : [
+        {
+          "code" : "event",
+          "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+        }
+      ]
+    },
+    "value" : "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:62"
+  },
+  "meta" : {
+    "profile" : [
+      "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle"
+    ]
+  },
+  "resourceType" : "Bundle",
+  "timestamp" : "2026-08-17T23:30:00Z",
+  "type" : "collection"
+}

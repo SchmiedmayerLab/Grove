@@ -6,108 +6,29 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import Foundation
-public import ModelsR4
-
-
-/// A repository-assigned logical Resource id.
-///
-/// Source identities and UUID URNs belong in business identifiers and Bundle fullUrls;
-/// this type exists only for callers that already have a repository id assignment.
-public struct RepositoryID: Hashable, Sendable {
-    // Spelled out rather than matched with `Regex`, which needs iOS 16/macOS 13 and would lift
-    // this module above the package deployment floor.
-    private static let allowedCharacters = Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.")
-
-    public let rawValue: String
-
-    public var primitive: FHIRPrimitive<FHIRString> {
-        rawValue.asFHIRStringPrimitive()
-    }
-
-    public init(_ rawValue: String) throws(ExchangeIdentityError) {
-        guard Self.isValidFHIRID(rawValue) else {
-            throw .invalidRepositoryID(rawValue)
-        }
-        self.rawValue = rawValue
-    }
-
-    static func isValidFHIRID(_ value: String) -> Bool {
-        (1...64).contains(value.count) && value.allSatisfy(allowedCharacters.contains)
-    }
-}
-
-
-/// Errors raised before an invalid exchange graph can be serialized.
-public enum ExchangeIdentityError: Error, Equatable, Sendable {
-    case missingIdentifierSystem
-    case missingIdentifierValue
-    case invalidIdentifierSystem(String)
-    case nonCanonicalIdentifierSystem(supplied: String, encoded: String)
-    case invalidRepositoryID(String)
-    case invalidKeyID(String)
-    case invalidIdentifierRole(String)
-    case duplicateIdentifierRole
-    case identifierSystemRoleMismatch(
-        system: String,
-        first: GroveIdentifierRole,
-        conflicting: GroveIdentifierRole
-    )
-    case invalidProducerInstance(UUID)
-    case invalidEventIdentifier(String)
-    case invalidEventSequence(String)
-    case duplicateEntryIdentifier(BusinessIdentifier)
-    case duplicateFullURL(String)
-    case duplicateEntryKeyExtension
-    case invalidEntryKeyRole
-    case entryKeyPriorityMismatch
-    case invalidEntryNodeRole
-    case invalidEntryNodeValue(String)
-    case missingFullURL
-    case missingResource
-    case unresolvedInternalReference(String)
-    case containedResourcesProhibited
-    case incorrectInternalReferenceType(reference: String, declared: String, actual: String)
-    case incorrectFullURL(actual: String, expected: String)
-    case invalidNamespace(String)
-    case identityComponentTooLarge(Int)
-    case identityFramingFailure
-    case invalidInstant
-
-    /// The registered diagnostic, the same on every platform for the same fault.
-    ///
-    /// A stored event identifier out of its canonical form is the fault a record can carry; every other one is a
-    /// producer or deployment defect.
-    public var diagnostic: ProducerDiagnostic {
-        if case .invalidEventIdentifier = self {
-            ExchangeGraphRule.mobileExchangeEventIdentity.diagnostic
-        } else {
-            ExchangeGraphRule.mobileInputUnclassified.diagnostic
-        }
-    }
-}
+package import Foundation
 
 
 /// The normative Grove Mobile exchange-entry identity checks a graph runs before it is accepted.
 package enum ExchangeIdentity {
     /// Verifies that one Grove Identifier namespace has one graph role throughout a Bundle.
     ///
-    /// The check walks nested identifier-only References and Provenance entities as well as
+    /// The check covers nested identifier-only References and Provenance entities as well as
     /// top-level resource and entry identifiers. Untyped and non-Grove identifiers remain open.
-    static func validateIdentifierSystemRoles(in bundle: ModelsR4.Bundle) throws {
-        let data = try JSONEncoder().encode(bundle)
-        let json = try JSONSerialization.jsonObject(with: data)
+    ///
+    /// - Parameter objects: Every JSON object of the whole Bundle.
+    static func validateIdentifierSystemRoles(in objects: [[String: Any]]) throws {
         var roleBySystem: [String: GroveIdentifierRole] = [:]
-        try walkJSONObjects(json) { object in
+        for object in objects {
             guard let type = object["type"] as? [String: Any],
                   let codings = type["coding"] as? [[String: Any]] else {
-                return
+                continue
             }
             let groveRoleCodings = codings.filter {
                 $0["system"] as? String == Canonicals.identifierRoleCodeSystemValue
             }
             guard !groveRoleCodings.isEmpty else {
-                return
+                continue
             }
             guard groveRoleCodings.count == 1,
                   let rawRole = groveRoleCodings[0]["code"] as? String,
@@ -132,6 +53,31 @@ package enum ExchangeIdentity {
         _ value: Any,
         visit: ([String: Any]) throws(E) -> Void
     ) throws(E) {
+        // The native containers and strings `WireJSONEncoder` builds are told apart by their exact type, which is far
+        // cheaper than a failed cast; anything else, `JSONSerialization`'s objects among them, is cast.
+        let valueType = type(of: value)
+        if valueType == String.self {
+            return
+        }
+        if valueType == [String: Any].self {
+            // swiftlint:disable:next force_cast
+            let object = value as! [String: Any]
+            try visit(object)
+            for child in object.values {
+                try walkJSONObjects(child, visit: visit)
+            }
+            return
+        }
+        if valueType == [Any].self {
+            // swiftlint:disable:next force_cast
+            for child in value as! [Any] {
+                try walkJSONObjects(child, visit: visit)
+            }
+            return
+        }
+        if value is NSNumber || value is NSNull {
+            return
+        }
         if let object = value as? [String: Any] {
             try visit(object)
             for child in object.values {
@@ -150,7 +96,11 @@ package enum ExchangeIdentity {
     /// stored bytes are checked before model decoding can accept a noncanonical identity in
     /// normalized form.
     package static func validateSerializedIdentifierSystems(in data: Data) throws {
-        let json = try JSONSerialization.jsonObject(with: data)
+        try validateSerializedIdentifierSystems(inJSON: JSONSerialization.jsonObject(with: data))
+    }
+
+    /// ``validateSerializedIdentifierSystems(in:)`` over JSON already parsed from the stored bytes.
+    static func validateSerializedIdentifierSystems(inJSON json: Any) throws {
         try walkJSONObjects(json) { object in
             guard let type = object["type"] as? [String: Any],
                   let codings = type["coding"] as? [[String: Any]],
@@ -166,50 +116,26 @@ package enum ExchangeIdentity {
 
     /// Whether a value has the canonical wire form of a Grove opaque identity.
     package static func isCanonicalOpaqueIdentifierValue(_ value: String) -> Bool {
-        let components = value.split(separator: ":", omittingEmptySubsequences: false)
-        guard components.count == 4,
-              components[0] == "v0",
-              OpaqueIdentityScope.isValidKeyID(String(components[1])),
-              (try? EventSequence(String(components[2]))) != nil,
-              components[3].utf8.count == 43,
-              components[3].utf8.allSatisfy({
-                  $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x5F
-              }) else {
+        // `v0:<key id>:<epoch>:<digest>`, read as slices of `value`. No field admits a colon or any non-ASCII byte, so
+        // splitting at colon bytes accepts exactly what splitting at colon characters does.
+        let utf8 = value.utf8
+        guard utf8.starts(with: "v0:".utf8) else {
             return false
         }
-        return true
+        let keyIDStart = utf8.index(utf8.startIndex, offsetBy: 3)
+        guard let keyIDEnd = utf8[keyIDStart...].firstIndex(of: 0x3A),
+              let epochEnd = utf8[utf8.index(after: keyIDEnd)...].firstIndex(of: 0x3A) else {
+            return false
+        }
+        let epoch = value[utf8.index(after: keyIDEnd)..<epochEnd]
+        // The epoch is an EventSequence: canonical and positive.
+        return OpaqueIdentityScope.isValidKeyID(value[keyIDStart..<keyIDEnd])
+            && CanonicalNonnegativeDecimal.isCanonical(epoch) && epoch != "0"
+            && isUnpaddedBase64URLDigest(value[utf8.index(after: epochEnd)...])
     }
-}
 
-
-extension ExchangeIdentity {
-    /// Returns the identifiers whose `Identifier.type` carries a Grove identifier role.
-    ///
-    /// A malformed Grove-typed identifier fails closed. Untyped business identifiers are not part
-    /// of the exchange identity graph and are intentionally omitted.
-    static func typedResourceIdentifiers(
-        in resource: ResourceProxy?
-    ) throws -> [RoledIdentifier] {
-        guard let resource else {
-            return []
-        }
-        let data = try JSONEncoder().encode(resource)
-        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let rawIdentifiers = object["identifier"] as? [[String: Any]] else {
-            return []
-        }
-        var identifiers: [RoledIdentifier] = []
-        for rawIdentifier in rawIdentifiers {
-            let data = try JSONSerialization.data(withJSONObject: rawIdentifier)
-            let identifier = try JSONDecoder().decode(Identifier.self, from: data)
-            let carriesGroveRole = identifier.type?.coding?.contains {
-                $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
-            } == true
-            guard carriesGroveRole else {
-                continue
-            }
-            identifiers.append(try RoledIdentifier(identifier))
-        }
-        return identifiers
+    /// Whether `text` has the form of a SHA-256 digest in base64url without padding: 43 characters of `[A-Za-z0-9_-]`.
+    static func isUnpaddedBase64URLDigest(_ text: some StringProtocol) -> Bool {
+        text.utf8.count == 43 && text.utf8.allSatisfy { $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x5F }
     }
 }

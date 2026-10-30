@@ -7,6 +7,8 @@
 //
 
 import Foundation
+package import ModelsR4
+import ThreadLocal
 
 
 /// The namespace half of a FHIR business identifier: an absolute ASCII RFC 3986 URI naming whose numbering
@@ -23,11 +25,23 @@ public struct IdentifierSystem: Hashable, Sendable {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~:/?#[]@!$&'()*+,;=-".utf8
     )
 
+    /// The systems that validated so far: a deployment states the same few systems in every graph, so each thread parses
+    /// each once.
+    @ThreadLocal private static var validated: ValidatedSystems = .init()
+
     public let rawValue: String
+    /// ``rawValue`` as the `Identifier.system` that states it, parsed once.
+    package let uri: FHIRPrimitive<FHIRURI>
 
     /// Validates a namespace that is not known until runtime — read from configuration, a server
     /// response, or a deployment property list.
     public init(_ rawValue: String) throws(ExchangeIdentityError) {
+        let validated = Self.validated
+        if let uri = validated.uri(for: rawValue) {
+            self.rawValue = rawValue
+            self.uri = uri
+            return
+        }
         guard !rawValue.isEmpty else {
             throw .missingIdentifierSystem
         }
@@ -51,6 +65,8 @@ public struct IdentifierSystem: Hashable, Sendable {
             throw .nonCanonicalIdentifierSystem(supplied: rawValue, encoded: parsed.string ?? "")
         }
         self.rawValue = rawValue
+        self.uri = FHIRPrimitive(FHIRURI(stringLiteral: rawValue))
+        validated.insert(uri, for: rawValue)
     }
 
     private static func hasValidURICharacters(_ bytes: ArraySlice<UInt8>) -> Bool {
@@ -150,6 +166,41 @@ public struct IdentifierSystem: Hashable, Sendable {
                 return false
             }
             return String(number) == octet
+        }
+    }
+}
+
+
+extension IdentifierSystem {
+    /// Equal by ``rawValue`` alone, which `uri` is parsed from.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.rawValue == rhs.rawValue
+    }
+
+    /// Hashed by ``rawValue`` alone, which `uri` is parsed from.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(rawValue)
+    }
+}
+
+
+extension IdentifierSystem {
+    /// The systems that passed validation on one thread, with the URI each states. Validation depends on the text
+    /// alone, so a hit is as good as validating again; failures are never kept, and the set stops growing at a bound no
+    /// deployment reaches.
+    private final class ValidatedSystems {
+        private static let bound = 256
+
+        private var uris: [String: FHIRPrimitive<FHIRURI>] = [:]
+
+        func uri(for rawValue: String) -> FHIRPrimitive<FHIRURI>? {
+            uris[rawValue]
+        }
+
+        func insert(_ uri: FHIRPrimitive<FHIRURI>, for rawValue: String) {
+            if uris.count < Self.bound {
+                uris[rawValue] = uri
+            }
         }
     }
 }

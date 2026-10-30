@@ -9,7 +9,39 @@
 import Foundation
 
 
-/// A JSON document read without losing what the receiver compares: number lexemes stay text.
+/// The exact value of a JSON number lexeme: its sign, its significant digits and the power of ten that scales them, so
+/// `72`, `72.0` and `7.2e1` are one value and nothing is rounded.
+private struct ExactNumber: Equatable {
+    let isNegative: Bool
+    let digits: Substring
+    let exponent: Int64
+
+    /// The value of a lexeme the parser admitted; `nil` for an exponent of 2^32 or more in magnitude, which then
+    /// compares by its lexeme alone.
+    init?(_ lexeme: String) {
+        let parts = lexeme.split(maxSplits: 1) { $0 == "e" || $0 == "E" }
+        guard let mantissa = parts.first, let stated = parts.count == 2 ? Int64(parts[1]) : 0, stated.magnitude < 1 << 32 else {
+            return nil
+        }
+        let point = mantissa.firstIndex(of: ".")
+        let fraction = point.map { mantissa[mantissa.index(after: $0)...] } ?? ""
+        let significant = (mantissa[..<(point ?? mantissa.endIndex)].drop { $0 == "-" } + fraction).drop { $0 == "0" }
+        let trailingZeros = significant.reversed().prefix { $0 == "0" }.count
+        self.digits = significant.dropLast(trailingZeros)
+        // Zero has neither sign nor scale, whatever its lexeme.
+        self.isNegative = !digits.isEmpty && mantissa.hasPrefix("-")
+        self.exponent = digits.isEmpty ? 0 : stated - Int64(fraction.count) + Int64(trailingZeros)
+    }
+}
+
+
+/// A JSON document read without losing what the receiver compares: number lexemes stay text, and strings
+/// keep every Unicode scalar they were written with.
+///
+/// Equality is the exchange protocol's token equality (`exchange-protocol.json` `semanticComparison`), which the
+/// guide's reference comparator decides over code points: strings and member names compare scalar by scalar, so
+/// canonically equivalent spellings such as `U+00E9` and `e U+0301` are different content, and nothing is normalized.
+/// An object whose member names are canonically equivalent is refused as a duplicate, as `StrictJSONScanner` refuses it.
 indirect enum LosslessJSONValue: Equatable {
     case object([String: LosslessJSONValue])
     case array([LosslessJSONValue])
@@ -173,15 +205,21 @@ indirect enum LosslessJSONValue: Equatable {
             index += 1
             var scalars = String.UnicodeScalarView()
             var utf8Run: [UInt8] = []
+            // Decoded scalar by scalar: `String(bytes:encoding:)` would drop a leading U+FEFF as a byte order mark.
             func flushRun() throws(ParseError) {
-                guard !utf8Run.isEmpty else {
-                    return
+                var decoder = UTF8()
+                var iterator = utf8Run.makeIterator()
+                while true {
+                    switch decoder.decode(&iterator) {
+                    case .scalarValue(let scalar):
+                        scalars.append(scalar)
+                    case .emptyInput:
+                        utf8Run.removeAll()
+                        return
+                    case .error:
+                        throw ParseError()
+                    }
                 }
-                guard let text = String(bytes: utf8Run, encoding: .utf8) else {
-                    throw ParseError()
-                }
-                scalars.append(contentsOf: text.unicodeScalars)
-                utf8Run.removeAll()
             }
             while index < bytes.count {
                 let byte = bytes[index]
@@ -258,15 +296,59 @@ indirect enum LosslessJSONValue: Equatable {
 }
 
 
+extension LosslessJSONValue {
+    /// Token equality, with strings, lexemes and member names compared scalar by scalar.
+    static func == (lhs: LosslessJSONValue, rhs: LosslessJSONValue) -> Bool {
+        lhs.matches(rhs) { $0.unicodeScalars.elementsEqual($1.unicodeScalars) }
+    }
+
+    /// Whether `kept`, the FHIR model's encoding of what it decoded from this document, states the same content: the
+    /// same members, elements and scalars, with numbers compared by their exact value, as the model rewrites a decimal
+    /// lexeme such as `72.0` but must not round a value or rewrite any other scalar.
+    func isKept(as kept: LosslessJSONValue) -> Bool {
+        matches(kept) { given, kept in
+            given == kept || ExactNumber(given).map { $0 == ExactNumber(kept) } ?? false
+        }
+    }
+
+    /// Token equality with numbers compared by `sameNumber`.
+    private func matches(_ other: LosslessJSONValue, numbers sameNumber: (String, String) -> Bool) -> Bool {
+        switch (self, other) {
+        case let (.object(lhs), .object(rhs)):
+            // A dictionary finds a member under any canonically equivalent name, so the name found is compared too.
+            lhs.count == rhs.count && lhs.allSatisfy { name, value in
+                guard let index = rhs.index(forKey: name) else {
+                    return false
+                }
+                return rhs[index].key.unicodeScalars.elementsEqual(name.unicodeScalars) && value.matches(rhs[index].value, numbers: sameNumber)
+            }
+        case let (.array(lhs), .array(rhs)):
+            lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { $0.matches($1, numbers: sameNumber) }
+        case let (.string(lhs), .string(rhs)):
+            lhs.unicodeScalars.elementsEqual(rhs.unicodeScalars)
+        case let (.number(lhs), .number(rhs)):
+            sameNumber(lhs, rhs)
+        case let (.boolean(lhs), .boolean(rhs)):
+            lhs == rhs
+        case (.null, .null):
+            true
+        default:
+            false
+        }
+    }
+}
+
+
 extension ExchangeGraph {
     /// Whether two graphs carry the same JSON tokens.
     ///
     /// Member order, whitespace and string escaping do not matter; a decimal lexeme is compared as
-    /// text, so `72` and `72.0` are different content. A retry that is equal under this comparison
-    /// is the exact retry the exchange protocol admits.
+    /// text, so `72` and `72.0` are different content, and strings compare scalar by scalar without
+    /// Unicode normalization. A retry that is equal under this comparison is the exact retry the
+    /// exchange protocol admits.
     public func isSemanticallyEqual(to other: ExchangeGraph) -> Bool {
-        guard let lhs = try? LosslessJSONValue(parsing: jsonData),
-              let rhs = try? LosslessJSONValue(parsing: other.jsonData) else {
+        guard let lhs = try? LosslessJSONValue(parsing: json),
+              let rhs = try? LosslessJSONValue(parsing: other.json) else {
             return false
         }
         return lhs == rhs

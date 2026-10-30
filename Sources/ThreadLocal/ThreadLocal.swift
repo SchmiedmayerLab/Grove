@@ -20,22 +20,23 @@ import Darwin.C
 ///
 /// You do not use this type directly.
 /// Instead, your code interacts with thread-local variables by simply directly accessing them via their getter and setter.
+///
+/// Each thread's value lives in a box its pthread slot owns: the thread's first read stores the default there, a write
+/// replaces the value in the box, and the thread's exit releases the box, which hands its value to the deallocator.
 public final class ThreadLocal<Value>: Sendable {
-    nonisolated(unsafe) public private(set) var _key: pthread_key_t
-    public let _deallocator: Deallocator
+    @usableFromInline let _key: pthread_key_t
+    @usableFromInline let _deallocator: Deallocator
 
+    /// The calling thread's box, or `nil` until the thread first reads or writes the value.
     @inlinable var _box: _Box? {
-        guard let ptr = pthread_getspecific(_key) else {
-            return nil
+        pthread_getspecific(_key).map {
+            Unmanaged<_Box>.fromOpaque($0).takeUnretainedValue()
         }
-        let unmanaged = Unmanaged<_Box>.fromOpaque(ptr)
-        return unmanaged.takeUnretainedValue()
     }
 
     @available(*, noasync)
     public init(_deallocator deallocator: Deallocator = .default) {
-        _key = pthread_key_t()
-        _deallocator = deallocator
+        var key = pthread_key_t()
         #if os(Linux)
         let destroyFn: @convention(c) (UnsafeMutableRawPointer?) -> Void = { ptr in
             if let ptr {
@@ -47,44 +48,34 @@ public final class ThreadLocal<Value>: Sendable {
             Unmanaged<AnyObject>.fromOpaque(ptr).release()
         }
         #endif
-        let status = pthread_key_create(&_key, destroyFn)
+        let status = pthread_key_create(&key, destroyFn)
         precondition(status == 0, "pthread_key_create failed with status code \(status)")
+        _key = key
+        _deallocator = deallocator
     }
 
-    @available(*, noasync)
-    @inlinable
-    func _makeBox(_ value: Value) -> _Box {
-        _Box(_value: value, deallocator: _deallocator)
-    }
-
+    /// The calling thread's value, after storing `default` if the thread has none yet.
     @available(*, noasync)
     @inlinable
     public func _get(default: @autoclosure () -> Value) -> Value {
-        if let value = _box?._value {
-            return value
-        } else {
-            let value = `default`()
-            _set(value)
-            return value
+        if let box = _box {
+            return box._value
         }
+        let value = `default`()
+        _set(value)
+        return value
     }
 
+    /// Stores `newValue` as the calling thread's value; the value it replaces goes to the deallocator.
     @available(*, noasync)
     @inlinable
-    public func _set(_ newValue: Value?) {
-        let unmanaged = pthread_getspecific(_key).map {
-            Unmanaged<_Box>.fromOpaque($0)
-        }
-        guard let newValue else {
-            pthread_setspecific(_key, nil)
-            unmanaged?.release()
-            return
-        }
-        if let unmanaged {
-            unmanaged.takeUnretainedValue()._value = newValue
+    public func _set(_ newValue: Value) {
+        if let box = _box {
+            box._value = newValue
         } else {
-            let unmanaged = Unmanaged.passRetained(_makeBox(newValue))
-            pthread_setspecific(_key, unmanaged.toOpaque())
+            let unmanaged = Unmanaged.passRetained(_Box(_value: newValue, deallocator: _deallocator))
+            let status = pthread_setspecific(_key, unmanaged.toOpaque())
+            precondition(status == 0, "pthread_setspecific failed with status code \(status)")
         }
     }
 
@@ -138,17 +129,19 @@ extension ThreadLocal.Deallocator where Value: _Pointer & SendableMetatype {
 
 
 extension ThreadLocal {
-    public final class _Box: AnyObject {
-        public var _value: Value? {
+    /// One thread's value, owned by that thread's slot.
+    public final class _Box {
+        /// The thread's value; the one a write replaces goes to ``_deallocator``.
+        public var _value: Value {
             didSet {
-                if let oldValue {
-                    _deallocator._imp?(oldValue)
-                }
+                _deallocator._imp?(oldValue)
             }
         }
 
+        /// Called with the box's value when it is replaced and when the box is released.
         public let _deallocator: Deallocator
 
+        /// A box holding `value`.
         @inlinable
         public init(_value value: Value, deallocator: Deallocator) {
             self._value = value
@@ -157,9 +150,7 @@ extension ThreadLocal {
 
         @inlinable
         deinit {
-            if let _value {
-                _deallocator._imp?(_value)
-            }
+            _deallocator._imp?(_value)
         }
     }
 }

@@ -116,12 +116,29 @@ struct RecordingRoundTripTests {
         #expect(decoded == recording)
         var expectedStart = start.timeIntervalSince1970.bitPattern.bigEndian
         let expectedStartBytes = withUnsafeBytes(of: &expectedStart) { Array($0) }
-        #expect(Array(data.dropFirst().prefix(8)) == expectedStartBytes)
+        #expect(data.first == SensorKitPPGRecording.version)
+        // The version byte, then the one-byte record count, then the first record's start.
+        #expect(Array(data.dropFirst(2).prefix(8)) == expectedStartBytes)
         #expect(decoded.summary?.recordCount == 2)
         #expect(decoded.summary?.opticalSampleCount == 2)
         #expect(decoded.summary?.accelerometerSampleCount == 2)
         #expect(decoded.summary?.coverage.start == start)
         #expect(decoded.summary?.coverage.end == start.addingTimeInterval(1.5))
+    }
+
+    @Test("A PPG payload of another version, or with no version byte, is refused")
+    func ppgVersionIsChecked() throws {
+        var payload = try SensorKitPPGTestSupport.recording(start: Date(timeIntervalSince1970: 1_787_009_400)).encoded()
+        payload[payload.startIndex] = 2
+        #expect(throws: SensorKitPPGRecording.DecodingError.unsupportedVersion(2)) {
+            _ = try SensorKitPPGRecording(data: payload)
+        }
+        #expect(throws: RegisteredRecordingPayloadError.invalidPhotoplethysmogramPayload) {
+            try RegisteredRecordingFormat.photoplethysmogramSamples.validatePayload(payload)
+        }
+        #expect(throws: RecordingBinaryReader.ReaderError.unexpectedEnd) {
+            _ = try SensorKitPPGRecording(data: Data())
+        }
     }
 
     @Test("Prepared PPG evidence reuses one canonical byte buffer")

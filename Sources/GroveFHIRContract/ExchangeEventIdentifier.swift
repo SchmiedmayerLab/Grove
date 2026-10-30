@@ -49,7 +49,7 @@ public struct ExchangeEventIdentifier: Hashable, Sendable {
     }
 
     /// Whether a canonical UUID text states one of RFC 4122's versions and its variant.
-    private static func statesRFC4122Version(_ canonicalUUID: String) -> Bool {
+    static func statesRFC4122Version(_ canonicalUUID: String) -> Bool {
         let characters = Array(canonicalUUID)
         guard characters.count == 36 else {
             return false

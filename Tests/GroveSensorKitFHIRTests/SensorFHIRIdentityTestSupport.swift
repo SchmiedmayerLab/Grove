@@ -7,13 +7,12 @@
 //
 
 // Fixed protocol-vector fixtures deliberately trap if a hard-coded identity becomes invalid.
-// swiftlint:disable force_try type_contents_order
+// swiftlint:disable force_try
 
 import CryptoKit
 import Foundation
 import GroveFHIRContract
 @testable import GroveSensorKitFHIR
-import ModelsR4
 
 
 enum SensorFHIRIdentityTestSupport {
@@ -42,18 +41,16 @@ enum SensorFHIRIdentityTestSupport {
     )
     static let identityScope = try! OpaqueIdentityScope(
         systems: DeploymentIdentifierSystems(
-            opaque: OpaqueIdentitySystems(
-                sourceRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-record/test/1",
-                sourceOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1",
-                writerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/writer-record/test/1",
-                providerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-record/test/1",
-                providerOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-output/test/1",
-                sourceArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-artifact/test/1",
-                providerArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-artifact/test/1",
-                sourceContext: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-context/test/1",
-                recordingDevice: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/recording-device/test/1",
-                deviceSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/device-snapshot/test/1"
-            ),
+            sourceRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-record/test/1",
+            sourceOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-output/test/1",
+            writerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/writer-record/test/1",
+            providerRecord: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-record/test/1",
+            providerOutput: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-output/test/1",
+            sourceArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-artifact/test/1",
+            providerArtifact: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/provider-artifact/test/1",
+            sourceContext: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-context/test/1",
+            recordingDevice: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/recording-device/test/1",
+            deviceSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/device-snapshot/test/1",
             event: "https://grovealliance.org/fhir/testing/identifiers/exchange-event",
             entryNode: entryNodeIdentifierSystem
         ),
@@ -61,37 +58,6 @@ enum SensorFHIRIdentityTestSupport {
         epoch: EventSequence(1),
         key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
     )
-
-    static func event(sequence: UInt64 = 1) throws -> ExchangeEventIdentifier {
-        try ExchangeEventIdentifier(
-            system: "https://grovealliance.org/fhir/testing/identifiers/exchange-event",
-            producerInstance: producerInstance,
-            sequence: EventSequence(sequence)
-        )
-    }
-
-    static func eventContext(
-        subject: Subject = subject,
-        converter: ApplicationDevice,
-        event: ExchangeEventIdentifier,
-        converterWasGateway: Bool,
-        conversionInstant: Date,
-        studies: [StudyEnrollment] = [],
-        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
-    ) -> ExchangeEventContext {
-        ExchangeEventContext(
-            subject: subject,
-            event: event,
-            identityScope: identityScope,
-            repositoryScope: repositoryScope,
-            application: converter,
-            host: converterHost,
-            conversionInstant: conversionInstant,
-            converterRole: converterWasGateway ? .gateway : .assembler,
-            studies: studies,
-            repositoryIDs: repositoryIDs
-        )
-    }
 
     static func sensorKitOutputs(
         sourceRecordID: SensorKitSourceRecordID,
@@ -110,7 +76,7 @@ enum SensorFHIRIdentityTestSupport {
             outputs.append(try sourceRecord.output(role: "structured", discriminator: structuredDiscriminator))
         }
         if includesNativeRecording {
-            outputs.append(try sourceRecord.output(role: "native-recording", discriminator: "single"))
+            outputs.append(try sourceRecord.output(role: "native-recording", discriminator: "native-recording"))
         }
         return outputs
     }
@@ -140,157 +106,4 @@ extension RoledIdentifier {
     var value: String { identifier.value }
     var system: IdentifierSystem { identifier.system }
     var systemValue: String { identifier.system.rawValue }
-}
-
-
-/// Keeps the fixtures concise while production callers build the shared event context themselves.
-extension SensorConversionContext {
-    init(
-        subject: Subject = SensorFHIRIdentityTestSupport.subject,
-        converter: ApplicationDevice,
-        graphIdentifierSystem: IdentifierSystem,
-        recordingDevice: RecordingDevice? = nil,
-        converterWasGateway: Bool = false,
-        conversionInstant: Date,
-        studies: [StudyEnrollment] = [],
-        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
-    ) {
-        self.init(
-            event: SensorFHIRIdentityTestSupport.eventContext(
-                subject: subject,
-                converter: converter,
-                event: try! ExchangeEventIdentifier(
-                    system: graphIdentifierSystem,
-                    producerInstance: SensorFHIRIdentityTestSupport.producerInstance,
-                    sequence: EventSequence(1)
-                ),
-                converterWasGateway: converterWasGateway,
-                conversionInstant: conversionInstant,
-                studies: studies,
-                repositoryIDs: repositoryIDs
-            ),
-            adapterID: "sensor",
-            recordingDevice: recordingDevice
-        )
-    }
-
-    var graphIdentifierSystem: IdentifierSystem {
-        eventIdentifier.identifier.system
-    }
-}
-
-
-extension SensorKitConversionContext {
-    init(
-        subject: Subject = SensorFHIRIdentityTestSupport.subject,
-        converter: ApplicationDevice,
-        eventIdentifier: ExchangeEventIdentifier,
-        visitLocationIdentifierSystem: IdentifierSystem = SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem,
-        sourceIdentifierDisclosurePolicy: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        recordingDevice: RecordingDevice? = nil,
-        converterWasGateway: Bool = false,
-        sourceTimeZone: TimeZone,
-        conversionInstant: Date,
-        studies: [StudyEnrollment] = [],
-        repositoryIDs: [ExchangeGraphNode: RepositoryID] = [:]
-    ) {
-        self.init(
-            event: SensorFHIRIdentityTestSupport.eventContext(
-                subject: subject,
-                converter: converter,
-                event: eventIdentifier,
-                converterWasGateway: converterWasGateway,
-                conversionInstant: conversionInstant,
-                studies: studies,
-                repositoryIDs: repositoryIDs
-            ),
-            visitLocationIdentifierSystem: visitLocationIdentifierSystem,
-            sourceIdentifierDisclosurePolicy: sourceIdentifierDisclosurePolicy,
-            recordingDevice: recordingDevice,
-            sourceTimeZone: sourceTimeZone
-        )
-    }
-}
-
-
-extension SensorSampledDataRecord {
-    init(
-        identifier: BusinessIdentifier,
-        sourceTypeIdentifier: String,
-        code: SensorCode,
-        start: Date,
-        samples: [Double],
-        dimensions: Int = 1,
-        periodMilliseconds: Double,
-        origin: Double = 0,
-        unitCode: String,
-        unitDisplay: String? = nil
-    ) throws {
-        try self.init(
-            nativeRecordID: identifier.value,
-            sourceTypeIdentifier: sourceTypeIdentifier,
-            code: code,
-            start: start,
-            samples: samples,
-            dimensions: dimensions,
-            periodMilliseconds: periodMilliseconds,
-            origin: origin,
-            unitCode: unitCode,
-            unitDisplay: unitDisplay
-        )
-    }
-}
-
-
-extension SensorECGRecord {
-    init(
-        identifier: BusinessIdentifier,
-        sourceTypeIdentifier: String,
-        start: Date,
-        periodMilliseconds: Double,
-        channels: [SensorECGChannel]
-    ) throws {
-        try self.init(
-            nativeRecordID: identifier.value,
-            sourceTypeIdentifier: sourceTypeIdentifier,
-            start: start,
-            periodMilliseconds: periodMilliseconds,
-            channels: channels
-        )
-    }
-}
-
-
-extension SensorRecordingDocument {
-    init(
-        identifier: BusinessIdentifier,
-        sourceTypeIdentifier: String,
-        type: SensorCode,
-        title: String,
-        format: RegisteredRecordingFormat,
-        payload: Payload,
-        rawPayloadAdmission: SensorRawPayloadAdmission?,
-        related: [BusinessIdentifier] = []
-    ) throws {
-        try self.init(
-            nativeRecordID: identifier.value,
-            sourceTypeIdentifier: sourceTypeIdentifier,
-            type: type,
-            title: title,
-            format: format,
-            payload: payload,
-            rawPayloadAdmission: rawPayloadAdmission,
-            related: related
-        )
-    }
-}
-
-
-extension SensorConverter {
-    func convert<S: Sequence>(
-        _ records: S,
-        context: SensorConversionContext
-    ) -> SensorBatchResult where S.Element == SensorRecord {
-        convert(records) { _ in context }
-    }
 }

@@ -181,7 +181,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
 
     def test_a_producer_change_selects_only_its_lane(self):
         for path, component in (
-            ("Sources/GroveHealthKitFHIR/HealthKitConverter.swift", "healthkit"),
+            ("Sources/GroveHealthKitFHIR/HealthKitFHIRExporter.swift", "healthkit"),
             ("Sources/GroveQuestionnaire/Model/Questionnaire.swift", "questionnaire"),
             ("Sources/GroveSensorKitFHIR/SensorKitConverter.swift", "sensor"),
         ):
@@ -199,7 +199,7 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
 
     def test_fhir_only_schedules_every_conformance_lane_and_no_package_jobs(self):
         result = run_selector(
-            "Sources/GroveHealthKitFHIR/HealthKitConverter.swift",
+            "Sources/GroveHealthKitFHIR/HealthKitFHIRExporter.swift",
             extra_arguments=("--fhir-only",),
         )
 

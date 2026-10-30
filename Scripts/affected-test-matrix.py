@@ -120,6 +120,8 @@ NON_TEST_SCRIPT_PATHS = {
 
 FHIR_VALIDATION_PATHS = {
     "Scripts/check-fhir-canonical-hygiene.sh",
+    "Scripts/check-ig-example-containment.py",
+    "Scripts/generate-grove-fhir-guide-example-fixtures.py",
     "Scripts/generate-grove-fhir-producer-manifest.py",
     "Scripts/generate-grove-fhir-semantic-vector-fixtures.py",
     "Scripts/generate-grove-fhir-swift-contract.py",

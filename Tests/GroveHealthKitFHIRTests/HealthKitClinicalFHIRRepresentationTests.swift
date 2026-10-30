@@ -19,7 +19,7 @@ import Testing
 @Suite
 struct HealthKitClinicalFHIRRepresentationTests {
     @Test("Each admitted source release uses its versioned media type with byte-preserved payload")
-    func admittedClinicalFHIRRepresentationsAreExact() throws {
+    func admittedClinicalFHIRRepresentationsAreExact() async throws {
         #expect(HealthKitContract.admittedClinicalFHIRReleaseCodes == ["dstu2", "r4"])
         #expect(HealthKitContract.clinicalFHIRContentTypeByRelease == [
             "dstu2": "application/fhir+json; fhirVersion=1.0",
@@ -27,7 +27,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
         ])
         for sourceRelease in HealthKitContract.admittedClinicalFHIRReleaseCodes.sorted() {
             let payload = Data(" {\"resourceType\":\"Observation\",\"id\":\"\(sourceRelease)\"}\n".utf8)
-            let conversion = try makeConversion(releaseCode: sourceRelease, payload: payload)
+            let conversion = try await makeConversion(releaseCode: sourceRelease, payload: payload)
             let content = try #require(conversion.document.content.first)
             #expect(content.format?.code?.value?.string == HealthKitContract.clinicalFHIRPayloadFormatCode)
             #expect(
@@ -39,75 +39,62 @@ struct HealthKitClinicalFHIRRepresentationTests {
     }
 
     @Test("An unversioned FHIR JSON media type fails graph validation")
-    func clinicalFHIRContentTypeIsVersioned() throws {
-        let conversion = try makeConversion(releaseCode: "dstu2")
+    func clinicalFHIRContentTypeIsVersioned() async throws {
+        await #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
+            try revalidate(try await makeConversion(releaseCode: "dstu2"), contentType: "application/fhir+json")
+        }
+    }
+
+    @Test("A release outside the admitted DSTU2 and R4 set fails graph validation")
+    func unsupportedClinicalFHIRReleaseIsRejected() async throws {
+        await #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
+            try revalidate(try await makeConversion(releaseCode: "r4"), contentType: "application/fhir+json; fhirVersion=5.0")
+        }
+        await #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
+            try revalidate(try await makeConversion(releaseCode: "r4"), contentType: nil)
+        }
+    }
+
+    /// A lab result HealthKit reports in `releaseCode`, DSTU2 or R4, carrying `payload`, exported.
+    private func makeConversion(
+        releaseCode: String,
+        payload: Data = Data(#"{"resourceType":"Observation","id":"clinical"}"#.utf8)
+    ) async throws -> ExportedRecord {
+        let record = try StoredSampleFixtures.clinicalRecord(
+            HKClinicalType(.labResultRecord),
+            fhirVersion: releaseCode == "dstu2" ? .primaryDSTU2() : .primaryR4(),
+            resource: payload,
+            facts: GoldenCase.seriesFacts(uuid: 0xF2, duration: 0)
+        )
+        var inputs = ExportInputs()
+        inputs.converter = ApplicationDevice.test(
+            name: "Example Study",
+            bundleIdentifier: "org.grovealliance.example-study",
+            version: "2.0.0 (42)"
+        )
+        inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
+        inputs.instant = Date(timeIntervalSince1970: 1_755_624_060)
+        return try await ExporterFixtures.export(record, inputs)
+    }
+
+    /// Validates `conversion`'s graph again with its document's attachment stating `contentType` instead.
+    private func revalidate(_ conversion: ExportedRecord, contentType: String?) throws {
         var bundle = conversion.bundle
         var entries = try #require(bundle.entry)
-        let documentIndex = try #require(entries.firstIndex(where: {
+        let documentIndex = try #require(entries.firstIndex {
             if case .documentReference = $0.resource {
                 return true
             }
             return false
-        }))
+        })
         guard case .documentReference(var document)? = entries[documentIndex].resource else {
             Issue.record("Clinical graph does not contain its DocumentReference")
             return
         }
-        document.content[0].attachment.contentType =
-            "application/fhir+json".asFHIRStringPrimitive()
+        document.content[0].attachment.contentType = contentType?.asFHIRStringPrimitive()
         entries[documentIndex].resource = ResourceProxy(with: document)
         bundle.entry = entries
-
-        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
-            _ = try ExchangeGraph(
-                kind: .active,
-                eventIdentifier: conversion.graph.eventIdentifier,
-                bundle: bundle
-            )
-        }
-    }
-
-    @Test("A release outside the admitted DSTU2 and R4 set fails before graph emission")
-    func unsupportedClinicalFHIRReleaseIsRejected() {
-        #expect(throws: ExchangeGraphError.ruleViolation(.healthkitClinicalFhirRepresentation)) {
-            _ = try makeConversion(releaseCode: "r5")
-        }
-    }
-
-    private func makeConversion(
-        releaseCode: String,
-        payload: Data = Data(#"{"resourceType":"Observation","id":"clinical"}"#.utf8)
-    ) throws -> HealthKitConversionSet {
-        try HealthKitConverter.assembleDocumentGraph(
-            for: HKQuantitySample(
-                type: HKQuantityType(.heartRate),
-                quantity: HKQuantity(
-                    unit: HKUnit.count().unitDivided(by: .minute()),
-                    doubleValue: 60
-                ),
-                start: Date(timeIntervalSince1970: 1_755_624_000),
-                end: Date(timeIntervalSince1970: 1_755_624_600)
-            ),
-            evidence: HealthKitRecordingEvidence(
-                outputRole: "clinical-record",
-                format: .fhirResource,
-                title: "Clinical FHIR resource",
-                payload: payload,
-                profiles: [HealthKitContract.clinicalRecordProfile],
-                clinicalRecordTypeCode: "lab-result-record",
-                clinicalFHIRReleaseCode: releaseCode
-            ),
-            context: HealthKitConversionContext(
-                subject: .testPatient,
-                converter: ApplicationDevice.test(
-                    name: "Example Study",
-                    bundleIdentifier: "org.grovealliance.example-study",
-                    version: "2.0.0 (42)"
-                ),
-                graphIdentifierSystem: "https://study.example.org/fhir/identifiers/mobile-graph",
-                conversionInstant: Date(timeIntervalSince1970: 1_755_624_060)
-            )
-        )
+        _ = try ExchangeGraph(kind: .active, eventIdentifier: conversion.graph.eventIdentifier, bundle: bundle)
     }
 }
 

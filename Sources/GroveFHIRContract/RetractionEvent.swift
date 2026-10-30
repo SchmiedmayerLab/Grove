@@ -6,75 +6,229 @@
 // SPDX-License-Identifier: MIT
 //
 
-// The lifecycle builder mirrors the normative FHIR graph and keeps its target/reference shape visible.
-// swiftlint:disable file_types_order function_body_length multiline_literal_brackets type_contents_order
+// The lifecycle builder mirrors the normative FHIR graph in one initializer.
+// swiftlint:disable function_body_length multiline_literal_brackets
 
-public import Foundation
-public import ModelsR4
+package import Foundation
+package import ModelsR4
 
 
-/// The role a prior logical output played in the source event now being retracted.
-public enum RetractionTargetRole: String, CaseIterable, Hashable, Sendable {
-    case primaryOutput = "primary-output"
-    case sourceArtifact = "source-artifact"
-    case childOutput = "child-output"
-    case specimen
-    case deviceSnapshot = "device-snapshot"
+/// A validated lifecycle assertion that names prior graph nodes without copying them.
+///
+/// The converting application is the assembler, referenced logically through its event-scoped
+/// snapshot identity; `occurred` states the source's deletion time or the bounds the producer
+/// knows, and the assertion is recorded at the event's instant.
+package struct RetractionEvent: Sendable {
+    /// The lifecycle activity a retraction Provenance asserts, in the Grove lifecycle-event code system.
+    static let lifecycleActivityCode = "source-record-retracted"
+
+    package let graph: ExchangeGraph
+
+    /// Builds the retraction graph of one reserved event.
+    ///
+    /// - Parameters:
+    ///   - event: The event the retraction is, as its reservation numbered it.
+    ///   - instant: The event's instant, when the assertion is recorded.
+    ///   - identityScope: The deployment's identity scope, which mints the event-scoped identities.
+    ///   - application: The converting application the event's frozen facts state; the Provenance names it as the
+    ///     assembler.
+    ///   - sourceRecord: The retracted source record.
+    ///   - targets: Every logical output of the source record the retraction takes back.
+    ///   - occurred: When the source retracted the record.
+    ///   - bundleID: The logical id the Bundle states; only HealthKit's transitional legacy `Bundle.id` names one.
+    package init(
+        event: ExchangeEventIdentifier,
+        instant: Date,
+        identityScope: OpaqueIdentityScope,
+        application: ApplicationDevice,
+        sourceRecord: RoledIdentifier,
+        targets: [Target],
+        occurred: Occurrence,
+        bundleID: RepositoryID? = nil
+    ) throws(ValidationError) {
+        guard !targets.isEmpty else {
+            throw .emptyTargets
+        }
+        guard Set(targets.map(\.identifier.identifier)).count == targets.count else {
+            throw .duplicateTarget
+        }
+        guard sourceRecord.role == .sourceRecord,
+              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(sourceRecord.identifier.value) else {
+            throw .invalidSourceRecord
+        }
+        guard Set(targets.compactMap(\.nativeRecordIdentifier?.system)).isDisjoint(with: identityScope.systems.all) else {
+            throw .reservedIdentifierSystem
+        }
+        let assembler: RoledIdentifier
+        do {
+            assembler = try identityScope.deviceSnapshot(
+                event: event,
+                role: .application,
+                sourceDeviceToken: application.sourceDeviceToken
+            )
+        } catch {
+            throw .exchangeIdentity(error)
+        }
+        let occurredX = try occurred.occurredX()
+        let recorded: Instant
+        do {
+            recorded = try ExchangeInstant.fhirInstant(instant)
+        } catch {
+            throw .invalidInstant
+        }
+        let provenance = Provenance(
+            activity: CodeableConcept(coding: [Coding(
+                code: Self.lifecycleActivityCode.asFHIRStringPrimitive(),
+                display: "Source record retracted".asFHIRStringPrimitive(),
+                system: Canonicals.lifecycleEventCodeSystem
+            )]),
+            agent: [ProvenanceAgent(
+                type: CodeableConcept(coding: [Coding(
+                    code: "assembler".asFHIRStringPrimitive(),
+                    display: "Assembler".asFHIRStringPrimitive(),
+                    system: Canonicals.provenanceParticipantType
+                )]),
+                who: Reference(
+                    identifier: assembler.fhirIdentifier,
+                    type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.device.rawValue))
+                )
+            )],
+            entity: [ProvenanceEntity(
+                role: FHIRPrimitive(.source),
+                what: Reference(identifier: sourceRecord.fhirIdentifier)
+            )],
+            meta: Meta(profile: [Profile.groveMobileRetractionProvenance]),
+            occurred: occurredX,
+            recorded: FHIRPrimitive(recorded),
+            target: targets.map(\.reference)
+        )
+        let entry: BundleEntry
+        do {
+            let nodeKey = try EntryNodeKey(
+                system: identityScope.systems.entryNode,
+                event: event,
+                nodeRole: "retraction-provenance",
+                ordinal: 0
+            )
+            entry = try BundleEntry(identifier: nodeKey.identifier, resource: ResourceProxy(with: provenance))
+        } catch {
+            throw .exchangeIdentity(error)
+        }
+        var bundle = ModelsR4.Bundle(
+            entry: [entry],
+            identifier: event.identifier.fhirIdentifier,
+            meta: Meta(profile: [Profile.groveMobileRetractionBundle]),
+            timestamp: FHIRPrimitive(recorded),
+            type: FHIRPrimitive(.collection)
+        )
+        bundle.id = bundleID?.primitive
+        do {
+            self.graph = try ExchangeGraph(kind: .retraction, eventIdentifier: event, bundle: bundle)
+        } catch {
+            throw .exchangeGraph(error)
+        }
+    }
 }
 
 
-/// One complete logical target of a retraction assertion.
-public struct RetractionTarget: Hashable, Sendable {
-    public let identifier: RoledIdentifier
-    public let resourceType: ResourceType
-    public let role: RetractionTargetRole
-    /// The adapter's own record identifier for the retracted record, carried beside the opaque
-    /// Grove identity so a consumer can delete the exact native record.
-    ///
-    /// It lives in the key space a ``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)``
-    /// policy names, and an adapter states it only under that policy; the graph renders it as the
-    /// target's native-record-identifier extension.
-    public let nativeRecordIdentifier: BusinessIdentifier?
-
-    public init(
-        identifier: RoledIdentifier,
-        resourceType: ResourceType,
-        role: RetractionTargetRole,
-        nativeRecordIdentifier: BusinessIdentifier? = nil
-    ) throws(RetractionTargetError) {
-        let expectedIdentifierRole: GroveIdentifierRole = switch role {
-        case .primaryOutput, .sourceArtifact, .childOutput, .specimen:
-            .sourceOutput
-        case .deviceSnapshot:
-            .deviceSnapshot
-        }
-        guard identifier.role == expectedIdentifierRole else {
-            throw RetractionTargetError.identifierRoleMismatch(
-                targetRole: role,
-                identifierRole: identifier.role
-            )
-        }
-        let allowedResourceTypes: Set<ResourceType> = switch role {
-        case .primaryOutput:
-            [.observation, .visionPrescription, .medicationAdministration, .medicationStatement]
-        case .sourceArtifact:
-            [.documentReference]
-        case .childOutput:
-            [.observation]
-        case .specimen:
-            [.specimen]
-        case .deviceSnapshot:
-            [.device]
-        }
-        guard allowedResourceTypes.contains(resourceType) else {
-            throw RetractionTargetError.resourceTypeMismatch(role: role, resourceType: resourceType)
-        }
-        self.identifier = identifier
-        self.resourceType = resourceType
-        self.role = role
-        self.nativeRecordIdentifier = nativeRecordIdentifier
+extension RetractionEvent {
+    /// Why a retraction event could not be built.
+    package enum ValidationError: Error, Equatable, Sendable {
+        case emptyTargets
+        case duplicateTarget
+        case invalidSourceRecord
+        /// A native record identifier reuses one of the deployment's Grove identity systems.
+        case reservedIdentifierSystem
+        case invalidInstant
+        /// A retraction period starts after it ends.
+        case invalidOccurrencePeriod
+        case exchangeIdentity(ExchangeIdentityError)
+        case exchangeGraph(ExchangeGraphError)
     }
 
+    /// One complete logical target of a retraction assertion.
+    package struct Target: Hashable, Sendable {
+        /// The role a prior logical output played in the source event now being retracted.
+        package enum Role: String, CaseIterable, Hashable, Sendable {
+            case primaryOutput = "primary-output"
+            case sourceArtifact = "source-artifact"
+            case childOutput = "child-output"
+            case specimen
+            case deviceSnapshot = "device-snapshot"
+        }
+
+        /// Why an identity cannot be a target in the role stated for it.
+        package enum ValidationError: Error, Equatable, Sendable {
+            case identifierRoleMismatch(
+                targetRole: Role,
+                identifierRole: GroveIdentifierRole
+            )
+            case resourceTypeMismatch(role: Role, resourceType: ResourceType)
+        }
+
+        package let identifier: RoledIdentifier
+        package let resourceType: ResourceType
+        package let role: Role
+        /// The adapter's own record identifier for the retracted record, carried beside the opaque
+        /// Grove identity so a consumer can delete the exact native record.
+        ///
+        /// It lives in the key space a `GovernedSourceIdentifierDisclosurePolicy.authorized(system:type:)`
+        /// policy names, and an adapter states it only under that policy; the graph renders it as the
+        /// target's native-record-identifier extension.
+        package let nativeRecordIdentifier: BusinessIdentifier?
+
+        package init(
+            identifier: RoledIdentifier,
+            resourceType: ResourceType,
+            role: Role,
+            nativeRecordIdentifier: BusinessIdentifier? = nil
+        ) throws(ValidationError) {
+            let expectedIdentifierRole: GroveIdentifierRole = switch role {
+            case .primaryOutput, .sourceArtifact, .childOutput, .specimen:
+                .sourceOutput
+            case .deviceSnapshot:
+                .deviceSnapshot
+            }
+            guard identifier.role == expectedIdentifierRole else {
+                throw ValidationError.identifierRoleMismatch(
+                    targetRole: role,
+                    identifierRole: identifier.role
+                )
+            }
+            let allowedResourceTypes: Set<ResourceType> = switch role {
+            case .primaryOutput:
+                [.observation, .visionPrescription, .medicationAdministration, .medicationStatement]
+            case .sourceArtifact:
+                [.documentReference]
+            case .childOutput:
+                [.observation]
+            case .specimen:
+                [.specimen]
+            case .deviceSnapshot:
+                [.device]
+            }
+            guard allowedResourceTypes.contains(resourceType) else {
+                throw ValidationError.resourceTypeMismatch(role: role, resourceType: resourceType)
+            }
+            self.identifier = identifier
+            self.resourceType = resourceType
+            self.role = role
+            self.nativeRecordIdentifier = nativeRecordIdentifier
+        }
+    }
+
+    /// When the source retracted a record, as precisely as the producer knows it, stated in UTC at millisecond precision.
+    package enum Occurrence: Hashable, Sendable {
+        /// The source's own deletion time, or the time the producer detected the deletion.
+        case instant(Date)
+        /// Bounds on a deletion time the source does not state: after `start` when known, and no later than `end`.
+        /// A start before 0001-01-01T00:00:00Z is stated as that instant.
+        case period(start: Date?, end: Date)
+    }
+}
+
+
+extension RetractionEvent.Target {
     var reference: Reference {
         var extensions = [Extension(
             url: Canonicals.retractionTargetRole,
@@ -95,153 +249,23 @@ public struct RetractionTarget: Hashable, Sendable {
 }
 
 
-public enum RetractionTargetError: Error, Equatable, Sendable {
-    case identifierRoleMismatch(
-        targetRole: RetractionTargetRole,
-        identifierRole: GroveIdentifierRole
-    )
-    case resourceTypeMismatch(role: RetractionTargetRole, resourceType: ResourceType)
-}
-
-
-/// When the source retracted a record, as precisely as the producer knows it.
-public enum RetractionOccurrence: Hashable, Sendable {
-    /// The source's own deletion time, or the time the producer detected the deletion.
-    case instant(Date)
-    /// Bounds on a deletion time the source does not state: after `start` when known, and no later than `end`.
-    case period(start: Date?, end: Date)
-
-    fileprivate func occurredX() throws(RetractionEventError) -> Provenance.OccurredX {
+extension RetractionEvent.Occurrence {
+    fileprivate func occurredX() throws(RetractionEvent.ValidationError) -> Provenance.OccurredX {
         if case let .period(start?, end) = self, start > end {
             throw .invalidOccurrencePeriod
         }
         do {
             switch self {
             case .instant(let date):
-                return .dateTime(FHIRPrimitive(try DateTime(utc: date)))
+                return .dateTime(FHIRPrimitive(try ExchangeInstant.fhirDateTime(date)))
             case let .period(start, end):
                 return .period(Period(
-                    end: FHIRPrimitive(try DateTime(utc: end)),
-                    start: try start.map { FHIRPrimitive(try DateTime(utc: $0)) }
+                    end: FHIRPrimitive(try ExchangeInstant.fhirDateTime(end)),
+                    start: try start.map { FHIRPrimitive(try ExchangeInstant.fhirDateTime(max($0, ExchangeInstant.earliestStatable))) }
                 ))
             }
         } catch {
             throw .invalidInstant
         }
     }
-}
-
-
-/// A validated lifecycle assertion that names prior graph nodes without copying them.
-///
-/// The converting application is the assembler, referenced logically through its event-scoped
-/// snapshot identity; `occurred` states the source's deletion time or the bounds the producer
-/// knows, and the assertion is recorded at the context's conversion instant.
-public struct RetractionEvent: Sendable {
-    public let graph: ExchangeGraph
-
-    public init(
-        targets: [RetractionTarget],
-        context: ExchangeEventContext,
-        sourceRecord: RoledIdentifier,
-        occurred: RetractionOccurrence
-    ) throws(RetractionEventError) {
-        guard !targets.isEmpty else {
-            throw .emptyTargets
-        }
-        guard Set(targets.map(\.identifier.identifier)).count == targets.count else {
-            throw .duplicateTarget
-        }
-        guard sourceRecord.role == .sourceRecord,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(sourceRecord.identifier.value) else {
-            throw .invalidSourceRecord
-        }
-        guard Set(targets.compactMap(\.nativeRecordIdentifier?.system)).isDisjoint(with: context.identityScope.systems.all) else {
-            throw .reservedIdentifierSystem
-        }
-        let assembler: RoledIdentifier
-        do {
-            assembler = try context.identityScope.deviceSnapshot(
-                event: context.event,
-                role: .application,
-                sourceDeviceToken: context.application.sourceDeviceToken
-            )
-        } catch {
-            throw .opaqueIdentity(error)
-        }
-        let occurredX = try occurred.occurredX()
-        let recorded: Instant
-        do {
-            recorded = try Instant(utc: context.conversionInstant)
-        } catch {
-            throw .invalidInstant
-        }
-        var provenance = Provenance(
-            activity: CodeableConcept(coding: [Coding(
-                code: GroveLifecycleContract.sourceRecordRetracted.asFHIRStringPrimitive(),
-                display: "Source record retracted".asFHIRStringPrimitive(),
-                system: Canonicals.lifecycleEventCodeSystem
-            )]),
-            agent: [ProvenanceAgent(
-                type: CodeableConcept(coding: [Coding(
-                    code: "assembler".asFHIRStringPrimitive(),
-                    display: "Assembler".asFHIRStringPrimitive(),
-                    system: Canonicals.provenanceParticipantType
-                )]),
-                who: Reference(
-                    identifier: assembler.fhirIdentifier,
-                    type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.device.rawValue))
-                )
-            )],
-            entity: [ProvenanceEntity(
-                role: FHIRPrimitive(.source),
-                what: Reference(identifier: sourceRecord.fhirIdentifier)
-            )],
-            meta: Meta(profile: [GroveLifecycleContract.retractionProvenanceProfile]),
-            occurred: occurredX,
-            recorded: FHIRPrimitive(recorded),
-            target: targets.map(\.reference)
-        )
-        provenance.id = context.repositoryIDs[.provenance]?.primitive
-        let entry: BundleEntry
-        do {
-            let nodeKey = try EntryNodeKey(
-                system: context.entryNodeIdentifierSystem,
-                event: context.event,
-                nodeRole: "retraction-provenance",
-                ordinal: 0
-            )
-            entry = try BundleEntry(identifier: nodeKey.identifier, resource: ResourceProxy(with: provenance))
-        } catch {
-            throw .exchangeIdentity(error)
-        }
-        var bundle = ModelsR4.Bundle(
-            entry: [entry],
-            identifier: context.event.identifier.fhirIdentifier,
-            meta: Meta(profile: [GroveLifecycleContract.retractionBundleProfile]),
-            timestamp: FHIRPrimitive(recorded),
-            type: FHIRPrimitive(.collection)
-        )
-        bundle.id = context.repositoryIDs[.bundle]?.primitive
-        do {
-            self.graph = try ExchangeGraph(kind: .retraction, eventIdentifier: context.event, bundle: bundle)
-        } catch {
-            throw .exchangeGraph(error)
-        }
-    }
-}
-
-
-public enum RetractionEventError: Error, Equatable, Sendable {
-    case emptyTargets
-    case duplicateTarget
-    case invalidSourceRecord
-    /// A native record identifier reuses one of the deployment's Grove identity systems.
-    case reservedIdentifierSystem
-    case invalidInstant
-    /// A retraction period starts after it ends.
-    case invalidOccurrencePeriod
-    case opaqueIdentity(OpaqueIdentityError)
-    case exchangeIdentity(ExchangeIdentityError)
-    case exchangeGraph(ExchangeGraphError)
 }
