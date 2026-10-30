@@ -20,7 +20,7 @@ let enableSwiftLint = false
 // Standard deployment targets (iOS 18 / macOS 15 / watchOS 11) are enabled by default.
 // Set GROVE_LOWERED_DEPLOYMENT_TARGETS=1 to opt into the lowered targets and disable default traits.
 // Scripts/build-floor.py checks the lowered targets.
-let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] == "1"
+let isLoweredDeploymentTargetEnabled = Context.environment["GROVE_LOWERED_DEPLOYMENT_TARGETS"] != "0"
 
 // FHIRModels >= 0.9 cannot link for armv7k: its struct-based models exceed the 32-bit Mach-O
 // scattered-relocation limit, and the App Store rejects watchOS-8-target binaries that lack the
