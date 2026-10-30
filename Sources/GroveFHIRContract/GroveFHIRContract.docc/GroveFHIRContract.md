@@ -136,6 +136,7 @@ A retry is exact when ``ExchangeGraph/isSemanticallyEqual(to:)`` says so: member
 
 A ``RetractionEvent`` takes back earlier outputs by typed identity; each ``RetractionTarget`` names the identity, the resource type and its ``RetractionTargetRole``.
 A target carries the record's ``RetractionTarget/nativeRecordIdentifier`` only where the governed-source-identifier policy authorizes it, and the event renders it beside the target without ever addressing the target by it.
+Its ``RetractionOccurrence`` is the deletion or detection instant, or bounds on the deletion when the source states no time.
 
 Every refusal and every warning is one ``ProducerDiagnostic`` whose code is a registered ``ExchangeGraphRule``.
 The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter's output against the grove-fhir corpora and the official validator.
@@ -203,6 +204,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 - ``RetractionEvent``
 - ``RetractionTarget``
 - ``RetractionTargetRole``
+- ``RetractionOccurrence``
 
 ### Disclosure
 
