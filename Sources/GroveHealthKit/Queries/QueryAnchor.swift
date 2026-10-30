@@ -52,8 +52,9 @@ public struct QueryAnchor: Hashable, Codable, Sendable {
     }
 
     let hkAnchor: HKQueryAnchor?
-    /// When the query that produced this anchor was issued, as recorded by ``CollectSamples`` when it
-    /// commits the anchor; `nil` otherwise.
+    /// A lower bound on when the health store reached this anchor, recorded by ``CollectSamples``;
+    /// `nil` if no bound is known. Limited catch-up pages retain the previous bound until an empty
+    /// query proves the backlog has been drained.
     ///
     /// The anchor captures the health store no earlier than this instant, so every deletion a later
     /// query reports from it happened after this instant.
