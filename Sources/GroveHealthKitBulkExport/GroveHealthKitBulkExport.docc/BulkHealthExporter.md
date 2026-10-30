@@ -12,31 +12,30 @@ Export large amounts of historical Health data
 
 ## Overview
 
-The ``BulkHealthExporter`` enables and coordinates large-scale support of historical HealthKit data.
+The ``BulkHealthExporter`` queries historical HealthKit samples in batches and passes them to a ``BatchProcessor``.
 
-The Bulk Export API is built around the concept of Export Sessions (``BulkExportSession``), which implement and handle the Health data export processing. 
-Sessions keep track of their pending and already-completed work, including across multiple app launches, ensuring that even for sample types with a very high number of samples a previously-started export can continue without issues if the app is terminated during the export.
+The Bulk Export API is built around Export Sessions (``BulkExportSession``), which keep track of pending and completed work across app launches.
+Saved progress allows an export to continue after app termination, even for sample types with a large number of samples.
 
-Export Sessions are created using ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)``, and consist of the following components:
-- A stable identifier, which is used to keep track of the session, persist its state, and restore it across app launches.
-- A set of to-be-exported sample types.
-- A ``BatchProcessor``, which allows the app to process the individual batches of fetched samples.
+Export Sessions are created using ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` and consist of the following components:
 
-This structure allows the Bulk Export API to be used in a variety of ways, for different kinds of export operations. (See below for an example.)
+- A stable identifier, used to persist the session's progress and restore it across app launches.
+- A set of sample types to export over a configured time range.
+- A ``BatchProcessor``, which allows the app to process each batch of fetched samples.
 
-In order to perform a Health data export, an app simply calls the ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` function once at some point after the app's launch; this will either:
-- create and start a new session, if no matching session (based on the identifier) exists, or
-- restore and continue an existing session (e.g., from a previous launch of the app).
+This structure supports different export operations, such as uploading samples to a server or writing FHIR-encoded files to disk (see the examples below).
 
-It is safe to call this function multiple times and with the same input, even if a previously-created upload has already been completed.
-The session will internally keep track of its creation date, and will only ever export samples up to that date.
-This allows an app to e.g. use the `CollectSamples` API to continuously fetch and collect new Health samples, and use the ``BulkHealthExporter`` to do a one-time export operation of historical Health data.
+Calling ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` either creates a new session, restores its saved progress, or returns the existing session with that identifier.
+It is safe to retrieve the same session multiple times, including after completion; this does not restart processing.
+Call ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` to begin processing and receive an `AsyncStream` of batch results.
 
-The ``BulkHealthExporter/session(withId:for:startDate:endDate:batchSize:using:)`` function will, when a ``BulkExportSession`` is first created, also return an `AsyncStream` which can be used to access the individual results of the session's ``BatchProcessor``.
+The session retains its original export end date across launches.
+An app can use `CollectSamples` for ongoing collection and the ``BulkHealthExporter`` for a one-time export of historical Health data.
 
-- Important: Ensure that your app has sufficient HealthKit access permissions before starting bulk export sessions. The session itself will *not* prompt the user for access; instead, it will fail to fetch and process any sample types for which no HealthKit permission is granted.
+- Important: Request HealthKit authorization before starting bulk export sessions; the exporter does not prompt for access.
 
-It is possible to ``BulkExportSession/pause()`` an export session, which can then be resumed using the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function.
+It is possible to ``BulkExportSession/pause()`` an export session and resume it using ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)``.
+See Pausing and Recovery below for checkpoint failures and restoration behavior.
 
 
 ### Example 1: Bulk-Upload of Historical Health Data to Firebase
@@ -45,11 +44,15 @@ This example implements a custom ``BatchProcessor``, which uploads the exported 
 In this case, we implicitly define the Batch Processor's `Output` type as `Void`, since we're just interested in the uploading, and don't want to perform any additional on-device operations using the results of the individual batches. 
 
 ```swift
-struct FirebaseUploader: BulkHealthExporter.BatchProcessor {
+struct FirebaseUploader: BatchProcessor {
+    let participantID: String
+
     func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
-        let batch = Firestore.firestore().batch()
+        let db = Firestore.firestore()
+        let healthData = db.collection("participants").document(participantID).collection("healthData")
+        let batch = db.batch()
         for sample in samples {
-            let document = db.collection("healthData").document(sample.uuid.uuidString) 
+            let document = healthData.document(sample.uuid.uuidString)
             try batch.setData(from: sample.resource(), for: document)
         }
         try await batch.commit()
@@ -66,8 +69,9 @@ extension BulkExportSessionIdentifier {
 // create the session (or obtain a previously-created session)
 let session = try await bulkExporter.session(
     withId: .backgroundExport,
-    for: [SampleType.activeEnergy, SampleType.heartRate, SampleType.stepCount],
-    using: FirebaseUploader()
+    for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
+    startDate: .oldestSample,
+    using: FirebaseUploader(participantID: participantID)
 )
 
 // start the session
@@ -101,7 +105,8 @@ struct FHIREncodedJSONExporter: BatchProcessor {
 // create the session
 let session = try await bulkExporter.session(
     withId: .backgroundFHIRExport,
-    for: [SampleType.activeEnergy, SampleType.heartRate, SampleType.stepCount],
+    for: [SampleType.activeEnergyBurned, SampleType.heartRate, SampleType.stepCount],
+    startDate: .oldestSample,
     using: FHIREncodedJSONExporter()
 )
 
@@ -116,17 +121,56 @@ Task {
 }
 ```
 
-Since the `FHIREncodedExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
+Since the `FHIREncodedJSONExporter` returns a `URL` (rather than `Void`, as with the `FirebaseUploader`), the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>` which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
 
+
+### Pausing and Recovery
+
+A session remains `.running` until its workers finish and the final checkpoint write has been attempted.
+`.completed` means every batch succeeded and the checkpoint was stored; it does not confirm upload delivery.
+When a session pauses, inspect the associated ``BulkExportPauseReason``:
+
+| Reason | Recovery |
+|---|---|
+| `.notStarted` | Start the newly created or restored session. |
+| `.requested` | Resume when the caller requests it. |
+| `.failedBatches` | Inspect `failedBatches`, address the batch errors, and start with `retryFailedBatches: true`. |
+| `.failure(.checkpointWriteFailed(error))` | Retain the session and emitted files. Address `error.category` before retrying. |
+
+``CheckpointWriteFailure`` provides a recovery category and the error domain, code and message.
+For `.insufficientSpace`, free storage; for `.temporarilyUnavailable`, wait for storage to become available.
+For `.accessDenied`, check permissions and protected-data availability; the error alone does not identify the cause.
+For `.invalidDestination`, correct the storage location; for `.unknown`, inspect the diagnostics before deciding whether to retry.
+
+After resolving the cause, use the existing session:
+
+```swift
+let results = try session.start(retryFailedBatches: true)
+for await output in results {
+    // Process or queue each output for upload.
+}
+// Inspect session.state for completion or another pause reason.
+```
+
+Saved checkpoints restore completed batches and remaining work across launches.
+If a checkpoint write fails, the live session retains its latest progress, so a retry need not repeat completed batches.
+If the app terminates before that progress is saved, restoration may repeat those batches.
+The checkpoint records processing progress; it is separate from generated files and upload receipts.
+Deduplicate HealthKit samples by participant ID and sample UUID.
+
+A checkpoint failure takes precedence over a requested pause or batch failures; inspect `failedBatches` for any batch errors.
+Retry after a user action or storage availability change, rather than in a loop.
+Delete restoration information only for an intentional restart.
 
 ### Performance Considerations
 
-In order to optimize memory usage when fetching potentially large amounts of HealthKit samples, the ``BulkHealthExporter`` intentionally processes all sample types serially, and will perform multiple, batched fetches per sample type (e.g., by fetching data by year, rather than all at once).
-This ensures that applications will stay under the iOS-enforced memory limit when processing bulk exports.
+To reduce memory use when exporting large amounts of HealthKit data, the exporter fetches each sample type in time-based batches rather than loading its entire history at once.
+With ``ExportSessionBatchSize/automatic``, high-volume types such as heart rate and step count use monthly batches; other types use six-month batches.
+Callers can choose a different calendar-based batch size through ``ExportSessionBatchSize``.
 
-In some cases, the Bulk Exporter may decide to process a sample type at an even more granular level, e.g., batching by quarter rather than by year.
-
-Even though all operations within an export session will run serially, multiple sessions will run in parallel; your app should ideally try to keep the total number of sessions as low as possible, in order to prevent excessive memory and CPU usage.
+Use `concurrencyLevel: .limit(n)` to cap concurrent batches or `.disabled` for serial processing; `.automatic` currently uses unlimited concurrency.
+Multiple sessions can also run concurrently.
+Keep the number of simultaneous sessions low and choose batch limits based on the processor's memory and I/O needs.
 
 
 ## Topics
@@ -143,4 +187,7 @@ Even though all operations within an export session will run serially, multiple 
 - ``BulkExportSession``
 - ``BatchProcessor``
 - ``BulkExportSessionState``
+- ``BulkExportPauseReason``
+- ``BulkExportSessionFailure``
+- ``CheckpointWriteFailure``
 - ``BulkHealthExporter/SessionError``
