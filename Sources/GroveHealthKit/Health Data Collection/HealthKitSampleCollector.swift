@@ -220,35 +220,39 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
         }
 
         nonisolated(unsafe) let predicate = self.predicate
-        try await AnchoredQueryPaging.drain(
-            from: healthKit.queryAnchors.load(for: sampleType),
-            query: { anchor, limit in
-                guard self.isActive else {
-                    throw CancellationError()
-                }
-                var anchor = anchor
-                let (added, deleted) = try await self.healthKit.query(
-                    self.sampleType,
-                    timeRange: self.timeRange,
-                    anchor: &anchor,
-                    limit: limit,
-                    predicate: predicate
-                )
-                return .init(added: added, deleted: deleted, anchor: anchor.hkAnchor)
-            },
-            commit: { page, expected, queriedAt in
-                guard self.isActive else {
-                    throw CancellationError()
-                }
-                return try await self.commit(
-                    added: page.added,
-                    deleted: page.deleted,
-                    from: expected,
-                    to: page.anchor,
-                    queriedAt: queriedAt
-                )
+        var expected = try healthKit.queryAnchors.load(for: sampleType)
+        while true {
+            try Task.checkCancellation()
+            guard isActive else {
+                throw CancellationError()
             }
-        )
+            let queriedAt = Date.now
+            var anchor = expected ?? QueryAnchor()
+            let (added, deleted) = try await healthKit.query(
+                sampleType,
+                timeRange: timeRange,
+                anchor: &anchor,
+                limit: 500,
+                predicate: predicate
+            )
+            try Task.checkCancellation()
+            guard isActive else {
+                throw CancellationError()
+            }
+            let isCaughtUp = added.isEmpty && deleted.isEmpty
+            // A limited result can stop before deletions that predate this query. Only an empty
+            // page proves the anchor has caught up enough to advance the deletion-time bound.
+            expected = try await commit(
+                added: added,
+                deleted: deleted,
+                from: expected,
+                to: anchor.hkAnchor,
+                queriedAt: isCaughtUp ? queriedAt : expected?.queriedAt
+            )
+            if isCaughtUp {
+                return
+            }
+        }
     }
 
     
