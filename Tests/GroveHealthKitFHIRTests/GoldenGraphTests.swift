@@ -157,24 +157,23 @@ struct GoldenGraphTests {
         }
     }
 
-    /// A workout exports its session alone, events or not: one Observation, no members, one Provenance target.
-    /// (The old converter refused every workout: its segment children claimed a profile the Provenance contract
-    /// does not admit.)
+    /// Every event and activity is an addressable child of its workout session.
     @Test(arguments: [false, true])
-    func workoutsExportTheSessionAlone(withEvents: Bool) async throws {
+    func workoutsExportEverySegment(withEvents: Bool) async throws {
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
         var inputs = ExportInputs()
         inputs.sequence = 200
         let conversion = try await ExporterFixtures.export(workout, inputs)
         let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
-        #expect(observations.count == 1)
-        #expect(observations.first?.hasMember == nil)
-        #expect(conversion.primary.identifiers.childOutputs.isEmpty)
+        let childCount = (workout.workoutEvents ?? []).count + workout.workoutActivities.count
+        #expect(observations.count == childCount + 1)
+        #expect((observations.first?.hasMember ?? []).count == childCount)
+        #expect(conversion.primary.identifiers.childOutputs.count == childCount)
         let provenance = try #require(conversion.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        #expect(provenance.target.count == 1)
+        #expect(provenance.target.count == childCount + 1)
     }
 
-    /// F1: a workout's retraction names exactly the outputs its addition emitted, recomputed from its type and UUID.
+    /// A workout deletion retracts its whole source record without retaining the emitted segment list.
     @Test
     func workoutRetractionIsExact() async throws {
         #expect(HealthKitContentPlan[.workout].outputs.map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
@@ -188,14 +187,13 @@ struct GoldenGraphTests {
             inputs
         )
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        let emitted = ([conversion.identifiers.primaryOutput] + conversion.identifiers.childOutputs).map(\.identifier.value)
+        let emitted = [conversion.identifiers.sourceRecord.identifier.value]
         #expect(provenance.target.compactMap { $0.identifier?.value?.value?.string } == emitted)
     }
 
-    /// The pinned guide has no source-record retraction scope (an IG gap; owner decision: keep): a deletion cannot tell
-    /// whether an ECG stated an average heart rate, so its retraction always names the child, emitted or not.
+    /// A deletion does not invent the identity of an optional child the ECG never emitted.
     @Test
-    func ecgRetractionNamesTheAverageHeartRateChildAlways() async throws {
+    func ecgRetractionDoesNotInventAnAverageHeartRateChild() async throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xA4, symptoms: [], averageHeartRate: nil)
         let ecg = record.electrocardiogram
         var inputs = ExportInputs()
@@ -208,17 +206,8 @@ struct GoldenGraphTests {
             inputs
         )
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
-        let context = TestEvent.test()
-        let child = try context.identityScope
-            .sourceRecord(
-                adapterID: HealthKitAssembly.adapter.adapterID,
-                sourceType: HealthKitSourceType.electrocardiogram.rawValue,
-                repositoryScope: context.repositoryScope,
-                nativeRecordID: ecg.uuid.uuidString.lowercased()
-            )
-            .output(role: "average-heart-rate", discriminator: "single")
         let targets = provenance.target.compactMap { $0.identifier?.value?.value?.string }
-        #expect(targets == [conversion.identifiers.primaryOutput.identifier.value, child.identifier.value])
+        #expect(targets == [conversion.identifiers.sourceRecord.identifier.value])
     }
 
     /// A writer classified as an application whose bundle identifier is not one is a refusal; a writer with a blank

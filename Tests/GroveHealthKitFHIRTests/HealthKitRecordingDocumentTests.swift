@@ -231,12 +231,9 @@ struct HealthKitRecordingDocumentTests {
         }
     }
 
-    /// CoreLocation marks a fix whose coordinate is invalid with a negative horizontal accuracy, wherever the fix falls
-    /// and whatever its altitude reports. The registry's row states a position and its radius of uncertainty, which
-    /// cannot be empty, for every fix, so the route cannot be carried; no registered input rule names that reason, so
-    /// it is reported unclassified. An omitted route is never read.
-    @Test("An authorized route with an invalid coordinate fails closed")
-    func invalidCoordinateFailsClosed() async throws {
+    /// An invalid horizontal position retains its source coordinates, with no claimed accuracy. An omitted route is never read.
+    @Test("An authorized route keeps an invalid coordinate with empty accuracy")
+    func invalidCoordinateKeepsItsRow() async throws {
         let invalid = CLLocation(
             coordinate: CLLocationCoordinate2D(latitude: 37.4275, longitude: -122.1697),
             altitude: 30.5,
@@ -245,11 +242,14 @@ struct HealthKitRecordingDocumentTests {
             timestamp: Self.seriesStart
         )
         let record = try Self.workoutRoute([invalid, Self.locations[1]])
-        let refusal = try await #require(throws: HealthKitConversionError.self) {
-            try await ExporterFixtures.export(record, inputs(route: .authorized))
-        }
-        #expect(refusal == HealthKitConversionError(conversionFailure: WorkoutRouteFailure.invalidCoordinate, source: .workoutRoute))
-        #expect(refusal.diagnostic == ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: "Bundle"))
+        let conversion = try await ExporterFixtures.export(record, inputs(route: .authorized))
+        let payload = try #require(conversion.document.content.first?.attachment.data?.value?.data())
+        #expect(String(decoding: payload, as: UTF8.self) == """
+            timestamp,latitude,longitude,altitude,horizontalAccuracy,verticalAccuracy,speed,speedAccuracy,course,courseAccuracy
+            1755624000,37.4275,-122.1697,30.5,,3,,,,
+            1755624001,37.4276,-122.1698,0,65,,,,,
+
+            """)
         await #expect(try ExporterFixtures.exports(record, inputs()).isEmpty)
     }
 

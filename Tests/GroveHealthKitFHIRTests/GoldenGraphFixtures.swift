@@ -204,7 +204,7 @@ enum GoldenFixtures {
     }
 
     /// A one-hour run in Berlin with 640 kcal and 10 km; with events, a pause, a resume, eight laps and two
-    /// segments, which the converter withholds. `device` is the recorder; `userEntered` marks it entered by hand.
+    /// segment events. `device` is the recorder; `userEntered` marks it entered by hand.
     static func workout(withEvents: Bool, device: HKDevice? = nil, userEntered: Bool = false) -> HKWorkout {
         let begin = Date(timeIntervalSince1970: 1_786_000_000)
         var events: [HKWorkoutEvent] = []

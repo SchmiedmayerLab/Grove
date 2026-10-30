@@ -213,8 +213,13 @@ final class HealthKitQueryTests: GroveHealthKitTests {
         
         try launchAndHandleInitialStuff(app, resetEverything: true, askForAuthorization: false, deleteAllHealthData: false)
         
-        XCTAssert(app.buttons["Deferred Authorization"].wait(for: \.isHittable, toEqual: true, timeout: 10))
-        app.buttons["Deferred Authorization"].tap()
+        let deferredAuthorization = app.buttons["Deferred Authorization"]
+        // The destination follows the initial viewport's rows on smaller simulators.
+        for _ in 0..<3 where !deferredAuthorization.isHittable {
+            app.collectionViews.firstMatch.swipeUp()
+        }
+        XCTAssert(deferredAuthorization.wait(for: \.isHittable, toEqual: true, timeout: 10))
+        deferredAuthorization.tap()
 
         app.assertTableRow("Blood Type", "n/a")
         app.assertTableRow("#cyclingSamples", "0")

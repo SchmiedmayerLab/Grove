@@ -292,7 +292,10 @@ struct ExchangeEnvelopeFixTests {
     @Test("A writer equal to a gateway no output names is its own snapshot and author, beside its own host")
     func writerEqualToAnUnnamedGatewayIsItsOwnSnapshot() async throws {
         var inputs = ExportInputs.applicationWriter
-        inputs.options.role = .gatewayApplication(.test(name: "Cuff Companion", bundleIdentifier: "org.example.writer", version: "42"))
+        // HealthKit supplies the build but no marketing version; match the writer's complete snapshot token.
+        inputs.options.role = .gatewayApplication(.test(
+            name: "Cuff Companion", bundleIdentifier: "org.example.writer", version: "unknown", build: "42"
+        ))
         inputs.sequence = 99
         let document = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 99), inputs)
         let writer = try #require(document.writer)

@@ -283,8 +283,8 @@ extension ContentCorpusGrid {
 
     /// Heartbeat series and workout routes: their payloads, empty series, every link, the plain sample entry point, and
     /// a route's disclosure and track checked before its source facts. A fix whose horizontal accuracy CoreLocation
-    /// reports negative (an invalid coordinate) refuses the route unclassified, first or last and whatever its altitude
-    /// reports: the registry's column, unlike the optional readings, cannot be empty, and no fix may be left out. A
+    /// reports negative (an invalid coordinate) keeps its row with an empty accuracy, first or last and whatever its altitude
+    /// reports: the registry admits an empty accuracy, and no fix may be left out. A
     /// zero radius is a reading; a nonfinite one is the writer's refusal.
     static var recordings: [ContentCorpusVector] {
         func series(_ label: String, _ beats: [ContentCorpusBeat], metadata: [String: ContentCorpusMetadataValue] = zone) -> ContentCorpusVector {

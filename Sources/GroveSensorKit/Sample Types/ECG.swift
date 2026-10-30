@@ -122,7 +122,7 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
         // Instead, there will be multiple `SRElectrocardiogramSession` objects for a single logical session
         // (they will all have the same `identifier`), each representing a different state of the session.
         let sessionsByIdentifier = Dictionary(grouping: samplesBySession.keys, by: \.identifier)
-        return sessionsByIdentifier.compactMap { identifier, sessions -> SensorKitECGSession? in
+        let safeSessions = sessionsByIdentifier.compactMap { identifier, sessions -> SensorKitECGSession? in
             guard let beginSession = sessions.first(where: { $0.state == .begin }),
                   let activeSession = sessions.first(where: { $0.state == .active }) else {
                 return nil
@@ -152,6 +152,9 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
                     )
                 }
             )
+        }
+        return safeSessions.sorted {
+            ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier)
         }
     }
 }

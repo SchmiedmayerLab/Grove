@@ -459,7 +459,7 @@ extension HealthKitSampleProjection {
 
     /// The envelope's metadata and the metadata key a plan states as a component, read back from the component the
     /// observation states under the rule's code through the rule's values: a Boolean where the rule reads one, else
-    /// the number. A required component the observation does not state is missing; an optional one is left out.
+    /// the number, or a quantity for a notification threshold. A missing optional component is left out.
     static func metadata(
         of observation: ModelsR4.Observation,
         envelope: SampleEnvelope,
@@ -471,16 +471,32 @@ extension HealthKitSampleProjection {
             return metadata
         }
         guard let component = observation.component?.first(where: { states($0.code, rule.code) }) else {
-            guard rule.reading == .optionalInteger else {
+            switch rule.reading {
+            case .optionalInteger, .optionalQuantity:
+                return metadata
+            case .requiredInteger, .requiredBoolean:
                 throw .componentMissing(id: contract.id, code: codes(of: rule.code).first?.code ?? "")
             }
+        }
+        if case let .optionalQuantity(_, binding) = rule.reading {
+            guard case .quantity(let quantity)? = component.value else {
+                throw .valueNotMappable(id: contract.id)
+            }
+            let declared = contract.components.first { candidate in
+                states(rule.code, CodeableConcept(coding: [Coding(candidate.code, system: candidate.system)]))
+            }
+            metadata[rule.field.key] = try healthKitQuantity(quantity, contract: declared?.quantity, read: .unit(binding), measurementID: contract.id)
             return metadata
         }
         guard case .codeableConcept(let stated)? = component.value,
               let raw = onlyMatch(stated, among: rule.values.map { ($0.key, $0.value) }) else {
             throw .valueNotMappable(id: contract.id)
         }
-        metadata[rule.field.key] = rule.reading == .requiredBoolean ? raw == 1 : raw
+        if case .requiredBoolean = rule.reading {
+            metadata[rule.field.key] = raw == 1
+        } else {
+            metadata[rule.field.key] = raw
+        }
         return metadata
     }
 

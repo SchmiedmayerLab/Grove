@@ -38,8 +38,7 @@ struct MetadataRule: Sendable {
 }
 
 
-/// One metadata key a source type states as an Observation component: the component's code, and the coded value of
-/// each metadata value it admits.
+/// One metadata key a source type states as an Observation component: its code and either its coded values or quantity unit.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MetadataComponentRule: Sendable {
     /// How the metadata value is read.
@@ -50,6 +49,8 @@ struct MetadataComponentRule: Sendable {
         case requiredInteger
         /// A Boolean: an absent value is missing, any other value unsupported.
         case requiredBoolean
+        /// A quantity in the contract's unit; an absent or non-quantity value states no component.
+        case optionalQuantity(QuantityTemplate, HealthKitCatalog.UnitBinding)
     }
 
     /// `HKMetadataKeyHeartRateMotionContext`, stated when HealthKit states it.
@@ -112,11 +113,24 @@ struct MetadataComponentRule: Sendable {
         )
     }
 
+    /// A notification's configured threshold, in the measurement contract's quantity unit.
+    static func threshold(_ contract: MeasurementContract, field: HealthKitConversionError.MetadataField) throws(HealthKitContentDefect) -> Self {
+        let threshold = try contract.quantityComponent("threshold")
+        return Self(
+            field: field,
+            reading: .optionalQuantity(threshold.template.quantity, try threshold.quantity.binding()),
+            code: threshold.template.code,
+            values: [:]
+        )
+    }
+
     /// The component the sample's metadata states, or `nil` when an optional value is absent.
     func component(_ metadata: HealthKitSampleMetadata) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent? {
         let stated = metadata.values[field.key]
         let raw: Int
         switch reading {
+        case let .optionalQuantity(template, binding):
+            return try quantityComponent(stated, template: template, binding: binding)
         case .optionalInteger:
             guard let number = stated as? NSNumber else {
                 return nil
@@ -141,6 +155,26 @@ struct MetadataComponentRule: Sendable {
             throw .unsupportedMetadataValue(field)
         }
         return ObservationComponent(code: code, value: .codeableConcept(value))
+    }
+
+    private func quantityComponent(
+        _ stated: Any?,
+        template: QuantityTemplate,
+        binding: HealthKitCatalog.UnitBinding
+    ) throws(HealthKitConversionError.ValueFailure) -> ObservationComponent? {
+        guard let quantity = stated as? HKQuantity else {
+            return nil
+        }
+        guard quantity.is(compatibleWith: binding.unit) else {
+            throw .invalidMetadataValue(field)
+        }
+        do {
+            return ObservationComponent(code: code, value: .quantity(try template.quantity(quantity.doubleValue(for: binding.unit))))
+        } catch let failure as HealthKitConversionError.ValueFailure {
+            throw failure
+        } catch {
+            throw .invalidMetadataValue(field)
+        }
     }
 }
 

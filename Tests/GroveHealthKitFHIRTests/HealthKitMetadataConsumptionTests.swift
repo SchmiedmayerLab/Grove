@@ -22,8 +22,6 @@ struct MetadataConsumptionRow: Sendable, CustomTestStringConvertible {
     var required: [String: any Sendable] = [:]
     let varied: [[String: any Sendable]]
     let carried: Set<String>
-    /// The keys withheld although the graph depends on them: an ECG states its zone's offset, not the zone's name.
-    var withheldButStated: Set<String> = []
     let convert: @Sendable ([String: any Sendable]) throws -> HealthKitAssembly.Conversion
 }
 
@@ -80,8 +78,7 @@ struct HealthKitMetadataConsumptionTests {
         MetadataConsumptionRow(
             testDescription: "electrocardiogram",
             varied: shared + [[HKMetadataKeyAppleECGAlgorithmVersion: 2]],
-            carried: observationKeys.subtracting([HKMetadataKeyTimeZone]).union([HKMetadataKeyAppleECGAlgorithmVersion]),
-            withheldButStated: [HKMetadataKeyTimeZone]
+            carried: observationKeys.union([HKMetadataKeyAppleECGAlgorithmVersion])
         ) { try Warnings.electrocardiogram(metadata: $0) },
         MetadataConsumptionRow(testDescription: "heartbeat series", varied: shared, carried: []) { try Warnings.heartbeatSeries(metadata: $0) }
     ]
@@ -125,7 +122,7 @@ struct HealthKitMetadataConsumptionTests {
         for group in row.varied {
             let keys = Set(group.keys)
             let without = try row.convert(full.filter { !keys.contains($0.key) })
-            let stated = keys.isSubset(of: row.carried) || !keys.isDisjoint(with: row.withheldButStated)
+            let stated = keys.isSubset(of: row.carried)
             #expect((without.graph.json != conversion.graph.json) == stated, "\(keys.sorted())")
         }
     }

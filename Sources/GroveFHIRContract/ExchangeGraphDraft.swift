@@ -137,6 +137,8 @@ package struct ExchangeOutputDraft: Sendable {
     package let discriminator: String
     package var resource: Resource
     package var links: Links
+    /// Whether the primary Observation lists this child through a resolving `hasMember` reference.
+    package var memberOfPrimary: Bool
     /// Whether this output states the primary under `derivedFrom`; never set on the primary itself.
     package var derivedFromPrimary: Bool
     /// The native artifact a document output carries, named by its registered format code.
@@ -154,6 +156,7 @@ package struct ExchangeOutputDraft: Sendable {
         discriminator: String = "single",
         resource: Resource,
         links: Links = .all,
+        memberOfPrimary: Bool = false,
         derivedFromPrimary: Bool = false,
         artifactFormatCode: String? = nil,
         clearIdentifiers: [Identifier] = [],
@@ -165,6 +168,7 @@ package struct ExchangeOutputDraft: Sendable {
         self.discriminator = discriminator
         self.resource = resource
         self.links = links
+        self.memberOfPrimary = memberOfPrimary
         self.derivedFromPrimary = derivedFromPrimary
         self.artifactFormatCode = artifactFormatCode
         self.clearIdentifiers = clearIdentifiers
@@ -194,7 +198,7 @@ package struct ExchangeRecordingDeviceDraft: Sendable {
 package struct ExchangeWriterDraft: Sendable {
     package let application: ApplicationDevice
     package let host: HostDevice
-    /// False when the source named no version, so the application Device carries none.
+    /// Whether the source states its marketing version. Its build remains independent of this choice.
     package let statesVersion: Bool
 
     package init(application: ApplicationDevice, host: HostDevice, statesVersion: Bool) {
@@ -244,6 +248,8 @@ package struct ExchangeGraphDraft: Sendable {
     package var outputs: [ExchangeOutputDraft]
     package var recordingDevice: ExchangeRecordingDeviceDraft?
     package var writer: ExchangeWriterDraft?
+    /// Adapter facts about the consumed source record, independent of its author agent.
+    package var sourceExtensions: [Extension]
     package var converterRole: ConverterRole
     /// The logical id the Bundle states; only HealthKit's transitional legacy `Bundle.id` names one, and no other node
     /// carries a repository id.
@@ -256,6 +262,7 @@ package struct ExchangeGraphDraft: Sendable {
         outputs: [ExchangeOutputDraft],
         recordingDevice: ExchangeRecordingDeviceDraft? = nil,
         writer: ExchangeWriterDraft? = nil,
+        sourceExtensions: [Extension] = [],
         converterRole: ConverterRole = .assembler,
         bundleID: RepositoryID? = nil
     ) {
@@ -265,6 +272,7 @@ package struct ExchangeGraphDraft: Sendable {
         self.outputs = outputs
         self.recordingDevice = recordingDevice
         self.writer = writer
+        self.sourceExtensions = sourceExtensions
         self.converterRole = converterRole
         self.bundleID = bundleID
     }

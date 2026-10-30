@@ -315,6 +315,17 @@
         ],
         "entity" : [
           {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "operatingSystemVersion",
+                    "valueString" : "0.0.0"
+                  }
+                ],
+                "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-revision"
+              }
+            ],
             "role" : "source",
             "what" : {
               "identifier" : {

@@ -88,6 +88,7 @@ struct ConformanceFixtureTests {
     /// invariant admits -1 through 1, an IG defect.
     private static let validatedGoldens: Set<String> = [
         "guide-example-heart-rate",
+        "high-heart-rate-threshold",
         "workout-session",
         "workout-session-context",
         "writer-non-ascii-name",
@@ -103,6 +104,12 @@ struct ConformanceFixtureTests {
         "exporter-clinical-record-dstu2",
         "walking-steadiness-notification"
     ]
+
+    private func requireCode(_ code: String, in fixture: MobileSemanticVectorFixture) throws {
+        guard case .codeableConcept(code) = fixture.result else {
+            throw FixtureError.unexpectedResult(fixture.id)
+        }
+    }
 
     @Test
     func writeConformanceFixtures() async throws {
@@ -334,11 +341,9 @@ struct ConformanceFixtureTests {
             metadata: [HKMetadataKeySexualActivityProtectionUsed: true]
         )
 
-        // Spec F1: the workout session, its one output, from the guide's workout vector; its lap is withheld.
+        // The workout session and its lap, from the guide's workout vector.
         let workout = try vector("workout")
-        guard case .codeableConcept("running") = workout.result else {
-            throw FixtureError.unexpectedResult(workout.id)
-        }
+        try requireCode("running", in: workout)
         let workoutDates = try dates(workout)
         try await add("workout", HKWorkout(
             activityType: .running,
@@ -350,6 +355,22 @@ struct ConformanceFixtureTests {
             device: Self.device,
             metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
         ))
+
+        // Bind the segment's own semantic vector through a dedicated fixture with its exact interval.
+        let workoutSegment = try vector("workout-segment")
+        try requireCode("lap", in: workoutSegment)
+        let segmentDates = try dates(workoutSegment)
+        let segmentWorkout = HKWorkout(
+            activityType: .running,
+            start: segmentDates.start,
+            end: segmentDates.end,
+            workoutEvents: [HKWorkoutEvent(type: .lap, dateInterval: DateInterval(start: segmentDates.start, end: segmentDates.end), metadata: nil)],
+            totalEnergyBurned: nil,
+            totalDistance: nil,
+            device: Self.device,
+            metadata: [HKMetadataKeyTimeZone: Self.sourceTimeZoneIdentifier]
+        )
+        try await add("workout-segment", segmentWorkout)
 
         // A source the caller classifies as an application: its writer Device, its host and the Provenance author.
         var writerInputs = inputs
@@ -559,7 +580,7 @@ struct ConformanceFixtureTests {
         for goldenCase in GoldenCase.all where validatedGoldens.contains(goldenCase.name) {
             try await goldenCase.output().graph.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
         }
-        #expect(fixtures.count == 29)
+        #expect(fixtures.count == 30)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))
         #expect(emittedVectorIDs == Set([
             "active-energy",
@@ -585,7 +606,8 @@ struct ConformanceFixtureTests {
             "sexual-activity",
             "sleep-stage",
             "step-count",
-            "workout"
+            "workout",
+            "workout-segment"
         ]))
     }
 

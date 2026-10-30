@@ -86,7 +86,7 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
 public struct PairExpressionEvaluator: Sendable {
     // FHIRPath has three outcomes here: true, false, and the empty collection (`nil`).
     // swiftlint:disable:next discouraged_optional_boolean
-    private let evaluation: @Sendable (_ expression: String, _ path: String) throws -> Bool?
+    private let evaluation: @Sendable (String, String, GroveQuestionnaire.Questionnaire.ExpressionScope) throws -> Bool?
 
     // swiftlint:disable discouraged_optional_boolean
     /// Creates an evaluator already bound to the Questionnaire/QuestionnaireResponse and
@@ -94,12 +94,20 @@ public struct PairExpressionEvaluator: Sendable {
     public init(
         _ evaluation: @escaping @Sendable (_ expression: String, _ path: String) throws -> Bool?
     ) {
-        self.evaluation = evaluation
+        self.evaluation = { expression, path, _ in try evaluation(expression, path) }
+    }
+
+    init(scopedEvaluation: @escaping @Sendable (String, String, GroveQuestionnaire.Questionnaire.ExpressionScope) throws -> Bool?) {
+        self.evaluation = scopedEvaluation
     }
     // swiftlint:enable discouraged_optional_boolean
 
-    func evaluate(_ expression: String, path: String) throws -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-        try evaluation(expression, path)
+    func evaluate(
+        _ expression: String,
+        path: String,
+        scope: GroveQuestionnaire.Questionnaire.ExpressionScope = .questionnaire
+    ) throws -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        try evaluation(expression, path, scope)
     }
 }
 
@@ -194,32 +202,12 @@ extension PairExpressionEvaluator {
         launchContext: [String: ResourceProxy] = [:]
     ) throws -> Self {
         let authored = try QuestionnaireClock.authored(response)
-        let clock = FHIRPathClock(instant: authored.instant(), timeZone: authored.timeZone)
-        let questionnaireNode = try FHIRPathNode.encoding(questionnaire)
-        let responseNode = try FHIRPathNode.encoding(response)
-        let launchNodes = try launchContext.mapValues { try FHIRPathNode.encoding($0) }
-        return Self { expression, _ in
-            var constants: [String: [FHIRPathValue]] = [
-                "questionnaire": [.object(questionnaireNode)],
-                "resource": [.object(responseNode)],
-                "context": [.object(responseNode)]
-            ]
-            for (name, node) in launchNodes {
-                constants[name] = [.object(node)]
-            }
-            let context = FHIRPathEvaluationContext(
-                focus: [.object(responseNode)],
-                constants: constants,
-                clock: clock
-            )
-            return switch try FHIRPathExpression.evaluateBoolean(
-                expression: expression,
-                context: context
-            ) {
-            case .true: true
-            case .false: false
-            case .empty: nil
-            }
-        }
+        let engine = try FHIRQuestionnaireExpressionEngine(
+            questionnaire: questionnaire,
+            variables: GroveQuestionnaire.Questionnaire.expressionUsage(of: questionnaire).variables,
+            launchContext: launchContext.mapValues { try FHIRPathNode.encoding($0) },
+            clock: authored
+        )
+        return try engine.pairEvaluator(response: response)
     }
 }

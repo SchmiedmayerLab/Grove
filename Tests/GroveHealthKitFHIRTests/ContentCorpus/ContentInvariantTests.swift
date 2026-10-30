@@ -33,15 +33,40 @@ enum ContentCorpusInvariants {
                 repositoryScope: base.repositoryScope,
                 nativeRecordID: exported.source.uuid.uuidString.lowercased()
             )
-            let cataloged = try HealthKitContentPlan[type].outputs.map { output in
+            var cataloged = try HealthKitContentPlan[type].outputs.map { output in
                 try record.output(role: output.role, discriminator: output.discriminator)
+            }
+            if type == .workout {
+                let sample = try #require(ContentCorpusSamples.sample(source) as? HKWorkout)
+                cataloged += try workoutSegments(sample, record: record)
             }
             let emitted = [exported.identifiers.primaryOutput] + exported.identifiers.childOutputs
             var problems = emitted.filter { !cataloged.contains($0) }.map { "\($0.identifier.value) is not a cataloged output" }
+            if type == .workout, emitted != cataloged {
+                problems.append("workout outputs do not match every cataloged event and activity in source order")
+            }
             if cataloged.first != exported.identifiers.primaryOutput {
                 problems.append("the primary output is not the catalog's first")
             }
             return problems
+        }
+    }
+
+    /// The guide's dynamic workout slots, derived from the source independently of the content builder.
+    private static func workoutSegments(_ workout: HKWorkout, record: SourceRecordIdentity) throws -> [RoledIdentifier] {
+        let events = (workout.workoutEvents ?? []).map {
+            ($0.dateInterval.start, $0.dateInterval.end, "event", String($0.type.rawValue))
+        }
+        let activities = try workout.workoutActivities.map {
+            ($0.startDate, try #require($0.endDate), "activity", String($0.workoutConfiguration.activityType.rawValue))
+        }
+        var occurrences: [String: Int] = [:]
+        return try (events + activities).map { start, end, kind, raw in
+            let coordinate = try HealthKitWorkoutSegmentIdentity.instant(start)
+                + "|" + HealthKitWorkoutSegmentIdentity.instant(end) + "|" + kind + "|" + raw
+            let occurrence = occurrences[coordinate, default: 0]
+            occurrences[coordinate] = occurrence + 1
+            return try record.output(role: "workout-segment", discriminator: "\(coordinate)|\(occurrence)")
         }
     }
 }

@@ -70,6 +70,9 @@ struct HealthKitSampleMetadataTests {
     func plansNameTheirContentKeys() {
         let expected: [HealthKitSourceType: [HealthKitConversionError.MetadataField]] = [
             .heartRate: [.heartRateMotionContext],
+            .highHeartRateEvent: [.heartRateEventThreshold],
+            .lowHeartRateEvent: [.heartRateEventThreshold],
+            .lowCardioFitnessEvent: [.lowCardioFitnessEventThreshold],
             .insulinDelivery: [.insulinDeliveryReason],
             .menstrualFlow: [.menstrualCycleStart],
             .sexualActivity: [.sexualActivityProtectionUsed],
@@ -78,6 +81,35 @@ struct HealthKitSampleMetadataTests {
         for plan in HealthKitContentPlan.all {
             #expect(plan.metadata.contentFields == expected[plan.sourceType] ?? [], "\(plan.sourceType.rawValue)")
         }
+    }
+
+    @Test("Notification thresholds retain their quantity and UCUM unit", arguments: [
+        HealthKitSourceType.highHeartRateEvent, .lowHeartRateEvent, .lowCardioFitnessEvent
+    ])
+    func notificationThresholdIsCarried(_ type: HealthKitSourceType) async throws {
+        let cardioFitness = type == .lowCardioFitnessEvent
+        let field: HealthKitConversionError.MetadataField = cardioFitness ? .lowCardioFitnessEventThreshold : .heartRateEventThreshold
+        let unit = cardioFitness
+            ? HKUnit.literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .minute())
+            : HKUnit.count().unitDivided(by: .minute())
+        let sample = try StoredSampleFixtures.categorySample(
+            ContentCorpusSamples.categoryType(type.rawValue),
+            value: cardioFitness ? HKCategoryValueLowCardioFitnessEvent.lowFitness.rawValue : HKCategoryValue.notApplicable.rawValue,
+            facts: Self.facts(metadata: [field.key: HKQuantity(unit: unit, doubleValue: 120), HKMetadataKeyTimeZone: "UTC"])
+        )
+        let exported = try await ExporterFixtures.export(sample, ExportInputs())
+        let component = try #require(exported.observation.component?.first)
+        guard case .quantity(let quantity)? = component.value else {
+            Issue.record("notification threshold is not a quantity")
+            return
+        }
+        #expect(quantity.value?.value?.decimal == 120)
+        #expect(quantity.code?.value?.string == (cardioFitness ? "mL/kg/min" : "/min"))
+        #expect(quantity.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
+        #expect(exported.warnings.isEmpty)
+        let projected = try exported.observation.healthKitSample()
+        let threshold = try #require(projected.metadata?[field.key] as? HKQuantity)
+        #expect(threshold.doubleValue(for: unit) == 120)
     }
 
     @Test("The time zone, manual entry and the sync pair are carried as the outputs show, never as content")

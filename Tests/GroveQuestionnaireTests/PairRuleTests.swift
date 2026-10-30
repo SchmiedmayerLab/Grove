@@ -150,6 +150,21 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(issues.isEmpty)
     }
 
+    @Test("Text length uses the same characters as the form", arguments: ["👍🏽", "🇦🇹", "e\u{301}"])
+    func textLengthMatchesForm(value: String) throws {
+        var objects = try basePairObjects()
+        var definition = try question(in: objects.questionnaire)
+        definition["type"] = "string"
+        definition["maxLength"] = 1
+        appendExtension(["url": minLength, "valueInteger": 1], to: &definition)
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        var response = try question(in: objects.response)
+        response["answer"] = [["valueString": value]]
+        try replaceQuestion(in: &objects.response, with: response)
+        let pair = try decodePair(objects)
+        #expect(PairValidator().issues(questionnaire: pair.questionnaire, response: pair.response).isEmpty)
+    }
+
     @Test("Response item text may be omitted or equal the base text", arguments: [nil, "Question"])
     func acceptsOmittedOrBaseResponseText(text: String?) throws {
         var objects = try basePairObjects()
@@ -485,6 +500,80 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(pair.warnings.first?.code == .expressionEngineRequired)
     }
 
+    @Test("Coded enableWhen uses a system only when the condition declares one", arguments: [false, true])
+    func codedConditionSystemMatching(negated: Bool) throws {
+        for expectedSystem in [nil, Self.codingSystem, "https://example.org/other-codes"] {
+            var objects = try basePairObjects()
+            var group = try group(in: objects.questionnaire)
+            var trigger = try question(in: objects.questionnaire)
+            var target = trigger
+            let coding: JSONObject = ["system": Self.codingSystem, "code": "allowed"]
+            trigger["type"] = "choice"
+            trigger["answerOption"] = [["valueCoding": coding]]
+            var expected: JSONObject = ["code": "allowed"]
+            expected["system"] = expectedSystem
+            target["linkId"] = "target"
+            target["required"] = true
+            target["enableWhen"] = [["question": "question", "operator": negated ? "!=" : "=", "answerCoding": expected]]
+            group["item"] = [trigger, target]
+            try replaceGroup(in: &objects.questionnaire, with: group)
+            var responseGroup = try self.group(in: objects.response)
+            var triggerResponse = try question(in: objects.response)
+            var targetResponse = triggerResponse
+            triggerResponse["answer"] = [["valueCoding": coding]]
+            targetResponse["linkId"] = "target"
+            let matches = expectedSystem == nil || expectedSystem == Self.codingSystem
+            responseGroup["item"] = matches != negated ? [triggerResponse, targetResponse] : [triggerResponse]
+            try replaceGroup(in: &objects.response, with: responseGroup)
+            let pair = try decodePair(objects)
+            let issues = PairValidator().issues(questionnaire: pair.questionnaire, response: pair.response)
+            #expect(issues.isEmpty)
+        }
+    }
+
+    @Test("Built-in pair expressions share the form's item scopes and variables", arguments: [true, false])
+    func builtInPairExpressionScopes(validAnswer: Bool) throws {
+        var objects = try basePairObjects()
+        appendExtension([
+            "url": "http://hl7.org/fhir/StructureDefinition/variable",
+            "valueExpression": ["language": "text/fhirpath", "name": "globalValue", "expression": "1"]
+        ], to: &objects.questionnaire)
+        var definition = try question(in: objects.questionnaire)
+        appendExtension([
+            "url": "http://hl7.org/fhir/StructureDefinition/variable",
+            "valueExpression": ["language": "text/fhirpath", "name": "itemValue", "expression": "%globalValue + 1"]
+        ], to: &definition)
+        appendExtension([
+            "url": enableWhenExpression,
+            "valueExpression": ["language": "text/fhirpath", "expression": "%itemValue = 2 and $this.linkId = 'question'"]
+        ], to: &definition)
+        appendExtension(targetConstraint(
+            severity: "error",
+            key: "answer-scope",
+            expression: "$this = \(validAnswer) and %itemValue = 2 and %qitem.linkId = 'question' and %context.linkId = 'question'"
+        ), to: &definition)
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        let resources = try decodePair(objects)
+        let evaluator = try PairExpressionEvaluator.fhirPath(questionnaire: resources.questionnaire, response: resources.response)
+        let issues = PairValidator(expressionEvaluator: evaluator).issues(questionnaire: resources.questionnaire, response: resources.response)
+        #expect(!issues.contains { [.expressionEvaluation, .enableWhenEvaluation, .itemDisabled].contains($0.code) })
+        #expect(issues.contains { $0.code == .targetConstraint } == !validAnswer)
+    }
+
+    @Test("An unanswered optional item has no answer constraint to evaluate")
+    func unansweredOptionalItemConstraint() throws {
+        var objects = try basePairObjects()
+        var definition = try question(in: objects.questionnaire)
+        definition["required"] = false
+        appendExtension(targetConstraint(severity: "error", key: "optional", expression: "$this = true"), to: &definition)
+        try replaceQuestion(in: &objects.questionnaire, with: definition)
+        objects.response["item"] = []
+        let resources = try decodePair(objects)
+        let evaluator = try PairExpressionEvaluator.fhirPath(questionnaire: resources.questionnaire, response: resources.response)
+        let issues = PairValidator(expressionEvaluator: evaluator).issues(questionnaire: resources.questionnaire, response: resources.response)
+        #expect(!issues.contains { [.expressionEvaluation, .targetConstraint].contains($0.code) })
+    }
+
     @Test("Blocks unresolved error target constraints", arguments: ConstraintLocation.allCases)
     func errorTargetConstraintBlocksPair(location: ConstraintLocation) throws {
         var objects = try basePairObjects()
@@ -728,7 +817,7 @@ extension GroveQuestionnaireFHIRPairRuleTests {
         return quantity
     }
 
-    private func targetConstraint(severity: String, key: String) -> JSONObject {
+    private func targetConstraint(severity: String, key: String, expression: String = "true") -> JSONObject {
         [
             "url": targetConstraintURL,
             "extension": [
@@ -737,7 +826,7 @@ extension GroveQuestionnaireFHIRPairRuleTests {
                 ["url": "human", "valueString": "Review this answer."],
                 [
                     "url": "expression",
-                    "valueExpression": ["language": "text/fhirpath", "expression": "true"]
+                    "valueExpression": ["language": "text/fhirpath", "expression": expression]
                 ]
             ]
         ]

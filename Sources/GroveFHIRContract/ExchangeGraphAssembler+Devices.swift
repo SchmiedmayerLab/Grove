@@ -113,7 +113,10 @@ extension ExchangeGraphAssembler {
         let host = try hostSnapshot(writer.host, event: event)
         var snapshot = try applicationSnapshot(writer.application, event: event, parentURL: host.url)
         if !writer.statesVersion {
-            snapshot.resource.version = nil
+            let versions = snapshot.resource.version?.filter { version in
+                version.type?.coding?.contains { $0.system == Canonicals.mdc && $0.code == "531975" } != true
+            }
+            snapshot.resource.version = versions?.isEmpty == false ? versions : nil
         }
         return WriterSnapshots(
             application: snapshot,

@@ -115,6 +115,48 @@ class ProducerManifestTests(unittest.TestCase):
                     corpus,
                 )
 
+    def workout_segment_bindings(self, values):
+        with tempfile.TemporaryDirectory() as directory:
+            profile = "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-workout-segment"
+            system = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-segment-type"
+            corpus = pathlib.Path(directory) / "corpus.json"
+            corpus.write_text(json.dumps({"vectors": [{
+                "id": "workout-segment",
+                "profile": profile,
+                "result": {"type": "CodeableConcept", "system": system, "code": "lap"},
+            }]}))
+            resource = {
+                "resourceType": "Bundle",
+                "entry": [{"resource": {
+                    "resourceType": "Observation",
+                    "meta": {"profile": [profile]},
+                    "valueCodeableConcept": {"coding": [{"system": value_system, "code": code}]},
+                }} for value_system, code in values],
+            }
+            return MODULE.semantic_vector_bindings([("workout-segment.json", resource)], corpus)
+
+    def test_coded_vector_selects_the_unique_matching_child(self):
+        bindings = self.workout_segment_bindings([
+            ("https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-activity", "running"),
+            ("https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-segment-type", "lap"),
+        ])
+        self.assertEqual(bindings, [{
+            "id": "workout-segment",
+            "path": "workout-segment.json",
+            "resourcePointer": "/entry/1/resource",
+        }])
+
+    def test_coded_vector_rejects_wrong_system_or_code(self):
+        system = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-segment-type"
+        for value in [("https://example.org/wrong-system", "lap"), (system, "pause")]:
+            with self.subTest(value=value), self.assertRaisesRegex(MODULE.ManifestError, "found 0"):
+                self.workout_segment_bindings([value, (system, "resume")])
+
+    def test_coded_vector_rejects_multiple_matching_children(self):
+        system = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-workout-segment-type"
+        with self.assertRaisesRegex(MODULE.ManifestError, "found 2"):
+            self.workout_segment_bindings([(system, "lap"), (system, "lap")])
+
     def test_resource_without_a_grove_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

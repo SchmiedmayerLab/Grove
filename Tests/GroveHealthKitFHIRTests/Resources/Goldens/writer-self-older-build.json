@@ -435,11 +435,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:sCSyThEwHrA-QNutyWoT8IvqvObAfx9iVgwMMjwgBlw"
+            "value" : "v0:test:1:GpTG8SpfcAsee5Fp3woNk5iTcFpzLVvnocQRpdYEyPE"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:98fa6785-6ecf-5477-81e8-43671d56b65c",
+      "fullUrl" : "urn:uuid:6043d719-7272-5d0b-8eee-31697ec09630",
       "resource" : {
         "deviceName" : [
           {
@@ -458,7 +458,7 @@
                 }
               ]
             },
-            "value" : "v0:test:1:sCSyThEwHrA-QNutyWoT8IvqvObAfx9iVgwMMjwgBlw"
+            "value" : "v0:test:1:GpTG8SpfcAsee5Fp3woNk5iTcFpzLVvnocQRpdYEyPE"
           },
           {
             "system" : "https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id",
@@ -488,9 +488,9 @@
             "type" : {
               "coding" : [
                 {
-                  "code" : "531975",
-                  "display" : "MDC_ID_PROD_SPEC_SW",
-                  "system" : "urn:iso:std:iso:11073:10101"
+                  "code" : "build",
+                  "display" : "Build",
+                  "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-application-version-type"
                 }
               ]
             },
@@ -558,7 +558,7 @@
                   ]
                 },
                 "who" : {
-                  "reference" : "urn:uuid:98fa6785-6ecf-5477-81e8-43671d56b65c"
+                  "reference" : "urn:uuid:6043d719-7272-5d0b-8eee-31697ec09630"
                 }
               }
             ],

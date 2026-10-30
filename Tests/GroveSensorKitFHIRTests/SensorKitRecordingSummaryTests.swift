@@ -156,6 +156,16 @@ struct GroveSensorKitRecordingSummaryTests {
     }
 
     @Test
+    func ppgCoverageIncludesSessionAnchorsBeforeTheFirstSample() throws {
+        let records = SensorKitPPGTestSupport.recording(start: Self.start).records.dropFirst()
+        let recording = try SensorKitPPGRecording(data: SensorKitPPGRecording(records: Array(records)).encoded())
+        let summary = try #require(recording.summary)
+
+        #expect(summary.coverage.start == Self.start)
+        #expect(summary.coverage.end == Self.start.addingTimeInterval(1.5))
+    }
+
+    @Test
     func summaryRecordingRejectsAnUnregisteredFormat() throws {
         #expect(throws: SensorKitRecordError.invalidRecordingFormat) {
             _ = try Self.accelerometerRecord(format: .nativeRecording)

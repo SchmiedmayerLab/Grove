@@ -102,6 +102,15 @@ extension PairRules {
         }
     }
 
+    /// A systemless enableWhen coding names a code in any system, as it does in the form's condition engine.
+    /// Answer-option membership still uses exact coding identity through `valuesEqual`.
+    static func enableWhenMatches(_ value: Any, expected: Any) -> Bool {
+        if let expectedCoding = codingKey(expected), expectedCoding.system == nil {
+            return codingKey(value)?.code == expectedCoding.code
+        }
+        return valuesEqual(value, expected)
+    }
+
     // Tri-state: nil means the answer families or quantity units are incomparable.
     // swiftlint:disable:next discouraged_optional_boolean
     static func lessThanOrEqual(_ left: Any, _ right: Any) -> Bool? {

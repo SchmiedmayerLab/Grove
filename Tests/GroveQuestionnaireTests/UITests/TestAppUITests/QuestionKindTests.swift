@@ -131,8 +131,10 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
 
         questionnaire.question("continent").chooseFromMenu("Europe")
         XCTAssert(questionnaire.question("continent").blockingMark.waitForNonExistence(timeout: 5))
-        // the questions that were not answered keep their mark
-        XCTAssert(questionnaire.question("flavour").isMarkedAsBlocking)
+        // The neighbouring unanswered question keeps its mark. Checking it here avoids
+        // dragging the sheet back to a question above the drop-down.
+        XCTAssert(questionnaire.question("agrees").blockingMark.waitForExistence(timeout: 10))
+        XCTAssert(questionnaire.waitUntilReadiness(.incomplete))
     }
 
 

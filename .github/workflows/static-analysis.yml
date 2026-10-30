@@ -25,7 +25,7 @@ permissions:
 
 env:
   # Match the toolchain used by the Apple test jobs.
-  ANALYSIS_XCODE_VERSION: '26.6'
+  ANALYSIS_XCODE_VERSION: 'latest-stable'
 
 jobs:
   ui-test-projects:
@@ -65,7 +65,8 @@ jobs:
   # REUSE runs as part of the Repository Standards workflow.
   swiftlint:
     name: SwiftLint
-    runs-on: ubuntu-latest
+    # The action's Linux binary needs libxml2.so.2, which ubuntu-26.04 no longer supplies.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:

@@ -123,6 +123,8 @@ extension HealthKitConversionError {
         case syncVersion
         case wasUserEntered
         case heartRateMotionContext
+        case heartRateEventThreshold
+        case lowCardioFitnessEventThreshold
         case insulinDeliveryReason
         case menstrualCycleStart
         case sexualActivityProtectionUsed
@@ -135,6 +137,8 @@ extension HealthKitConversionError {
             case .syncVersion: HKMetadataKeySyncVersion
             case .wasUserEntered: HKMetadataKeyWasUserEntered
             case .heartRateMotionContext: HKMetadataKeyHeartRateMotionContext
+            case .heartRateEventThreshold: HKMetadataKeyHeartRateEventThreshold
+            case .lowCardioFitnessEventThreshold: HKMetadataKeyLowCardioFitnessEventThreshold
             case .insulinDeliveryReason: HKMetadataKeyInsulinDeliveryReason
             case .menstrualCycleStart: HKMetadataKeyMenstrualCycleStart
             case .sexualActivityProtectionUsed: HKMetadataKeySexualActivityProtectionUsed
@@ -152,6 +156,8 @@ extension HealthKitConversionError {
             switch self {
             case .heartRateMotionContext, .appleECGAlgorithmVersion:
                 (value as? NSNumber) != nil
+            case .heartRateEventThreshold, .lowCardioFitnessEventThreshold:
+                (value as? HKQuantity) != nil
             case .insulinDeliveryReason, .menstrualCycleStart, .sexualActivityProtectionUsed:
                 true
             case .timeZone, .syncIdentifier, .syncVersion, .wasUserEntered:
@@ -172,6 +178,8 @@ extension HealthKitConversionError {
         case unsupportedMetadataValue(MetadataField)
         case invalidMetadataValue(MetadataField)
         case requiredMetadataMissing(MetadataField)
+        /// A workout activity is still open and cannot state its required interval.
+        case workoutActivityEndMissing
         /// A panel is missing one of its catalog components, named by the component id.
         case requiredComponentMissing(component: String)
         /// The effective time is not a valid FHIR date-time, or its period is reversed, or empty where the
@@ -201,7 +209,7 @@ extension HealthKitConversionError.ValueFailure {
         case .shapeInvalid, .invalidMetadataValue, .missingNormativeCode: .mobileInputValueShapeInvalid
         case .outsideDomain: .mobileInputValueOutsideDomain
         case .unsupportedValue, .unsupportedMetadataValue: .mobileInputUnsupportedSourceValue
-        case .requiredMetadataMissing: .mobileInputRequiredMetadataMissing
+        case .requiredMetadataMissing, .workoutActivityEndMissing: .mobileInputRequiredMetadataMissing
         case .requiredComponentMissing: .mobileInputRequiredComponentMissing
         case .effectivePeriodInvalid: .mobileInputEffectivePeriodInvalid
         case .emptyRecordingSeries: .mobileInputEmptyRecordingSeries
@@ -215,6 +223,7 @@ extension HealthKitConversionError.ValueFailure {
         case .unsupportedMetadataValue(let field), .invalidMetadataValue(let field), .requiredMetadataMissing(let field):
             "HKSample.metadata[\(field.key)]"
         case .requiredComponentMissing(let component): "HKCorrelation.objects[\(component)]"
+        case .workoutActivityEndMissing: "HKWorkout.workoutActivities.endDate"
         case .effectivePeriodInvalid: "HKSample.startDate"
         case .emptyRecordingSeries, .recordingPayloadTooLarge: "HKSample"
         }

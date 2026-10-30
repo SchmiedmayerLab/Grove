@@ -184,14 +184,14 @@ struct HealthKitMetadataWarningTests {
         #expect(try Self.heartRate(metadata: metadata).warnings.isEmpty, "an attributable writer's Observation carries the pair")
     }
 
-    @Test("An ECG carries its algorithm version, manual entry and sync pair; it states its zone's offset, not its name")
-    func electrocardiogramReportsItsZoneName() throws {
+    @Test("An ECG carries its algorithm version, manual entry, sync pair and source zone name")
+    func electrocardiogramRetainsItsZoneName() throws {
         let metadata = GoldenFixtures.timeZoneMetadata.merging(Self.syncPair) { $1 }
             .merging([HKMetadataKeyWasUserEntered: true, HKMetadataKeyAppleECGAlgorithmVersion: 2]) { $1 }
         let conversion = try Self.electrocardiogram(metadata: metadata)
-        #expect(conversion.withheldMetadataKeys == [HKMetadataKeyTimeZone])
-        #expect(conversion.warnings == [Self.unmodeled])
-        #expect(!String(decoding: conversion.graph.json, as: UTF8.self).contains(Canonicals.timezone.value?.url.absoluteString ?? "timezone"))
+        #expect(conversion.withheldMetadataKeys.isEmpty)
+        #expect(conversion.warnings.isEmpty)
+        #expect(String(decoding: conversion.graph.json, as: UTF8.self).contains(Canonicals.timezone.value?.url.absoluteString ?? "timezone"))
     }
 
     @Test("The withheld-metadata diagnostic is located at the source's metadata, also as the exporter reports it")

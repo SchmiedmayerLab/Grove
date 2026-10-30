@@ -185,6 +185,14 @@ extension HealthKitAssembly {
         }
         let nativeRecordIdentifier = options.nativeIdentifier.nativeRecordIdentifier(for: uuid.uuidString.lowercased())
         let sourceRecord = try sourceRecordIdentity(of: uuid, type: type)
+        if type == .workout || type == .electrocardiogram {
+            // Deletions carry neither workout segments nor the presence of an ECG's optional heart-rate child.
+            do {
+                return [try RetractionEvent.Target(sourceRecord: sourceRecord.identifier, nativeRecordIdentifier: nativeRecordIdentifier)]
+            } catch {
+                throw HealthKitConversionError(dependency: error)
+            }
+        }
         var targets: [RetractionEvent.Target] = []
         for output in plan.outputs {
             let identity: RoledIdentifier

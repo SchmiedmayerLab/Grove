@@ -194,6 +194,8 @@ enum HealthKitContentRules {
         case .heartRate: .heartRateMotionContext
         case .insulinDelivery: .insulinDeliveryReason
         case .menstrualFlow: try .menstrualCycleStart(contract)
+        case .highHeartRateEvent, .lowHeartRateEvent: try .threshold(contract, field: .heartRateEventThreshold)
+        case .lowCardioFitnessEvent: try .threshold(contract, field: .lowCardioFitnessEventThreshold)
         default: nil
         }
     }

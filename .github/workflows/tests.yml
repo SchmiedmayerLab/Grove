@@ -16,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       grove_fhir_ref:
-        description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract.
+        description: grove-fhir tag or commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: c078136f12b4713ceee19619b1bcd2ff96186ecc
+        default: 0.7.0
       fhir_only:
         description: Run only producer conformance against the selected grove-fhir contract.
         type: boolean
@@ -30,9 +30,9 @@ on:
         type: boolean
         default: false
       grove_fhir_ref:
-        description: grove-fhir commit carrying the Grove FHIR Implementation Guides contract.
+        description: grove-fhir tag or commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: c078136f12b4713ceee19619b1bcd2ff96186ecc
+        default: 0.7.0
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -42,10 +42,11 @@ permissions:
   contents: read
 
 env:
-  # TEMPORARY: Swift 6.4 can link _swift_initBorrow when targeting the iOS 26.5 runtime.
-  # Keep every Apple test job on Swift 6.3.3 until the back-deployment fix ships.
+  # Match MHC's installed Xcode selection; some runners no longer retain Xcode 26.6.
+  # Tests keep their 26.5 simulator destinations. Package.swift excludes swift-collections 1.7.0,
+  # whose Ref helpers linked _swift_initBorrow on older runtimes with Swift 6.4.
   # https://github.com/apple/swift-collections/issues/733
-  TEST_XCODE_VERSION: '26.6'
+  TEST_XCODE_VERSION: 'latest-stable'
 
 jobs:
   detect:
@@ -280,12 +281,12 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          ref: ${{ inputs.grove_fhir_ref || 'c078136f12b4713ceee19619b1bcd2ff96186ecc' }}
+          ref: ${{ inputs.grove_fhir_ref || '0.7.0' }}
           persist-credentials: false
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || 'c078136f12b4713ceee19619b1bcd2ff96186ecc' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '0.7.0' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Pin the implementation-guide cache key
         run: |
@@ -293,7 +294,7 @@ jobs:
           echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-$RESOLVED_GROVE_FHIR_SHA-${{ hashFiles('.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
       - name: Restore built implementation guides
         id: guide-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             .fhir/grove-fhir/.build/fhir-home
@@ -343,10 +344,23 @@ jobs:
             esac
           done
           ./Scripts/build-guides.sh "${GUIDES[@]}"
+      - name: Save built implementation guides
+        if: steps.guide-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .fhir/grove-fhir/.build/fhir-home
+            .fhir/grove-fhir/.build/fhir-tools
+            .fhir/grove-fhir/mobile/output/package.tgz
+            .fhir/grove-fhir/sensor/output/package.tgz
+            .fhir/grove-fhir/sensorkit/output/package.tgz
+            .fhir/grove-fhir/healthkit/output/package.tgz
+            .fhir/grove-fhir/questionnaire/output/package.tgz
+          key: ${{ steps.guide-cache.outputs.cache-primary-key }}
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || 'c078136f12b4713ceee19619b1bcd2ff96186ecc' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '0.7.0' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

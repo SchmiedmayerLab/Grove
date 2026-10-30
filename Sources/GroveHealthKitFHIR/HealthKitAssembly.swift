@@ -74,7 +74,7 @@ struct HealthKitAssembly: Sendable {
     /// The revision of the graphs this adapter's assembly builds. Bump it whenever the bytes it emits can
     /// change for equal inputs: it enters every exporter's context fingerprint, so an event reserved under an
     /// older revision is never redelivered under the same identifier with different bytes.
-    static let outputRevision: UInt = 12
+    static let outputRevision: UInt = 19
 
     /// The HealthKit adapter: its closed token, which every HealthKit identity preimage and event key carries, and the
     /// profiles and application identifier its envelopes state.
@@ -118,10 +118,12 @@ struct HealthKitAssembly: Sendable {
         switch plan.route {
         case .observation(let observation):
             let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
-            // A workout exports its session alone: the pinned guide defines no HealthKit segment output, and a
-            // deletion could not name segments it never saw (healthkit-adapter.json workout row).
             let primary = plan.outputs[0].draft(.observation(try observation.observation(sample, metadata: metadata)))
-            return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [primary], request: request)]
+            var outputs = [primary]
+            if case .workout(let content) = observation.value, let workout = sample as? HKWorkout {
+                outputs += try content.segments(workout, metadata: metadata)
+            }
+            return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: outputs, request: request)]
         case .clinical(let document):
             let carried = try clinicalDocument(sample, plan: plan, document: document)
             return try documentGraph(for: sample, plan: plan, document: carried, request: request)
@@ -157,6 +159,11 @@ struct HealthKitAssembly: Sendable {
         // extension; a document states neither, though the pair is still validated.
         if case .observation = outputs[0].resource {
             outputs[0].writerRecord = facts.writerRecord
+            if type == .workout {
+                for index in outputs.indices.dropFirst() {
+                    outputs[index].writerRecord = facts.writerRecord
+                }
+            }
         }
         let draft = ExchangeGraphDraft(
             event: request.event,
@@ -165,6 +172,7 @@ struct HealthKitAssembly: Sendable {
             outputs: outputs,
             recordingDevice: facts.recordingDevice,
             writer: facts.writer,
+            sourceExtensions: facts.sourceRevision.map { [$0] } ?? [],
             converterRole: request.converterRole,
             bundleID: request.bundleID
         )

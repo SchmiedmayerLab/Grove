@@ -83,18 +83,25 @@ struct HealthKitContentPlanTests {
         #expect(unconverted == HealthKitContentRules.notYetConvertible)
     }
 
-    @Test("Exactly heart rate, insulin delivery and menstrual flow state a metadata component, each read its own way")
+    @Test("The known metadata components retain their reading rules and units")
     func metadataComponentsAreTheKnownSet() {
         var readings: [HealthKitSourceType: String] = [:]
         for plan in HealthKitContentPlan.all {
             if case .observation(let observation) = plan.route, let rule = observation.metadataComponent {
-                readings[plan.sourceType] = "\(rule.field.key) \(rule.reading)"
+                if case let .optionalQuantity(_, binding) = rule.reading {
+                    readings[plan.sourceType] = "\(rule.field.key) optionalQuantity \(binding.ucumCode)"
+                } else {
+                    readings[plan.sourceType] = "\(rule.field.key) \(rule.reading)"
+                }
             }
         }
         #expect(readings == [
             .heartRate: "\(HKMetadataKeyHeartRateMotionContext) optionalInteger",
             .insulinDelivery: "\(HKMetadataKeyInsulinDeliveryReason) requiredInteger",
-            .menstrualFlow: "\(HKMetadataKeyMenstrualCycleStart) requiredBoolean"
+            .menstrualFlow: "\(HKMetadataKeyMenstrualCycleStart) requiredBoolean",
+            .highHeartRateEvent: "\(HKMetadataKeyHeartRateEventThreshold) optionalQuantity /min",
+            .lowHeartRateEvent: "\(HKMetadataKeyHeartRateEventThreshold) optionalQuantity /min",
+            .lowCardioFitnessEvent: "\(HKMetadataKeyLowCardioFitnessEventThreshold) optionalQuantity mL/kg/min"
         ])
     }
 

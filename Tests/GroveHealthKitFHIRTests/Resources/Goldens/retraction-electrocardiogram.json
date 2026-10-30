@@ -91,43 +91,21 @@
             "extension" : [
               {
                 "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-retraction-target-role",
-                "valueCode" : "primary-output"
+                "valueCode" : "source-record"
               }
             ],
             "identifier" : {
-              "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1",
+              "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1",
               "type" : {
                 "coding" : [
                   {
-                    "code" : "source-output",
+                    "code" : "source-record",
                     "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
                   }
                 ]
               },
-              "value" : "v0:test:1:Xk3J0csCpaST52SJf5WCk1IjC48bIt1M-LX_XdRHSNA"
-            },
-            "type" : "Observation"
-          },
-          {
-            "extension" : [
-              {
-                "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-retraction-target-role",
-                "valueCode" : "child-output"
-              }
-            ],
-            "identifier" : {
-              "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1",
-              "type" : {
-                "coding" : [
-                  {
-                    "code" : "source-output",
-                    "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
-                  }
-                ]
-              },
-              "value" : "v0:test:1:Mz4QMokK3VR146NKuEPbn6xQPEouq6s_-JifM3KVh4Y"
-            },
-            "type" : "Observation"
+              "value" : "v0:test:1:Rafsg0P5eS2riuHijF6VVUqQ7_eYlQMTazZiVLIGCoE"
+            }
           }
         ]
       }

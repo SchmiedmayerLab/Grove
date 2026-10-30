@@ -129,14 +129,9 @@ final class HealthKitContentPlan: Sendable {
     let entry: HealthKitCatalog.Entry
     /// What the type converts through.
     let route: Route
-    /// Every output a conversion of the type mints, in the order the graph emits them, primary first; a retraction of
-    /// the type names exactly these. Empty for a refused type, except a clinical type on watchOS, which another platform
-    /// may have emitted and a retraction must still name.
-    ///
-    /// One exception: an ECG's average-heart-rate child is listed whether or not the ECG stated an average, so the
-    /// retraction of an ECG without one also names a child that was never emitted. A deletion cannot tell the two
-    /// apart, and the pinned guide has no source-record retraction scope yet (an IG gap; a draft exists); a receiver
-    /// resolves the extra target to nothing.
+    /// The type's statically known output slots, primary first. ECGs and workouts retract their source record as a
+    /// whole because a deletion cannot recover their conditional outputs. Empty for a refused type, except a clinical
+    /// type on watchOS, which another platform may have emitted and a retraction must still name.
     let outputs: [HealthKitOutputSlot]
     /// The metadata keys of its own the type's content carries, and whether the record also holds its correlation's
     /// members' metadata: only blood pressure's rule reads the members, for the time zone and manual entry.

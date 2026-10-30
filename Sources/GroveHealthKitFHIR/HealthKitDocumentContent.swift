@@ -15,14 +15,6 @@ import HealthKit
 import ModelsR4
 
 
-/// Why a workout route cannot be carried, for a reason no registered input rule names (a route states no measurement
-/// and the location-track columns no value domain), so the conversion reports it as `mobile-input.unclassified`.
-enum WorkoutRouteFailure: Error {
-    /// CoreLocation marks a fix's coordinate invalid with a negative horizontal accuracy.
-    case invalidCoordinate
-}
-
-
 /// The parts of a source type's recording or clinical document that every document of the type shares, and the
 /// builders that carry one record's bytes in it.
 ///
@@ -85,25 +77,20 @@ struct DocumentPlan: Sendable {
     }
 
     /// A workout route's fixes in the plan's format, the registry's `location-track-samples` column schema, one row
-    /// per fix. A route without fixes is refused. So is a route with a fix whose horizontal accuracy CoreLocation
-    /// reports negative, its marker for an invalid coordinate: every row states a WGS 84 position and its radius of
-    /// uncertainty, a column that cannot be empty, and no fix may be left out. The exporter's companion fingerprint
-    /// digests exactly these bytes.
+    /// per fix. A route without fixes is refused. A negative accuracy is an unavailable reading: its cell is empty,
+    /// while the source's coordinates and row remain. The exporter's companion fingerprint digests exactly these bytes.
     func locationTrack(_ locations: [CLLocation]) throws -> Data {
         guard !locations.isEmpty else {
             throw HealthKitConversionError.ValueFailure.emptyRecordingSeries
         }
         var writer = try RecordingCSVWriter(format: format)
         for fix in locations {
-            if fix.horizontalAccuracy < 0 {
-                throw WorkoutRouteFailure.invalidCoordinate
-            }
             try writer.append([
                 .timestamp(fix.timestamp),
                 .number(fix.coordinate.latitude),
                 .number(fix.coordinate.longitude),
                 .number(fix.altitude),
-                .number(fix.horizontalAccuracy),
+                Self.reported(fix.horizontalAccuracy),
                 Self.reported(fix.verticalAccuracy),
                 Self.reported(fix.speed),
                 Self.reported(fix.speedAccuracy),

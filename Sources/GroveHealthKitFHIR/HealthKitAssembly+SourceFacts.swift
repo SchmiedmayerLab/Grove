@@ -22,6 +22,7 @@ extension HealthKitAssembly {
     struct SourceFacts {
         let recordingDevice: ExchangeRecordingDeviceDraft?
         let writer: ExchangeWriterDraft?
+        let sourceRevision: Extension?
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
         let wasUserEntered: Bool
@@ -51,6 +52,7 @@ extension HealthKitAssembly {
             }
             self.recordingDevice = recordingDevice
             self.writer = try Self.writer(revision, classification: policies.writer)
+            self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision, fields: options.sourceRevision) : nil
             self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
             self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
             self.wasUserEntered = metadata.wasUserEntered
@@ -119,12 +121,12 @@ extension HealthKitAssembly.SourceFacts {
             let version = revision.version?.nonBlank
             do {
                 return ExchangeWriterDraft(
-                    application: try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: version ?? "unknown"),
+                    application: try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: "unknown", build: version),
                     host: try HostDevice(
                         operatingSystemVersion: operatingSystemVersion(revision.operatingSystemVersion),
                         modelNumber: revision.productType?.nonBlank
                     ),
-                    statesVersion: version != nil
+                    statesVersion: false
                 )
             } catch {
                 throw HealthKitConversionError.sourceApplicationInvalid
