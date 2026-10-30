@@ -6,10 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#if canImport(UniformTypeIdentifiers)
 
 import ModelsR4
-import UniformTypeIdentifiers
 
 
 extension ModelsR4.Attachment: FHIRAttachment {
@@ -33,5 +31,3 @@ extension ModelsR4.Attachment: FHIRAttachment {
         }
     }
 }
-
-#endif

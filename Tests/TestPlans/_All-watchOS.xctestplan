@@ -41,13 +41,6 @@
     {
       "target": {
         "containerPath": "container:",
-        "identifier": "GroveHealthKitFHIRMacrosTests",
-        "name": "GroveHealthKitFHIRMacrosTests"
-      }
-    },
-    {
-      "target": {
-        "containerPath": "container:",
         "identifier": "GroveHealthKitFHIRTests",
         "name": "GroveHealthKitFHIRTests"
       }

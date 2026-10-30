@@ -68,6 +68,8 @@ extension Questionnaire {
     /// instrument renders identically and exports to a conformant FHIR R4
     /// `Questionnaire` (and its collected answers to a `QuestionnaireResponse`).
     ///
+    /// `language` is the BCP 47 tag of the language the questionnaire is written in (FHIR `Questionnaire.language`).
+    ///
     /// ```swift
     /// enum Onboarding {
     ///     static let mood = BooleanQuestion("mood", "Are you feeling well today?")
@@ -77,6 +79,7 @@ extension Questionnaire {
     ///     static let questionnaire = Questionnaire(
     ///         url: URL(string: "https://example.org/fhir/Questionnaire/onboarding")!,
     ///         version: "1.0.0",
+    ///         language: "en-US",
     ///         title: "Daily Check-In"
     ///     ) {
     ///         Section("checkin", title: "Check-In") {
@@ -88,7 +91,8 @@ extension Questionnaire {
     /// ```
     public init(
         url: URL,
-        version: String? = nil,
+        version: String,
+        language: String,
         title: String,
         explainer: String = "",
         publisher: String? = nil,
@@ -100,8 +104,9 @@ extension Questionnaire {
                 id: url.absoluteString,
                 url: url,
                 version: version,
-                title: title,
-                explainer: explainer,
+                language: language,
+                title: .init(title),
+                explainer: .init(explainer),
                 publisher: publisher,
                 copyright: copyright
             ),

@@ -8,6 +8,7 @@
 
 import Foundation
 import GeneratedOpenAIClient
+import GroveFoundation
 import GroveLLM
 
 
@@ -49,7 +50,7 @@ extension LLMOpenAILikeSession {
             return nil
         }
         let format = item["output_format"] as? String ?? "png"
-        return .init(contentType: "image/\(format)", base64Image: result)
+        return .init(contentType: MIMEType(rawValue: "image/\(format)"), base64Image: result)
     }
 
     /// The citations carried by a streamed `response.output_item.done` payload.

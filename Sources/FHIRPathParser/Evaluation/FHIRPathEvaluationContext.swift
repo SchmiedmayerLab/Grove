@@ -96,15 +96,15 @@ public struct FHIRPathEvaluationContext: Sendable {
     /// Callers typically provide `resource` (the QuestionnaireResponse under
     /// construction), `questionnaire`, and `context`, plus any SDC `variable`s.
     public var constants: [String: [FHIRPathValue]]
-    /// The instant used for `now()`/`today()`/`timeOfDay()`, so evaluation is reproducible.
-    public var now: Date
+    /// The instant and zone `now()`, `today()` and `timeOfDay()` read; evaluation never reads the device's.
+    public var clock: FHIRPathClock
     /// Where `%constant.descendants()` is kept between evaluations over the same constants, when the caller has one.
     package var descendants: FHIRPathDescendantsCache?
 
-    public init(focus: [FHIRPathValue] = [], constants: [String: [FHIRPathValue]] = [:], now: Date = Date()) {
+    public init(focus: [FHIRPathValue] = [], constants: [String: [FHIRPathValue]] = [:], clock: FHIRPathClock) {
         self.focus = focus
         self.constants = constants
-        self.now = now
+        self.clock = clock
         self.constants["ucum"] = [.string("http://unitsofmeasure.org")]
         if let resource = constants["resource"], self.constants["context"] == nil {
             self.constants["context"] = resource

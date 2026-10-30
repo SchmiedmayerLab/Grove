@@ -7,7 +7,7 @@
 //
 
 public import Foundation
-public import UniformTypeIdentifiers
+public import GroveFoundation
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -99,13 +99,13 @@ extension Questionnaire.Task.Kind {
         /// A unit the participant may choose among (FHIR `questionnaire-unitOption`).
         public struct UnitOption: Hashable, Sendable {
             /// The user-displayed unit label.
-            public let display: String
+            public let display: Questionnaire.LocalizedText
             /// The unit's coding system (typically UCUM).
             public let system: URL?
             /// The unit's code within ``system``.
             public let code: String
 
-            public init(display: String, system: URL? = nil, code: String) {
+            public init(display: Questionnaire.LocalizedText, system: URL? = nil, code: String) {
                 self.display = display
                 self.system = system
                 self.code = code
@@ -120,7 +120,7 @@ extension Questionnaire.Task.Kind {
         /// The maximum allowed number of decimal places.
         public let maxDecimalPlaces: UInt?
         /// The user-displayed unit of the quantity being asked for.
-        public let unit: String
+        public let unit: Questionnaire.LocalizedText
         /// The unit's coded form (typically UCUM), carried into `valueQuantity.system`/`.code`.
         public let unitSystem: URL?
         /// The unit's code within ``unitSystem``.
@@ -136,7 +136,7 @@ extension Questionnaire.Task.Kind {
             minimum: Double? = nil,
             maximum: Double? = nil,
             maxDecimalPlaces: UInt? = nil,
-            unit: String = "",
+            unit: Questionnaire.LocalizedText = "",
             unitSystem: URL? = nil,
             unitCode: String? = nil,
             valueKind: ValueKind = .decimal,
@@ -156,14 +156,14 @@ extension Questionnaire.Task.Kind {
 
     /// Configuration of a file selection question.
     public struct FileAttachmentConfig: Hashable, Sendable {
-        /// The content types allowed for attachments.
-        public let contentTypes: Set<UTType>
+        /// The MIME types allowed for attachments, as carried by FHIR's `mimeType` extension.
+        public let contentTypes: Set<MIMEType>
         /// The maximum file size allowed per attachment.
         public let maxSize: UInt64?
         /// Whether the user may select multiple attachments.
         public let allowsMultipleSelection: Bool
 
-        public init(contentTypes: Set<UTType>, maxSize: UInt64? = nil, allowsMultipleSelection: Bool) {
+        public init(contentTypes: Set<MIMEType>, maxSize: UInt64? = nil, allowsMultipleSelection: Bool) {
             self.contentTypes = contentTypes
             self.maxSize = maxSize
             self.allowsMultipleSelection = allowsMultipleSelection
@@ -196,7 +196,7 @@ extension Questionnaire.Task.Kind {
         /// Whether the user should be offered an "Other" option where they can enter arbitrary text.
         public var hasFreeTextOtherOption: Bool
         /// The label of the free-text "Other" option (SDC `openLabel`); `nil` uses the default.
-        public var freeTextOtherOptionLabel: String?
+        public var freeTextOtherOptionLabel: Questionnaire.LocalizedText?
         /// Whether the user is allowed to make multiple choices.
         public var allowsMultipleSelection: Bool
         /// How the options are presented.
@@ -216,7 +216,7 @@ extension Questionnaire.Task.Kind {
         public init(
             options: [Option],
             hasFreeTextOtherOption: Bool = false,
-            freeTextOtherOptionLabel: String? = nil,
+            freeTextOtherOptionLabel: Questionnaire.LocalizedText? = nil,
             allowsMultipleSelection: Bool,
             presentation: Presentation = .list,
             orientation: Orientation = .vertical,
@@ -265,21 +265,22 @@ extension Questionnaire.Task.Kind.ChoiceConfig {
         /// FHIR codings use the `system|code` token (or the bare code when the coding
         /// has no system) so that identical codes from different systems stay distinct.
         public let id: String
-        public let title: String
-        public let subtitle: String
+        /// The option's user-displayed title (FHIR `answerOption` display).
+        public let title: Questionnaire.LocalizedText
+        public let subtitle: Questionnaire.LocalizedText
         /// The option's FHIR coding, if it was created from one.
         public let fhirCoding: FHIRCoding?
         /// The option's non-coding FHIR value, if it was created from one.
         public let answerValue: AnswerValue?
-        /// The option's scoring weight (FHIR `itemWeight`, or the retired `ordinalValue`).
+        /// The option's scoring weight: FHIR `itemWeight`, else R4's `ordinalValue`.
         public let weight: Decimal?
         /// Whether selecting this option deselects all others (FHIR `questionnaire-optionExclusive`).
         public let isExclusive: Bool
 
         public init(
             id: String,
-            title: String,
-            subtitle: String = "",
+            title: Questionnaire.LocalizedText,
+            subtitle: Questionnaire.LocalizedText = "",
             fhirCoding: FHIRCoding? = nil,
             answerValue: AnswerValue? = nil,
             weight: Decimal? = nil,

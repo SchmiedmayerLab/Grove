@@ -98,7 +98,7 @@ struct BulkExportPersistenceTests {
     }
 
     @Test @SessionDescriptorPersisting.PersistSessionStateActor
-    func coalescingWritesLatestSnapshotAndFlushWaits() async throws {
+    func queuedWritesPreserveEverySnapshotAndFlushWaits() async throws {
         let writes = Mutex<[Date]>([])
         let persisting = SessionDescriptorPersisting { descriptor in
             writes.withLock { $0.append(descriptor.endDate) }
@@ -110,10 +110,10 @@ struct BulkExportPersistenceTests {
         }
         #expect(writes.withLock { $0.isEmpty }) // Disk work was not run inline.
         try await persisting.flush()
-        #expect(writes.withLock { $0 } == [Date(timeIntervalSince1970: 300)])
+        #expect(writes.withLock { $0 } == [100.0, 200.0, 300.0].map(Date.init(timeIntervalSince1970:)))
         persisting(ExportSessionDescriptor(sessionId: sessionID, startDate: .absolute(.distantPast), endDate: Date(timeIntervalSince1970: 400)))
         try await persisting.flush()
-        #expect(writes.withLock { $0 } == [Date(timeIntervalSince1970: 300), Date(timeIntervalSince1970: 400)])
+        #expect(writes.withLock { $0 } == [100.0, 200.0, 300.0, 400.0].map(Date.init(timeIntervalSince1970:)))
     }
 }
 

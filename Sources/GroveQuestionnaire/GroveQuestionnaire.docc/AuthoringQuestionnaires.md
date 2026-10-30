@@ -31,6 +31,7 @@ enum Screener {
     static let questionnaire = Questionnaire(
         url: URL(string: "https://example.org/fhir/Questionnaire/screener")!,
         version: "1.0.0",
+        language: "en",
         title: "Screener"
     ) {
         Section("screening", title: "Screening") {
@@ -45,6 +46,9 @@ A declared question is both the item in the questionnaire and the handle used to
 answer and to condition on it. The first argument is its linkId — the stable identity
 that travels to FHIR and back — so it is written explicitly rather than derived from the
 Swift name.
+
+`language` is the BCP 47 tag of the language the strings are written in.
+Every string a declaration takes is that base text, without translations.
 
 ``Instrument()`` is what makes the declarations checkable: it reads the type at build time
 and reports what does not hold together. It also generates a `LinkID` enum
@@ -248,36 +252,30 @@ still parsed at build time inside an ``Instrument()`` type.
 Calculated values recompute as the participant answers, and ride into the exported
 `QuestionnaireResponse` like any other answer.
 
-Install the FHIR expression engine before presenting a questionnaire that contains
-calculated values or raw FHIRPath expressions:
+Install the FHIR expression engine before presenting a questionnaire that contains calculated values or raw FHIRPath expressions:
 
 ```swift
 import GroveQuestionnaireFHIR
 
-let questionnaire = try Screener.questionnaire.withExpressionEngine()
+let questionnaire = try Screener.questionnaire.withExpressionEngine(clock: .live(in: .current))
 ```
 
-@Row {
-    @Column {
-        @Image(source: "Score", alt: "Screenshot showing a score computed from the chosen options, and an instruction that appeared once it crossed a threshold.") {
-            The score updates as options are chosen, and a condition on it shows an instruction once it crosses a threshold.
-        }
-    }
-}
+Time functions such as `today()` read the ``QuestionnaireClock`` the engine is given, never the device on their own.
+While a participant answers, ``QuestionnaireClock/live(in:)`` reads the wall clock once per state of the answers; to re-evaluate a stored submission, pass the clock it was authored at.
 
 ### Reading the answers
 
 ``QuestionnaireResponses`` is subscripted by the declarations themselves:
 
 ```swift
-QuestionnaireSheet(Screener.questionnaire) { result in
-    guard case .completed(let responses) = result else {
-        return
-    }
-    let consented = responses[Screener.consent]           // Bool?
-    let age = responses[Screener.age]                     // Double?
-}
+let responses = QuestionnaireResponses(questionnaire: Screener.questionnaire, resuming: draft)
+
+let consented = responses[Screener.consent]           // Bool?
+let age = responses[Screener.age]                     // Double?
 ```
+
+> Tip: When the answers are collected on screen, `QuestionnaireSheet` in `GroveQuestionnaireUI`
+hands back the same ``QuestionnaireResponses`` to read exactly this way.
 
 The subscript writes as well as reads, which is how a questionnaire is pre-populated from
 data the app already holds. Handles erase to linkIds, so reading one out of a different

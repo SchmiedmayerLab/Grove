@@ -15,7 +15,7 @@ private import GroveFoundation
 /// ## Overview
 ///
 /// Questionnaires consist of a sequence of ``Section``s, each of which contains a list of ``Task``s.
-/// When using the ``QuestionnaireSheet`` to answer a questionnaire, each section is displayed as a separate page on a `NavigationStack`.
+/// A section is the unit a renderer pages through: `GroveQuestionnaireUI` shows each one as its own page.
 ///
 /// ### Interoperability
 ///
@@ -94,7 +94,7 @@ public struct Questionnaire: Hashable, Identifiable, Sendable {
 
 
     /// Creates a functionally identical copy of this questionnaire, with all ``Condition``s simplified.
-    func withConditionsSimplified() -> Self {
+    package func withConditionsSimplified() -> Self {
         var copy = Questionnaire(
             unchecked: metadata,
             sections: sections.map { section in
@@ -114,7 +114,7 @@ public struct Questionnaire: Hashable, Identifiable, Sendable {
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire.Task {
     /// Creates a functionally identical copy of this task, with all ``Condition``s simplified.
-    func withConditionsSimplified() -> Self {
+    package func withConditionsSimplified() -> Self {
         var copy = self
         copy.enabledCondition.simplify()
         for index in copy.groupPath.indices {
@@ -214,10 +214,16 @@ extension Questionnaire {
         /// When present, generated `QuestionnaireResponse`s pin their `questionnaire`
         /// canonical to this version (`url|version`).
         public let version: String?
+        /// The BCP 47 tag of the language the questionnaire's base text is written in (FHIR `Questionnaire.language`).
+        ///
+        /// Exporting the questionnaire, or a response to it, requires it.
+        public let language: String?
         /// The questionnaire's user-displayed title.
-        public let title: String
+        public let title: LocalizedText
         /// Natural-language description of the questionnaire.
-        public let explainer: String
+        public let explainer: LocalizedText
+        /// Why the questionnaire exists (FHIR `Questionnaire.purpose`).
+        public let purpose: LocalizedText?
         /// The questionnaire's publication lifecycle.
         public let lifecycle: PublicationLifecycle
         /// The instrument's publisher, for attribution of licensed instruments.
@@ -231,31 +237,39 @@ extension Questionnaire {
         public let entryMode: EntryMode
         /// Questionnaire-wide SDC variables, in declaration order.
         public let variables: [ExpressionVariable]
+        /// The contexts the questionnaire is intended for (FHIR `useContext`).
+        public let useContexts: [UsageContext]
 
         public init(
             id: String,
             url: URL?,
             version: String? = nil,
-            title: String,
-            explainer: String,
+            language: String? = nil,
+            title: LocalizedText,
+            explainer: LocalizedText,
+            purpose: LocalizedText? = nil,
             lifecycle: PublicationLifecycle = .active,
             publisher: String? = nil,
             copyright: String? = nil,
             administrationWarnings: [String] = [],
             entryMode: EntryMode = .random,
-            variables: [ExpressionVariable] = []
+            variables: [ExpressionVariable] = [],
+            useContexts: [UsageContext] = []
         ) {
             self.id = id
             self.url = url
             self.version = version
+            self.language = language
             self.title = title
             self.explainer = explainer
+            self.purpose = purpose
             self.lifecycle = lifecycle
             self.publisher = publisher
             self.copyright = copyright
             self.administrationWarnings = administrationWarnings
             self.entryMode = entryMode
             self.variables = variables
+            self.useContexts = useContexts
         }
     }
 }
@@ -266,10 +280,14 @@ extension Questionnaire {
     /// A group of tasks.
     public struct Section: Hashable, Identifiable, Sendable {
         public var id: String
-        public var title: String
+        public var title: LocalizedText
         /// An abbreviated title for constrained displays (SDC `shortText`).
-        public var shortTitle: String?
+        public var shortTitle: LocalizedText?
         public var tasks: [Task]
+        /// The codes identifying the section's FHIR group (`item.code`).
+        public var codes: [Task.Code]
+        /// How the section's FHIR group takes part in SDC observation extraction.
+        public var observationExtraction: ObservationExtraction?
         /// The linkId of the top-level FHIR group this section was created from, if any.
         ///
         /// `nil` for natively authored sections and for sections synthesized around
@@ -287,19 +305,25 @@ extension Questionnaire {
         ///     Note that the condition may only reference tasks that precede this section within the questionnaire.
         ///     If the section's `enabledCondition` evaluates to `true`, but all of the section's task ``Questionnaire/Task/enabledCondition``s evaluate to `false`, the section will be skipped entirely.
         /// - parameter tasks: The section's ``Questionnaire/Task``s.
-        ///     Note that if a section does not contain any tasks, it may be skipped unconditionally by the ``QuestionnaireSheet``.
+        ///     Note that if a section does not contain any tasks, it may be skipped unconditionally by the `QuestionnaireSheet`.
+        /// - parameter codes: The codes identifying the section's FHIR group.
+        /// - parameter observationExtraction: How the section's FHIR group takes part in SDC observation extraction.
         /// - parameter fhirGroupId: The linkId of the FHIR group this section mirrors, if any.
         public init(
             id: String,
-            title: String = "",
-            shortTitle: String? = nil,
+            title: LocalizedText = "",
+            shortTitle: LocalizedText? = nil,
             enabledCondition: Condition = .none,
             tasks: [Task],
+            codes: [Task.Code] = [],
+            observationExtraction: ObservationExtraction? = nil,
             fhirGroupId: String? = nil
         ) {
             self.id = id
             self.title = title
             self.shortTitle = shortTitle
+            self.codes = codes
+            self.observationExtraction = observationExtraction
             self.fhirGroupId = fhirGroupId
             // we don't actually support section-level conditions, so instead we simply propagate the condition down into the tasks
             self.tasks = tasks.map { task in
@@ -314,7 +338,7 @@ extension Questionnaire {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension Questionnaire.Section {
-    func nextEnabledTask(after task: Questionnaire.Task, using responses: QuestionnaireResponses) -> Questionnaire.Task? {
+    package func nextEnabledTask(after task: Questionnaire.Task, using responses: QuestionnaireResponses) -> Questionnaire.Task? {
         guard let taskIdx = tasks.firstIndex(of: task) else {
             return nil
         }

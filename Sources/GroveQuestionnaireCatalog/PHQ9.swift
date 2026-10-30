@@ -21,6 +21,8 @@ extension Questionnaire {
         metadata: .init(
             id: "phq9",
             url: URL(string: "https://grovealliance.org/fhir/Questionnaire/phq9"),
+            version: "1.0.0",
+            language: "en",
             title: "Patient Health Questionnaire-9",
             explainer: ""
         ),

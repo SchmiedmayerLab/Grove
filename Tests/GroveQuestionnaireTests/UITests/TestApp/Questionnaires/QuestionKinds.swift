@@ -103,6 +103,7 @@ enum QuestionKinds {
     static let questionnaire = Questionnaire(
         url: URL(string: "https://grovealliance.org/samples/QuestionKinds")!,
         version: "1.0.0",
+        language: "en-US",
         title: "Question Kinds",
         explainer: "A page each of text and choice, dates, and numbers."
     ) {

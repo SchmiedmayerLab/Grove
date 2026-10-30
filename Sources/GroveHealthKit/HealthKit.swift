@@ -493,7 +493,10 @@ extension HealthKit {
         SampleTypeScopedLocalStorage(
             localStorage: localStorage,
             storageKeyPrefix: "HealthKit.queryAnchors",
-            storageSetting: .unencrypted(excludeFromBackup: false)
+            // The FHIR publication outboxes and their device-bound identity material are not
+            // restored to another device. Restoring only this cursor would permanently skip the
+            // corresponding samples, so anchors are device-local as well.
+            storageSetting: .unencrypted(excludeFromBackup: true)
         )
     }
     
@@ -513,11 +516,9 @@ extension HealthKit {
     ///
     /// - Note: Calling this function will stop currently-active sample collection for the specified `sampleType`.
     @MainActor
-    public func resetSampleCollection<Sample>(for sampleType: SampleType<Sample>) async {
-        defer {
-            queryAnchors[sampleType] = nil
-            sampleCollectionStartDates[sampleType] = nil
-        }
+    /// - Important: The collector remains stopped if durable reset fails. The error must be handled
+    ///   before treating subsequent registration as a replay from an empty cursor.
+    public func resetSampleCollection<Sample>(for sampleType: SampleType<Sample>) async throws {
         // we need to also stop the sample collector (and in fact we need to do so before resetting the query anchor and the start date),
         // since otherwise (were we to just reset the anchor and start date), the collection would continue to run and the next
         // query update would end up restoring the just-reset anchor.
@@ -529,8 +530,10 @@ extension HealthKit {
             }
             await collector.stopDataCollection()
             registeredDataCollectors.remove(at: idx)
-            return
+            break
         }
+        try queryAnchors.store(nil, for: sampleType)
+        try sampleCollectionStartDates.store(nil, for: sampleType)
     }
     
     /// Adds a new ``CollectSamples`` definition to the module.

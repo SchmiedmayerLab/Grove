@@ -7,12 +7,13 @@
 //
 
 public import Foundation
+public import GroveFHIRContract
 public import GroveQuestionnaire
 public import ModelsR4
 
 
 /// An error occurring while exporting a natively declared questionnaire to FHIR.
-public struct FHIRExportError: LocalizedError {
+public struct ExportError: LocalizedError {
     public let errorDescription: String?
 
     init(_ message: String) {
@@ -72,10 +73,11 @@ extension GroveQuestionnaire.Questionnaire {
     /// questionnaire converts cleanly and carries no administration warnings.
     public static func authoringDiagnostics(
         for questionnaire: ModelsR4.Questionnaire,
-        using options: FHIRConversionOptions = .init()
+        clock: QuestionnaireClock,
+        using options: ConversionOptions = .init()
     ) -> [String] {
         do {
-            let converted = try GroveQuestionnaire.Questionnaire(questionnaire, using: options)
+            let converted = try GroveQuestionnaire.Questionnaire(questionnaire, clock: clock, using: options)
             return converted.metadata.administrationWarnings
         } catch {
             return [error.localizedDescription]
@@ -88,20 +90,55 @@ extension GroveQuestionnaire.Questionnaire {
 extension ModelsR4.Questionnaire {
     /// Exports a natively declared Grove questionnaire as a FHIR R4 `Questionnaire`.
     ///
+    /// The export is lossless for text: it writes the base `Questionnaire.Metadata.language`,
+    /// every base string, and one `translation` extension per language on each of them.
+    ///
     /// Together with `ModelsR4.QuestionnaireResponse.init(_:)` this closes the round
     /// trip: instruments authored with the Swift DSL serve FHIR-native consumers.
-    public init(_ questionnaire: GroveQuestionnaire.Questionnaire) throws {
+    public init(
+        _ questionnaire: GroveQuestionnaire.Questionnaire,
+        repositoryID: RepositoryID? = nil
+    ) throws {
+        guard let url = questionnaire.metadata.url else {
+            throw ContractError.missingQuestionnaireURL
+        }
+        guard ContractRules.isValidQuestionnaireURL(url.absoluteString) else {
+            throw ContractError.invalidQuestionnaireCanonical(url.absoluteString)
+        }
+        guard let version = questionnaire.metadata.version else {
+            throw ContractError.missingQuestionnaireVersion
+        }
+        guard ContractRules.isSemanticVersion(version) else {
+            throw ContractError.invalidQuestionnaireVersion(version)
+        }
+        guard !version.contains("|"), !version.contains("#") else {
+            throw ContractError.invalidQuestionnaireCanonical("\(url.absoluteString)|\(version)")
+        }
+        guard questionnaire.metadata.language != nil else {
+            throw ContractError.missingQuestionnaireLanguage
+        }
+        if let language = questionnaire.conflictingTranslationLanguage {
+            throw ContractError.conflictingTranslation(language)
+        }
+        try self.init(projecting: questionnaire)
+        self.id = repositoryID?.primitive
+        self.meta = Meta(profile: [Profile.groveQuestionnaire])
+    }
+
+    /// The questionnaire as its expressions read it, which needs no canonical: it is never exported, so it claims no
+    /// profile.
+    init(projecting questionnaire: GroveQuestionnaire.Questionnaire) throws {
         self.init(status: FHIRPrimitive(Self.publicationStatus(of: questionnaire.metadata.lifecycle)))
-        // Self-declare the profile so validators and profile-aware stores pick up
-        // the contract without out-of-band knowledge.
-        self.meta = Meta(profile: [
-            FHIRPrimitive(Canonical(
-            "https://grovealliance.org/fhir/core/StructureDefinition/grove-questionnaire"
-        ))
-        ])
+        // Grove questionnaires are administered to the app participant. Declaring Patient keeps
+        // every native export inside the Grove Questionnaire profile and lets pair validation reject
+        // a response whose subject targets a different resource type.
+        self.subjectType = [FHIRPrimitive(ResourceType.patient)]
         applyMetadata(questionnaire.metadata)
         let items = try Self.items(of: questionnaire)
-        self.item = items.isEmpty ? nil : items
+        guard !items.isEmpty else {
+            throw ContractError.emptyQuestionnaire
+        }
+        self.item = items
     }
 
     private static func publicationStatus(
@@ -134,12 +171,14 @@ extension ModelsR4.Questionnaire {
                 linkId: groupId.asFHIRStringPrimitive(),
                 type: FHIRPrimitive(QuestionnaireItemType.group)
             )
-            if !section.title.isEmpty {
+            if !section.title.base.isEmpty {
                 group.text = section.title.asFHIRStringPrimitive()
             }
-            if let shortTitle = section.shortTitle {
-                group.extension = [.shortText(shortTitle)]
+            if !section.codes.isEmpty {
+                group.code = section.codes.map(\.fhirCoding)
             }
+            let extensions = (section.shortTitle.map { [.shortText($0)] } ?? []) + (section.observationExtraction?.fhirExtensions ?? [])
+            group.extension = extensions.isEmpty ? nil : extensions
             group.item = sectionItems
             items.append(group)
         }
@@ -147,7 +186,16 @@ extension ModelsR4.Questionnaire {
     }
 
     private mutating func applyMetadata(_ metadata: GroveQuestionnaire.Questionnaire.Metadata) {
-        var resourceExtensions = metadata.variables.map { variable in
+        var resourceExtensions = [
+            Extension(
+                url: Canonicals.versionAlgorithm,
+                value: .coding(Coding(
+                    code: "semver".asFHIRStringPrimitive(),
+                    system: Canonicals.versionAlgorithmCodeSystem
+                ))
+            )
+        ]
+        resourceExtensions.append(contentsOf: metadata.variables.map { variable in
             Extension(
                 url: "http://hl7.org/fhir/StructureDefinition/variable",
                 value: .expression(Expression(
@@ -156,23 +204,25 @@ extension ModelsR4.Questionnaire {
                     name: variable.name.asFHIRStringPrimitive()
                 ))
             )
-        }
+        })
         if metadata.entryMode != .random {
             resourceExtensions.append(Extension(
                 url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-entryMode",
                 value: .code(FHIRPrimitive(ModelsR4.FHIRString(metadata.entryMode.rawValue)))
             ))
         }
-        self.extension = resourceExtensions.isEmpty ? nil : resourceExtensions
+        self.extension = resourceExtensions
         if let url = metadata.url {
             self.url = url.asFHIRURIPrimitive()
         }
-        self.id = metadata.url == nil ? metadata.id.asFHIRStringPrimitive() : nil
         self.version = metadata.version?.asFHIRStringPrimitive()
-        self.title = metadata.title.isEmpty ? nil : metadata.title.asFHIRStringPrimitive()
-        self.name = metadata.title.isEmpty ? nil : metadata.title
+        self.language = metadata.language.map { FHIRPrimitive(ModelsR4.FHIRString($0)) }
+        self.title = metadata.title.base.isEmpty ? nil : metadata.title.asFHIRStringPrimitive()
+        self.name = metadata.title.base.isEmpty ? nil : metadata.title.base
             .components(separatedBy: .alphanumerics.inverted).joined().asFHIRStringPrimitive()
-        self.description_fhir = metadata.explainer.isEmpty ? nil : metadata.explainer.asFHIRStringPrimitive()
+        self.description_fhir = metadata.explainer.base.isEmpty ? nil : metadata.explainer.asFHIRStringPrimitive()
+        self.purpose = metadata.purpose?.asFHIRStringPrimitive()
+        self.useContext = metadata.useContexts.isEmpty ? nil : metadata.useContexts.map(\.fhirUsageContext)
         self.publisher = metadata.publisher?.asFHIRStringPrimitive()
         self.copyright = metadata.copyright?.asFHIRStringPrimitive()
     }
@@ -181,7 +231,7 @@ extension ModelsR4.Questionnaire {
 
 extension ModelsR4.Extension {
     /// The abbreviated title constrained displays fall back to (SDC `shortText`).
-    static func shortText(_ shortTitle: String) -> Extension {
+    static func shortText(_ shortTitle: GroveQuestionnaire.Questionnaire.LocalizedText) -> Extension {
         Extension(
             url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-shortText",
             value: .string(shortTitle.asFHIRStringPrimitive())
