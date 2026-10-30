@@ -80,7 +80,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
         do {
             if deliverySetting.continueInBackground {
                 // set up a background query
-                let queryInvalidator = try await healthStore.startBackgroundDelivery(for: [sampleType.hkSampleType]) { [weak self] result in
+                let queryInvalidator = try await healthStore.startBackgroundDelivery(for: sampleType.hkSampleType) { [weak self] result in
                     guard let self, self.isActive else {
                         // if the sample collector has been turned off, we don't want to process these.
                         return
@@ -135,7 +135,11 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             task.cancel()
         case .backgroundDelivery(let invalidator):
             invalidator.invalidate()
-            healthStore.disableBackgroundDelivery(for: [sampleType.hkSampleType])
+            do {
+                try await healthStore.disableBackgroundDelivery(for: sampleType.hkSampleType)
+            } catch {
+                healthKit.logger.error("Failed to stop data collection for sample collector for \(self.sampleType.id): \(error)")
+            }
         }
     }
 
