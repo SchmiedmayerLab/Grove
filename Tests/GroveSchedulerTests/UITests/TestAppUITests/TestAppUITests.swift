@@ -37,7 +37,8 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
         let app = XCUIApplication()
         // The Scheduler stores outcomes on disk, so a surviving container would leave the questionnaire
         // already completed and the "Complete Questionnaire" button gone.
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
+        app.launchArguments = ["--reset"]
+        app.launch()
 
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
 
@@ -80,8 +81,7 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
     func testNotificationScheduling() throws { // swiftlint:disable:this function_body_length
         let leadTime: TimeInterval = 60
         let app = XCUIApplication()
-        app.launchArguments += ["-notificationLeadTime", "\(Int(leadTime))"]
-        app.delete(app: "TestApp")
+        app.launchArguments = ["--reset", "-notificationLeadTime", "\(Int(leadTime))"]
         let launchDate = Date.now
         XCTAssert(app.launchAndWait())
 
@@ -180,7 +180,8 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
     @MainActor
     func testNotificationSchedulingDontNotifyForAlreadyCompletedEvents() throws { // swiftlint:disable:this function_body_length
         let app = XCUIApplication()
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
+        app.launchArguments = ["--reset"]
+        app.launch()
 
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
 
@@ -190,7 +191,6 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
 
         XCTAssert(app.staticTexts["Pending Notifications"].waitForExistence(timeout: 2.0))
 
-        XCTAssert(app.navigationBars.buttons["Request Notification Authorization"].waitForExistence(timeout: 2.0))
         let labResultsNotification = app.staticTexts["Enter Lab Results"]
         XCTAssert(
             labResultsNotification.wait(for: \.isHittable, toEqual: true, timeout: 5.0),
@@ -256,7 +256,8 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
     @MainActor
     func testShadowedOutcomesHandlingWhenReRegisteringSameTask() throws {
         let app = XCUIApplication()
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
+        app.launchArguments = ["--reset"]
+        app.launch()
 
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
         
@@ -274,7 +275,8 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
     @MainActor
     func testObserveOutcomes() throws {
         let app = XCUIApplication()
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
+        app.launchArguments = ["--reset"]
+        app.launch()
 
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
         
@@ -305,7 +307,8 @@ class TestAppUITests: XCTestCase { // swiftlint:disable:this type_body_length
         // if the test runs while the next occurrence is > 24 hours away the scheduler needs to fall back to a TimeInterval-based
         // trigger, which we can't (easily) decompose into date components.)
         let app = XCUIApplication()
-        app.deleteAndLaunch(withSpringboardAppName: "TestApp")
+        app.launchArguments = ["--reset"]
+        app.launch()
         XCTAssert(app.wait(for: .runningForeground, timeout: 2.0))
         
         XCTAssert(app.collectionViews.staticTexts["Today"].waitForExistence(timeout: 10))

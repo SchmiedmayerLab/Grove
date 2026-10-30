@@ -7,7 +7,7 @@
 //
 
 #if canImport(Darwin)
-public import GroveFoundation
+@_exported public import GroveFoundation
 
 
 /// Add additional properties to an `Outcome` or `Task`.
