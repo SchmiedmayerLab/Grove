@@ -62,6 +62,10 @@ struct SampleCountRawElement<Sample: SensorKitSampleProtocol> {
 ///
 /// Each batch will be fetched from SensorKit on demand, i.e. when the iterator's `next(isolation:)` function is called.
 ///
+/// Ambiguous device partitions are logged and skipped. After all unambiguous devices have been
+/// processed, iteration throws ``SensorKit/AnchoredFetchError/ambiguousDevicePartition(productType:)``.
+/// Consumers that stop iteration early will not receive that terminal error.
+///
 /// - Important: Due to the lazy nature of this type, and the fact that it uses a query anchor internally to keep track of already-fetched time ranges, the sequence should only be iterated once.
 @available(iOS 18, *)
 public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
@@ -72,6 +76,7 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     private let queryAnchorProvider: (SensorKit.QueryAnchorKey) -> ManagedQueryAnchor
     private let batchSize: BatchSize
     private let devices: [SRDevice]
+    private let partitionFailure: SensorKit.AnchoredFetchError?
     
     public init(
         sensor: some AnySensor<Sample>,
@@ -81,13 +86,23 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
         self.sensor = Sensor(sensor)
         self.queryAnchorProvider = queryAnchorProvider
         self.batchSize = batchSize ?? sensor.suggestedBatchSize
-        let devices = try await sensor.fetchDevices()
-        try SensorKit.validateUniqueDevicePartitions(devices.map(\.productType))
-        self.devices = devices
+        let partitions = DevicePartitionPlan(try await sensor.fetchDevices(), productType: \.productType)
+        self.devices = partitions.unambiguousDevices
+        self.partitionFailure = partitions.ambiguousProductTypes.first.map {
+            .ambiguousDevicePartition(productType: $0)
+        }
+        let logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "AnchoredFetcher")
+        for productType in partitions.ambiguousProductTypes {
+            logger.error("Skipping ambiguous device partition '\(productType, privacy: .public)' for sensor '\(sensor.id, privacy: .public)'")
+        }
     }
-    
-    @_AsyncIteratorBuilder<Element, Failure>
+
     public consuming func makeAsyncIterator() -> some AsyncIteratorProtocol<Element, Failure> {
+        DevicePartitionIterator(base: makeDeviceIterator(), failure: partitionFailure)
+    }
+
+    @_AsyncIteratorBuilder<Element, Failure>
+    private func makeDeviceIterator() -> some AsyncIteratorProtocol<Element, Failure> {
         if sensor.id == Sensor.ecg.id {
             // we need to fetch all ECGs at once, since each recording will consist of a series of
             // separate `SRElectrocardiogramSample` objects, and we can't risk accidentally
@@ -130,18 +145,11 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
-    /// Fail-closed acquisition errors raised before any query cursor is read or advanced.
+    /// Fail-closed acquisition errors. Ambiguous partitions never have their cursors read or advanced.
     public enum AnchoredFetchError: Error, Equatable, Sendable {
         /// SensorKit exposed multiple physical devices under the same only-available stable partition.
         /// Querying them would share a cursor and could silently skip or conflate records.
         case ambiguousDevicePartition(productType: String)
-    }
-
-    static func validateUniqueDevicePartitions(_ productTypes: [String]) throws {
-        var seen: Set<String> = []
-        for productType in productTypes where !seen.insert(productType).inserted {
-            throw AnchoredFetchError.ambiguousDevicePartition(productType: productType)
-        }
     }
 }
 

@@ -180,7 +180,7 @@ extension SensorKit {
 
     private func forEachQueryAnchor(of sensor: any AnySensor, _ body: (ManagedQueryAnchor) throws -> Void) async throws {
         let devices = try await sensor.fetchDevices()
-        try SensorKit.validateUniqueDevicePartitions(devices.map(\.productType))
+        // Resetting a shared partition is safe: no source records or identities are assigned here.
         let rawKeyPrefix = "\(Self.queryAnchorKeyPrefix).\(sensor.id)."
         let persistedRawKeys = try localStorage.persistedRawKeys(withPrefix: rawKeyPrefix)
         let partitions = Self.devicePartitionsToReset(

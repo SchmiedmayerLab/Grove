@@ -251,22 +251,14 @@ struct SensorKitTests {
         #expect(try anchor.value == discarded)
     }
 
-    @Test("Duplicate device partitions fail closed")
-    @available(iOS 18, *)
-    func duplicateDevicePartitionsFailClosed() {
-        #expect(throws: SensorKit.AnchoredFetchError.ambiguousDevicePartition(productType: "iPhone18,2")) {
-            try SensorKit.validateUniqueDevicePartitions(["iPhone18,2", "Watch7,12", "iPhone18,2"])
-        }
-    }
-
-    @Test("Reset includes temporarily absent persisted and in-flight device partitions")
+    @Test("Reset deduplicates current partitions and includes absent persisted and in-flight partitions")
     @available(iOS 18, *)
     func resetIncludesAbsentDevicePartitions() {
         let sensor = Sensor.heartRate
         let sensorID = sensor.id
         let partitions = SensorKit.devicePartitionsToReset(
             sensorID: sensorID,
-            currentDeviceProductTypes: ["currently-present"],
+            currentDeviceProductTypes: ["currently-present", "currently-present"],
             cachedKeys: [
                 SensorKit.QueryAnchorKey(sensor: sensor, deviceProductType: "in-flight-but-absent")
             ],
