@@ -134,7 +134,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             }
             do {
                 // The observer completion is invoked by the wrapper only after this handler returns.
-                // Perform one anchored fetch, durable consumer handoff, and anchor CAS while
+                // Drain bounded pages, each with a durable consumer handoff and anchor CAS, while
                 // HealthKit grants background execution; scheduling a later task can suspend first.
                 try await anchoredSingleObjectQuery()
             } catch is CancellationError {
@@ -219,17 +219,40 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             throw CancellationError()
         }
 
-        let persistedAnchor = try healthKit.queryAnchors.load(for: sampleType)
-        var anchor = persistedAnchor ?? QueryAnchor()
         nonisolated(unsafe) let predicate = self.predicate
-        let queriedAt = Date.now
-        let (added, deleted) = try await healthKit.query(
-            sampleType,
-            timeRange: timeRange,
-            anchor: &anchor,
-            predicate: predicate
-        )
-        try await commit(added: added, deleted: deleted, from: persistedAnchor, to: anchor.hkAnchor, queriedAt: queriedAt)
+        var expected = try healthKit.queryAnchors.load(for: sampleType)
+        while true {
+            try Task.checkCancellation()
+            guard isActive else {
+                throw CancellationError()
+            }
+            let queriedAt = Date.now
+            var anchor = expected ?? QueryAnchor()
+            let (added, deleted) = try await healthKit.query(
+                sampleType,
+                timeRange: timeRange,
+                anchor: &anchor,
+                limit: 10_000,
+                predicate: predicate
+            )
+            try Task.checkCancellation()
+            guard isActive else {
+                throw CancellationError()
+            }
+            let isCaughtUp = added.isEmpty && deleted.isEmpty
+            // A limited result can stop before deletions that predate this query. Only an empty
+            // page proves the anchor has caught up enough to advance the deletion-time bound.
+            expected = try await commit(
+                added: added,
+                deleted: deleted,
+                from: expected,
+                to: anchor.hkAnchor,
+                queriedAt: isCaughtUp ? queriedAt : expected?.queriedAt
+            )
+            if isCaughtUp {
+                return
+            }
+        }
     }
 
     
@@ -240,10 +263,15 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
             while !Task.isCancelled {
                 let persistedAnchor: QueryAnchor?
                 do {
+                    // A restored start date can precede the first device-local anchor by years.
+                    // Persist bounded catch-up pages before starting the live subscription.
+                    try await anchoredSingleObjectQuery()
                     persistedAnchor = try healthKit.queryAnchors.load(for: sampleType)
+                } catch is CancellationError {
+                    return
                 } catch {
                     healthKit.logger.error(
-                        "HealthKit query-anchor load failed; error type: \(String(reflecting: type(of: error)), privacy: .public)"
+                        "HealthKit backlog catch-up failed; error type: \(String(reflecting: type(of: error)), privacy: .public)"
                     )
                     try? await Task.sleep(for: retryDelay)
                     retryDelay = min(retryDelay * 2, .seconds(60))
@@ -297,7 +325,8 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
     
     /// Hands one anchored delta to the standard, then advances the anchor from `expected` to `reached`.
     ///
-    /// The delta's deletions happened after `expected` was queried; `queriedAt` bounds the next delta's.
+    /// The delta's deletions happened after `expected` was queried. Partial catch-up pages retain
+    /// that lower bound; only a caught-up query can establish a newer `queriedAt`.
     @MainActor
     @discardableResult
     func commit(
@@ -305,7 +334,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
         deleted: some Collection<HKDeletedObject> & Sendable,
         from expected: QueryAnchor?,
         to reached: HKQueryAnchor?,
-        queriedAt: Date
+        queriedAt: Date?
     ) async throws -> QueryAnchor {
         var commitActions: [HealthKitAnchorCommitAction] = []
         if !added.isEmpty {

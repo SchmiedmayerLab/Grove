@@ -94,24 +94,34 @@ extension GroveHealthKitTests {
         try healthKit.queryAnchors.store(nil, for: .heartRate)
         defer { try? healthKit.queryAnchors.store(nil, for: .heartRate) }
 
-        // Single-object queries start from the persisted anchor.
+        // Partial catch-up pages retain an unknown lower bound until an empty page catches up.
+        var partial: QueryAnchor?
+        for value in 1...2 {
+            partial = try await collector.commit(
+                added: added, deleted: deleted, from: partial, to: HKQueryAnchor(fromValue: value), queriedAt: nil
+            )
+            #expect(try healthKit.queryAnchors.load(for: .heartRate) == partial)
+            #expect(partial?.queriedAt == nil)
+        }
         let firstQuery = Date.now
-        try await collector.commit(added: added, deleted: deleted, from: nil, to: HKQueryAnchor(fromValue: 1), queriedAt: firstQuery)
+        try await collector.commit(added: added, deleted: [], from: partial, to: HKQueryAnchor(fromValue: 3), queriedAt: firstQuery)
         let persisted = try healthKit.queryAnchors.load(for: .heartRate)
         #expect(persisted?.queriedAt == firstQuery)
+        // A later partial page preserves the known bound as well.
         try await collector.commit(
             added: added,
             deleted: deleted,
             from: persisted,
-            to: HKQueryAnchor(fromValue: 2),
-            queriedAt: firstQuery.addingTimeInterval(60)
+            to: HKQueryAnchor(fromValue: 4),
+            queriedAt: firstQuery
         )
+        #expect(try healthKit.queryAnchors.load(for: .heartRate)?.queriedAt == firstQuery)
 
         // A reset clears the bound; each continuous update then starts from the one before it.
         try healthKit.queryAnchors.store(nil, for: .heartRate)
         let streamStart = Date.now
         var expected: QueryAnchor?
-        for value in 3...5 {
+        for value in 5...7 {
             expected = try await collector.commit(
                 added: added,
                 deleted: deleted,
@@ -121,7 +131,7 @@ extension GroveHealthKitTests {
             )
         }
         #expect(try healthKit.queryAnchors.load(for: .heartRate) == expected)
-        #expect(await standard.bounds == [nil, firstQuery, nil, streamStart, streamStart])
+        #expect(await standard.bounds == [nil, nil, firstQuery, nil, streamStart, streamStart])
 
         await #expect(throws: (any Error).self) {
             try await collector.commit(added: added, deleted: deleted, from: persisted, to: nil, queriedAt: .now)
