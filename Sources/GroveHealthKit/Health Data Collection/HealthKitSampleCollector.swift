@@ -232,7 +232,7 @@ final class HealthKitSampleCollector<Sample: _HKSampleWithSampleType>: HealthDat
                 sampleType,
                 timeRange: timeRange,
                 anchor: &anchor,
-                limit: 500,
+                limit: 10_000,
                 predicate: predicate
             )
             try Task.checkCancellation()
