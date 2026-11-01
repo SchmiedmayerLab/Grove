@@ -153,7 +153,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.1.3"),
     .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
     // 1.7.0 references swift_initBorrow, absent before iOS 27.
-    .package(url: "https://github.com/apple/swift-collections.git", "1.1.4"..<"1.7.0"),
+    .package(url: "https://github.com/apple/swift-collections.git", "1.1.4"..<"2.0.0"),
     // CryptoKit's HMAC API for the Linux legs; Apple platforms keep CryptoKit itself.
     .package(url: "https://github.com/apple/swift-crypto.git", "4.0.0"..<"6.0.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.6.2"),
