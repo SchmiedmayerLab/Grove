@@ -313,18 +313,24 @@ struct QuestionnaireObservationExtractor {
             return quantity
         }
         let answeredCode = quantity.code?.value?.string ?? ""
-        guard answeredCode == declared.code,
-              quantity.system?.value?.url.absoluteString == declared.system else {
-            throw ObservationExtractionError.unitMismatch(
-                linkID: linkID,
-                expected: declared.code,
-                answered: answeredCode
-            )
+        let answeredSystem = quantity.system?.value?.url.absoluteString
+        if answeredCode == declared.code, answeredSystem == declared.system {
+            // An answer may spell the display as the UCUM code; the catalog owns the emitted display.
+            var normalized = quantity
+            normalized.unit = declared.unit.asFHIRStringPrimitive()
+            return normalized
         }
-        // An answer may spell the display as the UCUM code; the catalog owns the emitted display.
-        var normalized = quantity
-        normalized.unit = declared.unit.asFHIRStringPrimitive()
-        return normalized
+        // An answer in another unit the measurement declares for questionnaires is recorded in the measurement's unit;
+        // the response keeps the answer as given.
+        guard let conversion = declared.questionnaireUnitConversions.first(where: {
+            $0.code == answeredCode && $0.system == answeredSystem
+        }) else {
+            throw ObservationExtractionError.unitMismatch(linkID: linkID, expected: declared.code, answered: answeredCode)
+        }
+        guard let converted = conversion.converting(quantity, into: declared) else {
+            throw ObservationExtractionError.answerMissing(linkID: linkID)
+        }
+        return converted
     }
 
     /// The answer as a quantity in the declared unit, or nil when the answer is not numeric.
@@ -386,5 +392,21 @@ struct QuestionnaireObservationExtractor {
             return nil
         }
         return items.first { $0.linkId.value?.string == linkID }
+    }
+}
+
+
+extension QuestionnaireUnitConversion {
+    /// `quantity`, stated in this unit, restated in the unit of `declared`; nil when it states no value.
+    fileprivate func converting(_ quantity: Quantity, into declared: QuantityContract) -> Quantity? {
+        guard let value = quantity.value?.value?.decimal else {
+            return nil
+        }
+        var converted = quantity
+        converted.value = FHIRPrimitive(FHIRDecimal(value * factor))
+        converted.code = declared.code.asFHIRStringPrimitive()
+        converted.system = FHIRPrimitive(FHIRURI(stringLiteral: declared.system))
+        converted.unit = declared.unit.asFHIRStringPrimitive()
+        return converted
     }
 }

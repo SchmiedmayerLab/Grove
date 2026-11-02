@@ -367,23 +367,48 @@ package struct QuantityValueDomain: Hashable, Sendable {
 }
 
 
+/// A unit other than its measurement's own in which a questionnaire may ask for the measurement.
+package struct QuestionnaireUnitConversion: Hashable, Sendable {
+    package let system: String
+    package let code: String
+    /// The number of the measurement's units in one of this unit.
+    package let factor: Decimal
+
+    package init(system: String, code: String, factor lexical: String) {
+        guard let factor = Decimal(
+            string: lexical,
+            locale: Locale(identifier: "en_US_POSIX")
+        ) else {
+            preconditionFailure("Generated questionnaire unit factor is not a decimal: \(lexical)")
+        }
+        self.system = system
+        self.code = code
+        self.factor = factor
+    }
+}
+
+
 /// One quantity or component constraint from the generated measurement catalog.
 package struct QuantityContract: Hashable, Sendable {
     package let system: String
     package let code: String
     package let unit: String
     package let valueDomain: QuantityValueDomain?
+    /// The other units a questionnaire may ask in; extraction converts an answer in one of them into ``code``.
+    package let questionnaireUnitConversions: [QuestionnaireUnitConversion]
 
     package init(
         system: String,
         code: String,
         unit: String,
-        valueDomain: QuantityValueDomain? = nil
+        valueDomain: QuantityValueDomain? = nil,
+        questionnaireUnitConversions: [QuestionnaireUnitConversion] = []
     ) {
         self.system = system
         self.code = code
         self.unit = unit
         self.valueDomain = valueDomain
+        self.questionnaireUnitConversions = questionnaireUnitConversions
     }
 }
 
@@ -523,7 +548,7 @@ package enum MeasurementCatalog {
         profile: Profile.groveMobileBloodGlucoseUnspecifiedSpecimen,
         code: CodingContract(system: "http://loinc.org", code: "2339-0", display: "Glucose [Mass/volume] in Blood"),
         requiredCodings: [],
-        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "mg/dL", unit: "mg/dL", valueDomain: nil),
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "mg/dL", unit: "mg/dL", valueDomain: nil, questionnaireUnitConversions: [QuestionnaireUnitConversion(system: "http://unitsofmeasure.org", code: "mmol/L", factor: "18.0156")]),
         components: [],
         resultCodeSystem: nil,
         allowedValues: [],
@@ -6722,7 +6747,7 @@ package enum ProfileClaims {
         "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-active-energy": FixedMeasurementQuantityClaim(measurementID: "active-energy", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal", valueDomain: nil)),
         "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-basal-body-temperature": FixedMeasurementQuantityClaim(measurementID: "basal-body-temperature", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel", valueDomain: nil)),
         "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-basal-energy": FixedMeasurementQuantityClaim(measurementID: "basal-energy", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kcal", unit: "kcal", valueDomain: nil)),
-        "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-blood-glucose-unspecified-specimen": FixedMeasurementQuantityClaim(measurementID: "blood-glucose-unspecified-specimen", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "mg/dL", unit: "mg/dL", valueDomain: nil)),
+        "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-blood-glucose-unspecified-specimen": FixedMeasurementQuantityClaim(measurementID: "blood-glucose-unspecified-specimen", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "mg/dL", unit: "mg/dL", valueDomain: nil, questionnaireUnitConversions: [QuestionnaireUnitConversion(system: "http://unitsofmeasure.org", code: "mmol/L", factor: "18.0156")])),
         "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-fat-percentage": FixedMeasurementQuantityClaim(measurementID: "body-fat-percentage", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "%", unit: "%", valueDomain: QuantityValueDomain(minimum: QuantityBoundary(value: "0", inclusive: true), maximum: QuantityBoundary(value: "100", inclusive: true), integerOnly: false))),
         "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-height": FixedMeasurementQuantityClaim(measurementID: "body-height", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "cm", unit: "cm", valueDomain: nil)),
         "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-body-temperature": FixedMeasurementQuantityClaim(measurementID: "body-temperature", quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "Cel", unit: "Cel", valueDomain: nil)),
