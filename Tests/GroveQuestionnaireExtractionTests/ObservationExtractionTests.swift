@@ -720,6 +720,35 @@ struct ObservationExtractionTests {
         }
     }
 
+    @Test("An answer in a unit the measurement declares for questionnaires is recorded in the measurement's unit")
+    func declaredQuestionnaireUnitConverts() throws {
+        let contract = MeasurementCatalog.bloodGlucoseUnspecifiedSpecimen
+        let (questionnaire, response) = try Self.syntheticPair(
+            code: (system: contract.code.system, value: contract.code.code),
+            marking: Extension(
+                url: FHIRPrimitive(FHIRURI(stringLiteral: ExtractionCanonical.observationExtract)),
+                value: .boolean(FHIRPrimitive(FHIRBool(true)))
+            ),
+            answer: .quantity(Quantity(
+                code: "mmol/L".asFHIRStringPrimitive(),
+                system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org")),
+                unit: "mmol/L".asFHIRStringPrimitive(),
+                value: FHIRPrimitive(FHIRDecimal(Decimal(string: "5.5", locale: Locale(identifier: "en_US_POSIX")) ?? 0))
+            ))
+        )
+        let extracted = try QuestionnaireObservationExtractor(questionnaire: questionnaire, response: response).extract()
+        let measurement = try #require(extracted.first { $0.contract.id == contract.id })
+        guard case .quantity(let quantity) = measurement.value else {
+            Issue.record("glucose answer did not extract as a quantity")
+            return
+        }
+        // 5.5 mmol/L of glucose is 5.5 × 18.0156 = 99.0858 mg/dL.
+        #expect(quantity.value?.value?.decimal == Decimal(string: "99.0858", locale: Locale(identifier: "en_US_POSIX")))
+        #expect(quantity.code?.value?.string == "mg/dL")
+        #expect(quantity.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
+        #expect(quantity.unit?.value?.string == "mg/dL")
+    }
+
     @Test("An answer in the wrong unit does not project")
     func wrongUnitRefuses() throws {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)

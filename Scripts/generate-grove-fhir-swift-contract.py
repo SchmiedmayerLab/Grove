@@ -352,12 +352,28 @@ def quantity_contract_expression(quantity: dict) -> str:
             f"maximum: {rendered_maximum}, "
             f"integerOnly: {str(domain['integerOnly']).lower()})"
         )
+    conversions = quantity.get("questionnaireUnitConversions") or []
+    rendered_conversions = ""
+    if conversions:
+        if any(not isinstance(conversion.get(key), str) for conversion in conversions for key in ("system", "code")):
+            raise ValueError(f"a questionnaire unit conversion must state its system and code: {conversions!r}")
+        if any(isinstance(conversion.get("factor"), bool) or not isinstance(conversion.get("factor"), (int, float))
+               for conversion in conversions):
+            raise ValueError(f"a questionnaire unit conversion must state a numeric factor: {conversions!r}")
+        rendered_conversions = ", questionnaireUnitConversions: [" + ", ".join(
+            "QuestionnaireUnitConversion("
+            f"system: {swift_string(conversion['system'])}, "
+            f"code: {swift_string(conversion['code'])}, "
+            f"factor: {swift_string(json.dumps(conversion['factor'], allow_nan=False))})"
+            for conversion in conversions
+        ) + "]"
     return (
         "QuantityContract("
         f"system: {swift_string(quantity['system'])}, "
         f"code: {swift_string(quantity['code'])}, "
         f"unit: {swift_string(quantity['unit'])}, "
-        f"valueDomain: {rendered_domain})"
+        f"valueDomain: {rendered_domain}"
+        f"{rendered_conversions})"
     )
 
 
@@ -968,23 +984,48 @@ def generate(catalog_directory: Path) -> str:
         "}",
         "",
         "",
+        "/// A unit other than its measurement's own in which a questionnaire may ask for the measurement.",
+        "package struct QuestionnaireUnitConversion: Hashable, Sendable {",
+        "    package let system: String",
+        "    package let code: String",
+        "    /// The number of the measurement's units in one of this unit.",
+        "    package let factor: Decimal",
+        "",
+        "    package init(system: String, code: String, factor lexical: String) {",
+        "        guard let factor = Decimal(",
+        "            string: lexical,",
+        "            locale: Locale(identifier: \"en_US_POSIX\")",
+        "        ) else {",
+        "            preconditionFailure(\"Generated questionnaire unit factor is not a decimal: \\(lexical)\")",
+        "        }",
+        "        self.system = system",
+        "        self.code = code",
+        "        self.factor = factor",
+        "    }",
+        "}",
+        "",
+        "",
         "/// One quantity or component constraint from the generated measurement catalog.",
         "package struct QuantityContract: Hashable, Sendable {",
         "    package let system: String",
         "    package let code: String",
         "    package let unit: String",
         "    package let valueDomain: QuantityValueDomain?",
+        "    /// The other units a questionnaire may ask in; extraction converts an answer in one of them into ``code``.",
+        "    package let questionnaireUnitConversions: [QuestionnaireUnitConversion]",
         "",
         "    package init(",
         "        system: String,",
         "        code: String,",
         "        unit: String,",
-        "        valueDomain: QuantityValueDomain? = nil",
+        "        valueDomain: QuantityValueDomain? = nil,",
+        "        questionnaireUnitConversions: [QuestionnaireUnitConversion] = []",
         "    ) {",
         "        self.system = system",
         "        self.code = code",
         "        self.unit = unit",
         "        self.valueDomain = valueDomain",
+        "        self.questionnaireUnitConversions = questionnaireUnitConversions",
         "    }",
         "}",
         "",
