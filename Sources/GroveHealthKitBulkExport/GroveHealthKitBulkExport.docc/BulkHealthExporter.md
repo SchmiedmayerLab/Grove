@@ -41,31 +41,47 @@ See Pausing and Recovery below for checkpoint failures and restoration behavior.
 ### Example 1: Bulk-Upload of Historical Health Data to Firebase
 
 This example implements a custom ``BatchProcessor``, which uploads the exported HealthKit samples received from the ``BulkHealthExporter`` into Firebase.
-Both examples convert through one `HealthKitFHIRExporter`, built as [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md) describes; it mints every event through its producer's ledger.
-The processor's `Output` is the `ExchangeProducer.Receipt` the export returns: ``BatchProcessor/didPersist(_:)`` releases it once the session has durably recorded the batch, so a batch processed again after a crash reproduces the same events, byte for byte.
-Each graph is stored as its validated `json` bytes, under its event identifier; the HealthKit UUID never names a stored object.
+Both examples convert through one `HealthKitFHIRExporter`, built as [GroveHealthKitFHIR](../../GroveHealthKitFHIR/GroveHealthKitFHIR.docc/GroveHealthKitFHIR.md) describes.
+Each batch is stored as the Bundles an `ExchangeBundlePacker` splices together from its records' validated bytes, each Bundle under its first record's version; the HealthKit UUID never names a stored object.
+The processor keeps no retry state of its own: a record states the same source-record identity however often it is converted, so a batch processed again after a crash lets the receiver deduplicate.
 
 ```swift
 struct FirebaseUploader: BatchProcessor {
     let participantID: String
     let exporter: HealthKitFHIRExporter
 
-    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws -> ExchangeProducer.Receipt {
+    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws {
         let db = Firestore.firestore()
         let healthData = db.collection("participants").document(participantID).collection("healthData")
         let batch = db.batch()
-        let receipt = try exporter.export(samples.map { $0 as HKSample }) { export in
-            if let graph = export.graph {
-                batch.setData(["graph": graph.json], forDocument: healthData.document(graph.event.value))
+        for graph in try await packedBundles(of: samples.map { $0 as HKSample }, exporter: exporter) {
+            guard let version = try graph.records().first?.version else {
+                continue
             }
+            batch.setData(["graph": graph.json], forDocument: healthData.document(version.fullURL))
         }
         try await batch.commit()
-        return receipt
     }
+}
 
-    func didPersist(_ receipt: ExchangeProducer.Receipt) async {
-        receipt.release()
+/// The batch's records, as the Bundles an upload sends: a record that takes a Bundle past a cap starts the next one.
+func packedBundles(of samples: [HKSample], exporter: HealthKitFHIRExporter) async throws -> [ExchangeGraph] {
+    var bundles: [ExchangeGraph] = []
+    var packer = ExchangeBundlePacker(kind: .active)
+    try await exporter.export(samples) { export in
+        guard let record = export.record else {
+            return
+        }
+        if try packer.add(record) == .deferred {
+            bundles.append(try packer.bundle(packedAt: .now))
+            packer = ExchangeBundlePacker(kind: .active)
+            _ = try packer.add(record)
+        }
     }
+    if packer.recordCount > 0 {
+        bundles.append(try packer.bundle(packedAt: .now))
+    }
+    return bundles
 }
 ```
 
@@ -83,13 +99,13 @@ let session = try await bulkExporter.session(
     using: FirebaseUploader(participantID: participantID, exporter: exporter)
 )
 
-// start the session; `didPersist` releases each receipt, so the stream of receipts goes unread
+// start the session; the processor's output is `Void`, so its stream goes unread
 _ = try session.start()
 ```
 
 This Bulk Export Session will, in the background, go through all historical Health data for the Active Energy, Heart Rate, and Step Count quantity types, fetch the data from HealthKit, and pass it to the Batch Processor, which will then upload it to Firebase. Firebase is only the destination chosen by this example; `GroveHealthKitFHIR` neither depends on Firebase nor reads from it.
 
-In this example the `FirebaseUploader`'s outputs are receipts, so ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` returns an `AsyncStream` of them. The session hands each receipt to the processor's `didPersist` once it has recorded the batch, whether or not anyone reads the stream, so the example discards the stream.
+In this example the `FirebaseUploader` has no output, so the example discards the `AsyncStream` that ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` returns.
 
 
 
@@ -102,30 +118,16 @@ extension BulkExportSessionIdentifier {
 }
 
 struct FHIREncodedJSONExporter: BatchProcessor {
-    /// One batch's file of graphs, and the receipt to release once the session recorded the batch.
-    struct ExportedFile: Sendable {
-        let url: URL
-        let receipt: ExchangeProducer.Receipt
-    }
-
     let exporter: HealthKitFHIRExporter
 
-    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) throws -> ExportedFile {
-        var graphs: [Data] = []
-        let receipt = try exporter.export(samples.map { $0 as HKSample }) { export in
-            if let graph = export.graph {
-                graphs.append(graph.json)
-            }
-        }
-        // A JSON array of the validated graph bytes, spliced verbatim rather than re-encoded.
-        let file = Data("[".utf8) + graphs.joined(separator: Data(",".utf8)) + Data("]".utf8)
+    func process<Sample>(_ samples: consuming [Sample], of sampleType: SampleType<Sample>) async throws -> URL {
+        // `packedBundles` is the function of the example above.
+        let bundles = try await packedBundles(of: samples.map { $0 as HKSample }, exporter: exporter).map(\.json)
+        // A JSON array of the validated Bundle bytes, spliced verbatim rather than re-encoded.
+        let file = Data("[".utf8) + bundles.joined(separator: Data(",".utf8)) + Data("]".utf8)
         let url = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, conformingTo: .json)
         try file.write(to: url)
-        return ExportedFile(url: url, receipt: receipt)
-    }
-
-    func didPersist(_ output: ExportedFile) async {
-        output.receipt.release()
+        return url
     }
 }
 
@@ -142,13 +144,13 @@ let results = try session.start()
 
 // await the results
 Task {
-    for await file in results {
-        // process the JSON file at `file.url` in some way
+    for await url in results {
+        // process the JSON file at `url` in some way
     }
 }
 ```
 
-Since the `FHIREncodedJSONExporter` returns an `ExportedFile`, the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<ExportedFile>`, which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
+Since the `FHIREncodedJSONExporter` returns a `URL`, the ``BulkExportSession/start(retryFailedBatches:concurrencyLevel:)`` function's return type will be an `AsyncStream<URL>`, which gives us access to the individual batch processing results (in this case the urls of the exported JSON files).
 
 
 ### Pausing and Recovery
@@ -190,10 +192,10 @@ Outputs whose own checkpoint succeeded can still be delivered during that drain;
 Saved checkpoints restore completed batches and remaining work across launches, but do not contain processor outputs.
 If the app terminates before progress is saved, restoration may repeat those batches.
 If progress was saved before an output was yielded or consumed, restoration skips that completed batch and cannot replay the output.
-The checkpoint records processing progress; it is separate from generated files, stream consumption, and upload receipts.
+The checkpoint records processing progress; it is separate from generated files, stream consumption, and uploads.
 Keep durable export or upload work in the batch processor, and use `didPersist` only for optional cleanup of retry state.
 A processor that stores raw samples deduplicates them by participant ID and sample UUID.
-One that exports exchange graphs, as both examples do, needs no UUID: a batch processed again before its receipt is released reproduces the same events byte for byte, and a later export of the same sample states the same source-record identity, on which the receiver deduplicates.
+One that exports exchange records, as both examples do, needs no UUID: a batch exported again states the same source-record identities, on which the receiver deduplicates, and the same record versions when it repeats the export instant.
 
 A checkpoint failure takes precedence over a requested pause or batch failures; inspect `failedBatches` for any batch errors.
 Retry after a user action or storage availability change, rather than in a loop.

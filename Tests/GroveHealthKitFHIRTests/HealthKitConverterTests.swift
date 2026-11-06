@@ -278,6 +278,7 @@ struct HealthKitFHIRConverterTests {
             inputs
         )
         let expected = try inputs.base.identityScope.writerRecord(
+            subject: inputs.subject.identifier,
             writerApplication: BusinessIdentifier(system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem), value: "org.example.connected-scale"),
             writerRecordID: "scale-2026-08-19"
         )
@@ -484,7 +485,7 @@ struct HealthKitFHIRConverterTests {
 
     @Test
     func graphHasCompleteDeterministicEntryIdentitiesAndNoSyntheticResourceIDs() async throws {
-        let sample = quantitySample(
+        let measured = quantitySample(
             .heartRate,
             unit: .count().unitDivided(by: .minute()),
             value: 72,
@@ -499,6 +500,7 @@ struct HealthKitFHIRConverterTests {
                 udiDeviceIdentifier: "udi-device-id"
             )
         )
+        let sample = try StoredSampleFixtures.stored(measured, uuid: GoldenFixtures.uuid(0xE0), writer: GoldenFixtures.foreignWriter)
         var gatewayInputs = inputs
         gatewayInputs.options.role = .gateway
         let first = try await ExporterFixtures.export(sample, gatewayInputs)
@@ -516,12 +518,12 @@ struct HealthKitFHIRConverterTests {
         #expect(first.provenance.meta?.profile == [
             HealthKitContract.conversionProvenanceProfile
         ])
-        #expect(first.bundle.identifier == first.identifiers.event.fhirIdentifier)
+        #expect(first.bundle.identifier == nil)
         #expect(entries.compactMap(\.fullUrl) == second.bundle.entry?.compactMap(\.fullUrl))
         #expect(entries.count >= 5)
         #expect(entries.allSatisfy { entry in
             let identityExtensions = entry.extension?.filter {
-                $0.url == Canonicals.entryNodeKey
+                $0.url == Canonicals.entryKey
             }
             return entry.fullUrl?.value?.url.absoluteString.hasPrefix("urn:uuid:") == true
                 && identityExtensions?.count == 1
@@ -540,16 +542,15 @@ struct HealthKitFHIRConverterTests {
         #expect(sourceEntity.role == FHIRPrimitive(.source))
         #expect(sourceEntity.what.reference == nil)
         #expect(sourceEntity.what.identifier == first.sourceIdentifier)
-        let recordingIdentifiers = try #require(first.recordingDevice?.identifier).map(RoledIdentifier.init)
+        let recordingIdentifiers = try #require(first.recordingDevice?.identifier).compactMap { try? RoledIdentifier($0) }
         #expect(recordingIdentifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
-        #expect(first.recordingDevice?.udiCarrier == nil)
+        #expect(first.recordingDevice?.udiCarrier?.first?.deviceIdentifier == "udi-device-id")
     }
 
-    /// The exporter assigns no repository id but the transitional legacy `Bundle.id`, and a custom resolver names the
-    /// recording Device's unit while the UDI stays undisclosed.
+    /// The exporter assigns no repository id, and a custom token names the recording Device's unit.
     @Test
-    func repositoryIDsAndAuthorizedDeviceNamespaceAreOnlyAppliedExplicitly() async throws {
-        let sample = quantitySample(
+    func repositoryIDsAreNeverAssignedAndACustomTokenNamesTheUnit() async throws {
+        let measured = quantitySample(
             .bodyMass,
             unit: .gramUnit(with: .kilo),
             value: 68.4,
@@ -561,51 +562,23 @@ struct HealthKitFHIRConverterTests {
                 firmwareVersion: nil,
                 softwareVersion: "1.0",
                 localIdentifier: "scale-42",
-                udiDeviceIdentifier: "globally-identifying-udi"
+                udiDeviceIdentifier: "device-udi"
             )
         )
+        let sample = try StoredSampleFixtures.stored(measured, uuid: GoldenFixtures.uuid(0xE1), writer: GoldenFixtures.foreignWriter)
         var explicitInputs = inputs
-        explicitInputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: "test-recording-device"))
-        let unassigned = try await ExporterFixtures.export(sample, explicitInputs)
-        #expect(unassigned.bundle.id == nil)
-        explicitInputs.options.legacyBundleID = .healthKitUUID
+        explicitInputs.options.unitToken = .custom { _, _ in "test-recording-device" }
         let conversion = try await ExporterFixtures.export(sample, explicitInputs)
 
-        #expect(conversion.bundle.id?.value?.string == sample.uuid.uuidString)
+        #expect(conversion.bundle.id == nil)
         #expect(conversion.observation.id == nil)
         #expect(conversion.recordingDevice?.id == nil)
         #expect(conversion.converterApplication.id == nil)
         #expect(conversion.provenance.id == nil)
-        let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
+        let identifiers = try #require(conversion.recordingDevice?.identifier).compactMap { try? RoledIdentifier($0) }
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
         #expect(identifiers.allSatisfy { $0.value.hasPrefix("v0:test:1:") })
-        #expect(conversion.recordingDevice?.udiCarrier == nil)
-    }
-
-    @Test
-    func authorizedUDIDisclosureIsIndependentFromLocalIdentifierDisclosure() async throws {
-        let sample = quantitySample(
-            .bodyMass,
-            unit: .gramUnit(with: .kilo),
-            value: 68.4,
-            device: HKDevice(
-                name: "Scale",
-                manufacturer: "Example",
-                model: "S1",
-                hardwareVersion: nil,
-                firmwareVersion: nil,
-                softwareVersion: "1.0",
-                localIdentifier: "deployment-local-id",
-                udiDeviceIdentifier: "authorized-udi"
-            )
-        )
-        var authorizedInputs = inputs
-        authorizedInputs.options.udi = .authorized
-        let conversion = try await ExporterFixtures.export(sample, authorizedInputs)
-
-        let identifiers = try #require(conversion.recordingDevice?.identifier).map(RoledIdentifier.init)
-        #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
-        #expect(conversion.recordingDevice?.udiCarrier?.first?.deviceIdentifier?.value?.string == "authorized-udi")
+        #expect(conversion.recordingDevice?.udiCarrier?.first?.deviceIdentifier?.value?.string == "device-udi")
     }
 
     @Test
@@ -1012,9 +985,9 @@ struct HealthKitFHIRConverterTests {
             end: timestamp,
             objects: [quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 320)]
         )
-        let (exporter, _) = try ExporterFixtures.exporter(inputs)
-        let (exports, _) = try await ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
-        #expect(exports.compactMap(\.graph).count == 1)
+        let exporter = try ExporterFixtures.exporter(inputs)
+        let exports = try await ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
+        #expect(exports.compactMap(\.record).count == 1)
         guard exports.count == 2, case .refused(let error) = exports[1].outcome else {
             Issue.record("The refused record keeps its source identity and typed reason")
             return

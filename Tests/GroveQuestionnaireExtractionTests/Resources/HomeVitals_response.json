@@ -44,8 +44,16 @@
           "valueString": "iPhone17,1"
         },
         {
+          "url": "hostOperatingSystemName",
+          "valueString": "iOS"
+        },
+        {
           "url": "hostOperatingSystemVersion",
           "valueString": "26.0"
+        },
+        {
+          "url": "hostOperatingSystemBuild",
+          "valueString": "23A341"
         }
       ],
       "url": "https://grovealliance.org/fhir/questionnaire/StructureDefinition/grove-questionnaire-writer-context"
@@ -56,7 +64,7 @@
     "value": "home-vitals-2026-08-28"
   },
   "language": "en-US",
-  "questionnaire": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample|0.6.0",
+  "questionnaire": "https://grovealliance.org/fhir/questionnaire/Questionnaire/GroveHomeVitalsExample|0.8.0",
   "status": "completed",
   "subject": {
     "reference": "Patient/GroveQuestionnairePatientExample"

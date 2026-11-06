@@ -10,21 +10,15 @@ public import Foundation
 public import GroveFHIRContract
 
 
-/// Turns SensorKit records you already fetched into exchange graphs for one deployment, participant and installation.
+/// Turns SensorKit records you already fetched into exchange records for one deployment, participant and installation.
 ///
-/// Configure it once and keep it for as long as its `ExchangeProducer` is valid; it is safe to share across tasks.
-/// Every export mints its events through the producer, in one ledger transaction per call, so an exact redelivery
-/// before `ExchangeProducer.Receipt.release()` reproduces the same events byte for byte, even when the application,
-/// the host or the studies changed in between. A record that cannot be converted is reported as a refusal instead of
-/// ending the call. The exporter never queries SensorKit.
+/// Configure it once and keep it for as long as its `ExchangeProducer` is valid; it is safe to share across tasks. A
+/// record that cannot be converted is reported as a refusal instead of ending the call. The exporter never queries
+/// SensorKit.
 ///
 /// A ``SensorKitSourceRecordID`` names one acquisition, not one content: verify a retried record's source bytes
 /// against the digest you persisted at its acquisition coordinate before you export it again (see
-/// ``SensorKitSourceRecordID``). The exporter adds a second line behind that guard: other content under a reserved
-/// record becomes a new event, never a restated one.
-///
-/// The exporter cannot retract yet. The SensorKit guide's retraction of a source record also names the device
-/// snapshots its event emitted, whose identities are minted from that event, and no input of this API states it.
+/// ``SensorKitSourceRecordID``). Other content at a coordinate is a new record version, never a restated one.
 public final class SensorKitFHIRExporter: Sendable {
     /// Why an exporter could not be configured.
     public enum ConfigurationError: Error, Equatable, Sendable {
@@ -33,23 +27,23 @@ public final class SensorKitFHIRExporter: Sendable {
         case reservedIdentifierSystem(IdentifierSystem)
     }
 
-    /// What the exporter discloses beyond the opaque identities every graph carries.
+    /// What the exporter discloses beyond the opaque identities every record carries.
     public struct Options: Sendable {
-        /// Discloses the exact ``SensorKitSourceRecordID`` on each graph's designated primary output under a system
-        /// you own; omitted by default. Grove's opaque identifiers stay the only graph keys.
+        /// Discloses the exact ``SensorKitSourceRecordID`` on each record's designated primary output under a system
+        /// you own; omitted by default. Grove's opaque identifiers stay the only entry keys.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
-        /// At most how many child tasks build one call's graphs at once; `nil`, the default, builds on one per active
+        /// At most how many child tasks build one call's records at once; `nil`, the default, builds on one per active
         /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports.
         public var maximumConcurrency: Int?
 
         public init() {}
     }
 
-    /// What one record produced: an exchange graph, or the reason it produced none.
+    /// What one input produced: an exchange record, or the reason it produced none.
     public struct Export: Sendable {
         public enum Outcome: Sendable {
-            /// The validated graph; store or upload `ExchangeGraph.json` verbatim.
-            case graph(ExchangeGraph)
+            /// The validated record; stage `ExchangeRecord.json` verbatim, and pack it for upload.
+            case record(ExchangeRecord)
             /// The record was refused; nothing was emitted and the export continued. Refusals are deterministic,
             /// so an exact redelivery refuses identically.
             case refused(SensorKitConversionError)
@@ -60,9 +54,9 @@ public final class SensorKitFHIRExporter: Sendable {
         public let source: SensorKitSourceRecordID
         public let outcome: Outcome
 
-        /// The graph, when one was produced.
-        public var graph: ExchangeGraph? {
-            if case .graph(let graph) = outcome { graph } else { nil }
+        /// The record, when one was produced.
+        public var record: ExchangeRecord? {
+            if case .record(let record) = outcome { record } else { nil }
         }
     }
 
@@ -70,15 +64,13 @@ public final class SensorKitFHIRExporter: Sendable {
     /// The namespace of the exact `SRVisit.locationId`, which the guide requires on every visit that names one.
     let visitLocationIdentifierSystem: IdentifierSystem
     let options: Options
-    /// The producer's scope over this installation's SensorKit store; each graph's envelope adds its event's facts.
+    /// The producer's scope over this installation's SensorKit store.
     let scope: ExchangeEnvelope.Scope
-    /// What shapes every graph beside the frozen facts and the record; it fingerprints each request.
-    let context: ExchangeRequestContext
 
     /// Creates the exporter of one installation's SensorKit store.
     ///
     /// - Parameters:
-    ///   - producer: The producer whose ledger numbers every event and freezes what each one states.
+    ///   - producer: The producer every record states.
     ///   - repositoryScope: The business identifier naming this installation's SensorKit store; it enters every
     ///     source identity.
     ///   - visitLocationIdentifierSystem: A system your deployment owns for the exact `SRVisit.locationId`, which a
@@ -106,86 +98,66 @@ public final class SensorKitFHIRExporter: Sendable {
             subject: producer.subject,
             repositoryScope: repositoryScope
         )
-        self.context = ExchangeRequestContext(
-            label: "grove-sensorkit-context-v0",
-            outputRevisions: [ExchangeGraphAssembler.outputRevision, SensorKitConverter.outputRevision],
-            producer: producer,
-            repositoryScope: repositoryScope,
-            settings: [("visitLocationIdentifierSystem", [visitLocationIdentifierSystem.rawValue])] + options.fingerprintParts
-        )
     }
 
-    /// Converts records in input order, calling `receive` once per record with its graph or its refusal.
+    /// Converts records in input order, calling `receive` once per record with its exchange record or its refusal.
     ///
-    /// A record that cannot be converted is refused in place, and so is a record the call names again with other
-    /// content (``SensorKitConversionError/conflictingDuplicate``): the first input of a record keeps its event, so
-    /// an exact retry of the call reproduces every event. Only these end the call:
+    /// A record that cannot be converted is refused in place. Only these end the call:
     /// - an `instant` no FHIR instant can state (before year 1 or after year 9999) throws
-    ///   `ExchangeIdentityError.invalidInstant` before the ledger is touched;
-    /// - the producer's ledger throws `ExchangeProducer.LedgerError` when a stored entry is corrupt or from a later
-    ///   layout, and `ExchangeProducer.resetLedger()` always recovers;
-    /// - errors of the ledger's storage and of `receive` are rethrown unchanged, and the reservations made stay for
-    ///   the redelivery.
+    ///   `ExchangeIdentityError.invalidInstant`;
+    /// - errors of `receive` are rethrown unchanged.
     ///
     /// - Parameters:
     ///   - records: The records of one fetched batch.
     ///   - sourceTimeZone: The zone the source reported the batch's instants in; every effective bound states its
     ///     offset. Persist it with the batch, so a redelivery states the same bounds.
-    ///   - recordingDevice: The physical unit that measured the batch; the graphs name no recording Device without one.
-    ///   - instant: When the events are reserved; a redelivery before the receipt is released keeps the first one.
+    ///   - recordingDevice: The `SRDevice` that recorded the batch, as `RecordingDevice(batch.info.device)` states it. Every
+    ///     output names it; pass `nil` only when the source does not state the hardware.
+    ///   - sourceDevices: The peripherals that supplied the batch, as `batch.info.sourceDevices` states them. Each becomes a
+    ///     recording Device that every record of the call names as its source entity's performer, since SensorKit states
+    ///     them per batch: split a batch across calls to state a record's own peripheral.
+    ///   - instant: The conversion instant. Persist it with the batch, so a redelivery repeats every record version.
     ///   - receive: Called once per record, in input order.
-    /// - Returns: The receipt to release once every graph is durably stored and the batch acknowledged.
     nonisolated(nonsending) public func export(
         _ records: some Collection<SensorKitRecord>,
         sourceTimeZone: TimeZone,
-        recordingDevice: RecordingDevice? = nil,
-        at instant: Date = .now,
+        recordingDevice: RecordingDevice?,
+        sourceDevices: [RecordingDevice] = [],
+        at instant: Date,
         receive: (Export) throws -> Void
-    ) async throws -> ExchangeProducer.Receipt {
+    ) async throws {
+        guard (try? ExchangeInstant.fhirInstant(instant)) != nil else {
+            throw ExchangeIdentityError.invalidInstant
+        }
         let content = SensorKitConverter.ContentContext(
             sourceTimeZone: sourceTimeZone,
             visitLocationIdentifierSystem: visitLocationIdentifierSystem
         )
-        let device = recordingDevice.map(SensorKitConverter.recordingDevice)
         let width = options.maximumConcurrency ?? ConcurrentBuild.defaultWidth
         let plans = await ConcurrentBuild.map(Array(records)[...], width: width) { record in
-            Plan(record, content: content, recordingDevice: device, exporter: self)
+            Plan(record, content: content, exporter: self)
         }
-        // One fingerprint per key and call, the first in input order: a key reserved under two would keep only the
-        // later, and a retry of the call would mint both again.
-        let firstPerKey = Dictionary(plans.compactMap { try? $0.content.get().request }.map { ($0.key, $0) }) { first, _ in first }
-        // Refusals alone need no event, and a call that reserves nothing never touches the ledger.
-        let (reserved, receipt) = try producer.reserve(Set(firstPerKey.values), at: instant)
         try await ConcurrentBuild.forEach(plans, width: width) { plan in
-            self.deliver(plan, reserved: reserved)
+            self.deliver(plan, recordingDevice: recordingDevice, sourceDevices: sourceDevices, at: instant)
         } hand: { plan, outcome in
             try receive(Export(source: plan.source, outcome: outcome))
         }
-        return receipt
     }
 }
 
 
 extension SensorKitFHIRExporter {
-    /// One record prepared before the reservation: its event-independent content and the request that content
-    /// reserves, or why it has none.
+    /// One record prepared before it is built: its content, or why it has none.
     struct Plan {
         struct Content {
             let sourceRecord: SourceRecordIdentity
             let outputs: [ExchangeOutputDraft]
-            let recordingDevice: ExchangeRecordingDeviceDraft?
-            let request: ExchangeEventRequest
         }
 
         let source: SensorKitSourceRecordID
         let content: Result<Content, SensorKitConversionError>
 
-        init(
-            _ record: SensorKitRecord,
-            content context: SensorKitConverter.ContentContext,
-            recordingDevice: ExchangeRecordingDeviceDraft?,
-            exporter: SensorKitFHIRExporter
-        ) {
+        init(_ record: SensorKitRecord, content context: SensorKitConverter.ContentContext, exporter: SensorKitFHIRExporter) {
             self.source = record.sourceRecordID
             do {
                 let sourceRecord = try exporter.scope.sourceRecord(sourceType: record.sourceToken, nativeRecordID: record.sourceRecordID.value)
@@ -195,27 +167,20 @@ extension SensorKitFHIRExporter {
                     nativeIdentifier: exporter.options.nativeIdentifier.identifier(for: record.sourceRecordID.value),
                     context: context
                 )
-                let key = ExchangeEventKey(
-                    kind: .active,
-                    adapterID: SensorKitConverter.adapterID,
-                    sourceRecord: "\(record.sourceToken)|\(record.sourceRecordID.value)"
-                )
-                let parts = try Self.contentParts(outputs: outputs, recordingDevice: recordingDevice)
-                self.content = .success(Content(
-                    sourceRecord: sourceRecord,
-                    outputs: outputs,
-                    recordingDevice: recordingDevice,
-                    request: exporter.context.request(for: key, recordParts: parts)
-                ))
+                self.content = .success(Content(sourceRecord: sourceRecord, outputs: outputs))
             } catch {
                 self.content = .failure(SensorKitConversionError(conversionFailure: error))
             }
         }
     }
 
-    /// The planned record's graph under its reservation, or why it has none. A refusal keeps its reservation held: it
-    /// is released with the receipt, never mid-call.
-    private func deliver(_ plan: Plan, reserved: [ExchangeEventRequest: ExchangeEventReservation]) -> Export.Outcome {
+    /// The planned record, or why it has none.
+    private func deliver(
+        _ plan: Plan,
+        recordingDevice: RecordingDevice?,
+        sourceDevices: [RecordingDevice],
+        at instant: Date
+    ) -> Export.Outcome {
         let content: Plan.Content
         switch plan.content {
         case .failure(let refusal):
@@ -223,24 +188,16 @@ extension SensorKitFHIRExporter {
         case .success(let planned):
             content = planned
         }
-        guard let reservation = reserved[content.request] else {
-            // An earlier record of this call has the same source-record identifier, other content, and that key's event.
-            return .refused(.conflictingDuplicate)
-        }
         do {
-            let draft = ExchangeGraphDraft(
-                event: try ExchangeEventIdentifier(
-                    system: producer.identityScope.systems.event,
-                    producerInstance: reservation.producerInstance,
-                    sequence: reservation.sequence
-                ),
-                instant: reservation.instant,
+            let draft = ExchangeRecordDraft(
+                instant: instant,
                 sourceRecord: content.sourceRecord,
                 outputs: content.outputs,
-                recordingDevice: content.recordingDevice
+                recordingDevice: recordingDevice,
+                sourceDevices: sourceDevices
             )
-            let envelope = ExchangeEnvelope(scope: scope, facts: reservation.facts)
-            return .graph(try ExchangeGraphAssembler(envelope: envelope).assemble(draft).graph)
+            let envelope = ExchangeEnvelope(scope: scope, facts: producer.facts)
+            return .record(try ExchangeGraphAssembler(envelope: envelope).assemble(draft).record)
         } catch {
             return .refused(SensorKitConversionError(conversionFailure: error))
         }

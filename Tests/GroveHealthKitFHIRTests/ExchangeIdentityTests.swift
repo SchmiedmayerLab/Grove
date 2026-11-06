@@ -8,7 +8,7 @@
 
 import CryptoKit
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 import ModelsR4
 import Testing
 
@@ -28,11 +28,13 @@ struct GroveFHIRExchangeIdentityTests {
                     sourceContext: "https://study.example.org/fhir/NamingSystem/source-context-test-key-1",
                     recordingDevice: "https://study.example.org/fhir/NamingSystem/recording-device-test-key-1",
                     deviceSnapshot: "https://study.example.org/fhir/NamingSystem/device-snapshot-test-key-1",
-                    event: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-                    entryNode: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0"
+                    contextSnapshot: "https://study.example.org/fhir/NamingSystem/context-snapshot-test-key-1",
+                    recordVersion: "https://study.example.org/fhir/NamingSystem/record-version-test-key-1",
+                    recordRetraction: "https://study.example.org/fhir/NamingSystem/record-retraction-test-key-1",
+                    deviceLocalIdentifier: "https://study.example.org/fhir/NamingSystem/device-local-identifier"
                 ),
                 keyID: "test-key",
-                epoch: EventSequence(1)
+                epoch: KeyEpoch(1)
             )
         }
     }
@@ -128,54 +130,40 @@ struct GroveFHIRExchangeIdentityTests {
         let providerOutput = try panel.output(role: "blood-pressure-panel", discriminator: "single")
         let providerArtifact = try recording.artifact(formatCode: "provider-recording", partIndex: 0)
         let writer = try Self.scope.writerRecord(
+            subject: Self.identifier("https://study.example.org/fhir/identifiers/participant", "participant-001"),
             writerApplication: Self.identifier("https://applications.example.org", "com.withings.wiscale2"),
             writerRecordID: "logical-record-001"
         )
         let recordingDevice = try Self.scope.recordingDevice(
             adapterID: "healthkit",
             subject: Self.identifier("https://study.example.org/participants", "participant-001"),
+            tokenScope: "com.example.watch-app",
             stableUnitToken: "watch-unit-token-001"
         )
         #expect(provider.value == "v0:test-key:1:qfmx1ajnVg_rNE8qiL_hIAWI8GtbVpRtf6T2RWREezM")
         #expect(providerOutput.value == "v0:test-key:1:mum-FTSsu6Kv_QBFNSjcFuznTp5C6D3QnrQ6iwm23Ec")
         #expect(providerArtifact.value == "v0:test-key:1:0LxvhsWmRngwxPPMqWk7--4qTN8Wa1j-oTbGuMCCgrA")
-        #expect(writer.value == "v0:test-key:1:DvVpDnGZfj28tqpozMhpZSHjT2J65wvN_bmTYu0x0Cw")
-        #expect(recordingDevice.value == "v0:test-key:1:BZfymBSOLQlRaEwkvjBNFKbiTvUoNrz8CJEgYlztkus")
+        #expect(writer.value == "v0:test-key:1:t3yJ50PlC4YfvU2A4qhUgG17VfFJ_QhTgltKtosdl7w")
+        #expect(recordingDevice.value == "v0:test-key:1:EGbYNz6iVTYGCXRIUR-1TVJeTAVmPhsQmT6UF-dC3q0")
     }
 
-    @Test("Matches normative event, entry-node, and UUIDv5 vectors")
+    @Test("Matches normative record-version, record-retraction, and UUIDv5 vectors")
     func graphKeyVectors() throws {
-        let event = try ExchangeEventIdentifier(
-            system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-            producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
-            sequence: EventSequence(42)
+        let version = try BusinessIdentifier(
+            system: "https://study.example.org/fhir/NamingSystem/grove-record-version-v0/test-key/1",
+            value: "v0:test-key:1:xjbzwZqYyBE1boHxzOoS09iLXEMrvo0o8dpxtlwPQhE"
         )
-        let node = try EntryNodeKey(
-            system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0",
-            event: event,
-            nodeRole: "conversion-provenance",
-            ordinal: 0
+        let retraction = try BusinessIdentifier(
+            system: "https://study.example.org/fhir/NamingSystem/grove-record-retraction-v0/test-key/1",
+            value: "v0:test-key:1:0JJ96w-JxTpK7Bb-910L_61f3KJdI8Cr4eSGTpJ7L7o"
         )
         let unicode = try BusinessIdentifier(
             system: "https://xn--fsq.example/%E8%AD%98%E5%88%A5%E5%AD%90",
             value: "café|東京"
         )
-        #expect(event.identifier.value == "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42")
-        #expect(node.identifier.value == "n0:conversion-provenance:0:8JmcQF7rmULm9uJBkHWruJwfMu3GJTxGWqXWn2DGqWk")
-        #expect(try node.identifier.fullURLString == "urn:uuid:71abc484-b9ee-511e-b22a-5b35d026d620")
+        #expect(try version.fullURLString == "urn:uuid:af53df9f-24e4-5773-9301-a3887fdf2f57")
+        #expect(try retraction.fullURLString == "urn:uuid:03e766bb-9cc6-51b2-b67e-e8902e01513f")
         #expect(try unicode.fullURLString == "urn:uuid:d35e4203-71f6-595c-bd1b-306b8414974e")
-    }
-
-    @Test("Typed event construction rejects UUIDs outside the canonical RFC 4122 domain")
-    func rejectsInvalidProducerInstance() throws {
-        let invalid = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000000"))
-        #expect(throws: ExchangeIdentityError.invalidProducerInstance(invalid)) {
-            try ExchangeEventIdentifier(
-                system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-                producerInstance: invalid,
-                sequence: EventSequence(1)
-            )
-        }
     }
 
     @Test("A Grove identifier-role coding without a code fails closed")
@@ -203,7 +191,7 @@ struct GroveFHIRExchangeIdentityTests {
             try OpaqueIdentityScope(
                 systems: Self.scope.systems,
                 keyID: "must-not-ship",
-                epoch: EventSequence(1),
+                epoch: KeyEpoch(1),
                 key: SymmetricKey(data: Data((0...31).map(UInt8.init)))
             )
         }
@@ -216,22 +204,12 @@ extension GroveFHIRExchangeIdentityTests {
         let repository = try BusinessIdentifier(system: "https://example.org/repository", value: "scope")
         let application = try BusinessIdentifier(system: "https://example.org/apps", value: "app")
         let subject = try BusinessIdentifier(system: "https://example.org/subjects", value: "subject")
-        let event = try ExchangeEventIdentifier(
-            system: "https://example.org/events",
-            producerInstance: #require(UUID(uuidString: "2eafba7b-4c21-4bf5-ad46-351b0176b25a")),
-            sequence: EventSequence(1)
-        )
         expectEmptySourceComponents(repository: repository)
         #expect(Set(OpaqueIdentityScope.ProviderCode.allCases.map(\.rawValue)) == ["google-health-api", "oura", "withings"])
         for providerCode in OpaqueIdentityScope.ProviderCode.allCases.map(\.rawValue) {
             expectProviderKindRequired(providerCode, repository: repository)
         }
-        try expectEmptyDerivedComponents(
-            repository: repository,
-            application: application,
-            subject: subject,
-            event: event
-        )
+        try expectEmptyDerivedComponents(repository: repository, application: application, subject: subject)
         // The protocol requires nonempty Unicode strings, not a global whitespace normalization.
         #expect(try Self.scope.sourceRecord(
             adapterID: "adapter",
@@ -256,8 +234,7 @@ extension GroveFHIRExchangeIdentityTests {
     private func expectEmptyDerivedComponents(
         repository: BusinessIdentifier,
         application: BusinessIdentifier,
-        subject: BusinessIdentifier,
-        event: ExchangeEventIdentifier
+        subject: BusinessIdentifier
     ) throws {
         let record = try Self.scope.sourceRecord(
             adapterID: "adapter",
@@ -272,7 +249,7 @@ extension GroveFHIRExchangeIdentityTests {
             try record.output(role: "primary", discriminator: "")
         }
         #expect(throws: ExchangeIdentityError.emptyComponent("writer-record.writer-record-id")) {
-            try Self.scope.writerRecord(writerApplication: application, writerRecordID: "")
+            try Self.scope.writerRecord(subject: subject, writerApplication: application, writerRecordID: "")
         }
         #expect(throws: ExchangeIdentityError.emptyComponent("source-artifact.format-code")) {
             try record.artifact(formatCode: "", partIndex: 0)
@@ -288,10 +265,10 @@ extension GroveFHIRExchangeIdentityTests {
             )
         }
         #expect(throws: ExchangeIdentityError.emptyComponent("recording-device.stable-unit-token")) {
-            try Self.scope.recordingDevice(adapterID: "adapter", subject: subject, stableUnitToken: "")
+            try Self.scope.recordingDevice(adapterID: "adapter", subject: subject, tokenScope: "writer", stableUnitToken: "")
         }
-        #expect(throws: ExchangeIdentityError.emptyComponent("device-snapshot.source-device-token")) {
-            try Self.scope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: "")
+        #expect(throws: ExchangeIdentityError.emptyComponent("recording-device.token-scope")) {
+            try Self.scope.recordingDevice(adapterID: "adapter", subject: subject, tokenScope: "", stableUnitToken: "token")
         }
     }
 
@@ -313,14 +290,17 @@ extension GroveFHIRExchangeIdentityTests {
         }) == [
             "source-record": 5,
             "source-output": 7,
-            "writer-record": 3,
+            "writer-record": 5,
             "provider-record": 5,
             "provider-output": 7,
             "source-artifact": 7,
             "provider-artifact": 7,
             "source-context": 5,
-            "recording-device": 4,
-            "device-snapshot": 4
+            "recording-device": 5,
+            "device-snapshot": 4,
+            "context-snapshot": 4,
+            "record-version": 3,
+            "record-retraction": 2
         ])
     }
 
@@ -330,7 +310,7 @@ extension GroveFHIRExchangeIdentityTests {
         let wideEpochScope = try OpaqueIdentityScope(
             systems: Self.scope.systems,
             keyID: "wide-epoch",
-            epoch: EventSequence(aboveUInt64),
+            epoch: KeyEpoch(aboveUInt64),
             key: SymmetricKey(data: Data(repeating: 0x43, count: 32))
         )
         let wideEpochIdentity = try wideEpochScope.sourceRecord(
@@ -339,17 +319,6 @@ extension GroveFHIRExchangeIdentityTests {
             repositoryScope: BusinessIdentifier(system: "https://store.example.org", value: "default"),
             nativeRecordID: "record-001"
         ).identifier
-        let event = try ExchangeEventIdentifier(
-            system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-            producerInstance: #require(UUID(uuidString: "1f5c58aa-6ec6-4e79-a682-829a9debd3f5")),
-            sequence: EventSequence(aboveUInt64)
-        )
-        let node = try EntryNodeKey(
-            system: "https://study.example.org/fhir/NamingSystem/grove-entry-node-v0",
-            event: event,
-            nodeRole: "conversion-provenance",
-            ordinal: CanonicalNonnegativeDecimal(aboveUInt64)
-        )
         let deviceUsage = try Self.scope.sourceRecord(
             adapterID: "sensorkit",
             sourceType: "device-usage",
@@ -357,29 +326,17 @@ extension GroveFHIRExchangeIdentityTests {
             nativeRecordID: "record-001"
         )
         let artifact = try deviceUsage.artifact(formatCode: "native-recording", partIndex: CanonicalNonnegativeDecimal(aboveUInt64))
-        #expect(event.sequence.rawValue == aboveUInt64)
         #expect(wideEpochScope.epoch.rawValue == aboveUInt64)
         #expect(wideEpochIdentity.value.hasPrefix("v0:wide-epoch:\(aboveUInt64):"))
         #expect(ExchangeIdentity.isCanonicalOpaqueIdentifierValue(wideEpochIdentity.value))
         #expect(!ExchangeIdentity.isCanonicalOpaqueIdentifierValue("v0:wide-epoch:01:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
-        #expect(event.identifier.value.hasSuffix(":\(aboveUInt64)"))
-        #expect(node.ordinal.rawValue == aboveUInt64)
-        #expect(node.identifier.value.contains(":\(aboveUInt64):"))
         #expect(artifact.role == .sourceArtifact)
         expectInvalidProtocolDecimalSpellings()
     }
 
     private func expectInvalidProtocolDecimalSpellings() {
-        #expect(throws: ExchangeIdentityError.invalidEventSequence("0")) {
-            try EventSequence("0")
-        }
-        #expect(throws: ExchangeIdentityError.invalidEventIdentifier(
-            "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01"
-        )) {
-            try ExchangeEventIdentifier(BusinessIdentifier(
-                system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-                value: "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:01"
-            ))
+        #expect(throws: ExchangeIdentityError.invalidKeyEpoch("0")) {
+            try KeyEpoch("0")
         }
     }
 
@@ -406,7 +363,7 @@ extension GroveFHIRExchangeIdentityTests {
         arguments: ["1", "18446744073709551616", "9999999999999999999999999999999999999999"]
     )
     func canonicalPositiveProtocolDecimal(_ rawValue: String) throws {
-        #expect(try EventSequence(rawValue).rawValue == rawValue)
+        #expect(try KeyEpoch(rawValue).rawValue == rawValue)
     }
 
     @Test(
@@ -414,8 +371,8 @@ extension GroveFHIRExchangeIdentityTests {
         arguments: ["", "0", "00", "01", "-1", "+1", "1.0", " 1", "1 ", "١"]
     )
     func noncanonicalPositiveProtocolDecimal(_ rawValue: String) {
-        #expect(throws: ExchangeIdentityError.invalidEventSequence(rawValue)) {
-            try EventSequence(rawValue)
+        #expect(throws: ExchangeIdentityError.invalidKeyEpoch(rawValue)) {
+            try KeyEpoch(rawValue)
         }
     }
 }
@@ -463,11 +420,11 @@ extension GroveFHIRExchangeIdentityTests {
           "type": {
             "coding": [{
               "system": "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role",
-              "code": "event"
+              "code": "record-version"
             }]
           },
           "system": "https://例.example/識別子",
-          "value": "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:42"
+          "value": "v0:test-key:1:xjbzwZqYyBE1boHxzOoS09iLXEMrvo0o8dpxtlwPQhE"
         }
         """#.utf8)
         #expect(throws: ExchangeIdentityError.invalidIdentifierSystem("https://例.example/識別子")) {
@@ -486,17 +443,17 @@ extension GroveFHIRExchangeIdentityTests {
         )
         let output = try record.output(role: "native-recording", discriminator: "single")
         let artifact = try record.artifact(formatCode: "beat-interval-series", partIndex: 0)
-        let target = try RetractionEvent.Target(
+        let target = try RetractionRecord.Target(
             identifier: output,
             resourceType: .documentReference,
             role: .sourceArtifact
         )
         #expect(target.identifier == output)
-        #expect(throws: RetractionEvent.Target.ValidationError.identifierRoleMismatch(
+        #expect(throws: RetractionRecord.Target.ValidationError.identifierRoleMismatch(
             targetRole: .sourceArtifact,
             identifierRole: .sourceArtifact
         )) {
-            try RetractionEvent.Target(
+            try RetractionRecord.Target(
                 identifier: artifact,
                 resourceType: .documentReference,
                 role: .sourceArtifact
@@ -507,7 +464,7 @@ extension GroveFHIRExchangeIdentityTests {
     @Test("Splitting at an ASCII separator yields the Character split's fields, a colon joined by a combining mark included")
     func asciiSplitMatchesCharacterSplit() {
         let values = [
-            "n0:role:1:digest", "n0::1:", ":", "", "::a::", "a:b:c:d:e", "n0:r\u{301}ole:1:x", "n0:\u{301}x:y",
+            "v0:role:1:digest", "v0::1:", ":", "", "::a::", "a:b:c:d:e", "v0:r\u{301}ole:1:x", "v0:\u{301}x:y",
             "\u{E9}:\u{FC}", "a\r\n:b", "\u{1F600}:x"
         ]
         for value in values {

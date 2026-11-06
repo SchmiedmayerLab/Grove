@@ -20,7 +20,7 @@ extension AnchoredFetcher {
             Sensor<Sample>,
             SRDevice,
             Range<Date>
-        ) async throws -> [Sample.SafeRepresentation]
+        ) async throws -> SensorKit.FetchedSamples<Sample.SafeRepresentation>
 
         private enum State {
             /// The fetcher hasn't run at all yet.
@@ -51,7 +51,7 @@ extension AnchoredFetcher {
             batchSize: TimeInterval,
             device: SRDevice,
             fetchOperation: @escaping FetchOperation = { sensor, device, timeRange in
-                try await sensor.fetch(from: device, timeRange: timeRange)
+                try await sensor.fetchNamingSourceDevices(from: device, timeRange: timeRange)
             }
         ) {
             self.sensor = sensor
@@ -171,7 +171,7 @@ extension AnchoredFetcher {
                 switch state {
                 case let .process(timeRange, expectedAnchor):
                     let results = try await fetchOperation(sensor, device, timeRange)
-                    if !results.isEmpty {
+                    if !results.samples.isEmpty {
                         return try prepareAnchoredBatch(
                             results,
                             timeRange: timeRange,
@@ -199,12 +199,12 @@ extension AnchoredFetcher {
         }
 
         private mutating func prepareAnchoredBatch(
-            _ results: [Sample.SafeRepresentation],
+            _ results: SensorKit.FetchedSamples<Sample.SafeRepresentation>,
             timeRange: Range<Date>,
             expectedAnchor: QueryAnchor,
             device: SRDevice
         ) throws -> Element {
-            let pendingBatch = QueryAnchor.PendingBatch.timeRange(timeRange, sampleCount: results.count)
+            let pendingBatch = QueryAnchor.PendingBatch.timeRange(timeRange, sampleCount: results.samples.count)
             let pendingAnchor: QueryAnchor
             if let persistedPending = expectedAnchor.pendingBatch {
                 guard persistedPending == pendingBatch else {
@@ -222,7 +222,8 @@ extension AnchoredFetcher {
             let batchInfo = SensorKit.BatchInfo(
                 timeRange: timeRange,
                 device: SensorKit.DeviceInfo(device),
-                acquisitionBatch: expectedAnchor.acquisitionBatchCoordinate
+                sourceDevices: results.sourceDevices,
+                acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate
             )
             let anchor = self.anchor
             let acknowledgement = SensorKit.QueryAnchorAcknowledgement {
@@ -230,7 +231,7 @@ extension AnchoredFetcher {
                     throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
                 }
             }
-            return SensorKit.AnchoredBatch(info: batchInfo, samples: results, acknowledgement: acknowledgement)
+            return SensorKit.AnchoredBatch(info: batchInfo, samples: results.samples, acknowledgement: acknowledgement)
         }
     }
 }

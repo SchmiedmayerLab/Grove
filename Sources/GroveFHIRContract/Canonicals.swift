@@ -27,9 +27,15 @@ public enum Canonicals {
     public static let mobileMeasurementCodeSystem = uri("/mobile/CodeSystem/grove-mobile-measurement")
     public static let aggregationMethodCodeSystem = uri("/mobile/CodeSystem/grove-aggregation-method")
     public static let groveApplicationVersionType = uri("/mobile/CodeSystem/grove-application-version-type")
+    public static let groveDeviceIdentifierType = uri("/mobile/CodeSystem/grove-device-identifier-type")
+    public static let udiProductionIdentifier = uri("/mobile/StructureDefinition/grove-udi-production-identifier")
     public static let identifierRoleCodeSystem = uri("/mobile/CodeSystem/grove-identifier-role")
     static let identifierRoleCodeSystemValue = "\(root)/mobile/CodeSystem/grove-identifier-role"
-    public static let entryNodeKey = uri("/mobile/StructureDefinition/grove-exchange-entry-node-key")
+    public static let entryKey = uri("/mobile/StructureDefinition/grove-exchange-entry-key")
+    public static let recordVersion = uri("/mobile/StructureDefinition/grove-record-version")
+    static let recordVersionValue = "\(root)/mobile/StructureDefinition/grove-record-version"
+    public static let contextSnapshot = uri("/mobile/StructureDefinition/grove-context-snapshot")
+    static let contextSnapshotValue = "\(root)/mobile/StructureDefinition/grove-context-snapshot"
     public static let retractionTargetRole = uri("/mobile/StructureDefinition/grove-retraction-target-role")
     public static let retractionTargetNativeIdentifier =
         uri("/mobile/StructureDefinition/grove-retraction-target-native-identifier")

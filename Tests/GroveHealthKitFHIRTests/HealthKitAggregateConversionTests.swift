@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
@@ -68,17 +68,17 @@ struct HealthKitFHIRAggregateConversionTests {
         return inputs
     }
 
-    /// The assembly under the test context's scope, and a request for one event of that context.
+    /// The assembly under the test context's scope, and a request of that context.
     private static func assembly() -> (HealthKitAssembly, HealthKitAssembly.Request) {
-        let base = TestEvent.test()
+        let base = TestDeployment.test()
         let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
             adapter: HealthKitAssembly.adapter,
             identityScope: base.identityScope,
             subject: base.subject,
             repositoryScope: base.repositoryScope
         ))
-        let facts = ExchangeEventFacts(application: base.application, host: base.host, studies: [])
-        return (assembly, HealthKitAssembly.Request(event: base.event, instant: base.conversionInstant, facts: facts))
+        let facts = ConversionFacts(application: base.application, host: base.host, studies: [])
+        return (assembly, HealthKitAssembly.Request(instant: base.conversionInstant, facts: facts))
     }
 
     private func quantitySample(

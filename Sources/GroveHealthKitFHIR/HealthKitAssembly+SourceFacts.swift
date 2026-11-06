@@ -17,46 +17,40 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly {
-    /// What a sample says about its origin, resolved once under the exporter's policies: the physical
-    /// unit it was measured on, who wrote it, and which clear identifiers travel.
+    /// What a sample says about its origin, resolved once under the exporter's policies: the hardware it was measured on,
+    /// who wrote it, and which clear identifiers travel.
     struct SourceFacts {
-        let recordingDevice: ExchangeRecordingDeviceDraft?
+        let recordingDevice: RecordingDevice?
         let writer: ExchangeWriterDraft?
         let sourceRevision: Extension?
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
         let wasUserEntered: Bool
-        /// The recording device's omission, when its unit cannot be identified, as its registered `mobile-omission`
-        /// rule; an omission a policy chose is not a warning. What the graph withholds of the sample's metadata depends
-        /// on its outputs, so the assembly reports it.
-        let warnings: [ProducerDiagnostic]
 
-        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it.
+        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it. `outputs`
+        /// are the record's: only an Observation output takes the sample's device metadata keys.
         init(
             _ sample: HKSample,
             metadata: HealthKitSampleMetadata,
+            outputs: [ExchangeOutputDraft],
             policies: HealthKitFHIRExporter.ResolvedPolicies,
             options: HealthKitFHIRExporter.Options
         ) throws {
             let revision = sample.sourceRevision
-            var warnings: [ProducerDiagnostic] = []
-            var recordingDevice: ExchangeRecordingDeviceDraft?
-            if let healthKitDevice = sample.device {
-                if let recorder = policies.recordingDevice {
-                    recordingDevice = Self.recordingDevice(recorder, healthKitDevice: healthKitDevice, udi: options.udi)
-                } else if options.recordingDevice.reportsDeclinedDevices {
-                    // Model and version facts cannot identify a physical unit, so the shared recording
-                    // Device is omitted rather than merged, and the omission is reported.
-                    warnings.append(ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic)
+            self.recordingDevice = sample.device.map { healthKitDevice in
+                var device = RecordingDevice(healthKitDevice)
+                // A record without an Observation output represents no metadata key (healthkit mapping.md, Withheld metadata).
+                if outputs.contains(where: \.isObservation) {
+                    device.fill(from: metadata)
                 }
+                device.identifyUnit(token: policies.unitToken, writer: revision.source)
+                return device
             }
-            self.recordingDevice = recordingDevice
             self.writer = try Self.writer(revision, classification: policies.writer)
-            self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision, fields: options.sourceRevision) : nil
+            self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision) : nil
             self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
             self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
             self.wasUserEntered = metadata.wasUserEntered
-            self.warnings = warnings
         }
     }
 }
@@ -65,39 +59,50 @@ extension HealthKitAssembly {
 // MARK: - Recording device
 
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension HealthKitAssembly.SourceFacts {
-    /// The resolved physical unit with the facts its `HKDevice` states about it.
-    private static func recordingDevice(
-        _ recorder: RecordingDevice,
-        healthKitDevice: HKDevice,
-        udi: HealthKitFHIRExporter.Disclosure
-    ) -> ExchangeRecordingDeviceDraft {
-        var device = recordingDevice(
-            name: recorder.name ?? healthKitDevice.name?.nonBlank,
-            manufacturer: recorder.manufacturer ?? healthKitDevice.manufacturer?.nonBlank,
-            modelNumber: recorder.modelNumber ?? healthKitDevice.model?.nonBlank
-        )
-        var versions: [DeviceVersion] = []
-        versions.appendVersion(healthKitDevice.hardwareVersion, code: "531974", display: "MDC_ID_PROD_SPEC_HW")
-        versions.appendVersion(healthKitDevice.firmwareVersion, code: "531976", display: "MDC_ID_PROD_SPEC_FW")
-        versions.appendVersion(healthKitDevice.softwareVersion, code: "531975", display: "MDC_ID_PROD_SPEC_SW")
-        device.version = versions.isEmpty ? nil : versions
-        if udi == .authorized, let udi = healthKitDevice.udiDeviceIdentifier?.nonBlank {
-            device.udiCarrier = [DeviceUdiCarrier(deviceIdentifier: udi.asFHIRStringPrimitive())]
-        }
-        return ExchangeRecordingDeviceDraft(device: recorder, resource: device)
+extension RecordingDevice {
+    /// The hardware `device` names, with every fact it states.
+    fileprivate init(_ device: HKDevice) {
+        self.init()
+        name = device.name?.nonBlank
+        manufacturer = device.manufacturer?.nonBlank
+        model = device.model?.nonBlank
+        hardwareVersion = device.hardwareVersion?.nonBlank
+        firmwareVersion = device.firmwareVersion?.nonBlank
+        softwareVersion = device.softwareVersion?.nonBlank
+        localIdentifier = device.localIdentifier?.nonBlank
+        udiDeviceIdentifier = device.udiDeviceIdentifier?.nonBlank
     }
 
-    private static func recordingDevice(name: String?, manufacturer: String?, modelNumber: String?) -> Device {
-        var device = Device()
-        device.meta = Meta(profile: [Profile.groveRecordingDevice])
-        device.status = FHIRPrimitive(.active)
-        if let name {
-            device.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
+    /// Fills what `HKDevice` left absent from the sample's device metadata keys: an `HKDevice` property wins, and the serial
+    /// number and the UDI production identifier come only from their keys. A value that is no text states nothing.
+    fileprivate mutating func fill(from metadata: HealthKitSampleMetadata) {
+        func stated(_ key: String) -> String? {
+            (metadata.values[key] as? String)?.nonBlank
         }
-        device.manufacturer = manufacturer?.asFHIRStringPrimitive()
-        device.modelNumber = modelNumber?.asFHIRStringPrimitive()
-        return device
+        name = name ?? stated(HKMetadataKeyDeviceName)
+        manufacturer = manufacturer ?? stated(HKMetadataKeyDeviceManufacturerName)
+        udiDeviceIdentifier = udiDeviceIdentifier ?? stated(HKMetadataKeyUDIDeviceIdentifier)
+        udiProductionIdentifier = stated(HKMetadataKeyUDIProductionIdentifier)
+        serialNumber = stated(HKMetadataKeyDeviceSerialNumber)
+    }
+
+    /// States `token` as the unit `writer` assigned it: without a writer's bundle identifier the record names hardware, not
+    /// a unit.
+    fileprivate mutating func identifyUnit(token: String?, writer: HKSource) {
+        tokenScope = writer.bundleIdentifier.nonBlank
+        stableUnitToken = tokenScope == nil ? nil : token
+    }
+
+    /// The fact the device states in the element the guide gives the device metadata key `key`, or `nil` for any other key.
+    func statedFact(forMetadataKey key: String) -> String? {
+        switch key {
+        case HKMetadataKeyDeviceSerialNumber: serialNumber
+        case HKMetadataKeyDeviceName: name
+        case HKMetadataKeyDeviceManufacturerName: manufacturer
+        case HKMetadataKeyUDIDeviceIdentifier: udiDeviceIdentifier
+        case HKMetadataKeyUDIProductionIdentifier: udiProductionIdentifier
+        default: nil
+        }
     }
 }
 
@@ -124,7 +129,7 @@ extension HealthKitAssembly.SourceFacts {
                     application: try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: "unknown", build: version),
                     host: try HostDevice(
                         operatingSystemVersion: operatingSystemVersion(revision.operatingSystemVersion),
-                        modelNumber: revision.productType?.nonBlank
+                        productType: revision.productType?.nonBlank
                     ),
                     statesVersion: false
                 )
@@ -179,25 +184,6 @@ extension HealthKitAssembly.SourceFacts {
             throw HealthKitConversionError.ValueFailure.invalidMetadataValue(.syncVersion)
         }
         return NSDecimalString(&integral, Locale(identifier: "en_US_POSIX"))
-    }
-}
-
-
-extension Array where Element == DeviceVersion {
-    fileprivate mutating func appendVersion(_ value: String?, code: String, display: String) {
-        guard let value = value?.nonBlank else {
-            return
-        }
-        let type = Coding(code: code.asFHIRStringPrimitive(), display: display.asFHIRStringPrimitive(), system: Canonicals.mdc)
-        append(DeviceVersion(type: CodeableConcept(coding: [type]), value: value.asFHIRStringPrimitive()))
-    }
-}
-
-
-extension String {
-    /// The string, or `nil` when it is empty or holds nothing but whitespace.
-    var nonBlank: String? {
-        isBlank ? nil : self
     }
 }
 

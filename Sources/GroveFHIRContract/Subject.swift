@@ -9,7 +9,7 @@
 public import ModelsR4
 
 
-/// The participant an event is about.
+/// The participant a record is about.
 ///
 /// The identifier is the deployment's pseudonym. By default it travels as an identifier-only
 /// logical Patient reference; a deployment that supplies a Patient bundles it as an entry instead.

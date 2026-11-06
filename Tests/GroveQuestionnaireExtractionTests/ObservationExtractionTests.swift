@@ -19,7 +19,6 @@ import Testing
 /// so what these tests exercise is exactly what the guide documents.
 /// Decoders for the guide's committed bundle, kept flat and minimal.
 private struct GoldenIdentifier: Decodable {
-    let system: String
     let value: String
 }
 
@@ -27,13 +26,17 @@ private struct GoldenEntryExt: Decodable {
     let valueIdentifier: GoldenIdentifier
 }
 
+private struct GoldenResource: Decodable {
+    let resourceType: String
+}
+
 private struct GoldenEntry: Decodable {
     let fullUrl: String
     let `extension`: [GoldenEntryExt]
+    let resource: GoldenResource
 }
 
 private struct GoldenBundle: Decodable {
-    let identifier: GoldenIdentifier
     let timestamp: String
     let entry: [GoldenEntry]
 }
@@ -51,39 +54,29 @@ struct ObservationExtractionTests {
         return try JSONDecoder().decode(Resource.self, from: Data(contentsOf: url))
     }
 
-    /// The guide's event and deployment, as the projection seam takes them.
+    /// The guide's deployment, as the projection seam takes it.
     private static func context() throws -> QuestionnaireExtractionContext {
         QuestionnaireExtractionContext(
             patient: try QuestionnaireExportFixtures.patient,
-            eventIdentifier: try ExchangeEventIdentifier(
-                system: "https://study.example.org/fhir/NamingSystem/grove-event-v0",
-                producerInstance: QuestionnaireExportFixtures.producerInstance,
-                sequence: EventSequence(1)
-            ),
+            subject: try QuestionnaireExportFixtures.pseudonym,
             identityScope: try QuestionnaireExportFixtures.identityScope,
             repositoryScope: try QuestionnaireExportFixtures.repositoryScope,
             conversionInstant: QuestionnaireExportFixtures.instant
         )
     }
 
-    /// The projected graph, shared with the conformance fixture emitter.
-    static func projectedGraph() throws -> ExchangeGraph {
-        try projected().graph
+    /// The projected record, shared with the conformance fixture emitter.
+    static func projectedRecord() throws -> ExchangeRecord {
+        try projected().record
     }
 
-    private static func projected() throws -> (graph: ExchangeGraph, observations: [Observation]) {
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+    private static func projected() throws -> (record: ExchangeRecord, observations: [Observation]) {
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: try fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
             response: try fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self),
             context: try context()
         )
-        let observations = graph.bundle.entry?.compactMap { entry -> Observation? in
-            guard case .observation(let observation)? = entry.resource else {
-                return nil
-            }
-            return observation
-        } ?? []
-        return (graph, observations)
+        return (record, try record.observations)
     }
 
     private static func observation(
@@ -118,15 +111,6 @@ struct ObservationExtractionTests {
         answered.answer = [QuestionnaireResponseItemAnswer(value: answer)]
         response.item = (response.item ?? []) + [answered]
         return (questionnaire, response)
-    }
-
-    private static func observations(in graph: ExchangeGraph) -> [Observation] {
-        graph.bundle.entry?.compactMap { entry -> Observation? in
-            guard case .observation(let observation)? = entry.resource else {
-                return nil
-            }
-            return observation
-        } ?? []
     }
 
     /// The Home Vitals response without the named items, as a form filler leaves questions the
@@ -244,7 +228,7 @@ struct ObservationExtractionTests {
             linkID: "synthetic",
             measurement: "step-count"
         )) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: questionnaire,
                 response: response,
                 context: try Self.context()
@@ -276,41 +260,21 @@ struct ObservationExtractionTests {
 
     @Test("The writer context becomes the application and host snapshots")
     func writerContextBecomesDevices() throws {
-        let (graph, _) = try Self.projected()
-        let devices = graph.bundle.entry?.compactMap { entry -> Device? in
-            guard case .device(let device)? = entry.resource else {
-                return nil
-            }
-            return device
-        } ?? []
+        let devices = try Self.projected().record.devices
         #expect(devices.count == 2)
         let application = try #require(devices.first { $0.parent != nil })
         let host = try #require(devices.first { $0.parent == nil })
         #expect(application.deviceName?.first?.name.value?.string == "Grove Questionnaire Client")
+        #expect(application.identifier?.contains(try QuestionnaireExportFixtures.writer().applicationIdentifier.fhirIdentifier) == true)
+        #expect(application.statedVersions == ["531975": "1.4.0", "build": "1402"])
         #expect(host.modelNumber?.value?.string == "iPhone17,1")
-        #expect(host.version?.first?.value.value?.string == "26.0")
-        var versions: [String: String] = [:]
-        for version in application.version ?? [] {
-            if let code = version.type?.coding?.first?.code?.value?.string,
-               let value = version.value.value?.string {
-                versions[code] = value
-            }
-        }
-        #expect(versions["531975"] == "1.4.0")
-        #expect(versions["build"] == "1402")
+        #expect(host.statedVersions == ["os-name": "iOS", "os-version": "26.0", "os-build": "23A341"])
     }
 
     @Test("One transform Provenance targets every projected output")
     func provenanceTargetsEveryOutput() throws {
-        let (graph, observations) = try Self.projected()
-        let provenances = graph.bundle.entry?.compactMap { entry -> Provenance? in
-            guard case .provenance(let provenance)? = entry.resource else {
-                return nil
-            }
-            return provenance
-        } ?? []
-        #expect(provenances.count == 1)
-        let provenance = try #require(provenances.first)
+        let (record, observations) = try Self.projected()
+        let provenance = try record.provenance
         #expect(provenance.activity?.coding?.first?.code?.value?.string == "transform")
         #expect(provenance.target.count == observations.count)
         #expect(provenance.agent.first?.type?.coding?.first?.code?.value?.string == "assembler")
@@ -318,8 +282,7 @@ struct ObservationExtractionTests {
 
     @Test("The Bundle carries the Patient, and every reference resolves inside it")
     func bundleIsClosed() throws {
-        let (graph, _) = try Self.projected()
-        let entries = try #require(graph.bundle.entry)
+        let entries = try #require(try Self.projected().record.bundle.entry)
         #expect(entries.count == 7)
         let urls = Set(entries.compactMap { $0.fullUrl?.value?.url.absoluteString })
         let kinds = entries.compactMap { entry -> String? in
@@ -350,44 +313,39 @@ struct ObservationExtractionTests {
 
     @Test("The projection is deterministic")
     func projectionIsDeterministic() throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        let first = try encoder.encode(Self.projected().graph.bundle)
-        let second = try encoder.encode(Self.projected().graph.bundle)
-        #expect(first == second)
+        let first = try Self.projected().record
+        let second = try Self.projected().record
+        #expect(first.json == second.json)
     }
 
     // MARK: The Guide's Golden Bundle
 
-    /// The projection reproduces the guide's committed bundle wherever the contract makes the
-    /// value derivable, and reproduces the protocol's canonical minting where it does not.
+    /// The projection reproduces the guide's committed bundle wherever the guide's content is the projection's.
     ///
-    /// The keyless entry-node keys and their deterministic URNs match the committed bundle byte
-    /// for byte, and the HMAC identities match the vectors the guide publishes for the same
-    /// preimages under the conformance key.
-    @Test("Keyless derivations match the guide's bundle; identities match the canonical mint")
+    /// The Patient, the response and both Observations keep the guide's fullUrls, so their keys match it byte for byte.
+    /// The Device snapshots and the record version digest whole bodies, and the guide writes those by hand: its Device
+    /// versions state no display and name the operating system first, and its codes state displays the catalog does not.
+    /// `guidesBundleRecomputes` holds those keys to the guide's own bytes instead.
+    @Test("Keys and fullUrls match the guide's bundle wherever the content does")
     func matchesTheGuidesExchangeBundle() throws {
         let url = try #require(Bundle.module.url(forResource: "HomeVitals_bundle", withExtension: "json"))
         let golden = try JSONDecoder().decode(GoldenBundle.self, from: Data(contentsOf: url))
-        let (graph, observations) = try Self.projected()
+        let (record, observations) = try Self.projected()
+        let bundle = try record.bundle
 
-        #expect(graph.bundle.identifier?.value?.value?.string == golden.identifier.value)
-        #expect(graph.bundle.timestamp?.value?.description == golden.timestamp)
+        #expect(bundle.timestamp?.value?.description == golden.timestamp)
 
-        let entries = try #require(graph.bundle.entry)
-        #expect(entries.count == golden.entry.count)
-        for (mine, theirs) in zip(entries, golden.entry) {
+        let entries = try #require(bundle.entry)
+        #expect(entries.compactMap { $0.resource?.resourceType } == golden.entry.map(\.resource.resourceType))
+        for (mine, theirs) in zip(entries, golden.entry) where !["Device", "Provenance"].contains(theirs.resource.resourceType) {
             let key = mine.extension?.first.flatMap { marker -> Identifier? in
                 if case .identifier(let identifier) = marker.value {
                     return identifier
                 }
                 return nil
             }
-            let value = key?.value?.value?.string ?? ""
-            if value.hasPrefix("n0:") {
-                #expect(value == theirs.extension[0].valueIdentifier.value)
-                #expect(mine.fullUrl?.value?.url.absoluteString == theirs.fullUrl)
-            }
+            #expect(key?.value?.value?.string == theirs.extension[0].valueIdentifier.value)
+            #expect(mine.fullUrl?.value?.url.absoluteString == theirs.fullUrl)
         }
 
         // The guide publishes these under testVectors.identities as
@@ -409,19 +367,35 @@ struct ObservationExtractionTests {
             #expect(values["source-record"] == sourceRecord)
             #expect(values["source-output"] == canonical[code])
         }
+    }
 
-        // questionnaire-extraction-{application,host}-snapshot, minted from `<application>|<version>|<build>`
-        // and `<model>|<operating-system version>`.
-        let snapshots = Set(entries.compactMap { entry -> String? in
-            guard case .device(let device)? = entry.resource else {
+    /// Reads the guide's Bundle as a consumer does, and recomputes what only the key holder can: the record version and
+    /// every content key, which the guide publishes under testVectors.identities as
+    /// questionnaire-extraction-{record-version,host-snapshot,bundle-application-snapshot,patient-snapshot,response-snapshot}.
+    @Test("The guide's bundle reads back as one record, and every key it publishes recomputes")
+    func guidesBundleRecomputes() throws {
+        let url = try #require(Bundle.module.url(forResource: "HomeVitals_bundle", withExtension: "json"))
+        let json = try Data(contentsOf: url)
+        let scope = try QuestionnaireExportFixtures.identityScope
+        let record = try ExchangeRecord(validating: json)
+        #expect(record.kind == .active)
+        #expect(record.subject == (try QuestionnaireExportFixtures.pseudonym))
+        #expect(record.version.identifier.identifier.value == "v0:test-key:1:RIiSEVoX9fCoWyNMZvL3QAPxmelpxzePPzRbQOfPtb0")
+        try record.verifyVersion(in: scope)
+        let graph = try ExchangeGraph(validating: json, kind: .active)
+        try graph.validateDerivedKeys(in: scope)
+        let keys = graph.bundle.entry?.compactMap { entry -> String? in
+            guard case .identifier(let key)? = entry.extension?.first?.value else {
                 return nil
             }
-            return device.identifier?.first { $0.type?.coding?.first?.code?.value?.string == "device-snapshot" }?.value?.value?.string
-        })
-        #expect(snapshots == [
-            "v0:test-key:1:W8r_v8DzqOippQF5DUZiyhr_iwyRQk3NTa_sQLF8aM0",
-            "v0:test-key:1:Bjx_NBNO2-QhII9c1M5mcLUUOJRB0YSTXbg68kkTDdc"
-        ])
+            return key.value?.value?.string
+        } ?? []
+        #expect(Set(keys).isSuperset(of: [
+            "v0:test-key:1:BJ68B1Ln-JzOKPDWOevEmnjQNsX0BheIosEdSGgRV1A",
+            "v0:test-key:1:fZBQIWIeM0SUmHvsH68yGnBNNNz_jdJ9SFkWOMGuxKw",
+            "v0:test-key:1:0Bqdjt59Tx6RlSNPK625TzKjLgrZiw6OHtnobZsfskk",
+            "v0:test-key:1:fE9dYA07a6yqebbrEAnnljfpr727wsDXFFvPxDPLuPI"
+        ]))
     }
 
     // MARK: Beyond the Guide's Example
@@ -484,18 +458,12 @@ struct ObservationExtractionTests {
                 ))
             ))
         )
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: questionnaire,
             response: response,
             context: try Self.context()
         )
-        let observations = graph.bundle.entry?.compactMap { entry -> Observation? in
-            guard case .observation(let observation)? = entry.resource else {
-                return nil
-            }
-            return observation
-        } ?? []
-        let bleeding = try Self.observation(observations, code: "intermenstrual-bleeding")
+        let bleeding = try Self.observation(record.observations, code: "intermenstrual-bleeding")
         guard case .codeableConcept(let concept)? = bleeding.value else {
             Issue.record("coded answer did not extract as a CodeableConcept")
             return
@@ -525,7 +493,7 @@ struct ObservationExtractionTests {
             linkID: "synthetic",
             code: "torrential"
         )) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: questionnaire,
                 response: response,
                 context: try Self.context()
@@ -555,7 +523,7 @@ struct ObservationExtractionTests {
             linkID: "synthetic",
             relationship: "member"
         )) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: questionnaire,
                 response: response,
                 context: try Self.context()
@@ -592,12 +560,12 @@ struct ObservationExtractionTests {
             item.answer = [QuestionnaireResponseItemAnswer(value: .integer(FHIRPrimitive(FHIRInteger(reading.value))))]
             return item
         }
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: questionnaire,
             response: response,
             context: try Self.context()
         )
-        let panel = try Self.observation(Self.observations(in: graph), code: "85354-9")
+        let panel = try Self.observation(record.observations, code: "85354-9")
         var byCode: [String: Quantity] = [:]
         for component in panel.component ?? [] {
             if let code = component.code.coding?.first?.code?.value?.string,
@@ -615,12 +583,12 @@ struct ObservationExtractionTests {
 
     @Test("A skipped optional panel leaves the answered measurement to extract")
     func skippedPanelLeavesTheAnsweredMeasurement() throws {
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
             response: try Self.response(skipping: ["systolic", "diastolic"]),
             context: try Self.context()
         )
-        let observations = Self.observations(in: graph)
+        let observations = try record.observations
         #expect(observations.count == 1)
         #expect(observations.first?.code.coding?.first?.code?.value?.string == "29463-7")
     }
@@ -631,25 +599,25 @@ struct ObservationExtractionTests {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
         let weightIndex = try #require(response.item?.firstIndex { $0.linkId.value?.string == "body-weight" })
         response.item?[weightIndex].answer = nil
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
             response: response,
             context: try Self.context()
         )
-        let observations = Self.observations(in: graph)
+        let observations = try record.observations
         #expect(observations.count == 1)
         let panel = try Self.observation(observations, code: "85354-9")
         #expect(panel.component?.count == 2)
     }
 
-    @Test("A response answering no marked item extracts nothing and states no event")
+    @Test("A response answering no marked item extracts nothing and states no record")
     func unansweredResponseExtractsNothing() throws {
         let questionnaire = try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self)
         let response = try Self.response(skipping: ["body-weight", "systolic", "diastolic"])
         let extracted = try QuestionnaireObservationExtractor(questionnaire: questionnaire, response: response).extract()
         #expect(extracted.isEmpty)
         #expect(throws: ObservationExtractionError.noExtractableMeasurements) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: questionnaire,
                 response: response,
                 context: try Self.context()
@@ -661,12 +629,12 @@ struct ObservationExtractionTests {
     func requiredUnansweredMeasurementExtractsNothing() throws {
         // `required` binds only while the item is enabled, which extraction cannot evaluate; the pair
         // validator enforces it. Refusing here would drop every other reading of the response.
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: try Self.questionnaire(requiring: "body-weight"),
             response: try Self.response(skipping: ["body-weight"]),
             context: try Self.context()
         )
-        let observations = Self.observations(in: graph)
+        let observations = try record.observations
         #expect(observations.count == 1)
         _ = try Self.observation(observations, code: "85354-9")
     }
@@ -674,7 +642,7 @@ struct ObservationExtractionTests {
     @Test("A panel answered only in part refuses rather than dropping the answered reading")
     func partiallyAnsweredPanelRefuses() throws {
         #expect(throws: ObservationExtractionError.componentIncomplete(measurement: "blood-pressure", missing: "8462-4")) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
                 response: try Self.response(skipping: ["diastolic"]),
                 context: try Self.context()
@@ -699,7 +667,7 @@ struct ObservationExtractionTests {
             return item
         }
         #expect(throws: ObservationExtractionError.noExtractableMeasurements) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: questionnaire,
                 response: response,
                 context: try Self.context()
@@ -712,7 +680,7 @@ struct ObservationExtractionTests {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
         response.status = FHIRPrimitive(.inProgress)
         #expect(throws: ObservationExtractionError.responseNotCompleted(status: "in-progress")) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
                 response: response,
                 context: try Self.context()
@@ -735,7 +703,7 @@ struct ObservationExtractionTests {
             expected: "kg",
             answered: "[lb_av]"
         )) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
                 response: response,
                 context: try Self.context()
@@ -748,7 +716,7 @@ struct ObservationExtractionTests {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
         response.author = Reference(reference: "Practitioner/caregiver-7".asFHIRStringPrimitive())
         #expect(throws: ObservationExtractionError.authorIsNotTheSubject) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
                 response: response,
                 context: try Self.context()
@@ -761,7 +729,7 @@ struct ObservationExtractionTests {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
         response.source = Reference(reference: "RelatedPerson/partner-2".asFHIRStringPrimitive())
         #expect(throws: ObservationExtractionError.sourceIsNotTheSubject) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
                 response: response,
                 context: try Self.context()
@@ -773,15 +741,12 @@ struct ObservationExtractionTests {
     func authorlessResponseStatesNoPerformer() throws {
         var response = try Self.fixture("HomeVitals_response", as: ModelsR4.QuestionnaireResponse.self)
         response.author = nil
-        let graph = try QuestionnaireExchangeProjection.exchangeGraph(
+        let record = try QuestionnaireExchangeProjection.exchangeRecord(
             questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
             response: response,
             context: try Self.context()
         )
-        for entry in graph.bundle.entry ?? [] {
-            guard case .observation(let observation)? = entry.resource else {
-                continue
-            }
+        for observation in try record.observations {
             #expect(observation.performer == nil)
         }
     }
@@ -793,7 +758,7 @@ struct ObservationExtractionTests {
             $0.url.value?.url.absoluteString.hasSuffix("grove-questionnaire-writer-context") == false
         }
         #expect(throws: ObservationExtractionError.writerContextMissing) {
-            try QuestionnaireExchangeProjection.exchangeGraph(
+            try QuestionnaireExchangeProjection.exchangeRecord(
                 questionnaire: try Self.fixture("HomeVitals_questionnaire", as: ModelsR4.Questionnaire.self),
                 response: response,
                 context: try Self.context()

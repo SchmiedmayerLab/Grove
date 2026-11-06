@@ -93,6 +93,14 @@ extension AnySensor {
     /// - parameter timeRange: The time range for which data should be queried. Note that if this overlaps with the sensor's quarantine period, it may get clamped.
     /// - returns: The sensor's samples, processed into their ``SensorKitSampleSafeRepresentation``s.
     public func fetch(from device: SRDevice, timeRange: Range<Date>) async throws -> [Sample.SafeRepresentation] {
+        try await fetchNamingSourceDevices(from: device, timeRange: timeRange).samples
+    }
+
+    /// ``fetch(from:timeRange:)``, keeping the peripherals SensorKit named for the samples.
+    func fetchNamingSourceDevices(
+        from device: SRDevice,
+        timeRange: Range<Date>
+    ) async throws -> SensorKit.FetchedSamples<Sample.SafeRepresentation> {
         let reader = SRSensorReader(self)
         let delegate = SamplesFetcherDelegate(self)
         // see `startRecording()` re delegate/reader lifetimes.
@@ -194,7 +202,7 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
 
     private let logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "SamplesFetcherDelegate")
     private let sensor: Sensor<Sample>
-    var continuation: CheckedContinuation<[Sample.SafeRepresentation], any Error>?
+    var continuation: CheckedContinuation<SensorKit.FetchedSamples<Sample.SafeRepresentation>, any Error>?
     private var results: [SensorKit.FetchResult<Sample>] = []
     
     init(_ sensor: some AnySensor<Sample>) {
@@ -255,12 +263,23 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
             }
             do {
                 let processedResults: [Sample.SafeRepresentation] = try Sample.processIntoSafeRepresentation(samples)
-                continuation.resume(returning: processedResults)
+                continuation.resume(returning: SensorKit.FetchedSamples(samples: processedResults, sourceDevices: sourceDevices(of: results)))
             } catch {
                 continuation.resume(throwing: error)
             }
             self.results = []
             self.continuation = nil
         }
+    }
+
+    /// The distinct peripherals `results` name for their samples, in the order they first appear.
+    private func sourceDevices(of results: [SensorKit.FetchResult<Sample>]) -> [SensorKit.SourceDeviceInfo] {
+        var sourceDevices: [SensorKit.SourceDeviceInfo] = []
+        for result in results where !result.isEmpty {
+            if let sourceDevice = result.sourceDevice, !sourceDevices.contains(sourceDevice) {
+                sourceDevices.append(sourceDevice)
+            }
+        }
+        return sourceDevices
     }
 }

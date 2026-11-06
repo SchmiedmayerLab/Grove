@@ -31,12 +31,12 @@ extension ExchangeGraphAssembler {
     struct WriterSnapshots {
         let application: IdentifiedDevice
         let host: IdentifiedDevice
-        /// The writer snapshots the graph carries as entries of their own: none when the converter
+        /// The writer snapshots the record carries as entries of their own: none when the converter
         /// already states the application, and the host only when the converter does not state it.
         let entries: [IdentifiedDevice]
     }
 
-    /// The writer snapshots a graph carries as entries of their own. A snapshot the converter already
+    /// The writer snapshots a record carries as entries of their own. A snapshot the converter already
     /// states is that entry, and the host of a writer that is the converter's application has nothing
     /// to connect to.
     package static func writerEntries(
@@ -50,7 +50,7 @@ extension ExchangeGraphAssembler {
         return [host].filter { !stated.contains($0.identity) } + [application]
     }
 
-    func resolveDevices(for draft: ExchangeGraphDraft) throws -> Devices {
+    func resolveDevices(for draft: ExchangeRecordDraft) throws -> Devices {
         // The guide defines observation-gatewayDevice for Observations only; a gateway snapshot that no
         // Observation names would connect to nothing (mobile-support.connected).
         let statesGateway = draft.outputs.contains { output in
@@ -59,65 +59,61 @@ extension ExchangeGraphAssembler {
             }
             return output.links.contains(.gateway)
         }
-        let converter = try converterSnapshots(event: draft.event, role: draft.converterRole, statesGateway: statesGateway)
-        let recording = try recordingSnapshot(draft.recordingDevice, event: draft.event)
-        let writer = try writerSnapshots(draft.writer, event: draft.event, converter: converter)
-        return Devices(converter: converter, recording: recording, writer: writer)
+        let converter = try converterSnapshots(role: draft.converterRole, statesGateway: statesGateway)
+        let recording = try draft.recordingDevice.map(recordingSnapshot)
+        var stated = Set([recording?.identity].compactMap { $0 })
+        let sources = try draft.sourceDevices.map(recordingSnapshot).filter { stated.insert($0.identity).inserted }
+        let writer = try writerSnapshots(draft.writer, converter: converter)
+        return Devices(converter: converter, recording: recording, sources: sources, writer: writer)
     }
 
-    private func converterSnapshots(event: ExchangeEventIdentifier, role: ConverterRole, statesGateway: Bool) throws -> ConverterSnapshots {
-        let host = try hostSnapshot(envelope.host, event: event)
-        let application = try applicationSnapshot(envelope.application, event: event, parentURL: host.url)
+    /// The converting application's snapshot and its host's, which every record of the envelope shares.
+    func applicationSnapshots() throws(ExchangeIdentityError) -> (host: IdentifiedDevice, application: IdentifiedDevice) {
+        let host = try hostSnapshot(envelope.host)
+        return (host, try applicationSnapshot(envelope.application, parentURL: host.url))
+    }
+
+    private func converterSnapshots(role: ConverterRole, statesGateway: Bool) throws -> ConverterSnapshots {
+        let (host, application) = try applicationSnapshots()
         switch role {
         case .assembler:
             return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: nil)
         case .gateway:
             return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: application.url)
-        case .gatewayApplication(let gatewayApplication) where gatewayApplication.sourceDeviceToken == envelope.application.sourceDeviceToken:
-            // The named gateway is the converting application itself: one snapshot key, so it is the converter's
-            // snapshot, as under `.gateway`, never a second entry under the same key.
+        case .gatewayApplication(let gatewayApplication) where gatewayApplication.isSameRelease(as: envelope.application):
+            // The named gateway is the converting application itself, as under `.gateway`.
             return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: application.url)
         case .gatewayApplication(let gatewayApplication):
             guard statesGateway else {
                 return ConverterSnapshots(host: host, application: application, gateway: nil, gatewayURL: nil)
             }
-            let gateway = try applicationSnapshot(gatewayApplication, event: event, parentURL: nil)
+            let gateway = try applicationSnapshot(gatewayApplication, parentURL: nil)
             return ConverterSnapshots(host: host, application: application, gateway: gateway, gatewayURL: gateway.url)
         }
     }
 
-    private func recordingSnapshot(_ draft: ExchangeRecordingDeviceDraft?, event: ExchangeEventIdentifier) throws -> IdentifiedDevice? {
-        guard let draft else {
-            return nil
-        }
+    /// The recording Device of `device`: every fact it states, then its unit identity when it has a token, then its key.
+    private func recordingSnapshot(_ device: RecordingDevice) throws -> IdentifiedDevice {
         let scope = envelope.identityScope
-        let stable = try scope.recordingDevice(
-            adapterID: envelope.adapter.adapterID,
-            subject: envelope.subject.identifier,
-            stableUnitToken: draft.device.stableUnitToken
-        )
-        let snapshot = try scope.deviceSnapshot(event: event, role: .recordingDevice, sourceDeviceToken: draft.device.stableUnitToken)
-        var resource = draft.resource
-        resource.identifier = [snapshot.fhirIdentifier, stable.fhirIdentifier]
-        return try IdentifiedDevice(resource: resource, identity: snapshot)
+        var resource = Self.recordingDevice(device, localIdentifierSystem: scope.systems.deviceLocalIdentifier)
+        if let token = device.stableUnitToken?.nonBlank {
+            let unit = try scope.recordingDevice(
+                adapterID: envelope.adapter.adapterID,
+                subject: envelope.subject.identifier,
+                tokenScope: device.tokenScope ?? "",
+                stableUnitToken: token
+            )
+            resource.identifier = [unit.fhirIdentifier] + (resource.identifier ?? [])
+        }
+        return try IdentifiedDevice(keying: resource, role: .recordingDevice, subject: envelope.subject.identifier, identityScope: scope)
     }
 
-    private func writerSnapshots(
-        _ writer: ExchangeWriterDraft?,
-        event: ExchangeEventIdentifier,
-        converter: ConverterSnapshots
-    ) throws -> WriterSnapshots? {
+    private func writerSnapshots(_ writer: ExchangeWriterDraft?, converter: ConverterSnapshots) throws -> WriterSnapshots? {
         guard let writer else {
             return nil
         }
-        let host = try hostSnapshot(writer.host, event: event)
-        var snapshot = try applicationSnapshot(writer.application, event: event, parentURL: host.url)
-        if !writer.statesVersion {
-            let versions = snapshot.resource.version?.filter { version in
-                version.type?.coding?.contains { $0.system == Canonicals.mdc && $0.code == "531975" } != true
-            }
-            snapshot.resource.version = versions?.isEmpty == false ? versions : nil
-        }
+        let host = try hostSnapshot(writer.host)
+        let snapshot = try applicationSnapshot(writer.application, parentURL: host.url, statesVersion: writer.statesVersion)
         return WriterSnapshots(
             application: snapshot,
             host: host,
@@ -125,38 +121,48 @@ extension ExchangeGraphAssembler {
         )
     }
 
-
-    private func hostSnapshot(_ host: HostDevice, event: ExchangeEventIdentifier) throws -> IdentifiedDevice {
-        let identity = try envelope.identityScope.deviceSnapshot(event: event, role: .host, sourceDeviceToken: host.sourceDeviceToken)
-        var resource = Self.hostDevice(
-            operatingSystemVersion: host.operatingSystemVersion,
-            modelNumber: host.modelNumber,
-            name: host.name,
-            manufacturer: host.manufacturer
+    private func hostSnapshot(_ host: HostDevice) throws(ExchangeIdentityError) -> IdentifiedDevice {
+        try IdentifiedDevice(
+            keying: Self.hostDevice(host),
+            role: .host,
+            subject: envelope.subject.identifier,
+            identityScope: envelope.identityScope
         )
-        resource.identifier = [identity.fhirIdentifier]
-        return try IdentifiedDevice(resource: resource, identity: identity)
     }
 
     private func applicationSnapshot(
         _ application: ApplicationDevice,
-        event: ExchangeEventIdentifier,
-        parentURL: String?
-    ) throws -> IdentifiedDevice {
-        let identity = try envelope.identityScope.deviceSnapshot(
-            event: event,
-            role: .application,
-            sourceDeviceToken: application.sourceDeviceToken
-        )
+        parentURL: String?,
+        statesVersion: Bool = true
+    ) throws(ExchangeIdentityError) -> IdentifiedDevice {
         var resource = Self.applicationDevice(
             name: application.name,
             version: application.version,
             build: application.build,
             profile: envelope.adapter.applicationDeviceProfile
         )
-        resource.identifier = [identity.fhirIdentifier] + (envelope.adapter.applicationIdentifier?(application).map { [$0] } ?? [])
+        if !statesVersion {
+            let versions = resource.version?.filter { version in
+                version.type?.coding?.contains { $0.system == Canonicals.mdc && $0.code == "531975" } != true
+            }
+            resource.version = versions?.isEmpty == false ? versions : nil
+        }
+        resource.identifier = envelope.adapter.applicationIdentifier?(application).map { [$0] }
         resource.parent = parentURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
-        return try IdentifiedDevice(resource: resource, identity: identity)
+        return try IdentifiedDevice(
+            keying: resource,
+            role: .application,
+            subject: envelope.subject.identifier,
+            identityScope: envelope.identityScope
+        )
+    }
+}
+
+
+extension ApplicationDevice {
+    /// Whether `other` states the same release of the same application.
+    fileprivate func isSameRelease(as other: ApplicationDevice) -> Bool {
+        bundleIdentifier == other.bundleIdentifier && version == other.version && build == other.build
     }
 }
 
@@ -164,12 +170,12 @@ extension ExchangeGraphAssembler {
 // MARK: - Device Bodies
 
 extension ExchangeGraphAssembler {
-    /// The body of an application Device snapshot as every exchange graph states it: the profile, the status, the
-    /// user-friendly name, the version, and the build when there is one.
+    /// The body of an application Device snapshot as every record states it: the profile, the status, the user-friendly
+    /// name, the version, and the build when there is one.
     ///
-    /// The caller adds the snapshot identity, any clear identifiers and the parent host. The assembler states the
-    /// converting application and the writer this way, and Questionnaire its writer, which names its own identifier and
-    /// may state no host.
+    /// The caller adds any clear identifiers and the parent host, then keys it. The assembler states the converting
+    /// application and the writer this way, and Questionnaire its writer, which names its own identifier and may state
+    /// no host.
     package static func applicationDevice(
         name: String,
         version: String,
@@ -191,26 +197,108 @@ extension ExchangeGraphAssembler {
         return device
     }
 
-    /// The body of a host Device snapshot as every exchange graph states it: the profile, the status, the name,
-    /// manufacturer and model when known, and the operating-system version.
+    /// The body of a host Device snapshot as every record states it: the profile, the status, the name and model name,
+    /// the manufacturer and product type, and the operating system's version, name and build.
     ///
-    /// The caller adds the snapshot identity.
-    package static func hostDevice(
-        operatingSystemVersion: String,
-        modelNumber: String?,
-        name: String? = nil,
-        manufacturer: String? = nil
-    ) -> Device {
+    /// The caller keys it.
+    package static func hostDevice(_ host: HostDevice) -> Device {
         var device = Device()
         device.meta = Meta(profile: [Profile.groveHostDevice])
         device.status = FHIRPrimitive(.active)
-        if let name {
-            device.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
+        device.deviceName = nonEmpty(deviceNames(name: host.name, modelName: host.model))
+        device.manufacturer = host.manufacturer?.asFHIRStringPrimitive()
+        device.modelNumber = host.productType?.asFHIRStringPrimitive()
+        var versions = [groveVersion("os-version", "Operating system version", host.operatingSystemVersion)]
+        if let name = host.operatingSystemName {
+            versions.append(groveVersion("os-name", "Operating system name", name))
         }
-        device.manufacturer = manufacturer?.asFHIRStringPrimitive()
-        device.modelNumber = modelNumber?.asFHIRStringPrimitive()
-        device.version = [groveVersion("os-version", "Operating system version", operatingSystemVersion)]
+        if let build = host.operatingSystemBuild {
+            versions.append(groveVersion("os-build", "Operating system build", build))
+        }
+        device.version = versions
         return device
+    }
+
+    /// The body of a recording Device as every record states it: the profile, the status and every fact `device` sets.
+    ///
+    /// The caller adds the unit identity when there is one, then keys it.
+    ///
+    /// - Parameter localIdentifierSystem: The deployment's system for the clear local identifier.
+    package static func recordingDevice(_ device: RecordingDevice, localIdentifierSystem: IdentifierSystem) -> Device {
+        var resource = Device()
+        resource.meta = Meta(profile: [Profile.groveRecordingDevice])
+        resource.status = FHIRPrimitive(.active)
+        let model = device.model?.nonBlank
+        let productType = device.productType?.nonBlank
+        resource.deviceName = nonEmpty(deviceNames(name: device.name?.nonBlank, modelName: productType == nil ? nil : model))
+        resource.manufacturer = device.manufacturer?.nonBlank?.asFHIRStringPrimitive()
+        resource.modelNumber = (productType ?? model)?.asFHIRStringPrimitive()
+        resource.serialNumber = device.serialNumber?.nonBlank?.asFHIRStringPrimitive()
+        resource.version = nonEmpty(recordingVersions(of: device))
+        if let localIdentifier = device.localIdentifier?.nonBlank {
+            resource.identifier = [Identifier(
+                system: localIdentifierSystem.uri,
+                type: CodeableConcept(coding: [Coding(code: "device-local-identifier", system: Canonicals.groveDeviceIdentifierType)]),
+                value: localIdentifier.asFHIRStringPrimitive()
+            )]
+        }
+        resource.udiCarrier = udiCarrier(of: device).map { [$0] }
+        return resource
+    }
+
+    private static func recordingVersions(of device: RecordingDevice) -> [DeviceVersion] {
+        var versions: [DeviceVersion] = []
+        for (value, code, display) in [
+            (device.hardwareVersion, "531974", "MDC_ID_PROD_SPEC_HW"),
+            (device.firmwareVersion, "531976", "MDC_ID_PROD_SPEC_FW"),
+            (device.softwareVersion, "531975", "MDC_ID_PROD_SPEC_SW")
+        ] {
+            if let value = value?.nonBlank {
+                versions.append(DeviceVersion(
+                    type: CodeableConcept(coding: [Coding(
+                        code: code.asFHIRStringPrimitive(),
+                        display: display.asFHIRStringPrimitive(),
+                        system: Canonicals.mdc
+                    )]),
+                    value: value.asFHIRStringPrimitive()
+                ))
+            }
+        }
+        if let name = device.systemName?.nonBlank {
+            versions.append(groveVersion("os-name", "Operating system name", name))
+        }
+        if let version = device.systemVersion?.nonBlank {
+            versions.append(groveVersion("os-version", "Operating system version", version))
+        }
+        return versions
+    }
+
+    /// `Device.udiCarrier`; R4 has no element for the raw production identifier, so an extension carries it.
+    private static func udiCarrier(of device: RecordingDevice) -> DeviceUdiCarrier? {
+        let identifier = device.udiDeviceIdentifier?.nonBlank
+        let production = device.udiProductionIdentifier?.nonBlank
+        guard identifier != nil || production != nil else {
+            return nil
+        }
+        var carrier = DeviceUdiCarrier(deviceIdentifier: identifier?.asFHIRStringPrimitive())
+        carrier.extension = production.map { [Extension(url: Canonicals.udiProductionIdentifier, value: .string($0.asFHIRStringPrimitive()))] }
+        return carrier
+    }
+
+    private static func deviceNames(name: String?, modelName: String?) -> [DeviceDeviceName] {
+        var names: [DeviceDeviceName] = []
+        if let name {
+            names.append(DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName)))
+        }
+        if let modelName {
+            names.append(DeviceDeviceName(name: modelName.asFHIRStringPrimitive(), type: FHIRPrimitive(.modelName)))
+        }
+        return names
+    }
+
+    /// `elements`, or `nil` for an element FHIR forbids stating empty.
+    private static func nonEmpty<Element>(_ elements: [Element]) -> [Element]? { // swiftlint:disable:this discouraged_optional_collection
+        elements.isEmpty ? nil : elements
     }
 
     private static func groveVersion(_ code: String, _ display: String, _ value: String) -> DeviceVersion {

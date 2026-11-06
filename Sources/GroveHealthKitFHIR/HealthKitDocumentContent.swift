@@ -60,8 +60,7 @@ struct DocumentPlan: Sendable {
     }
 
     /// A heartbeat series' beats in the plan's format, the registry's `beat-interval-series` column schema: one row per
-    /// beat, its instant in epoch seconds and whether a gap preceded it. A series without beats is refused. The
-    /// exporter's companion fingerprint digests exactly these bytes.
+    /// beat, its instant in epoch seconds and whether a gap preceded it. A series without beats is refused.
     func beatIntervals(seriesStart: Date, heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> Data {
         guard !heartbeats.isEmpty else {
             throw HealthKitConversionError.ValueFailure.emptyRecordingSeries
@@ -78,7 +77,7 @@ struct DocumentPlan: Sendable {
 
     /// A workout route's fixes in the plan's format, the registry's `location-track-samples` column schema, one row
     /// per fix. A route without fixes is refused. A negative accuracy is an unavailable reading: its cell is empty,
-    /// while the source's coordinates and row remain. The exporter's companion fingerprint digests exactly these bytes.
+    /// while the source's coordinates and row remain.
     func locationTrack(_ locations: [CLLocation]) throws -> Data {
         guard !locations.isEmpty else {
             throw HealthKitConversionError.ValueFailure.emptyRecordingSeries

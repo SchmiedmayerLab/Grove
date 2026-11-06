@@ -12,9 +12,8 @@ import Foundation
 public enum ExchangeGraphError: Error, Equatable, Sendable {
     case notCollectionBundle
     case missingTimestamp
-    case missingEventIdentifier
-    case invalidEventIdentifier
-    case eventIdentifierMismatch
+    /// A record's version does not recompute under the identity key.
+    case invalidRecordVersion
     case invalidEntries(String)
     case ruleViolation(ExchangeGraphRule)
     case contractViolation(ProducerDiagnostic)
@@ -29,8 +28,9 @@ public enum ExchangeGraphError: Error, Equatable, Sendable {
             rule.diagnostic
         case .contractViolation(let diagnostic):
             diagnostic
-        case .notCollectionBundle, .missingTimestamp, .missingEventIdentifier, .invalidEventIdentifier,
-             .eventIdentifierMismatch, .invalidEntries:
+        case .missingTimestamp:
+            ExchangeGraphRule.mobileExchangeRecordTimes.diagnostic
+        case .notCollectionBundle, .invalidRecordVersion, .invalidEntries:
             ExchangeGraphRule.mobileExchangeUnclassified.diagnostic
         }
     }
@@ -46,13 +46,12 @@ extension ExchangeGraphRule {
     /// Where the Swift producer checks each rule it raises; the conformance corpus fixes these paths.
     package var location: String {
         switch self {
-        case .mobileExchangeEntryNodeKey: "Bundle.entry[0]"
+        case .mobileExchangeEntryKey: "Bundle.entry[0]"
+        case .mobileExchangeRecordTimes: "Bundle.timestamp"
         case .mobileExchangeDeterministicFullUrl: "Bundle.entry[1].fullUrl"
         case .mobileExchangeResolvedReference: "Bundle.entry[2].resource.subject.reference"
         case .mobileOutputFixedQuantityUnit: "Bundle.entry[2].resource.valueQuantity.code"
         case .mobileOutputQuantityValueDomain: "Bundle.entry[2].resource.valueQuantity.value"
-        case .mobileExchangeEventIdentity: "Bundle.identifier.value"
-        case .mobileExchangeEntryNodeDigest, .mobileExchangeEntryNodeOrdinal: "Bundle.entry[0].extension.valueIdentifier.value"
         case .mobileOutputSourceOutputRequired: "Bundle.entry[2].resource.identifier"
         case .mobileExchangeTransformProvenance, .mobileSupportConnected, .mobileExchangeCollectionEntryOperation,
              .mobileExchangeEntryRequired, .mobileExchangeOutputRequired, .mobileRetractionProvenance,
@@ -81,7 +80,6 @@ extension ExchangeGraphRule {
         case .mobileDeviceRecordingDeviceDualIdentity: "Device.identifier"
         case .sensorRecordingDocumentIdentityAndContent: "DocumentReference.identifier"
         case .mobileExchangeOpaqueResourceIdentity: "Bundle.entry[0].resource.identifier"
-        case .mobileOmissionRecordingDevice: "Observation.device"
         case .mobileOmissionSourceOffset: "Observation.effective"
         case .mobileOmissionUnmodeledMetadata, .mobileOmissionRecordingMethod: "Observation.extension"
         default: "Bundle"

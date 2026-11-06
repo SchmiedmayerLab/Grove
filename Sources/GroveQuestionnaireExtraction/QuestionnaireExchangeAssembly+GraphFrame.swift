@@ -13,7 +13,8 @@ import ModelsR4
 
 // MARK: Frame
 
-/// The event-scoped identities of one projection, which every entry and internal reference resolves against.
+/// The shared nodes of one projection, which every entry and internal reference resolves against. Each is keyed after
+/// the nodes it references.
 struct GraphFrame {
     /// The discriminator of every Observation's source-output identity: a response extracts each measurement once,
     /// so its contract's id alone tells the outputs apart.
@@ -21,10 +22,10 @@ struct GraphFrame {
 
     let extracted: ExtractedResponse
     let context: QuestionnaireExtractionContext
-    let patientNode: EntryNodeKey
+    let patientEntry: BundleEntry
     let patientReference: Reference
     let studies: StudyContext
-    let responseNode: EntryNodeKey
+    let responseEntry: BundleEntry
     let responseURL: String
     let host: IdentifiedDevice?
     let application: IdentifiedDevice
@@ -33,19 +34,19 @@ struct GraphFrame {
     init(extracted: ExtractedResponse, context: QuestionnaireExtractionContext) throws {
         self.extracted = extracted
         self.context = context
-        let patientNode = try Self.nodeKey("patient", context: context)
-        self.patientNode = patientNode
-        let patientReference = Reference(reference: try patientNode.identifier.fullURLString.asFHIRStringPrimitive())
+        let patientEntry = try StudyContext.patientEntry(context.patient, subject: context.subject, identityScope: context.identityScope)
+        self.patientEntry = patientEntry
+        let patientReference = Reference(reference: patientEntry.fullUrl?.value?.url.absoluteString.asFHIRStringPrimitive())
         self.patientReference = patientReference
         self.studies = try StudyContext(
             studies: context.studies,
+            subject: context.subject,
             subjectReference: patientReference,
-            event: context.eventIdentifier,
             identityScope: context.identityScope
         )
-        let responseNode = try Self.nodeKey("questionnaire-response", context: context)
-        self.responseNode = responseNode
-        self.responseURL = try responseNode.identifier.fullURLString
+        let responseEntry = try Self.responseEntry(extracted: extracted, patientReference: patientReference, context: context)
+        self.responseEntry = responseEntry
+        self.responseURL = responseEntry.fullUrl?.value?.url.absoluteString ?? ""
         let host = try Self.hostDevice(writer: extracted.writer, context: context)
         self.host = host
         let application = try Self.applicationDevice(
@@ -57,23 +58,14 @@ struct GraphFrame {
         self.applicationURL = application.url
     }
 
-    /// The ordinal counts within the node role, not across the Bundle, so a graph carrying one
-    /// node per keyless role numbers every one of them zero.
-    static func nodeKey(_ role: String, context: QuestionnaireExtractionContext) throws -> EntryNodeKey {
-        try EntryNodeKey(
-            system: context.identityScope.systems.entryNode,
-            event: context.eventIdentifier,
-            nodeRole: role,
-            ordinal: 0
-        )
-    }
-}
-
-
-// MARK: Entries
-
-extension GraphFrame {
-    func supportEntries() throws -> [BundleEntry] {
+    /// The response the record carries, keyed by its content. Its one `identifier` holds the submission's, so it repeats
+    /// the key in a `grove-context-snapshot` extension, which replaces any the input carries: the key is derived, and its
+    /// digest leaves that extension out.
+    private static func responseEntry(
+        extracted: ExtractedResponse,
+        patientReference: Reference,
+        context: QuestionnaireExtractionContext
+    ) throws -> BundleEntry {
         // The exchange copy resolves the response's actor references inside the Bundle: a literal
         // repository reference cannot resolve here, and the extraction has already established that
         // author and source, where stated, are the subject.
@@ -85,10 +77,25 @@ extension GraphFrame {
         if carriedResponse.source != nil {
             carriedResponse.source = patientReference
         }
+        let key = try context.identityScope.contentSnapshot(
+            of: carriedResponse,
+            subject: context.subject,
+            role: .context(.questionnaireResponse)
+        )
+        carriedResponse.extension = (carriedResponse.extension ?? []).filter { $0.url != Canonicals.contextSnapshot }
+            + [Extension(url: Canonicals.contextSnapshot, value: .identifier(key.fhirIdentifier))]
+        return try BundleEntry(identifier: key, resource: ResourceProxy(with: carriedResponse))
+    }
+}
 
-        var entries = [try BundleEntry(identifier: patientNode.identifier, resource: ResourceProxy(with: context.patient))]
+
+// MARK: Entries
+
+extension GraphFrame {
+    func supportEntries() -> [BundleEntry] {
+        var entries = [patientEntry]
         entries += studies.entries
-        entries.append(try BundleEntry(identifier: responseNode.identifier, resource: ResourceProxy(with: carriedResponse)))
+        entries.append(responseEntry)
         for device in [host, application].compactMap(\.self) {
             entries.append(device.entry)
         }
@@ -104,33 +111,15 @@ extension GraphFrame {
         return (entry, try output.fullURLString)
     }
 
-    func provenanceEntry(targets: [String]) throws -> BundleEntry {
+    func provenance(targets: [String]) throws -> Provenance {
         // The writer's application assembled the outputs; `occurred` keeps the offset the response was authored at.
-        try BundleEntry(
-            identifier: try Self.nodeKey("conversion-provenance", context: context).identifier,
-            resource: ResourceProxy(with: try ExchangeGraphAssembler.conversionProvenance(
-                of: extracted.sourceRecord,
-                targetURLs: targets,
-                assemblerURL: applicationURL,
-                profile: Profile.groveMobileConversionProvenance,
-                at: context.conversionInstant,
-                occurredOffset: try Self.statedOffset(of: extracted.authored)
-            ))
-        )
-    }
-
-    func graph(entries: [BundleEntry]) throws -> ExchangeGraph {
-        let bundle = Bundle(
-            entry: entries,
-            identifier: context.eventIdentifier.identifier.fhirIdentifier,
-            meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
-            timestamp: FHIRPrimitive(try ExchangeInstant.fhirInstant(context.conversionInstant)),
-            type: FHIRPrimitive(.collection)
-        )
-        return try ExchangeGraph(
-            kind: .active,
-            eventIdentifier: context.eventIdentifier,
-            bundle: bundle
+        try ExchangeGraphAssembler.conversionProvenance(
+            of: extracted.sourceRecord,
+            targetURLs: targets,
+            assemblerURL: applicationURL,
+            profile: Profile.groveMobileConversionProvenance,
+            at: context.conversionInstant,
+            occurredOffset: try Self.statedOffset(of: extracted.authored)
         )
     }
 }
@@ -167,9 +156,8 @@ extension GraphFrame {
     /// The offset `authored` states, as a fixed zone; `Provenance.occurred` states the conversion instant at it.
     ///
     /// A response built in memory can carry a named zone, whose offset at the conversion instant can differ across a
-    /// daylight-saving change, while its JSON, which the request fingerprints, keeps only the stated offset. Following
-    /// the stated offset keeps `occurred` a function of those bytes, so either form of one response restates its event
-    /// byte for byte.
+    /// daylight-saving change, while its JSON keeps only the stated offset. Following the stated offset keeps `occurred` a
+    /// function of those bytes, so either form of one response restates its record byte for byte.
     static func statedOffset(of authored: DateTime) throws -> TimeZone {
         guard let zone = authored.timeZone else {
             return .utc
@@ -231,22 +219,27 @@ extension GraphFrame {
 // MARK: Devices
 
 extension GraphFrame {
-    /// The writer's host snapshot, when the writer context names both its model and its operating-system version.
+    /// The writer's host snapshot, when the writer context names the operating-system version every host snapshot states.
+    /// The writer's model is the host's product type.
     static func hostDevice(
         writer: QuestionnaireWriterContext,
         context: QuestionnaireExtractionContext
     ) throws -> IdentifiedDevice? {
-        guard let model = writer.hostModel, let osVersion = writer.hostOperatingSystemVersion else {
+        guard let osVersion = writer.hostOperatingSystemVersion else {
             return nil
         }
-        let identity = try context.identityScope.deviceSnapshot(
-            event: context.eventIdentifier,
-            role: .host,
-            sourceDeviceToken: HostDevice.sourceDeviceToken(modelNumber: model, operatingSystemVersion: osVersion)
+        let host = try HostDevice(
+            operatingSystemName: writer.hostOperatingSystemName,
+            operatingSystemVersion: osVersion,
+            operatingSystemBuild: writer.hostOperatingSystemBuild,
+            productType: writer.hostModel
         )
-        var device = ExchangeGraphAssembler.hostDevice(operatingSystemVersion: osVersion, modelNumber: model)
-        device.identifier = [identity.fhirIdentifier]
-        return try IdentifiedDevice(resource: device, identity: identity)
+        return try IdentifiedDevice(
+            keying: ExchangeGraphAssembler.hostDevice(host),
+            role: .host,
+            subject: context.subject,
+            identityScope: context.identityScope
+        )
     }
 
     /// The writer's application snapshot, carrying the writer's own identifier and naming its host when there is one.
@@ -255,23 +248,14 @@ extension GraphFrame {
         context: QuestionnaireExtractionContext,
         hostURL: String?
     ) throws -> IdentifiedDevice {
-        let identity = try context.identityScope.deviceSnapshot(
-            event: context.eventIdentifier,
-            role: .application,
-            sourceDeviceToken: ApplicationDevice.sourceDeviceToken(
-                bundleIdentifier: writer.applicationIdentifier.value,
-                version: writer.applicationVersion,
-                build: writer.applicationBuild
-            )
-        )
         var device = ExchangeGraphAssembler.applicationDevice(
             name: writer.applicationName,
             version: writer.applicationVersion,
             build: writer.applicationBuild,
             profile: Profile.groveApplicationDevice
         )
-        device.identifier = [identity.fhirIdentifier, writer.applicationIdentifier.fhirIdentifier]
+        device.identifier = [writer.applicationIdentifier.fhirIdentifier]
         device.parent = hostURL.map { Reference(reference: $0.asFHIRStringPrimitive()) }
-        return try IdentifiedDevice(resource: device, identity: identity)
+        return try IdentifiedDevice(keying: device, role: .application, subject: context.subject, identityScope: context.identityScope)
     }
 }

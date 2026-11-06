@@ -33,9 +33,6 @@ enum ContentCorpusRecorder {
         case refused(HealthKitConversionError)
     }
 
-    /// The event sequence every vector exports under; an ECG's symptoms take the sequences after it.
-    static let sequence: UInt64 = 300
-
     /// The output resources a graph's content layer produces; every other entry is envelope.
     private static let outputResourceTypes: Set<String> = [ResourceType.observation.rawValue, ResourceType.documentReference.rawValue]
 
@@ -64,7 +61,6 @@ enum ContentCorpusRecorder {
         }
         let stored = try StoredSampleFixtures.stored(sample, uuid: ContentCorpusSamples.uuid, writer: .unattributed)
         var inputs = ExportInputs()
-        inputs.sequence = sequence
         let exports = try await ExporterFixtures.exports(.sample(stored), inputs)
         if exports.count == 1, case .refused(let error) = exports[0].outcome {
             return refusal(error)
@@ -108,7 +104,6 @@ enum ContentCorpusRecorder {
     /// with routes disclosed when its route is.
     static func inputs(for source: ContentCorpusSource) -> ExportInputs {
         var inputs = ExportInputs()
-        inputs.sequence = sequence
         if source.context == .linked {
             inputs.options.role = .gateway
             inputs.studies = [.test("study-a")]
@@ -132,10 +127,10 @@ enum ContentCorpusRecorder {
     /// One export's output resources as its graph's wire bytes state them, its envelope, and its warnings, each as its
     /// registry code and the element it names.
     static func graph(_ export: HealthKitFHIRExporter.Export) throws -> LosslessJSONValue {
-        guard let graph = export.graph else {
+        guard let record = export.record else {
             return .string("unexpected outcome \(export.outcome)")
         }
-        let bundle = try LosslessJSONValue(parsing: graph.json)
+        let bundle = try LosslessJSONValue(parsing: record.json)
         let entries = bundle["entry"]?.elements ?? []
         return .object([
             "outputs": .array(entries.compactMap { $0["resource"] }.filter(isOutput)),

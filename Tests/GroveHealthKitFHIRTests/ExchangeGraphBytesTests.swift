@@ -16,69 +16,67 @@ import ModelsR4
 import Testing
 
 
-/// Pins the bytes a graph exposes: its canonical encoding when built from a model, the given bytes
-/// when re-validated, and the event identifier beside them.
+/// Pins the bytes a record and a graph expose: a record's canonical encoding, and the given bytes when re-validated.
 @Suite
 struct ExchangeGraphBytesTests {
-    private static var canonicalEncoder: JSONEncoder {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        return encoder
-    }
-
-    @Test("A built graph holds the sorted-member, slash-unescaped encoding of its bundle", arguments: GoldenCase.all)
-    func builtGraphHoldsCanonicalBytes(_ goldenCase: GoldenCase) async throws {
-        let graph = try await goldenCase.output().graph
-        #expect(try graph.json == Self.canonicalEncoder.encode(graph.bundle))
-        #expect(!String(decoding: graph.json, as: UTF8.self).contains("\\/"))
-        let defaultTokens = try LosslessJSONValue(parsing: JSONEncoder().encode(graph.bundle))
-        #expect(try LosslessJSONValue(parsing: graph.json) == defaultTokens, "the canonical bytes carry other tokens than the default encoding")
+    @Test("A record holds the canonical encoding of its Bundle", arguments: GoldenCase.all)
+    func recordHoldsCanonicalBytes(_ goldenCase: GoldenCase) async throws {
+        let record = try await goldenCase.output().record
+        let tokens = try LosslessJSONValue(parsing: record.json)
+        #expect(tokens.canonicalBytes() == record.json)
+        #expect(!String(decoding: record.json, as: UTF8.self).contains("\\/"))
+        let defaultTokens = try LosslessJSONValue(parsing: JSONEncoder().encode(record.bundle))
+        #expect(tokens == defaultTokens, "the canonical bytes carry other tokens than the default encoding")
     }
 
     @Test("Two builds from the same inputs yield the same bytes, not only the same tokens")
     func builtBytesAreDeterministic() async throws {
         for goldenCase in GoldenCase.all.prefix(4) {
-            let first = try await goldenCase.output().graph.json
-            let second = try await goldenCase.output().graph.json
+            let first = try await goldenCase.output().record.json
+            let second = try await goldenCase.output().record.json
             #expect(first == second, "\(goldenCase.name)")
         }
     }
 
-    @Test("Re-validation keeps exactly the given bytes and the same event", arguments: GoldenCase.all)
+    @Test("Re-validation keeps exactly the given bytes, and reads the same record back", arguments: GoldenCase.all)
     func revalidationKeepsGivenBytes(_ goldenCase: GoldenCase) async throws {
-        let graph = try await goldenCase.output().graph
-        let restored = try ExchangeGraph(validating: graph.json, kind: graph.kind)
-        #expect(restored.json == graph.json)
-        #expect(restored.kind == graph.kind)
-        #expect(restored.event == graph.event)
-        #expect(restored.eventIdentifier == graph.eventIdentifier)
-        #expect(restored.isSemanticallyEqual(to: graph))
-        #expect(restored.bundle.entry?.count == graph.bundle.entry?.count)
+        let record = try await goldenCase.output().record
+        let graph = record.graph
+        #expect(graph.json == record.json)
+        let restored = try ExchangeRecord(validating: record.json)
+        #expect(restored.json == record.json)
+        #expect(restored.kind == record.kind)
+        #expect(restored.version == record.version)
+        #expect(restored.sourceRecord == record.sourceRecord)
+        #expect(restored.outputFullURLs == record.outputFullURLs)
+        #expect(restored.sharedNodeFullURLs == record.sharedNodeFullURLs)
+        #expect(try graph.records().map(\.version) == [record.version])
+        try record.verifyVersion(in: TestDeployment.test().identityScope)
     }
 
     @Test("Re-validation keeps bytes that are not the canonical encoding")
     func revalidationKeepsForeignBytes() async throws {
-        let graph = try await #require(GoldenCase.all.first).output().graph
+        let graph = try await #require(GoldenCase.all.first).output().record.graph
         let pretty = JSONEncoder()
         pretty.outputFormatting = [.prettyPrinted]
         let foreign = try pretty.encode(graph.bundle)
         #expect(foreign != graph.json)
         let restored = try ExchangeGraph(validating: foreign, kind: graph.kind)
         #expect(restored.json == foreign)
-        #expect(restored.isSemanticallyEqual(to: graph))
+        #expect(try LosslessJSONValue(parsing: foreign) == LosslessJSONValue(parsing: graph.json))
     }
 
     /// The bytes are what travels, while the rules decide over the model, so a member the model drops is refused, at
     /// the Bundle and inside a resource alike; a decimal lexeme the model rewrites is not a dropped member.
     @Test("Re-validation refuses members the FHIR model does not keep")
     func revalidationRefusesMembersTheModelDrops() async throws {
-        let graph = try await #require(GoldenCase.all.first).output().graph
+        let graph = try await #require(GoldenCase.all.first).output().record.graph
         func edited(_ change: (inout [String: Any]) throws -> Void) throws -> Data {
             var bundle = try #require(try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])
             try change(&bundle)
             return try JSONSerialization.data(withJSONObject: bundle, options: [.sortedKeys, .withoutEscapingSlashes])
         }
-        let refusal = ExchangeGraphError.invalidEntries("Serialized event carries content the model does not keep")
+        let refusal = ExchangeGraphError.invalidEntries("Serialized Bundle carries content the model does not keep")
         #expect(throws: refusal) {
             try ExchangeGraph(validating: try edited { $0["note"] = "not a Bundle element" }, kind: graph.kind)
         }
@@ -101,7 +99,7 @@ struct ExchangeGraphBytesTests {
     /// decimal beyond the model's precision, which it rounds.
     @Test("Re-validation refuses values the FHIR model rewrites")
     func revalidationRefusesValuesTheModelRewrites() async throws {
-        let graph = try await #require(GoldenCase.all.first).output().graph
+        let graph = try await #require(GoldenCase.all.first).output().record.graph
         let json = String(decoding: graph.json, as: UTF8.self)
         let rewrites = [
             (#"healthkit-conversion-provenance""#, #"healthkit-conversion-provenance|""#),
@@ -110,7 +108,7 @@ struct ExchangeGraphBytesTests {
         for (original, rewritten) in rewrites {
             let edited = json.replacingOccurrences(of: original, with: rewritten)
             #expect(edited != json)
-            #expect(throws: ExchangeGraphError.invalidEntries("Serialized event carries content the model does not keep")) {
+            #expect(throws: ExchangeGraphError.invalidEntries("Serialized Bundle carries content the model does not keep")) {
                 try ExchangeGraph(validating: Data(edited.utf8), kind: graph.kind)
             }
         }
@@ -138,10 +136,10 @@ struct ExchangeGraphBytesTests {
 
     @Test("The validating initializer rejects bytes that are not strict JSON, and another kind")
     func validatingRejectsNonStrictJSON() async throws {
-        let graph = try await #require(GoldenCase.all.first).output().graph
+        let graph = try await #require(GoldenCase.all.first).output().record.graph
         var corrupted = graph.json
         corrupted.append(contentsOf: Array("}".utf8))
-        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
+        #expect(throws: ExchangeGraphError.invalidEntries("Serialized Bundle is not strict JSON")) {
             try ExchangeGraph(validating: corrupted, kind: graph.kind)
         }
         #expect(throws: ExchangeGraphError.self) {
@@ -149,13 +147,14 @@ struct ExchangeGraphBytesTests {
         }
     }
 
-    @Test("The event is the Bundle's identifier")
-    func eventIsTheBundleIdentifier() async throws {
-        let graph = try await #require(GoldenCase.all.first).output().graph
-        #expect(graph.event == graph.eventIdentifier.identifier.identifier)
-        #expect(graph.event.value == graph.bundle.identifier?.value?.value?.string)
-        #expect(graph.event.system.rawValue == graph.bundle.identifier?.system?.value?.url.absoluteString)
-        #expect(graph.event.value.hasPrefix("e0:"))
+    @Test("A record names no Bundle.id or Bundle.identifier, and its timestamp is its Provenance.recorded")
+    func recordsNameNoBundleIdentity() async throws {
+        let record = try await #require(GoldenCase.all.first).output().record
+        let bundle = record.bundle
+        #expect(bundle.id == nil)
+        #expect(bundle.identifier == nil)
+        let provenance = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        #expect(bundle.timestamp?.value == provenance.recorded.value)
     }
 }
 

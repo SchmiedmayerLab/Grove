@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GroveFHIRContract
 @testable import GroveQuestionnaireExtraction
 import ModelsR4
 import Testing
@@ -32,15 +33,43 @@ struct ExtractionConformanceFixtureTests {
 
     @Test
     func writeExtractionConformanceFixtures() throws {
-        let graph = try ObservationExtractionTests.projectedGraph()
+        let record = try ObservationExtractionTests.projectedRecord()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
         try FileManager.default.createDirectory(
             at: Self.fixtureDirectory,
             withIntermediateDirectories: true
         )
-        try encoder.encode(graph.bundle).write(
+        try encoder.encode(record.bundle).write(
             to: Self.fixtureDirectory.appendingPathComponent("extraction-exchange-bundle.json")
         )
+    }
+
+    /// Writes the guide's response and a second one as one Bundle, and their withdrawals as another, as an upload packs them.
+    @Test
+    func writePackedBundles() async throws {
+        let records = try [
+            QuestionnaireExportFixtures.guideRecord(),
+            QuestionnaireExportFixtures.guideRecord { response in
+                response.identifier = Identifier(system: response.identifier?.system, value: "home-vitals-2026-08-29")
+            }
+        ]
+        let exporter = try QuestionnaireExportFixtures.exporter(QuestionnaireExportFixtures.producer(studies: [
+            QuestionnaireExportFixtures.study("study-a"),
+            QuestionnaireExportFixtures.study("study-b")
+        ]))
+        var active = ExchangeBundlePacker(kind: .active)
+        for export in try await QuestionnaireExportFixtures.collect(exporter, records) {
+            #expect(try active.add(try #require(export.record)) == .added)
+        }
+        var retraction = ExchangeBundlePacker(kind: .retraction)
+        let instant = QuestionnaireExportFixtures.instant
+        try await exporter.retract(records.map { .init(record: $0, withdrawnAt: instant) }, at: instant) { withdrawal in
+            let admission = try retraction.add(try #require(withdrawal.record))
+            #expect(admission == .added)
+        }
+        try FileManager.default.createDirectory(at: Self.fixtureDirectory, withIntermediateDirectories: true)
+        try active.bundle(packedAt: instant).json.write(to: Self.fixtureDirectory.appendingPathComponent("packed-exchange-bundle.json"))
+        try retraction.bundle(packedAt: instant).json.write(to: Self.fixtureDirectory.appendingPathComponent("packed-retraction-bundle.json"))
     }
 }

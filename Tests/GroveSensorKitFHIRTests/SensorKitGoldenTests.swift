@@ -13,7 +13,7 @@ import Foundation
 import Testing
 
 
-/// One SensorKit golden: a fixed record exported alone through `SensorKitFHIRExporter`, under the name its graph is
+/// One SensorKit golden: a fixed record exported alone through `SensorKitFHIRExporter`, under the name its Bundle is
 /// checked in as. The cases cover each output shape once: a structured Observation, a hybrid Observation with its
 /// native recording, a visit's location focus, and a raw-only recording whose payload ships as a sidecar.
 struct SensorKitGoldenCase: Sendable, CustomTestStringConvertible {
@@ -81,8 +81,8 @@ struct SensorKitGoldenCase: Sendable, CustomTestStringConvertible {
         SensorKitSourceRecordID(UUID(uuid: (0x5e, 0x9b, 0x0c, 0x41, 0x6a, 0x2d, 0x4f, 0x83, 0x9a, 0x17, 0x40, 0x8e, 0x21, 0xd3, 0x6c, ordinal)))
     }
 
-    /// The case's graph as checked in: its Bundle with sorted members, pretty-printed and without escaped slashes,
-    /// the same tokens as the wire bytes `ExchangeGraph.json` encodes, so a change diffs by line.
+    /// The case's one-record Bundle as checked in: with sorted members, pretty-printed and without escaped slashes, the
+    /// same tokens as the wire bytes `ExchangeRecord.json` encodes, so a change diffs by line.
     func checkedInBytes() async throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -91,33 +91,29 @@ struct SensorKitGoldenCase: Sendable, CustomTestStringConvertible {
 }
 
 
-/// One checked-in SensorKit golden, its SHA-256 (base64url without padding), and the output revisions it last changed
-/// under.
-struct SensorKitGoldenRevision: Sendable, CustomTestStringConvertible {
+/// One checked-in SensorKit golden and its SHA-256 (base64url without padding).
+struct SensorKitGoldenDigest: Sendable, CustomTestStringConvertible {
     let name: String
     let digest: String
-    let assembler: UInt
-    let sensorKit: UInt
 
     var testDescription: String { name }
 }
 
 
-/// Pins the SensorKit exporter's wire output, and ties it to the output revisions its context fingerprint states.
+/// Pins the SensorKit exporter's wire output.
 ///
-/// An exact redelivery is byte-identical only while the exporter emits the same bytes for equal inputs, so a change
-/// to a golden must bump `ExchangeGraphAssembler.outputRevision` or `SensorKitConverter.outputRevision`, which the
-/// updated row records and review checks; a new golden adds a row without a bump. The goldens regenerate OUTSIDE the
-/// checkout: `GROVE_SENSORKIT_GOLDEN_OUTPUT_DIR` (under `xcodebuild`, `TEST_RUNNER_GROVE_SENSORKIT_GOLDEN_OUTPUT_DIR`)
-/// names a directory the run writes every case into, then copy them into `Resources/Goldens/`. A regeneration run
-/// compares nothing, so it fails on purpose.
+/// Every byte of a record's outputs and Provenance enters its record version, so a change to a golden makes a redelivered
+/// record a new version instead of an exact retry: the updated row records that, and review checks it. A new golden adds a
+/// row. The goldens regenerate OUTSIDE the checkout: `GROVE_SENSORKIT_GOLDEN_OUTPUT_DIR` (under `xcodebuild`,
+/// `TEST_RUNNER_GROVE_SENSORKIT_GOLDEN_OUTPUT_DIR`) names a directory the run writes every case into, then copy them into
+/// `Resources/Goldens/`. A regeneration run compares nothing, so it fails on purpose.
 @Suite
 struct SensorKitGoldenTests {
     static let table = [
-        SensorKitGoldenRevision(name: "electrocardiogram", digest: "S4eTrrLPzGe2TvmbgbDj0Jdx3p5Q-A4xRiGb7psrBnc", assembler: 1, sensorKit: 1),
-        SensorKitGoldenRevision(name: "raw-heart-rate-sidecar", digest: "NZ-279Qdy3gKOkYgnuMhy9N3feCjt-42X-uDmy46SA4", assembler: 1, sensorKit: 1),
-        SensorKitGoldenRevision(name: "rotation-rate", digest: "kFulmUsc59LiBPyZl1D063BDF1lssj86fKlr6Nx1f0A", assembler: 1, sensorKit: 1),
-        SensorKitGoldenRevision(name: "visit", digest: "Kb4A63TBPIEE2mTO2tTO7k6o4TnMWwkr6936ti48gc0", assembler: 1, sensorKit: 1)
+        SensorKitGoldenDigest(name: "electrocardiogram", digest: "3EODYeRKL44T05RTYkC3LbzgpFksvC8804ufdpk3ti0"),
+        SensorKitGoldenDigest(name: "raw-heart-rate-sidecar", digest: "BHXZQgLYcrH5pAaWi__6zMCpxtXmfIh_xHcHkUwSjYo"),
+        SensorKitGoldenDigest(name: "rotation-rate", digest: "W4y5ASTJLsldmM1h8ZKEnonJAd-IjvWvQ4R2129x1OM"),
+        SensorKitGoldenDigest(name: "visit", digest: "DAcgCUI1ZCOUOOJRvIxvsrpZEMzjc2JUc1XQYrl5Ycg")
     ]
 
     private static var outputDirectory: URL? {
@@ -145,7 +141,7 @@ struct SensorKitGoldenTests {
         return try Data(contentsOf: url)
     }
 
-    @Test("A SensorKit graph matches its checked-in golden", arguments: SensorKitGoldenCase.all)
+    @Test("A SensorKit record matches its checked-in golden", arguments: SensorKitGoldenCase.all)
     func matchesItsGolden(_ goldenCase: SensorKitGoldenCase) async throws {
         let bytes = try await goldenCase.checkedInBytes()
         if let directory = Self.outputDirectory {
@@ -159,13 +155,11 @@ struct SensorKitGoldenTests {
         #expect(bytes == (try Self.checkedIn(goldenCase.name)), "\(goldenCase.name) drifted from its golden")
     }
 
-    @Test("Every case has a row, every row a case, and each golden's bytes match its row's revisions", arguments: SensorKitGoldenTests.table)
-    func goldenMatchesItsRevision(_ row: SensorKitGoldenRevision) throws {
+    @Test("Every case has a row, every row a case, and each golden's bytes match its row", arguments: SensorKitGoldenTests.table)
+    func goldenMatchesItsRow(_ row: SensorKitGoldenDigest) throws {
         #expect(Set(Self.table.map(\.name)) == Set(SensorKitGoldenCase.all.map(\.name)))
         #expect(Set(Self.table.map(\.name)).count == Self.table.count, "a golden is named twice")
         let digest = Data(SHA256.hash(data: try Self.checkedIn(row.name))).base64URLEncodedStringWithoutPadding
-        #expect(digest == row.digest, "\(row.name) changed to \(digest): update its row, with the bumped output revision if an output changed")
-        #expect(row.assembler <= ExchangeGraphAssembler.outputRevision)
-        #expect(row.sensorKit <= SensorKitConverter.outputRevision)
+        #expect(digest == row.digest, "\(row.name) changed to \(digest): update its row")
     }
 }

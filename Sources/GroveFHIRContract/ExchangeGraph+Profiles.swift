@@ -35,17 +35,17 @@ extension ExchangeGraph {
         entries: [BundleEntry],
         document: ValidationDocument
     ) throws(ExchangeGraphError) {
-        var activeProvenance: Provenance?
+        var provenances: [Provenance] = []
         for (index, entry) in entries.enumerated() {
             guard let resource = entry.resource else {
                 throw .invalidEntries("Bundle entry has no resource")
             }
             if let provenance = try validateActiveProfileClaim(resource, entryIndex: index, document: document) {
-                activeProvenance = provenance
+                provenances.append(provenance)
             }
         }
-        if let activeProvenance {
-            try validateDataOriginAgent(activeProvenance)
+        for provenance in provenances {
+            try validateDataOriginAgent(provenance)
         }
     }
 
@@ -171,15 +171,16 @@ extension ExchangeGraph {
                 throw ExchangeGraphError.ruleViolation(rule)
             }
             let required = Set(claim.requiredIdentifierRoles.compactMap(GroveIdentifierRole.init))
-            guard required.count == claim.requiredIdentifierRoles.count else {
+            let optional = Set(claim.optionalIdentifierRoles.compactMap(GroveIdentifierRole.init))
+            guard required.count == claim.requiredIdentifierRoles.count, optional.count == claim.optionalIdentifierRoles.count else {
                 throw ExchangeGraphError.invalidEntries("Generated identifier role claim is invalid")
             }
-            let allowed = required.union(additionallyAllowed)
+            let allowed = required.union(optional).union(additionallyAllowed)
             guard required.allSatisfy({ requiredRole in
                 roles.filter { $0 == requiredRole }.count == 1
             }),
             roles.allSatisfy(allowed.contains),
-            additionallyAllowed.allSatisfy({ optionalRole in
+            optional.union(additionallyAllowed).allSatisfy({ optionalRole in
                 roles.filter { $0 == optionalRole }.count <= 1
             }) else {
                 throw ExchangeGraphError.ruleViolation(rule)
@@ -241,39 +242,35 @@ extension ExchangeGraph {
 
     /// `mobile-exchange.adapter-provenance-graph` as the pinned kit decides it (graphs.py). Per adapter claim, in catalog
     /// order, the entries claiming one of its output profiles are grouped by their one source-record identity. Each group
-    /// needs the event's Provenance to claim that adapter's conversion profile (else `Bundle.entry`) and to target exactly
-    /// the group (else `Provenance.target`); an adapter Provenance without a group fails at `Provenance.entity`.
+    /// needs the conversion Provenance of its source record to claim that adapter's conversion profile (else `Bundle.entry`)
+    /// and to target exactly the group (else `Provenance.target`); an adapter Provenance without a group fails at
+    /// `Provenance.entity`.
     ///
-    /// Runs last, where the kit runs it (exchange_bundle.py:521): the sole Provenance, the source marker, the targets and
-    /// the source entity are already valid, so one set comparison stands for the kit's per-target branches. A port of the
-    /// kit's checks at :518-520 goes before this call; a port of its checks at :614-776 goes after it.
+    /// Runs last, where the kit runs it: the records, the source markers, the targets and the source entities are already
+    /// valid, so one set comparison stands for the kit's per-target branches.
     static func validateAdapterProvenanceGraph(
-        _ provenance: Provenance,
-        sourceEntity: RoledIdentifier,
+        records: [ActiveRecord],
         entries: [BundleEntry],
         document: ValidationDocument
     ) throws(ExchangeGraphError) {
         var profiles: [Set<String>] = []
-        var governed: Set<String> = []
-        for (index, entry) in entries.enumerated() {
+        for index in entries.indices {
             profiles.append(try directProfiles(at: index, document: document))
-            if case .provenance? = entry.resource {
-                governed = profiles[index]
-            }
         }
-        let targets = Set(provenance.target.compactMap { $0.reference?.value?.string })
         for claim in adapterConversionClaims {
-            let governs = governed.contains(claim.provenanceProfile)
+            let governing = records.filter { profiles[$0.index].contains(claim.provenanceProfile) }
+            let bySource = Dictionary(uniqueKeysWithValues: governing.map { ($0.source, $0) })
             let groups = try adapterOutputGroups(claim.outputProfiles, profiles: profiles, entries: entries, document: document)
             for group in groups {
-                guard governs, group.source == sourceEntity else {
+                guard let record = bySource[group.source] else {
                     throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Bundle.entry")
                 }
-                guard targets == group.fullURLs else {
+                guard Set(record.targets) == group.fullURLs else {
                     throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Provenance.target")
                 }
             }
-            if governs, !groups.contains(where: { $0.source == sourceEntity }) {
+            let grouped = Set(groups.map(\.source))
+            guard governing.allSatisfy({ grouped.contains($0.source) }) else {
                 throw diagnostic(.mobileExchangeAdapterProvenanceGraph, location: "Provenance.entity")
             }
         }
@@ -287,15 +284,17 @@ extension ExchangeGraph {
         document: ValidationDocument
     ) throws(ExchangeGraphError) -> [(source: RoledIdentifier, fullURLs: Set<String>)] {
         var groups: [(source: RoledIdentifier, fullURLs: Set<String>)] = []
+        var groupIndexes: [RoledIdentifier: Int] = [:]
         for (index, entry) in entries.enumerated() where !profiles[index].isDisjoint(with: outputProfiles) {
             let records = ((try? document.typedResourceIdentifiers(at: index)) ?? []).filter { $0.role == .sourceRecord }
             guard records.count == 1, let fullURL = entry.fullUrl?.value?.url.absoluteString else {
                 // The kit fails this without a rule (graphs.py:30-38), so it reports mobile-exchange.unclassified.
                 throw .invalidEntries("An adapter-profiled entry carries no single typed source-record identity")
             }
-            if let existing = groups.firstIndex(where: { $0.source == records[0] }) {
+            if let existing = groupIndexes[records[0]] {
                 groups[existing].fullURLs.insert(fullURL)
             } else {
+                groupIndexes[records[0]] = groups.count
                 groups.append((source: records[0], fullURLs: [fullURL]))
             }
         }

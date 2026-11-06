@@ -44,7 +44,9 @@ struct QuestionnaireWriterContextTests {
             applicationVersion: "1.2.3",
             applicationBuild: "45",
             hostModel: "iPhone17,1",
-            hostOperatingSystemVersion: "26.0"
+            hostOperatingSystemName: "iOS",
+            hostOperatingSystemVersion: "26.0",
+            hostOperatingSystemBuild: "23A341"
         )
 
         let pair = try ResourceBuilder().pair(
@@ -65,7 +67,9 @@ struct QuestionnaireWriterContextTests {
             "applicationVersion",
             "applicationBuild",
             "hostModel",
-            "hostOperatingSystemVersion"
+            "hostOperatingSystemName",
+            "hostOperatingSystemVersion",
+            "hostOperatingSystemBuild"
         ])
         #expect(children[0].value == .identifier(application.fhirIdentifier))
     }

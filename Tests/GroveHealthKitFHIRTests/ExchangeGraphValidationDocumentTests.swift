@@ -83,7 +83,7 @@ struct ExchangeGraphValidationDocumentTests {
         inputs.instant = timestamp
         inputs.studies = studies
         inputs.options.role = converterWasGateway ? .gateway : .assembler
-        inputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: "band"))
+        inputs.options.unitToken = .custom { _, _ in "band" }
         return inputs
     }
 
@@ -145,9 +145,9 @@ struct ExchangeGraphValidationDocumentTests {
         .disabled(if: ProcessInfo.processInfo.environment["CI"] != nil, "Process-wide heap measurement is too noisy on shared CI runners")
     )
     func graphValidationDrainsItsOwnTemporaries() async throws {
-        let (exporter, _) = try ExporterFixtures.exporter(Self.inputs())
+        let exporter = try ExporterFixtures.exporter(Self.inputs())
         let sample = Self.heartRateSample()
-        let stored = try ExportedRecord(await ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp).exports).graph.json
+        let stored = try ExportedRecord(await ExporterFixtures.collect(exporter, samples: [sample], at: Self.timestamp)).graph.json
         let iterations = 500
         // Exports build their graphs on child tasks, each record in its own pool; re-validation runs on this task, in
         // the one pool the round holds, as a caller's batch would.

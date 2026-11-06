@@ -33,8 +33,8 @@ import ObjectiveC
 enum StoredSampleFixtures {
     /// The writer a stored sample is attributed to, as `HKSourceRevision` states it.
     struct Writer: Sendable {
-        /// A source without a name or bundle identifier, which the converter treats as no writer at all; what a
-        /// sample built in-process reports when nothing attributes it.
+        /// A source without a name or bundle identifier, which the converter treats as no writer and no source revision
+        /// at all; what a sample built in-process reports when nothing attributes it.
         static let unattributed = Writer(name: "", bundleIdentifier: "", version: nil, productType: nil)
 
         /// The source's display name.

@@ -94,7 +94,7 @@ struct HealthKitClinicalFHIRRepresentationTests {
         document.content[0].attachment.contentType = contentType?.asFHIRStringPrimitive()
         entries[documentIndex].resource = ResourceProxy(with: document)
         bundle.entry = entries
-        _ = try ExchangeGraph(kind: .active, eventIdentifier: conversion.graph.eventIdentifier, bundle: bundle)
+        _ = try ExchangeGraph(kind: .active, bundle: bundle)
     }
 }
 

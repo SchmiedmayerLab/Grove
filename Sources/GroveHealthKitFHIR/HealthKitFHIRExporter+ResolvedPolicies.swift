@@ -14,38 +14,26 @@ import HealthKit
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// What the writer and recording-device policies answer for one sample, resolved once per input that names it,
-    /// before its event is reserved: the event's fingerprint covers these answers and its graph states them, so a
-    /// ``WriterPolicy/classify(_:)`` closure or a custom ``RecordingDevicePolicy`` resolver that answers otherwise
-    /// for a reserved record takes a new sequence instead of restating the reserved event.
-    struct ResolvedPolicies: ExchangeContextFingerprinted, Sendable {
-        /// The answers for no sample: no writer and no recording Device. A retraction states neither.
-        static let unresolved = ResolvedPolicies(writer: .omit, recordingDevice: nil)
+    /// What the writer and unit-token policies answer for one sample, resolved once per input that names it.
+    struct ResolvedPolicies: Sendable {
+        /// The answers for no sample: no writer and no unit. A retraction states neither.
+        static let unresolved = ResolvedPolicies(writer: .omit, unitToken: nil)
 
         let writer: HealthKitFHIRExporter.WriterPolicy.Classification
-        /// `nil` when the sample names no `HKDevice` or the policy declines it.
-        let recordingDevice: RecordingDevice?
-
-        /// The writer tag, then the recording device's: `none`, or `unit` and every value of the device the graph
-        /// states, its token (which keys the Device's identities) and its optional name, manufacturer and model.
-        var fingerprintParts: [String] {
-            let device = recordingDevice.map { device in
-                ["unit", device.stableUnitToken]
-                    + Self.optionalParts(device.name) + Self.optionalParts(device.manufacturer) + Self.optionalParts(device.modelNumber)
-            }
-            return ["writer"] + writer.fingerprintParts + ["recordingDevice"] + (device ?? ["none"])
-        }
+        /// `nil` when the sample names no `HKDevice` or the policy picks no token for it.
+        let unitToken: String?
     }
 }
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.ResolvedPolicies {
-    /// What `options`' writer and recording-device policies answer for `sample`.
+    /// What `options`' writer and unit-token policies answer for `sample`.
     init(_ sample: HKSample, options: HealthKitFHIRExporter.Options) {
+        let source = sample.sourceRevision.source
         self.init(
-            writer: options.writer.classification(of: sample.sourceRevision.source),
-            recordingDevice: sample.device.flatMap(options.recordingDevice.recordingDevice(for:))
+            writer: options.writer.classification(of: source),
+            unitToken: sample.device.flatMap { options.unitToken.token(for: $0, source: source) }
         )
     }
 }

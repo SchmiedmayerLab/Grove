@@ -102,7 +102,7 @@ private struct ScenarioRun {
     var count: Int { scenario.samples.count }
     var name: String { scenario.name }
     /// The graphs the retained pass exported, in sample order.
-    var graphs: [ExchangeGraph] { exports.compactMap(\.graph) }
+    var graphs: [ExchangeGraph] { exports.compactMap(\.record?.graph) }
 
     func rate(_ seconds: Double, _ items: Int? = nil) -> String {
         let items = Double(items ?? count)
@@ -110,11 +110,11 @@ private struct ScenarioRun {
     }
 
     /// Exports `samples` in one call through a fresh exporter of the scenario's style, as a deployment's first export
-    /// of a batch: one ledger transaction, one autorelease pool per record.
+    /// of a batch: one autorelease pool per record.
     func export(_ samples: [HKSample]) async throws -> [HealthKitFHIRExporter.Export] {
         var exports: [HealthKitFHIRExporter.Export] = []
         exports.reserveCapacity(samples.count)
-        _ = try await scope.exporter(style: scenario.style).export(samples, at: TestEvent.testInstant) { exports.append($0) }
+        _ = try await scope.exporter(style: scenario.style).export(samples, at: TestDeployment.testInstant) { exports.append($0) }
         return exports
     }
 }
@@ -167,7 +167,7 @@ struct ConversionThroughputBenchmark {
         exporter: HealthKitFHIRExporter
     ) throws -> HealthKitAssembly.SourceFacts {
         let policies = HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options)
-        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, policies: policies, options: exporter.options)
+        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, outputs: [], policies: policies, options: exporter.options)
     }
 
     @Test
@@ -276,7 +276,7 @@ struct ConversionThroughputBenchmark {
             + "entriesPerBundle=\(String(format: "%.1f", Double(entries) / Double(run.count))) "
             + "warningsPerSample=\(String(format: "%.2f", Double(warnings) / Double(run.count)))")
         if let directory = BenchEnvironment.dumpDirectory {
-            // The first graph's validated bytes, plus the size of each entry's resource, for inspecting what an event carries.
+            // The first graph's validated bytes, plus the size of each entry's resource, for inspecting what a record carries.
             try encoded[0].write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(run.name).json"))
             let sizes = try (run.graphs[0].bundle.entry ?? []).map { entry in
                 "\(entry.resource?.resourceType ?? "?")=\(try JSONEncoder().encode(entry).count)"
@@ -300,7 +300,7 @@ struct ConversionThroughputBenchmark {
 
         run.graphInitSeconds = try Stopwatch.seconds {
             for graph in run.graphs {
-                _ = try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: graph.bundle)
+                _ = try ExchangeGraph(kind: .active, bundle: graph.bundle)
             }
         }
         run.report.line("scenario=\(run.name) phase=graph-init(encode+parse+validate) \(run.rate(run.graphInitSeconds))")
@@ -311,7 +311,7 @@ struct ConversionThroughputBenchmark {
     /// identifier caches the earlier ones filled, exactly as ExchangeGraph.validate does.
     private func measureValidationPasses(_ run: ScenarioRun) throws {
         let passNames = [
-            "document(JSONSerialization+entry-map)", "entry-resource-policy", "entry-node-digests", "resource-identifiers",
+            "document(JSONSerialization+entry-map)", "entry-resource-policy", "resource-identifiers",
             "identifier-system-roles", "entry-keys", "governed-reference-targets", "active-lifecycle"
         ]
         var passNanoseconds = [UInt64](repeating: 0, count: passNames.count)
@@ -329,18 +329,16 @@ struct ConversionThroughputBenchmark {
                 lap(0)
                 try ExchangeGraph.validateEntryResourcePolicy(kind: .active, entries: entries, document: document)
                 lap(1)
-                try ExchangeGraph.validateEntryNodeDigests(entries: entries, eventIdentifier: graph.eventIdentifier, document: document)
-                lap(2)
                 try ExchangeGraph.validateResourceIdentifiers(entries: entries, document: document)
-                lap(3)
+                lap(2)
                 try ExchangeIdentity.validateIdentifierSystemRoles(in: document.bundleObjects())
+                lap(3)
+                try ExchangeGraph.validateEntryKeys(kind: .active, entries: entries, document: document)
                 lap(4)
-                try ExchangeGraph.validateEntryKeys(entries: entries, document: document)
-                lap(5)
                 try ExchangeGraph.validateGovernedReferenceTargets(entries: entries, document: document)
-                lap(6)
+                lap(5)
                 try ExchangeGraph.validateActive(entries: entries, document: document)
-                lap(7)
+                lap(6)
             }
         }
         let passTotal = passNanoseconds.reduce(0, +)
@@ -375,7 +373,7 @@ struct ConversionThroughputBenchmark {
     }
 
     /// Construction pieces: the source facts (devices, writer, identifiers), then the clinical content alone, then each
-    /// event's study context. The scenario's plan is looked up once, outside the loops; each phase bridges the sample's
+    /// record's study context. The scenario's plan is looked up once, outside the loops; each phase bridges the sample's
     /// metadata itself, as each read the metadata before the plans.
     private func measureConstruction(_ run: ScenarioRun) throws {
         let content = try ObservationContent(try #require(HealthKitContentPlan.plan(for: run.samples[0])))
@@ -394,13 +392,8 @@ struct ConversionThroughputBenchmark {
         run.report.line("scenario=\(run.name) phase=observation-content \(run.rate(observationSeconds))")
         let studies = run.scenario.style == .deployment ? run.scope.studies : []
         let studySeconds = try Stopwatch.seconds {
-            for index in 0..<run.count {
-                _ = try StudyContext(
-                    subject: run.scope.subject,
-                    studies: studies,
-                    event: run.scope.event(UInt64(index + 1)),
-                    identityScope: run.scope.identityScope
-                )
+            for _ in 0..<run.count {
+                _ = try StudyContext(subject: run.scope.subject, studies: studies, identityScope: run.scope.identityScope)
             }
         }
         run.report.line("scenario=\(run.name) phase=study-context \(run.rate(studySeconds))")
@@ -427,10 +420,10 @@ struct ConversionThroughputBenchmark {
         )
         func export() async throws -> [HealthKitFHIRExporter.Export] {
             var exports: [HealthKitFHIRExporter.Export] = []
-            _ = try await scope.exporter(style: .deployment).export(samples, at: TestEvent.testInstant) { exports.append($0) }
+            _ = try await scope.exporter(style: .deployment).export(samples, at: TestDeployment.testInstant) { exports.append($0) }
             return exports
         }
-        let graphs = try await export().compactMap(\.graph)
+        let graphs = try await export().compactMap(\.record?.graph)
         report.line("profile phase=\(phase) pid=\(ProcessInfo.processInfo.processIdentifier) seconds=\(BenchEnvironment.profileSeconds)")
         let deadline = Date().addingTimeInterval(BenchEnvironment.profileSeconds)
         var iterations = 0
@@ -438,7 +431,7 @@ struct ConversionThroughputBenchmark {
             if phase == "graph-init" {
                 for graph in graphs {
                     try autoreleasepool {
-                        _ = try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: graph.bundle)
+                        _ = try ExchangeGraph(kind: .active, bundle: graph.bundle)
                     }
                 }
             } else {
@@ -450,7 +443,7 @@ struct ConversionThroughputBenchmark {
     }
 
     /// Whether the exporter scales across threads: the same deployment heart-rate workload split over T threads, each
-    /// exporting its share in one call through an exporter over its own ledger.
+    /// exporting its share in one call through an exporter of its own.
     private func runConcurrent(scope: BenchScope, count: Int, report: BenchReport) async throws {
         let samples = SampleFactory.heartRate(
             count: count,
@@ -465,8 +458,8 @@ struct ConversionThroughputBenchmark {
                         let share = stride(from: thread, to: count, by: threads).map { samples[$0] }
                         group.addTask {
                             do {
-                                _ = try await scope.exporter(style: .deployment).export(share, at: TestEvent.testInstant) { export in
-                                    if export.graph == nil {
+                                _ = try await scope.exporter(style: .deployment).export(share, at: TestDeployment.testInstant) { export in
+                                    if export.record == nil {
                                         failures.increment()
                                     }
                                 }

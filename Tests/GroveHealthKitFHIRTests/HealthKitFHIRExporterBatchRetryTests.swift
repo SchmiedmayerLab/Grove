@@ -43,65 +43,51 @@ private final class CountingClassifier: @unchecked Sendable { // `consultations`
 }
 
 
-/// A call that names one record twice: an exact retry before release, with different content, and what the policy
-/// closures answer for each input.
+/// A call that names one record twice, and what the policy closures answer for each input.
 @Suite
 struct HealthKitFHIRExporterBatchRetryTests {
     private typealias Fixtures = ExporterFixtures
 
-    @Test("An exact retry of two deletions of one record with different bounds in one call redelivers both events")
-    func retryOfTwoBoundsInOneCallIsExact() async throws {
-        let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(storage: storage)
+    @Test("Two deletions of one record with different bounds share the retraction key, and the first accepted wins")
+    func twoBoundsOfOneRecordShareTheirKey() async throws {
+        let exporter = try Fixtures.exporter()
         let deletions = [
             Fixtures.deletion(0xC0, deletedAfter: GoldenFixtures.sampleStart),
             Fixtures.deletion(0xC0, deletedAfter: nil),
-            // A control: another record under one fingerprint.
+            // A control: another record.
             Fixtures.deletion(0xC1, deletedAfter: GoldenFixtures.sampleStart)
         ]
-        let first = try await Fixtures.retract(exporter, deletions)
-        _ = storage.take()
-        let retry = try await Fixtures.retract(exporter, deletions)
-        let writes = storage.take().writes
-        try #require(first.retractions.count == 3 && retry.retractions.count == 3)
-        #expect(first.retractions[0].event != first.retractions[1].event, "two bounds are two events")
-        #expect(retry.retractions[2].sequence == first.retractions[2].sequence, "control: a single-fingerprint key is reused")
-        #expect(retry.retractions[0..<2].map(\.sequence) == first.retractions[0..<2].map(\.sequence))
-        #expect(retry.retractions.map(\.graph?.json) == first.retractions.map(\.graph?.json))
-        #expect(writes == 0, "an exact retry writes nothing")
-        first.receipt.release()
-        retry.receipt.release()
+        let retractions = try await Fixtures.retract(exporter, deletions)
+        let records = retractions.compactMap(\.record)
+        try #require(records.count == 3)
+        #expect(records[0].version == records[1].version, "the key is a function of the source record alone")
+        #expect(records[0].json != records[1].json, "the bounds are content, which the key does not cover")
+        #expect(records[2].version != records[0].version)
+
+        var packer = ExchangeBundlePacker(kind: .retraction)
+        #expect(try packer.add(records[0]) == .added)
+        #expect(try packer.add(records[1]) == .duplicate)
+        #expect(try packer.add(records[2]) == .added)
     }
 
-    @Test("A call naming one ECG under two symptom sets refuses the later one, and its exact retry reuses every event")
-    func retryOfTwoSymptomSetsInOneCallIsExact() async throws {
-        let storage = LedgerCountingStorage()
-        let exporter = try Fixtures.exporter(storage: storage)
+    @Test("A call naming one ECG under two symptom sets delivers each input as it states it")
+    func twoSymptomSetsOfOneRecordAreTwoVersions() async throws {
+        let exporter = try Fixtures.exporter()
         let one = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC3))
         let two = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC4), type: .fatigue)
         let inputs = [
             try Fixtures.electrocardiogram(uuid: 0xC2, symptoms: [one]),
             try Fixtures.electrocardiogram(uuid: 0xC2, symptoms: [two, one])
         ]
-        let first = try await Fixtures.collect(exporter, inputs)
-        _ = storage.take()
+        let exports = try await Fixtures.collect(exporter, inputs)
         let retry = try await Fixtures.collect(exporter, inputs)
-        let writes = storage.take().writes
         let ecg = try #require(inputs.first?.sample.uuid)
-        // The first input's ECG and its symptom, then the later input refused: one event per key and call.
-        try #require(first.exports.map(\.source.uuid) == [ecg, one.uuid, ecg])
-        #expect(first.exports[0].graph != nil && first.exports[1].graph != nil)
-        guard case .refused(let reason) = first.exports[2].outcome else {
-            Issue.record("expected the later input to be refused, got \(first.exports[2].outcome)")
-            return
-        }
-        #expect(reason == .conflictingDuplicate)
-        #expect(reason.diagnostic == ExchangeGraphRule.mobileInputUnclassified.diagnostic(at: "HKSample"))
-        #expect(retry.exports.map(\.event) == first.exports.map(\.event))
-        #expect(retry.exports.map(\.graph?.json) == first.exports.map(\.graph?.json))
-        #expect(writes == 0, "an exact retry writes nothing")
-        first.receipt.release()
-        retry.receipt.release()
+        // Each ECG, then its symptoms: nothing refuses a second version of a record.
+        try #require(exports.map(\.source.uuid) == [ecg, one.uuid, ecg, one.uuid, two.uuid])
+        #expect(exports[0].record?.sourceRecord == exports[2].record?.sourceRecord)
+        #expect(exports[0].record?.version != exports[2].record?.version)
+        #expect(exports[1].record == exports[3].record, "one symptom is one record, whichever ECG correlates it")
+        #expect(retry.map(\.record) == exports.map(\.record), "an exact retry repeats every record version")
     }
 
     @Test("A classify closure is consulted once per input naming a record, an ECG's symptoms included")
@@ -111,36 +97,30 @@ struct HealthKitFHIRExporterBatchRetryTests {
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xC5), writer: GoldenFixtures.foreignWriter)
         let twice = try await Fixtures.collect(exporter, samples: [sample, sample])
         #expect(classifier.count == 2)
-        #expect(twice.exports.count == 2 && twice.exports[0].event == twice.exports[1].event)
+        #expect(twice.count == 2 && twice[0].record == twice[1].record)
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC7))
         let named = try await Fixtures.collect(exporter, [Fixtures.electrocardiogram(uuid: 0xC6, symptoms: [symptom]), .sample(symptom)])
         // The ECG, its symptom inside the ECG's input, and the standalone symptom.
         #expect(classifier.count == 5)
-        let symptomEvents = named.exports.filter { $0.source.uuid == symptom.uuid }.map(\.event)
-        #expect(symptomEvents.count == 2 && symptomEvents[0] == symptomEvents[1])
-        twice.receipt.release()
-        named.receipt.release()
+        let symptomRecords = named.filter { $0.source.uuid == symptom.uuid }.map(\.record)
+        #expect(symptomRecords.count == 2 && symptomRecords[0] == symptomRecords[1])
     }
 
-    /// The later input names the symptom itself or correlates it with an ECG; either way it is refused, and no event is
-    /// restated with another writer.
-    @Test("A closure answering otherwise for a record the call named before refuses the later input", arguments: [false, true])
-    func changedAnswerWithinACallRefusesTheLaterInput(throughElectrocardiogram: Bool) async throws {
+    /// The later input names the symptom itself or correlates it with an ECG; either way each input states what the closure
+    /// answered for it.
+    @Test("A closure answering otherwise for a record the call named before makes the later input another version", arguments: [false, true])
+    func changedAnswerWithinACallIsAnotherVersion(throughElectrocardiogram: Bool) async throws {
         let classifier = CountingClassifier(flips: true)
         let exporter = try Fixtures.exporter { $0.writer = .classify { classifier.classify($0) } }
         let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xC9))
         let later: HealthKitFHIRExporter.Record = try throughElectrocardiogram
             ? Fixtures.electrocardiogram(uuid: 0xC8, symptoms: [symptom])
             : .sample(symptom)
-        let (exports, receipt) = try await Fixtures.collect(exporter, [.sample(symptom), later])
-        try #require(exports.count == 2)
-        #expect(exports[0].graph != nil)
-        guard case .refused(let reason) = exports[1].outcome else {
-            Issue.record("expected the later input to be refused, got \(exports[1].outcome)")
-            return
-        }
-        #expect(reason == .conflictingDuplicate)
-        receipt.release()
+        let exports = try await Fixtures.collect(exporter, [.sample(symptom), later])
+        let records = exports.filter { $0.source.uuid == symptom.uuid }.compactMap(\.record)
+        try #require(records.count == 2)
+        #expect(records[0].sourceRecord == records[1].sourceRecord)
+        #expect(records[0].version != records[1].version)
     }
 }
 

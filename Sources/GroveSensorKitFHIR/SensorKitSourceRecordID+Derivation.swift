@@ -21,7 +21,8 @@ extension SensorKitSourceRecordID {
     /// `AcquisitionBatchCoordinate` before exposing a batch. Combining that coordinate
     /// with the cursor's sensor and device partitions plus the record's ordinal preserves
     /// multiplicity: byte-identical records delivered at different coordinates remain distinct,
-    /// while an exact retry reproduces the same identifier.
+    /// while an exact retry reproduces the same identifier. A coordinate's stream partition keeps
+    /// a reinstall's records apart from the earlier installation's, whose coordinates they repeat.
     ///
     /// Persist a digest of the source fields and native bytes beside this identifier. Before reusing
     /// the identifier on a retry, compare the new digest with the persisted digest and fail the batch
