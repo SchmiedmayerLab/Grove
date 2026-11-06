@@ -18,8 +18,9 @@ public enum GroveIdentifierRole: String, CaseIterable, Hashable, Sendable {
     case sourceContext = "source-context"
     case recordingDevice = "recording-device"
     case deviceSnapshot = "device-snapshot"
-    case event
-    case entryNode = "entry-node"
+    case contextSnapshot = "context-snapshot"
+    case recordVersion = "record-version"
+    case recordRetraction = "record-retraction"
 }
 
 
@@ -87,7 +88,7 @@ extension BundleEntry {
     /// ``RoledIdentifier/fullURLString``.
     package init(identifier: RoledIdentifier, fullURL: String, resource: ResourceProxy) {
         self.init(
-            extension: [Extension(url: Canonicals.entryNodeKey, value: .identifier(identifier.fhirIdentifier))],
+            extension: [Extension(url: Canonicals.entryKey, value: .identifier(identifier.fhirIdentifier))],
             fullUrl: FHIRPrimitive(FHIRURI(stringLiteral: fullURL)),
             resource: resource
         )

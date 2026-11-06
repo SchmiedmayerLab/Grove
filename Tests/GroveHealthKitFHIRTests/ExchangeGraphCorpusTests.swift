@@ -85,7 +85,7 @@ struct ExchangeGraphCorpusTests {
         _ = try graph(named: "source-record-target-retraction-bundle.json", kind: .retraction)
     }
 
-    @Test("Serialized shared fixtures preserve their event identity", arguments: [
+    @Test("Serialized shared fixtures preserve their records", arguments: [
         ("exchange-bundle.json", ExchangeGraph.Kind.active),
         ("retraction-bundle.json", ExchangeGraph.Kind.retraction),
         ("source-record-target-retraction-bundle.json", ExchangeGraph.Kind.retraction)
@@ -94,8 +94,8 @@ struct ExchangeGraphCorpusTests {
         let bytes = try Data(contentsOf: corpusDirectory.appendingPathComponent(name))
         let parsed = try ExchangeGraph(validating: bytes, kind: kind)
         let expected = try graph(named: name, kind: kind)
-        #expect(parsed.eventIdentifier == expected.eventIdentifier)
         #expect(parsed.bundle == expected.bundle)
+        #expect(try parsed.records().map(\.version) == expected.records().map(\.version))
     }
 
     @Test("An otherwise valid graph cannot hide a duplicated JSON member", arguments: [
@@ -108,7 +108,7 @@ struct ExchangeGraphCorpusTests {
         var json = String(decoding: bytes, as: UTF8.self)
         let root = try #require(json.firstIndex(of: "{"))
         json.insert(contentsOf: #""resourceType":"Bundle","#, at: json.index(after: root))
-        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
+        #expect(throws: ExchangeGraphError.invalidEntries("Serialized Bundle is not strict JSON")) {
             try ExchangeGraph(validating: Data(json.utf8), kind: kind)
         }
     }
@@ -215,6 +215,7 @@ struct ExchangeGraphCorpusTests {
             (try #require(rawCase["id"] as? String), rawCase)
         })
         let basePaths = Dictionary(uniqueKeysWithValues: manifest.bases.map { ($0.id, $0.path) })
+        let scope = try conformanceScope()
 
         for testCase in manifest.cases {
             let rawCase = try #require(rawCasesByID[testCase.id])
@@ -224,7 +225,12 @@ struct ExchangeGraphCorpusTests {
                 with: Data(contentsOf: corpusDirectory.appendingPathComponent(basePath))
             )
             let mutated = try applying(operations, to: baseObject)
-            let mutatedData = try JSONSerialization.data(withJSONObject: mutated)
+            var mutatedData = try JSONSerialization.data(withJSONObject: mutated, options: .sortedKeys)
+            if testCase.id == "decimal-lexeme-changes-record-version" {
+                // JSONSerialization keeps a number's value, not its lexeme, which is all this mutation changes.
+                let text = String(decoding: mutatedData, as: UTF8.self)
+                mutatedData = Data(text.replacingOccurrences(of: #""value":72}"#, with: #""value":72.0}"#).utf8)
+            }
             // A base is a retraction when it claims the retraction Bundle profile, as each source-record-target
             // base does as well as the mobile-retraction one.
             let profiles = ((baseObject as? [String: Any])?["meta"] as? [String: Any])?["profile"] as? [String] ?? []
@@ -233,7 +239,8 @@ struct ExchangeGraphCorpusTests {
                 : .active
 
             do {
-                _ = try ExchangeGraph(validating: mutatedData, kind: kind)
+                // Validation checks a content-derived key for shape only; the published key recomputes it.
+                try ExchangeGraph(validating: mutatedData, kind: kind).validateDerivedKeys(in: scope)
                 Issue.record("Corpus mutation \(testCase.id) was accepted")
             } catch {
                 #expect(
@@ -250,7 +257,7 @@ struct ExchangeGraphCorpusTests {
         var entries = try #require(missingKey.entry)
         entries[0].extension = nil
         missingKey.entry = entries
-        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeEntryNodeKey)) {
+        #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeEntryKey)) {
             try validate(missingKey, kind: .active)
         }
 
@@ -354,42 +361,40 @@ struct ExchangeGraphCorpusTests {
             try validate(unresolvedLiteral, kind: .active)
         }
 
-        var tamperedNode = try bundle(named: "exchange-bundle.json")
-        entries = try #require(tamperedNode.entry)
-        // Tampering the Provenance's own key keeps the digest the only defect: giving another
-        // entry the conversion-provenance role would misnumber that role's ordinal instead.
+        var tamperedKey = try bundle(named: "exchange-bundle.json")
+        entries = try #require(tamperedKey.entry)
         let provenanceIndex = try #require(entries.firstIndex {
             if case .provenance = $0.resource {
                 return true
             }
             return false
         })
-        var nodeExtensions = try #require(entries[provenanceIndex].extension)
-        guard case .identifier(var nodeIdentifier)? = nodeExtensions[0].value else {
+        var keyExtensions = try #require(entries[provenanceIndex].extension)
+        guard case .identifier(var keyIdentifier)? = keyExtensions[0].value else {
             Issue.record("Fixture entry key is not an Identifier")
             return
         }
-        nodeIdentifier = Identifier(
-            assigner: nodeIdentifier.assigner,
-            extension: nodeIdentifier.extension,
-            id: nodeIdentifier.id,
-            period: nodeIdentifier.period,
-            system: nodeIdentifier.system,
-            type: nodeIdentifier.type,
-            use: nodeIdentifier.use,
-            value: "n0:conversion-provenance:0:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        keyIdentifier = Identifier(
+            assigner: keyIdentifier.assigner,
+            extension: keyIdentifier.extension,
+            id: keyIdentifier.id,
+            period: keyIdentifier.period,
+            system: keyIdentifier.system,
+            type: keyIdentifier.type,
+            use: keyIdentifier.use,
+            value: "provenance-node-0"
         )
-        nodeExtensions[0].value = .identifier(nodeIdentifier)
-        entries[provenanceIndex].extension = nodeExtensions
+        keyExtensions[0].value = .identifier(keyIdentifier)
+        entries[provenanceIndex].extension = keyExtensions
         entries[provenanceIndex].fullUrl = FHIRPrimitive(FHIRURI(
-            stringLiteral: try BusinessIdentifier(nodeIdentifier).fullURLString
+            stringLiteral: try BusinessIdentifier(keyIdentifier).fullURLString
         ))
-        tamperedNode.entry = entries
+        tamperedKey.entry = entries
         #expect(throws: ExchangeGraph.diagnostic(
-            .mobileExchangeEntryNodeDigest,
-            location: "Bundle.entry[3].extension.valueIdentifier.value"
+            .mobileExchangeRecordVersionKey,
+            location: "Bundle.entry[\(provenanceIndex)].extension.valueIdentifier.value"
         )) {
-            try validate(tamperedNode, kind: .active)
+            try validate(tamperedKey, kind: .active)
         }
 
         var missingOutputIdentity = try bundle(named: "exchange-bundle.json")
@@ -668,7 +673,7 @@ struct ExchangeGraphCorpusTests {
         }
     }
 
-    @Test("Graph validation admits integer zero and rejects fractional event totals")
+    @Test("Graph validation admits integer zero and rejects fractional step totals")
     func validatesCatalogQuantityDomains() throws {
         var raw = try rawBundle(named: "exchange-bundle.json")
         var entries = try #require(raw["entry"] as? [[String: Any]])
@@ -741,11 +746,11 @@ struct ExchangeGraphCorpusTests {
 
     @Test("A failure the registry does not name reports the unclassified diagnostic")
     func unregisteredFailuresReportUnclassified() throws {
-        var undated = try bundle(named: "exchange-bundle.json")
-        undated.timestamp = nil
+        var transaction = try bundle(named: "exchange-bundle.json")
+        transaction.type = FHIRPrimitive(.transaction)
         do {
-            _ = try validate(undated, kind: .active)
-            Issue.record("A bundle without a timestamp was accepted")
+            _ = try validate(transaction, kind: .active)
+            Issue.record("A transaction Bundle was accepted")
         } catch let error as ExchangeGraphError {
             #expect(error.diagnostic == ExchangeGraphRule.mobileExchangeUnclassified.diagnostic)
         }
@@ -753,11 +758,11 @@ struct ExchangeGraphCorpusTests {
     }
 
     @Test("The retraction builder carries its source-record entity and known time bounds", arguments: [
-        RetractionEvent.Occurrence.instant(Date(timeIntervalSince1970: 1_787_299_200)),
+        RetractionRecord.Occurrence.instant(Date(timeIntervalSince1970: 1_787_299_200)),
         .period(start: nil, end: Date(timeIntervalSince1970: 1_787_299_200)),
         .period(start: Date(timeIntervalSince1970: 1_787_295_600), end: Date(timeIntervalSince1970: 1_787_299_200))
     ])
-    func retractionBuilderCarriesSourceEntity(occurred: RetractionEvent.Occurrence) throws {
+    func retractionBuilderCarriesSourceEntity(occurred: RetractionRecord.Occurrence) throws {
         let fixture = try bundle(named: "retraction-bundle.json")
         guard case .provenance(let fixtureProvenance)? = fixture.entry?.first?.resource else {
             Issue.record("Fixture lifecycle resource is not Provenance")
@@ -769,20 +774,20 @@ struct ExchangeGraphCorpusTests {
         let fixtureTarget = try #require(fixtureProvenance.target.first)
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
-        let target = try RetractionEvent.Target(
+        let target = try RetractionRecord.Target(
             identifier: RoledIdentifier(#require(fixtureTarget.identifier)),
             resourceType: resourceType,
             role: .primaryOutput
         )
-        let event = try ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier)))
-        let graph = try retractionEvent(event).retraction(of: sourceRecord, targets: [target], occurred: occurred).graph
+        let graph = try retractionDeployment().retraction(of: sourceRecord, targets: [target], occurred: occurred).record.graph
         guard case .provenance(let provenance)? = graph.bundle.entry?.first?.resource else {
             Issue.record("Builder did not emit Provenance")
             return
         }
         #expect(try RoledIdentifier(#require(provenance.entity?.first?.what.identifier)) == sourceRecord)
-        #expect(provenance.agent.first?.who.identifier != nil)
-        #expect(provenance.agent.first?.who.type?.value?.url.absoluteString == "Device")
+        let assembler = try #require(provenance.agent.first?.who.reference?.value?.string)
+        let assemblerEntry = graph.bundle.entry?.first { $0.fullUrl?.value?.url.absoluteString == assembler }
+        #expect(assemblerEntry?.resource?.get(if: Device.self) != nil)
         let end = FHIRPrimitive(try DateTime("2026-08-21T08:00:00Z"))
         switch occurred {
         case .instant:
@@ -802,16 +807,16 @@ struct ExchangeGraphCorpusTests {
             Issue.record("Fixture lifecycle resource is not Provenance")
             return
         }
-        let target = try RetractionEvent.Target(
+        let target = try RetractionRecord.Target(
             identifier: RoledIdentifier(#require(fixtureProvenance.target.first?.identifier)),
             resourceType: .observation,
             role: .primaryOutput
         )
-        let event = try retractionEvent(ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
+        let deployment = retractionDeployment()
         let sourceRecord = try RoledIdentifier(#require(fixtureProvenance.entity?.first?.what.identifier))
         let end = Date(timeIntervalSince1970: 1_787_299_200)
-        #expect(throws: RetractionEvent.ValidationError.invalidOccurrencePeriod) {
-            try event.retraction(of: sourceRecord, targets: [target], occurred: .period(start: end.addingTimeInterval(1), end: end))
+        #expect(throws: RetractionRecord.ValidationError.invalidOccurrencePeriod) {
+            try deployment.retraction(of: sourceRecord, targets: [target], occurred: .period(start: end.addingTimeInterval(1), end: end))
         }
     }
 
@@ -829,15 +834,16 @@ struct ExchangeGraphCorpusTests {
         let targetIdentifier = try RoledIdentifier(#require(fixtureTarget.identifier))
         let targetType = try #require(fixtureTarget.type?.value?.url.absoluteString)
         let resourceType = try #require(ResourceType(rawValue: targetType))
-        let event = try retractionEvent(ExchangeEventIdentifier(BusinessIdentifier(#require(fixture.identifier))))
+        let deployment = retractionDeployment()
         func retraction(nativeRecordIdentifier: BusinessIdentifier) throws -> ExchangeGraph {
-            let target = try RetractionEvent.Target(
+            let target = try RetractionRecord.Target(
                 identifier: targetIdentifier,
                 resourceType: resourceType,
                 role: .primaryOutput,
                 nativeRecordIdentifier: nativeRecordIdentifier
             )
-            return try event.retraction(of: sourceRecord, targets: [target], occurred: .instant(Date(timeIntervalSince1970: 1_787_299_200))).graph
+            let occurred = RetractionRecord.Occurrence.instant(Date(timeIntervalSince1970: 1_787_299_200))
+            return try deployment.retraction(of: sourceRecord, targets: [target], occurred: occurred).record.graph
         }
 
         let nativeRecordIdentifier = try BusinessIdentifier(
@@ -859,9 +865,9 @@ struct ExchangeGraphCorpusTests {
         #expect(identifier == nativeRecordIdentifier.fhirIdentifier)
 
         // The opaque Grove identity is never restated as the clear native one.
-        #expect(throws: RetractionEvent.ValidationError.reservedIdentifierSystem) {
+        #expect(throws: RetractionRecord.ValidationError.reservedIdentifierSystem) {
             try retraction(nativeRecordIdentifier: BusinessIdentifier(
-                system: event.identityScope.systems.sourceRecord,
+                system: deployment.identityScope.systems.sourceRecord,
                 value: nativeRecordIdentifier.value
             ))
         }
@@ -892,18 +898,16 @@ struct ExchangeGraphCorpusTests {
         }
     }
 
-    /// The fixture's event under the test deployment's scope, recorded one second after the deletion.
-    private func retractionEvent(_ event: ExchangeEventIdentifier) -> TestEvent {
-        let base = TestEvent.test()
-        return TestEvent(
-            subject: base.subject,
-            event: event,
-            identityScope: base.identityScope,
-            repositoryScope: base.repositoryScope,
-            application: base.application,
-            host: base.host,
-            conversionInstant: Date(timeIntervalSince1970: 1_787_299_201)
-        )
+    /// The test deployment, recorded one second after the fixtures' deletion.
+    private func retractionDeployment() -> TestDeployment {
+        TestDeployment.test(conversionInstant: Date(timeIntervalSince1970: 1_787_299_201))
+    }
+
+    /// The scope of the published test key, under which the conformance fixtures recompute.
+    private func conformanceScope() throws -> OpaqueIdentityScope {
+        let epoch = try KeyEpoch("1")
+        let systems = try DeploymentIdentifierSystems.derived(root: "https://study.example.org/fhir", keyID: "test-key", epoch: epoch)
+        return try OpaqueIdentityScope.conformanceTesting(systems: systems, keyID: "test-key", epoch: epoch)
     }
 
     private func graph(named name: String, kind: ExchangeGraph.Kind) throws -> ExchangeGraph {
@@ -911,12 +915,7 @@ struct ExchangeGraphCorpusTests {
     }
 
     private func validate(_ bundle: ModelsR4.Bundle, kind: ExchangeGraph.Kind) throws -> ExchangeGraph {
-        let identifier = try BusinessIdentifier(#require(bundle.identifier))
-        return try ExchangeGraph(
-            kind: kind,
-            eventIdentifier: ExchangeEventIdentifier(identifier),
-            bundle: bundle
-        )
+        try ExchangeGraph(kind: kind, bundle: bundle)
     }
 
     private func bundle(named name: String) throws -> ModelsR4.Bundle {

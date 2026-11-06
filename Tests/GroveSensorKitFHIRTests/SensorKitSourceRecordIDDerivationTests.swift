@@ -9,7 +9,7 @@
 #if os(iOS)
 
 import Foundation
-import GroveSensorKit
+@testable import GroveSensorKit
 @testable import GroveSensorKitFHIR
 import SensorKit
 import Testing
@@ -19,6 +19,7 @@ struct SensorKitSourceRecordIDDerivationTests {
     @available(iOS 18, *)
     private var firstCoordinate: SensorKit.AcquisitionBatchCoordinate {
         SensorKit.AcquisitionBatchCoordinate(
+            streamPartition: 0x5EED,
             cursorTimestamp: Date(timeIntervalSinceReferenceDate: 12_345),
             resetGeneration: 2,
             sequence: 7
@@ -32,19 +33,32 @@ struct SensorKitSourceRecordIDDerivationTests {
         let retry = derive(at: firstCoordinate, ordinal: 3)
 
         #expect(first == retry)
-        #expect(firstCoordinate.stableValue.hasPrefix("sensorkit-batch-v0:"))
+        #expect(firstCoordinate.stableValue.hasPrefix("sensorkit-batch-v1:\(0x5EED):"))
     }
 
     @Test("Byte-identical records at distinct acquisition coordinates remain distinct")
     @available(iOS 18, *)
     func distinctCoordinatesRemainDistinct() {
         let nextCoordinate = SensorKit.AcquisitionBatchCoordinate(
+            streamPartition: firstCoordinate.streamPartition,
             cursorTimestamp: firstCoordinate.cursorTimestamp,
             resetGeneration: firstCoordinate.resetGeneration,
             sequence: firstCoordinate.sequence + 1
         )
 
         #expect(derive(at: firstCoordinate, ordinal: 3) != derive(at: nextCoordinate, ordinal: 3))
+    }
+
+    @Test("Two fresh cursors, such as an installation and its reinstall, name disjoint source records")
+    @available(iOS 18, *)
+    func freshCursorsNameDisjointRecords() {
+        func firstBatch() -> SensorKit.AcquisitionBatchCoordinate {
+            QueryAnchor().preparing(.sampleCount(deliveryTimestamp: firstCoordinate.cursorTimestamp, sampleCount: 1)).acquisitionBatchCoordinate
+        }
+        let (installation, reinstall) = (firstBatch(), firstBatch())
+        for ordinal: UInt64 in 0..<4 {
+            #expect(derive(at: installation, ordinal: ordinal) != derive(at: reinstall, ordinal: ordinal))
+        }
     }
 
     @Test("Record ordinal and cursor partitions are identity-bearing")

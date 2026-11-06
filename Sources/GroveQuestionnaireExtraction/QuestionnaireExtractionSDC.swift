@@ -46,7 +46,9 @@ private struct WriterContextFields {
     var version: String?
     var build: String?
     var hostModel: String?
+    var hostOperatingSystemName: String?
     var hostOperatingSystemVersion: String?
+    var hostOperatingSystemBuild: String?
 
     private static func businessIdentifier(_ identifier: Identifier) -> BusinessIdentifier? {
         guard let system = identifier.system?.value?.url.absoluteString,
@@ -70,7 +72,9 @@ private struct WriterContextFields {
         case "applicationVersion": version = value.value?.string
         case "applicationBuild": build = value.value?.string
         case "hostModel": hostModel = value.value?.string
+        case "hostOperatingSystemName": hostOperatingSystemName = value.value?.string
         case "hostOperatingSystemVersion": hostOperatingSystemVersion = value.value?.string
+        case "hostOperatingSystemBuild": hostOperatingSystemBuild = value.value?.string
         default: break
         }
     }
@@ -85,7 +89,9 @@ private struct WriterContextFields {
             applicationVersion: version,
             applicationBuild: build,
             hostModel: hostModel,
-            hostOperatingSystemVersion: hostOperatingSystemVersion
+            hostOperatingSystemName: hostOperatingSystemName,
+            hostOperatingSystemVersion: hostOperatingSystemVersion,
+            hostOperatingSystemBuild: hostOperatingSystemBuild
         )
     }
 }

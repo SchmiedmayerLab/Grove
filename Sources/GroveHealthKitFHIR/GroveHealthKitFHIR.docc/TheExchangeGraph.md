@@ -10,28 +10,29 @@
 #
 -->
 
-Understand the resources, immutable identities, and references exported for one source record/version.
+Understand the resources, immutable identities, and references of one record and of the Bundle that carries it.
 
 ## Overview
 
-Exporting one `HKSample` produces a closed graph: the primary clinical output, any mandatory child outputs or source artifact, immutable Device snapshots, the bundled study context when an enrollment is known, and the Provenance assertion for that event.
+Exporting one `HKSample` produces one record: the primary clinical output, any mandatory child outputs or source artifact, immutable Device snapshots, the study context when an enrollment is known, and the one conversion Provenance.
 
 ```swift
-let receipt = try exporter.export([sample]) { export in
-    guard let graph = export.graph else {
+try await exporter.export([sample]) { export in
+    guard let record = export.record else {
         return // Refused: export.outcome names the reason.
     }
-    // `graph.eventIdentifier` is the event the graph asserts, and `graph.bundle` the graph as ModelsR4 resources.
-    try stage(graph.json)   // the validated bytes, stored and sent verbatim
+    // `record.sourceRecord` names the source record, and `record.version` this revision of it.
+    try stage(record.json)   // the validated canonical bytes, stored verbatim
 }
 ```
 
-The active Bundle claims `https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle`, carries a typed event identifier, and contains exactly one source record/version.
+`ExchangeBundlePacker` packs records into one Bundle, the exchange graph, stating each shared node once; a record's `json` is the same form with that one record.
+The active Bundle claims `https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle`, and `Bundle.identifier` is an optional transport id that enters no identity.
 It is an R4 `collection`, not a transaction or delete command.
 
 The entry type set is closed.
 Outputs are `Observation`, `DocumentReference`, `Specimen`, `VisionPrescription`, `MedicationAdministration`, or `MedicationStatement`; supporting nodes are `Patient`, `Device`, `ResearchStudy`, `ResearchSubject`, `PlanDefinition`, or `QuestionnaireResponse`; and the only lifecycle node is `Provenance`.
-Every supporting entry must be connected to an output or that lifecycle assertion.
+Every supporting entry must be connected to an output or a lifecycle assertion.
 
 ## The clinical output
 
@@ -58,36 +59,38 @@ Missing, unknown, and future releases fail before Grove creates a DocumentRefere
 ## The devices
 
 The recording hardware, converting application, and host are separate Device resources because they answer different provenance questions.
-Each is an immutable event-time snapshot; an application links to its host through `Device.parent`.
+Each is an immutable content snapshot; an application links to its host through `Device.parent`.
 
-A HealthKit application Device claims the HealthKit application profile and carries exactly two identifiers: the opaque event-scoped `device-snapshot`, plus the clear Apple product bundle identifier typed as `healthkit-identifier-type#apple-bundle-id`.
+A HealthKit application Device claims the HealthKit application profile and carries exactly two identifiers: the opaque `device-snapshot` of its content, plus the clear Apple product bundle identifier typed as `healthkit-identifier-type#apple-bundle-id`.
 That clear value identifies an application product, never an installation, host, account, or person.
 The converting application always uses this shape; the writer of an `HKSourceRevision` uses it only when the caller classifies the source as an application through ``HealthKitFHIRExporter/WriterPolicy``.
-That writer snapshot and the host it ran on are the graph's `writer` and `writerHost` nodes, and the writer is the author agent of the Provenance's source-record entity.
+That writer snapshot and the host it ran on are the record's `writer` and `writerHost` nodes, and the writer is the author agent of the Provenance's source-record entity.
 HealthKit does not say whether a source is an application or a device, so a source the caller has not classified states no writer and the Provenance names no author; Grove never infers the classification from the bundle identifier, the source name or the product type.
-The writer is an application snapshot of its own, minted from its bundle identifier and the source revision's `HKSourceRevision.version`, which the HealthKit guide requires in its version, while the converting application's snapshot states its marketing version and build.
+The writer is an application snapshot of its own, stating its name, its bundle identifier and the source revision's `HKSourceRevision.version` as its build, while the converting application's snapshot states its marketing version and build.
 So even a sample the running application wrote carries the writer beside the converter as a second application Device; the guide allows either form.
-Only snapshots with identical tokens are one entry: the writer's host is the converter's host entry when the model and operating-system version match, and the writer is the converter's entry only when the converter states no build and its version equals the revision's.
+Only snapshots of equal content are one entry: the writer's host is the converter's host entry when they state the same facts.
+A source that states no writer carries the five facts of its `HKSourceRevision` on the Provenance's source entity instead, in the `healthkit-source-revision` extension.
+A sample the store never held has no revision, so it states neither.
 
-A recording Device carries two identities.
-`recording-device` is the stable HMAC identity for the physical unit ``HealthKitFHIRExporter/RecordingDevicePolicy`` names.
-`device-snapshot` identifies the exact event-time representation and is the selected Bundle node/fullUrl key.
-Historical events never mutate one shared Device resource.
-A device the policy cannot name is omitted rather than merged, and the export reports the `mobile-omission.recording-device` warning.
+Every non-nil `HKDevice` is a recording Device that `Observation.device` references.
+It states every fact HealthKit supplies: `HKDevice.name` as the user-friendly `deviceName`, `manufacturer`, `model` as `modelNumber`, the hardware, firmware and software versions under their MDC codes, `localIdentifier` as a clear identifier of type `device-local-identifier` under the deployment's own system, and the UDI device identifier in `udiCarrier`.
+A record with an Observation output also takes the sample's device metadata keys: the serial number, and the UDI production identifier in the Grove extension on `udiCarrier`, come only from their keys, and the device name, manufacturer and UDI device identifier keys fill what `HKDevice` leaves absent.
 
-Only the catalogued descriptive fields are copied.
-A serial number or UDI remains omitted unless ``HealthKitFHIRExporter/Options/udi`` is `.authorized`.
+Every recording Device carries `device-snapshot`, the keyed digest of its complete content, which is the selected Bundle node and fullUrl key.
+Equal content is one snapshot, and a snapshot proves no physical unit.
+`recording-device` is the stable HMAC identity of the unit, present only when ``HealthKitFHIRExporter/UnitTokenPolicy`` picks a token.
+Historical records never mutate one shared Device resource.
 
 ## The study context
 
-A `StudyEnrollment` among the producer's studies becomes three entry-node entries: the `ResearchStudy`, the `PlanDefinition` it instantiates at the exact canonical URL and version, and the `ResearchSubject` that enrolls the subject.
+A `StudyEnrollment` among the producer's studies becomes three `context-snapshot` nodes, each keyed by its content: the `ResearchStudy`, the `PlanDefinition` it instantiates at the exact canonical URL and version, and the `ResearchSubject` that enrolls the subject.
 Every Observation output references the study through the `workflow-researchStudy` extension.
 A recording or clinical document names its studies in `DocumentReference.context.related` instead.
-A `Subject.bundled` adds the `Patient` entry under the same entry-node scheme.
+A `Subject.bundled` adds the `Patient` entry under the same scheme.
 
 ## The provenance
 
-The conversion `Provenance` is an assertion about how this graph came to exist.
+The conversion `Provenance` is an assertion about how this record came to exist.
 Its lifecycle activity contains exactly one ISO 21089 `transform` coding and no Grove retraction lifecycle coding.
 Its direct `meta.profile` claim contains exactly the one admitted HealthKit conversion profile; it does not repeat a generic conversion profile alongside it.
 It records:
@@ -95,9 +98,10 @@ It records:
 - every emitted output as a target;
 - the converting application as the assembler and its host relationship;
 - the typed `source-record` identifier as the source entity;
-- the event's frozen instant in `occurred` and `recorded`.
+- the call's instant in `occurred` and `recorded`;
+- the record version in its `grove-record-version` extension, which equals its entry key.
 
-The source HealthKit UUID, writer record, source-revision context, and device tokens are framed HMAC inputs.
+The source HealthKit UUID, the writer record and the unit token are framed HMAC inputs.
 They are not emitted through clear, global Grove NamingSystems.
 
 ## How the graph is wired
@@ -112,21 +116,23 @@ Every graph node is an addressable Bundle entry with a deterministic fullUrl, so
 
 Internal nodes use deterministic `urn:uuid` full URLs.
 UUIDv5 input is the unsigned length-framed UTF-8 pair `[identifier.system, identifier.value]` for the selected typed identity.
-Nodes without a separate business identity use a typed entry-node key, whose ordinal is the entry's zero-based position among the entries sharing its role.
-An exact retry therefore rebuilds identical references, while a new event version cannot collide with an earlier snapshot.
+A node without an immutable business identity uses a typed content key, so the same content has the same fullUrl in every Bundle.
+An exact retry therefore rebuilds identical references, and changed content is a new snapshot rather than a second body under one fullUrl.
+A literal reference stays inside its record or points to a shared node of the same Bundle.
 
 ## Equality and retries
 
-A receiver compares two graphs of the same event over lossless JSON tokens with `ExchangeGraph.isSemanticallyEqual(to:)`.
-Member order, whitespace, and string escaping do not matter; a decimal lexeme is compared as text, so `72` and `72.0` are different content.
-A retry that is equal under this comparison is the exact retry the exchange protocol admits.
+Two records are the same version when their `ExchangeRecord.version` is equal.
+The version is keyed, so a receiver compares it and never recomputes it; `ExchangeRecord.verifyVersion(in:)` recomputes it for a holder of the key.
+It covers the canonical JSON tokens of the Provenance and the outputs, so member order, whitespace and string escaping do not matter, while a decimal lexeme is kept as text: `72` and `72.0` are different content.
+Equal fullUrls state equal tokens, which `ExchangeBundlePacker` checks when it dedupes a shared node.
 
 ## Retractions
 
-A retraction is a new assertion Bundle with its own event identifier, which ``HealthKitFHIRExporter/retract(_:at:receive:)`` exports for a deleted record.
-Its Provenance uses exactly one Grove `source-record-retracted` lifecycle coding and targets typed logical identifiers from an earlier active event.
+A retraction is a record of its own, which ``HealthKitFHIRExporter/retract(_:at:receive:)`` exports for a deleted sample and which travels in a Bundle of retractions, never beside active records.
+Its Provenance uses exactly one Grove `source-record-retracted` lifecycle coding, and its one target is the `source-record` identifier its entity names.
 It is not an HTTP delete instruction.
 
-The target role closes both identity and resource type: `primary-output`, `child-output`, `specimen`, and `source-artifact` target a `source-output` identifier with the role's admitted resource type; `device-snapshot` targets a Device's `device-snapshot` identifier.
-A recording document's `source-artifact` role therefore selects the document's exact source-output entry key, not its attachment identifier.
+It addresses the whole source record: a receiver suppresses every output of every version of that record, one only an earlier conversion emitted included, so a retraction restates no output list from the current catalog.
+Its entry key is a function of the source record alone, it carries no `grove-record-version`, and the first accepted wins, so a re-reported deletion with other bounds is a duplicate.
 A disclosed native record identifier rides beside the target in the Grove retraction native-identifier extension; it never addresses the target.

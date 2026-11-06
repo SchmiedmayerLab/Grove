@@ -40,40 +40,37 @@ enum ExporterGolden {
     )
 
     /// Options equal to MyHeartCounts' `Options.myHeartCounts` (`HealthKitGroveConversion.swift`, MyHeartCounts
-    /// 79d70dbf) under the fix round's writer policy: the HealthKit UUID disclosed under the deployment's own system
-    /// and kept as `Bundle.id`, the deployment's own writes mediated by it in the build that wrote them, its own
-    /// bundle identifier the one source classified as an application, and every other option at its default.
+    /// 79d70dbf) under the fix round's writer policy: the HealthKit UUID disclosed under the deployment's own system, the
+    /// deployment's own writes mediated by it in the build that wrote them, its own bundle identifier the one source
+    /// classified as an application, and every other option at its default.
     static var deploymentOptions: HealthKitFHIRExporter.Options {
         var options = HealthKitFHIRExporter.Options()
         options.nativeIdentifier = .authorized(system: deploymentNativeIdentifierSystem)
-        options.legacyBundleID = .healthKitUUID
         options.role = .gatewayForOwnWrites
         options.writer = .applications([deploymentApplication.bundleIdentifier])
         return options
     }
 
-    /// An exporter whose fresh ledger hands out `sequence` next under the fixed producer instance, with the
-    /// deployment's application, studies and options, or with the test application and default options.
-    static func exporter(sequence: UInt64, deployment: Bool) throws -> HealthKitFHIRExporter {
+    /// An exporter with the deployment's application, studies and options, or with the test application and default
+    /// options.
+    static func exporter(deployment: Bool) throws -> HealthKitFHIRExporter {
         var inputs = ExportInputs()
-        inputs.sequence = sequence
         if deployment {
             inputs.converter = deploymentApplication
             inputs.studies = deploymentStudies
             inputs.options = deploymentOptions
         }
-        return try ExporterFixtures.exporter(inputs).exporter
+        return try ExporterFixtures.exporter(inputs)
     }
 
     /// The graph at `index` of the `count` exports one call delivers for `records`, in delivery order.
     static func output(
         of records: [HealthKitFHIRExporter.Record],
-        sequence: UInt64,
         deployment: Bool,
         index: Int = 0,
         of count: Int = 1
     ) async throws -> GoldenOutput {
-        let (exports, _) = try await ExporterFixtures.collect(exporter(sequence: sequence, deployment: deployment), records)
+        let exports = try await ExporterFixtures.collect(exporter(deployment: deployment), records)
         guard exports.count == count else {
             throw GoldenCaseError.unexpectedCompanions(exports.count - 1)
         }
@@ -107,30 +104,27 @@ enum ExporterGolden {
 }
 
 
-/// The graphs `HealthKitFHIRExporter` delivers under the deployment's own configuration: its options and the facts
-/// frozen with each reservation, numbered by the exporter itself.
+/// The records `HealthKitFHIRExporter` delivers under the deployment's own configuration: its options and its facts.
 extension GoldenCase {
-    /// Sequences 100-119. Each case exports through a fresh ledger that hands out its sequence next under the fixed
-    /// producer instance every golden states; an ECG's events are numbered by the exporter, in its own order.
     static let exporter: [GoldenCase] = [
-        // The exporter's defaults on an Apple per-device source: no writer and no author, and a recording Device
-        // only because the sample's HKDevice names its unit.
-        GoldenCase("exporter-default-apple-watch-heart-rate", sequence: 100) { sequence in
+        // The exporter's defaults on an Apple per-device source: no writer and no author, and a recording Device whose
+        // unit the sample's HKDevice names.
+        GoldenCase("exporter-default-apple-watch-heart-rate") {
             let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xB0), device: GoldenFixtures.watch, writer: ExporterGolden.watchSource)
-            return try await ExporterGolden.output(of: [.sample(sample)], sequence: sequence, deployment: false)
+            return try await ExporterGolden.output(of: [.sample(sample)], deployment: false)
         },
-        // The same source whose HKDevice names no unit: no recording Device at all, and that omission reported.
-        GoldenCase("exporter-default-apple-watch-heart-rate-without-unit-token", sequence: 109) { sequence in
+        // The same source whose HKDevice names no unit: a recording Device that proves none.
+        GoldenCase("exporter-default-apple-watch-heart-rate-without-unit-token") {
             let sample = try GoldenFixtures.heartRate(
                 uuid: GoldenFixtures.uuid(0xBB),
                 device: GoldenFixtures.watchWithoutUnitToken,
                 writer: ExporterGolden.watchSource
             )
-            return try await ExporterGolden.output(of: [.sample(sample)], sequence: sequence, deployment: false)
+            return try await ExporterGolden.output(of: [.sample(sample)], deployment: false)
         },
         // The deployment's own write in the build that runs, starting at a sub-second instant: its gateway role,
-        // its classified writer, the disclosed UUID, the legacy Bundle.id and the study context.
-        GoldenCase("exporter-deployment-own-heart-rate", sequence: 101) { sequence in
+        // its classified writer, the disclosed UUID and the study context.
+        GoldenCase("exporter-deployment-own-heart-rate") {
             let start = GoldenFixtures.sampleStart.addingTimeInterval(0.512)
             let heartRate = HKQuantitySample(
                 type: HKQuantityType(.heartRate),
@@ -141,19 +135,19 @@ extension GoldenCase {
                 metadata: GoldenFixtures.timeZoneMetadata
             )
             let sample = try StoredSampleFixtures.stored(heartRate, uuid: GoldenFixtures.uuid(0xB1), writer: ExporterGolden.deploymentWriter)
-            return try await ExporterGolden.output(of: [.sample(sample)], sequence: sequence, deployment: true)
+            return try await ExporterGolden.output(of: [.sample(sample)], deployment: true)
         },
-        GoldenCase("exporter-deployment-electrocardiogram", sequence: 102) { sequence in
-            try await ExporterGolden.output(of: [ExporterGolden.electrocardiogram()], sequence: sequence, deployment: true, index: 0, of: 2)
+        GoldenCase("exporter-deployment-electrocardiogram") {
+            try await ExporterGolden.output(of: [ExporterGolden.electrocardiogram()], deployment: true, index: 0, of: 2)
         },
-        GoldenCase("exporter-deployment-electrocardiogram-symptom", sequence: 102) { sequence in
-            try await ExporterGolden.output(of: [ExporterGolden.electrocardiogram()], sequence: sequence, deployment: true, index: 1, of: 2)
+        GoldenCase("exporter-deployment-electrocardiogram-symptom") {
+            try await ExporterGolden.output(of: [ExporterGolden.electrocardiogram()], deployment: true, index: 1, of: 2)
         },
-        GoldenCase("exporter-deployment-blood-pressure", sequence: 104) { sequence in
+        GoldenCase("exporter-deployment-blood-pressure") {
             let correlation = try bloodPressure(uuid: 0xB4, components: (0xB5, 0xB6))
-            return try await ExporterGolden.output(of: [.sample(correlation)], sequence: sequence, deployment: true)
+            return try await ExporterGolden.output(of: [.sample(correlation)], deployment: true)
         },
-        GoldenCase("exporter-deployment-state-of-mind", sequence: 105) { sequence in
+        GoldenCase("exporter-deployment-state-of-mind") {
             let stateOfMind = HKStateOfMind(
                 date: GoldenFixtures.sampleStart,
                 kind: .dailyMood,
@@ -163,17 +157,17 @@ extension GoldenCase {
                 metadata: GoldenFixtures.timeZoneMetadata
             )
             let sample = try StoredSampleFixtures.stored(stateOfMind, uuid: GoldenFixtures.uuid(0xB7))
-            return try await ExporterGolden.output(of: [.sample(sample)], sequence: sequence, deployment: true)
+            return try await ExporterGolden.output(of: [.sample(sample)], deployment: true)
         },
         // A deletion noted between two queries, both stated at sub-second precision.
-        GoldenCase("exporter-deployment-retraction", sequence: 106) { sequence in
+        GoldenCase("exporter-deployment-retraction") {
             let deletion = HealthKitFHIRExporter.Deletion(
                 uuid: GoldenFixtures.uuid(0xB8),
                 sourceType: .heartRate,
                 deletedAfter: GoldenFixtures.sampleStart.addingTimeInterval(0.125),
                 detectedAt: GoldenFixtures.conversionInstant.addingTimeInterval(-0.25)
             )
-            let (retractions, _) = try await ExporterFixtures.retract(ExporterGolden.exporter(sequence: sequence, deployment: true), [deletion])
+            let retractions = try await ExporterFixtures.retract(ExporterGolden.exporter(deployment: true), [deletion])
             return try GoldenOutput(ExporterGolden.single(retractions))
         }
     ] + exporterClinicalRecords
@@ -183,13 +177,13 @@ extension GoldenCase {
     #else
     /// `HKClinicalRecord` has no initializer; the stored-sample fixtures build one per release the guide admits.
     static let exporterClinicalRecords: [GoldenCase] = [
-        GoldenCase("exporter-clinical-record-r4", sequence: 107) { sequence in
+        GoldenCase("exporter-clinical-record-r4") {
             let record = try await ExporterGolden.clinicalRecord(uuid: 0xB9, version: .primaryR4(), payload: #"{"resourceType":"Observation","id":"a1c-r4","status":"final"}"#)
-            return try await ExporterGolden.output(of: [.sample(record)], sequence: sequence, deployment: false)
+            return try await ExporterGolden.output(of: [.sample(record)], deployment: false)
         },
-        GoldenCase("exporter-clinical-record-dstu2", sequence: 108) { sequence in
+        GoldenCase("exporter-clinical-record-dstu2") {
             let record = try await ExporterGolden.clinicalRecord(uuid: 0xBA, version: .primaryDSTU2(), payload: #"{"resourceType":"Observation","id":"a1c-dstu2","status":"final"}"#)
-            return try await ExporterGolden.output(of: [.sample(record)], sequence: sequence, deployment: false)
+            return try await ExporterGolden.output(of: [.sample(record)], deployment: false)
         }
     ]
     #endif

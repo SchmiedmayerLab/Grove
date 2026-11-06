@@ -46,8 +46,8 @@ extension ContentCorpusRecorder {
         guard case .converted(let exports) = outcome else {
             return try render(outcome)
         }
-        let graphs = try exports.compactMap(\.graph).map { graph in
-            let resources = (try LosslessJSONValue(parsing: graph.json)["entry"]?.elements ?? []).compactMap { $0["resource"] }
+        let graphs = try exports.compactMap(\.record).map { record in
+            let resources = (try LosslessJSONValue(parsing: record.json)["entry"]?.elements ?? []).compactMap { $0["resource"] }
             let samples = try resources.filter { $0["resourceType"]?.text == ResourceType.observation.rawValue }.map { resource in
                 reverse(try JSONDecoder().decode(Observation.self, from: Data(resource.canonicalText.utf8)))
             }
@@ -63,7 +63,6 @@ extension ContentCorpusRecorder {
             throw ContentCorpusSamples.RebuildError.unknownType(type)
         }
         var inputs = ExportInputs()
-        inputs.sequence = sequence
         inputs.options.route = .authorized
         if disclosure == .nativeIdentifier {
             inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)

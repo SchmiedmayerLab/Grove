@@ -63,9 +63,6 @@ extension HealthKitFHIRExporter {
                 case .mobileOmissionSourceOffset:
                     "Effective time written in UTC: the sample names no HKMetadataKeyTimeZone (nor, for blood pressure, "
                         + "do its members agree on one)"
-                case .mobileOmissionRecordingDevice:
-                    "No recording Device: the recording-device policy resolved the sample's HKDevice to no physical unit "
-                        + "(by default, the device has no localIdentifier)"
                 case .mobileOmissionUnmodeledMetadata:
                     "Metadata withheld: the sample, or a correlation member, workout event or workout activity it "
                         + "contains, carries metadata keys its graph does not represent"

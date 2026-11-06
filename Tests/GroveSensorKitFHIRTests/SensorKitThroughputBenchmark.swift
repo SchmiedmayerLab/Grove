@@ -119,14 +119,15 @@ struct SensorKitThroughputBenchmark {
         let exportStart = cpuTime()
         var graphBytes = 0
         var refusals = 0
-        _ = try await exporter.export(
+        try await exporter.export(
             records,
             sourceTimeZone: SensorKitExporterFixtures.timeZone,
+            recordingDevice: SensorKitExporterFixtures.watch,
             at: SensorKitExporterFixtures.instant
         ) { export in
             switch export.outcome {
-            case .graph(let graph):
-                graphBytes += graph.json.count
+            case .record(let record):
+                graphBytes += record.json.count
             case .refused:
                 refusals += 1
             }

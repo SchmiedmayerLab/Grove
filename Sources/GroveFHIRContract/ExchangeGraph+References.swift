@@ -309,36 +309,33 @@ extension ExchangeGraph {
         }
     }
 
-    static func hasExactLifecycleCoding(
-        _ provenance: Provenance,
-        kind: LifecycleKind
-    ) -> Bool {
+    /// The kind of lifecycle assertion a Provenance's activity states, or `nil` when it states neither.
+    ///
+    /// Exactly one coding across the ISO transform and Grove retraction systems classifies it; more than one contradicts
+    /// itself, and a coding outside the admitted one of its system names no assertion the guide defines.
+    static func lifecycleKind(of provenance: Provenance) throws(ExchangeGraphError) -> LifecycleKind? {
         let codings = provenance.activity?.coding ?? []
         let iso = codings.filter { $0.system?.value?.url.absoluteString == transformSystem }
         let grove = codings.filter {
             $0.system?.value?.url.absoluteString
                 == Canonicals.lifecycleEventCodeSystem.value?.url.absoluteString
         }
-        switch kind {
-        case .active:
-            return iso.count == 1
-                && iso[0].code?.value?.string == "transform"
-                && grove.isEmpty
-        case .retraction:
-            return grove.count == 1
-                && grove[0].code?.value?.string == RetractionEvent.lifecycleActivityCode
-                && iso.isEmpty
+        guard !iso.isEmpty || !grove.isEmpty else {
+            return nil
         }
-    }
-
-    /// A retraction Provenance that states only the ISO transform activity is a transform Provenance.
-    static func isTransformOnlyLifecycle(_ provenance: Provenance) -> Bool {
-        let codings = provenance.activity?.coding ?? []
-        let grove = codings.contains {
-            $0.system?.value?.url.absoluteString == Canonicals.lifecycleEventCodeSystem.value?.url.absoluteString
+        guard iso.count + grove.count == 1 else {
+            throw .ruleViolation(.mobileExchangeLifecycleCoding)
         }
-        let iso = codings.contains { $0.system?.value?.url.absoluteString == transformSystem }
-        return iso && !grove
+        if let coding = iso.first {
+            guard coding.code?.value?.string == "transform" else {
+                throw .ruleViolation(.mobileExchangeLifecycleCoding)
+            }
+            return .active
+        }
+        guard grove[0].code?.value?.string == RetractionRecord.lifecycleActivityCode else {
+            throw .ruleViolation(.mobileExchangeLifecycleCoding)
+        }
+        return .retraction
     }
 
     static func hasRequiredTimes(_ provenance: Provenance) -> Bool {
@@ -369,37 +366,24 @@ extension ExchangeGraph {
         return assemblers[0]
     }
 
-    static func activeAssemblerResolves(
-        _ assembler: ProvenanceAgent,
-        entries: [BundleEntry]
-    ) -> Bool {
-        guard assembler.who.identifier == nil,
-              let reference = assembler.who.reference?.value?.string,
-              let entry = entries.first(where: {
-                  $0.fullUrl?.value?.url.absoluteString == reference
-              }),
-              case .device(let device)? = entry.resource else {
-            return false
-        }
-        return device.meta?.profile?.contains(Profile.groveApplicationDevice) == true
-            || device.meta?.profile?.contains(HealthKitContract.applicationDeviceProfile) == true
+    /// The fullUrls of the application Device entries a lifecycle Provenance may name as its assembler.
+    static func applicationDeviceURLs(in entries: [BundleEntry]) -> Set<String> {
+        Set(entries.compactMap { entry in
+            guard case .device(let device)? = entry.resource,
+                  device.meta?.profile?.contains(Profile.groveApplicationDevice) == true
+                    || device.meta?.profile?.contains(HealthKitContract.applicationDeviceProfile) == true else {
+                return nil
+            }
+            return entry.fullUrl?.value?.url.absoluteString
+        })
     }
 
-    static func retractionAssemblerIsDevice(
-        _ assembler: ProvenanceAgent,
-        entries: [BundleEntry]
-    ) -> Bool {
-        if assembler.who.reference != nil {
-            return activeAssemblerResolves(assembler, entries: entries)
-        }
-        guard let identifier = assembler.who.identifier,
-              assembler.who.type?.value?.url.absoluteString == ResourceType.device.rawValue,
-              let snapshot = try? RoledIdentifier(identifier),
-              snapshot.role == .deviceSnapshot,
-              ExchangeIdentity.isCanonicalOpaqueIdentifierValue(snapshot.identifier.value) else {
+    /// A lifecycle Provenance names its assembler literally, as the shared application Device of the same Bundle.
+    static func assemblerResolves(_ assembler: ProvenanceAgent, applicationURLs: Set<String>) -> Bool {
+        guard assembler.who.identifier == nil, let reference = assembler.who.reference?.value?.string else {
             return false
         }
-        return true
+        return applicationURLs.contains(reference)
     }
 
     static func exactSourceEntity(

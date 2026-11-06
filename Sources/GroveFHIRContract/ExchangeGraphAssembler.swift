@@ -14,15 +14,15 @@ package import ModelsR4
 import ThreadLocal
 
 
-/// Builds the one exchange graph shape the HealthKit and SensorKit adapters emit: outputs decorated with the
-/// event's identities and links, the study context, the device snapshots, the conversion Provenance, and the
-/// Bundle header, in the fixed entry order the guide validates.
+/// Builds the one record shape the HealthKit and SensorKit adapters emit: outputs decorated with the record's
+/// identities and links, the study context, the device snapshots and the conversion Provenance, in a fixed entry order.
 ///
-/// Every identity is minted once and its fullUrl computed once. The adapter supplies content; the
-/// assembler supplies everything the graph says about the event, the producer and the record. Questionnaire keeps
-/// its own entry list and takes only the Device bodies and the conversion Provenance from the assembler's builders.
+/// Every identity is minted once and its fullUrl computed once, each shared node after the nodes it references and after
+/// its body is final. The adapter supplies content; the assembler supplies everything the record says about the producer
+/// and its source. Questionnaire keeps its own entry list and takes the Device bodies, the conversion Provenance and
+/// ``conversionRecord(provenance:sourceRecord:entries:subject:identityScope:onValidation:)`` from the assembler's builders.
 package struct ExchangeGraphAssembler: Sendable {
-    /// What every output of one graph may link to, resolved once per graph.
+    /// What every output of one record may link to, resolved once per record.
     struct Surroundings {
         let subject: Reference
         let studyReferences: [Reference]
@@ -31,10 +31,12 @@ package struct ExchangeGraphAssembler: Sendable {
         let converterURL: String
     }
 
-    /// The device snapshots of one graph.
+    /// The device snapshots of one record.
     struct Devices {
         let converter: ConverterSnapshots
         let recording: IdentifiedDevice?
+        /// The record's peripherals, each once; one that states ``recording``'s very content is that entry.
+        let sources: [IdentifiedDevice]
         let writer: WriterSnapshots?
 
         /// Every Device entry, in its fixed order.
@@ -43,6 +45,7 @@ package struct ExchangeGraphAssembler: Sendable {
             if let recording {
                 entries.append(recording)
             }
+            entries += sources
             entries += [converter.host, converter.application]
             if let gateway = converter.gateway {
                 entries.append(gateway)
@@ -58,28 +61,21 @@ package struct ExchangeGraphAssembler: Sendable {
         var resource: ExchangeOutputDraft.Resource
     }
 
-    /// The revision of the graphs this assembler builds. Bump it whenever the bytes it emits can change for
-    /// equal inputs: it enters every exporter's context fingerprint, so an event reserved under an older
-    /// revision is never redelivered under the same identifier with different bytes.
-    package static let outputRevision: UInt = 1
-
     package let envelope: ExchangeEnvelope
 
     package init(envelope: ExchangeEnvelope) {
         self.envelope = envelope
     }
 
-    /// Assembles, encodes and validates one event's graph, handing `onValidation` how long encoding and validating took.
+    /// Assembles, encodes and validates one record, handing `onValidation` how long encoding and validating took.
     package func assemble(
-        _ draft: ExchangeGraphDraft,
+        _ draft: ExchangeRecordDraft,
         onValidation: ((Swift.Duration) -> Void)? = nil
-    ) throws -> AssembledExchangeGraph {
+    ) throws -> AssembledExchangeRecord {
         guard !draft.outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
-        let studyContext = try StudyContext(
-            subject: envelope.subject, studies: envelope.studies, event: draft.event, identityScope: envelope.identityScope
-        )
+        let studyContext = try StudyContext(subject: envelope.subject, studies: envelope.studies, identityScope: envelope.identityScope)
         let devices = try resolveDevices(for: draft)
         let surroundings = Surroundings(
             subject: studyContext.subjectReference,
@@ -89,36 +85,36 @@ package struct ExchangeGraphAssembler: Sendable {
             converterURL: devices.converter.application.url
         )
         let outputs = try decoratedOutputs(of: draft, surroundings: surroundings)
-        let provenanceNode = try EntryNodeKey(
-            system: envelope.identityScope.systems.entryNode,
-            event: draft.event,
-            nodeRole: "conversion-provenance",
-            ordinal: 0
-        )
         let provenance = try Self.conversionProvenance(
             of: draft.sourceRecord,
             targetURLs: outputs.map(\.url),
             assemblerURL: devices.converter.application.url,
             // The writer application is the Provenance author; without one the Provenance names none.
             authorURL: devices.writer?.application.url,
+            sourceDeviceURLs: devices.sources.map(\.url),
             sourceExtensions: draft.sourceExtensions,
             profile: envelope.adapter.provenanceProfile,
             at: draft.instant
         )
-
         var entries = outputs.map { BundleEntry(identifier: $0.identity, fullURL: $0.url, resource: $0.resource.proxy) }
         entries.append(contentsOf: studyContext.allEntries)
         entries.append(contentsOf: devices.entries.map(\.entry))
-        entries.append(try BundleEntry(identifier: provenanceNode.identifier, resource: ResourceProxy(with: provenance)))
-        return AssembledExchangeGraph(
-            graph: try graph(entries: entries, draft: draft, timestamp: provenance.recorded, onValidation: onValidation),
+        let record = try Self.conversionRecord(
+            provenance: provenance,
+            sourceRecord: draft.sourceRecord.identifier,
+            entries: entries,
+            subject: envelope.subject.identifier,
+            identityScope: envelope.identityScope,
+            onValidation: onValidation
+        )
+        return AssembledExchangeRecord(
+            record: record,
             identifiers: ExchangeGraphIdentifiers(
-                event: draft.event.identifier,
                 sourceRecord: draft.sourceRecord.identifier,
                 primaryOutput: outputs[0].identity,
                 applicationSnapshot: devices.converter.application.identity,
                 hostSnapshot: devices.converter.host.identity,
-                provenance: provenanceNode.identifier,
+                provenance: record.version.identifier,
                 childOutputs: outputs.dropFirst().map(\.identity),
                 sourceArtifact: outputs[0].artifact,
                 recordingDeviceSnapshot: devices.recording?.identity,
@@ -127,30 +123,85 @@ package struct ExchangeGraphAssembler: Sendable {
             )
         )
     }
+}
 
-    /// The validated graph of one event's entries, in the order given, stamped `timestamp`: the conversion instant, as
-    /// the conversion Provenance already records it.
-    private func graph(
+
+// MARK: - Records
+
+extension ExchangeGraphAssembler {
+    /// The record of a finished conversion, the one place a record version is minted.
+    ///
+    /// The digest covers `provenance` and the outputs it targets as they travel, so the version is minted last; the
+    /// Provenance then repeats it in `grove-record-version`, the one extension the digest leaves out.
+    ///
+    /// - Parameters:
+    ///   - provenance: The conversion Provenance, final but for that extension.
+    ///   - sourceRecord: The source record the Provenance's entity names.
+    ///   - entries: Every other entry of the record, in Bundle order: its outputs and its shared nodes.
+    ///   - subject: The participant the record is about.
+    ///   - identityScope: The deployment's scope, whose key mints the version.
+    ///   - onValidation: Told how long encoding and validating took.
+    package static func conversionRecord(
+        provenance: Provenance,
+        sourceRecord: RoledIdentifier,
         entries: [BundleEntry],
-        draft: ExchangeGraphDraft,
+        subject: BusinessIdentifier,
+        identityScope: OpaqueIdentityScope,
+        onValidation: ((Swift.Duration) -> Void)? = nil
+    ) throws -> ExchangeRecord {
+        let digest = try recordContentDigest(of: provenance, entries: entries)
+        let key = try identityScope.recordVersion(sourceRecord: sourceRecord.identifier, contentDigest: digest)
+        var keyed = provenance
+        keyed.extension.append(Extension(url: Canonicals.recordVersion, value: .identifier(key.fhirIdentifier)))
+        return try record(
+            kind: .active,
+            entries: entries + [try BundleEntry(identifier: key, resource: ResourceProxy(with: keyed))],
+            timestamp: provenance.recorded,
+            subject: subject,
+            onValidation: onValidation
+        )
+    }
+
+    /// The record of `entries` under the Provenance's recorded instant, encoded and validated as a one-record Bundle.
+    static func record(
+        kind: ExchangeGraph.Kind,
+        entries: [BundleEntry],
         timestamp: FHIRPrimitive<Instant>,
-        onValidation: ((Swift.Duration) -> Void)?
-    ) throws -> ExchangeGraph {
-        var bundle = Bundle(
+        subject: BusinessIdentifier,
+        onValidation: ((Swift.Duration) -> Void)? = nil
+    ) throws(ExchangeGraphError) -> ExchangeRecord {
+        let bundle = Bundle(
             entry: entries,
-            identifier: draft.event.identifier.fhirIdentifier,
-            meta: Meta(profile: [Profile.groveMobileExchangeBundle]),
+            meta: Meta(profile: [kind.profile]),
             timestamp: timestamp,
             type: FHIRPrimitive(.collection)
         )
-        bundle.id = draft.bundleID?.primitive
-        guard let onValidation else {
-            return try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
+        let start = onValidation == nil ? nil : ContinuousClock.now
+        let graph = try ExchangeGraph(kind: kind, bundle: bundle)
+        if let start {
+            onValidation?(ContinuousClock.now - start)
         }
-        let start = ContinuousClock.now
-        let graph = try ExchangeGraph(kind: .active, eventIdentifier: draft.event, bundle: bundle)
-        onValidation(ContinuousClock.now - start)
-        return graph
+        let records = try graph.records(subject: subject)
+        guard records.count == 1 else {
+            throw .invalidEntries("A record states exactly one lifecycle Provenance")
+        }
+        return records[0]
+    }
+
+    /// The `record-content-digest` of `provenance` and the entries it targets, in target order.
+    private static func recordContentDigest(of provenance: Provenance, entries: [BundleEntry]) throws -> String {
+        var resources: [String: ResourceProxy] = [:]
+        for entry in entries {
+            resources[entry.fullUrl?.value?.url.absoluteString ?? ""] = entry.resource
+        }
+        var outputs: [LosslessJSONValue] = []
+        for target in provenance.target {
+            guard let resource = resources[target.reference?.value?.string ?? ""] else {
+                throw ExchangeGraphError.ruleViolation(.mobileExchangeResolvedReference)
+            }
+            outputs.append(try LosslessJSONValue(encoding: resource))
+        }
+        return try LosslessJSONValue.recordContentDigest(provenance: LosslessJSONValue(encoding: provenance), outputs: outputs)
     }
 }
 
@@ -164,7 +215,7 @@ extension ExchangeGraphAssembler {
     )
 
     /// Every output with its identities and links applied; a derived child names the primary it derives from.
-    private func decoratedOutputs(of draft: ExchangeGraphDraft, surroundings: Surroundings) throws -> [DecoratedOutput] {
+    private func decoratedOutputs(of draft: ExchangeRecordDraft, surroundings: Surroundings) throws -> [DecoratedOutput] {
         var outputs = try draft.outputs.map { try decorate($0, draft: draft, surroundings: surroundings) }
         let primaryURL = outputs[0].url
         for (index, output) in draft.outputs.enumerated() where output.derivedFromPrimary && index > 0 {
@@ -185,7 +236,7 @@ extension ExchangeGraphAssembler {
 
     private func decorate(
         _ output: ExchangeOutputDraft,
-        draft: ExchangeGraphDraft,
+        draft: ExchangeRecordDraft,
         surroundings: Surroundings
     ) throws -> DecoratedOutput {
         let identity = try draft.sourceRecord.output(role: output.role, discriminator: output.discriminator)
@@ -268,6 +319,7 @@ extension ExchangeGraphAssembler {
 
     private func writerRecordIdentity(_ record: ExchangeOutputDraft.WriterRecord) throws -> (identity: RoledIdentifier, version: String) {
         let identity = try envelope.identityScope.writerRecord(
+            subject: envelope.subject.identifier,
             writerApplication: BusinessIdentifier(
                 system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem),
                 value: record.writerApplication
@@ -282,8 +334,8 @@ extension ExchangeGraphAssembler {
 // MARK: - Provenance
 
 extension ExchangeGraphAssembler {
-    /// The FHIR forms of the last conversion instant one thread stated, kept because every record one call reserves
-    /// shares its instant and a FHIR instant or dateTime is built by parsing its lexeme.
+    /// The FHIR forms of the last conversion instant one thread stated, kept because every record of one call shares its
+    /// instant and a FHIR instant or dateTime is built by parsing its lexeme.
     private final class ConversionTimes {
         private struct Forms {
             let milliseconds: Int64
@@ -315,26 +367,29 @@ extension ExchangeGraphAssembler {
 
     @ThreadLocal private static var conversionTimes: ConversionTimes = .init()
 
-    /// The conversion Provenance as every exchange graph states it: the transform activity, the converting application as
-    /// the assembler agent, the source record as the entity, with the writer that authored it when the graph names one, and
-    /// every output as a target.
+    /// The conversion Provenance as every record states it: the transform activity, the converting application as the
+    /// assembler agent, the source record as the entity, with the writer that authored it and the peripherals that supplied
+    /// it when the record names them, and every output as a target. It carries no `grove-record-version` yet: that repeats a
+    /// digest over this very resource.
     ///
     /// `recorded` states the conversion instant in UTC and `occurred` the same instant at `occurredOffset`'s offset: UTC
-    /// in the assembler's graphs, the response's authored offset in Questionnaire's.
+    /// in the assembler's records, the response's authored offset in Questionnaire's.
     ///
     /// - Parameters:
     ///   - source: The record the outputs were converted from.
     ///   - targetURLs: The fullUrl of every output, in entry order.
     ///   - assemblerURL: The fullUrl of the converting application's snapshot.
-    ///   - authorURL: The fullUrl of the writer application's snapshot when the graph names the record's author.
+    ///   - authorURL: The fullUrl of the writer application's snapshot when the record names its author.
+    ///   - sourceDeviceURLs: The fullUrl of each peripheral that supplied the source record.
     ///   - profile: The adapter's conversion Provenance profile.
-    ///   - instant: The conversion instant, the event reservation's millisecond.
+    ///   - instant: The conversion instant.
     ///   - occurredOffset: The zone whose offset `occurred` states the instant at.
     package static func conversionProvenance(
         of source: SourceRecordIdentity,
         targetURLs: [String],
         assemblerURL: String,
         authorURL: String? = nil,
+        sourceDeviceURLs: [String] = [],
         sourceExtensions: [Extension] = [],
         profile: FHIRPrimitive<Canonical>,
         at instant: Date,
@@ -343,12 +398,9 @@ extension ExchangeGraphAssembler {
         let times = try conversionTimes.forms(of: instant, occurredOffset: occurredOffset)
         var entity = ProvenanceEntity(role: FHIRPrimitive(.source), what: Reference(identifier: source.identifier.fhirIdentifier))
         entity.extension = sourceExtensions.isEmpty ? nil : sourceExtensions
-        entity.agent = authorURL.map { url in
-            [ProvenanceAgent(
-                type: CodeableConcept(coding: [Coding(code: "author", display: "Author", system: Canonicals.provenanceParticipantType)]),
-                who: Reference(reference: url.asFHIRStringPrimitive())
-            )]
-        }
+        let agents = [authorURL].compactMap { $0 }.map { sourceAgent($0, code: "author", display: "Author") }
+            + sourceDeviceURLs.map { sourceAgent($0, code: "performer", display: "Performer") }
+        entity.agent = agents.isEmpty ? nil : agents
         return Provenance(
             activity: CodeableConcept(coding: [Coding(
                 code: "transform",
@@ -364,6 +416,13 @@ extension ExchangeGraphAssembler {
             occurred: .dateTime(FHIRPrimitive(times.occurred)),
             recorded: FHIRPrimitive(times.recorded),
             target: targetURLs.map { Reference(reference: $0.asFHIRStringPrimitive()) }
+        )
+    }
+
+    private static func sourceAgent(_ url: String, code: FHIRPrimitive<FHIRString>, display: FHIRPrimitive<FHIRString>) -> ProvenanceAgent {
+        ProvenanceAgent(
+            type: CodeableConcept(coding: [Coding(code: code, display: display, system: Canonicals.provenanceParticipantType)]),
+            who: Reference(reference: url.asFHIRStringPrimitive())
         )
     }
 }

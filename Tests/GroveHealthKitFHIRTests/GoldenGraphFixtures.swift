@@ -16,56 +16,51 @@ import ModelsR4
 import Testing
 
 
-/// What one case pins: the graph the exporter delivered, what it reported losing, in order, and the record it reported
-/// the graph for.
+/// What one case pins: the record the exporter delivered, what it reported losing, in order, and the source it reported
+/// the record for.
 struct GoldenOutput: Sendable {
-    let graph: ExchangeGraph
+    let record: ExchangeRecord
     /// Each warning as the outline spells it: the registry code, then the element it names.
     let renderedWarnings: [String]
-    /// The record the exporter reported the graph for, which the golden test checks against the graph's source identity.
+    /// The source the exporter reported the record for, which the golden test checks against the record's source identity.
     let source: HealthKitFHIRExporter.Export.Source
 
-    /// What one export delivered; an export without a graph throws.
+    /// What one export delivered; an export without a record throws.
     init(_ export: HealthKitFHIRExporter.Export) throws {
-        guard let graph = export.graph else {
+        guard let record = export.record else {
             throw GoldenCaseError.notExported(String(describing: export.outcome))
         }
-        self.graph = graph
+        self.record = record
         renderedWarnings = export.warnings.map { "\($0.code)@\($0.location)" }
         source = export.source
     }
 
-    /// What one retraction delivered, which states no warning; a retraction without a graph throws.
+    /// What one retraction delivered, which states no warning; a retraction without a record throws.
     init(_ retraction: HealthKitFHIRExporter.Retraction) throws {
-        guard let graph = retraction.graph else {
+        guard let record = retraction.record else {
             throw GoldenCaseError.notExported(String(describing: retraction.outcome))
         }
-        self.graph = graph
+        self.record = record
         renderedWarnings = []
         source = HealthKitFHIRExporter.Export.Source(uuid: retraction.deletion.uuid, typeIdentifier: retraction.deletion.sourceType.rawValue)
     }
 }
 
 
-/// One pinned wire shape: a stable name, the event sequence its export takes, and how `HealthKitFHIRExporter` produces it.
-///
-/// Sequences are append-only: a new case takes the next free number of its group so that adding a
-/// case never re-mints the identities of an existing golden.
+/// One pinned wire shape: a stable name and how `HealthKitFHIRExporter` produces it.
 struct GoldenCase: Sendable, CustomTestStringConvertible {
     let name: String
-    let sequence: UInt64
-    private let produce: @Sendable (UInt64) async throws -> GoldenOutput
+    private let produce: @Sendable () async throws -> GoldenOutput
 
     var testDescription: String { name }
 
-    init(_ name: String, sequence: UInt64, produce: @escaping @Sendable (_ sequence: UInt64) async throws -> GoldenOutput) {
+    init(_ name: String, produce: @escaping @Sendable () async throws -> GoldenOutput) {
         self.name = name
-        self.sequence = sequence
         self.produce = produce
     }
 
     func output() async throws -> GoldenOutput {
-        try await produce(sequence)
+        try await produce()
     }
 }
 
@@ -74,14 +69,14 @@ struct GoldenCase: Sendable, CustomTestStringConvertible {
 /// or the host, so two runs on two machines mint the same identities and the same bytes.
 enum GoldenFixtures {
     /// 2026-08-17T23:30:00Z, in whole seconds: the conversion instant of every case.
-    static let conversionInstant = TestEvent.testInstant
+    static let conversionInstant = TestDeployment.testInstant
     /// 2026-08-17T22:30:00Z (15:30 in Los Angeles): when every sample starts.
     static let sampleStart = Date(timeIntervalSince1970: 1_787_005_800)
     static let timeZone = "America/Los_Angeles"
     static let nativeIdentifierSystem: IdentifierSystem = "https://study.example.org/fhir/NamingSystem/healthkit-store"
     static let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
 
-    /// A watch that names its physical unit and carries a UDI, so the recording Device and the UDI disclosure both apply.
+    /// A watch that names its physical unit and carries a UDI.
     static let watch = HKDevice(
         name: "Apple Watch",
         manufacturer: "Apple Inc.",
@@ -93,7 +88,7 @@ enum GoldenFixtures {
         udiDeviceIdentifier: "(01)00844588003288"
     )
 
-    /// The same watch as HealthKit reports it without a per-unit token: no recording Device, and the omission is reported.
+    /// The same watch as HealthKit reports it without a per-unit token: a recording Device that proves no unit.
     static let watchWithoutUnitToken = HKDevice(
         name: "Apple Watch",
         manufacturer: "Apple Inc.",
@@ -120,16 +115,13 @@ enum GoldenFixtures {
         UUID(uuid: (0x3A, 0x7E, 0x5C, 0x10, 0x00, 0x00, 0x40, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ordinal))
     }
 
-    /// The export at `index` of the `count` exports one call delivers for `record`, its event numbered `sequence`.
+    /// The export at `index` of the `count` exports one call delivers for `record`.
     static func export(
         _ record: HealthKitFHIRExporter.Record,
-        sequence: UInt64,
         _ inputs: ExportInputs = ExportInputs(),
         index: Int = 0,
         of count: Int = 1
     ) async throws -> GoldenOutput {
-        var inputs = inputs
-        inputs.sequence = sequence
         let exports = try await ExporterFixtures.exports(record, inputs)
         guard exports.count == count else {
             throw GoldenCaseError.unexpectedCompanions(exports.count - 1)
@@ -137,9 +129,9 @@ enum GoldenFixtures {
         return try GoldenOutput(exports[index])
     }
 
-    /// The one graph `sample` exports to under `inputs`, its event numbered `sequence`.
-    static func export(_ sample: HKSample, sequence: UInt64, _ inputs: ExportInputs = ExportInputs()) async throws -> GoldenOutput {
-        try await export(.sample(sample), sequence: sequence, inputs)
+    /// The one record `sample` exports to under `inputs`.
+    static func export(_ sample: HKSample, _ inputs: ExportInputs = ExportInputs()) async throws -> GoldenOutput {
+        try await export(.sample(sample), inputs)
     }
 
     /// A 72 bpm heart rate; `end` stays the start instant unless a case states an interval.
@@ -254,11 +246,11 @@ extension GoldenOutput {
         "\(identifier?["system"]?.text ?? "")|\(identifier?["value"]?.text ?? "")"
     }
 
-    /// Where the record the exporter reported disagrees with the graph it reported it for, read from the graph's own
-    /// tokens: the reported record is the one the Provenance's source entity names, for a retraction too.
+    /// Where the source the exporter reported disagrees with the record it reported it for, read from the record's own
+    /// tokens: the reported source is the one the Provenance's source entity names, for a retraction too.
     func reportMismatches(identityScope: OpaqueIdentityScope, repositoryScope: BusinessIdentifier) throws -> [String] {
-        let entries: [LosslessJSONValue] = try LosslessJSONValue(parsing: graph.json)["entry"]?.elements ?? []
-        let type = try #require(source.sourceType, "a graph reported for the unregistered type \(source.typeIdentifier)")
+        let entries: [LosslessJSONValue] = try LosslessJSONValue(parsing: record.json)["entry"]?.elements ?? []
+        let type = try #require(source.sourceType, "a record reported for the unregistered type \(source.typeIdentifier)")
         let minted = try identityScope.sourceRecord(
             adapterID: HealthKitAssembly.adapter.adapterID,
             sourceType: type.rawValue,

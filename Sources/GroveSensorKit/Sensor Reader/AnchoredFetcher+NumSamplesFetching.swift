@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
-// swiftlint:disable file_types_order
+// swiftlint:disable file_types_order file_length
 
 private import Foundation
 private import GroveFoundation
@@ -129,7 +129,8 @@ extension AnchoredFetcher {
                 info: SensorKit.BatchInfo(
                     timeRange: rawElement.timeRange,
                     device: rawElement.device,
-                    acquisitionBatch: fetchCursor.acquisitionBatchCoordinate
+                    sourceDevices: rawElement.sourceDevices,
+                    acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate
                 ),
                 samples: rawElement.samples,
                 acknowledgement: acknowledgement
@@ -164,8 +165,12 @@ extension AnchoredFetcher {
             return fetchCursor
         }
 
-        func processForTesting(sample object: AnyObject, timestamp: SRAbsoluteTime) -> Bool {
-            delegate.process(sample: object, timestamp: timestamp)
+        func processForTesting(
+            sample object: AnyObject,
+            timestamp: SRAbsoluteTime,
+            sourceDevice: SensorKit.SourceDeviceInfo? = nil
+        ) -> Bool {
+            delegate.process(sample: object, timestamp: timestamp, sourceDevice: sourceDevice)
         }
 
         func startNativeFetchForTesting() throws {
@@ -238,6 +243,8 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     }
     
     nonisolated(unsafe) private(set) var samples: [Sample.SafeRepresentation] = []
+    /// The peripherals that supplied `samples`, in the order SensorKit first named them.
+    nonisolated(unsafe) private(set) var sourceDevices: [SensorKit.SourceDeviceInfo] = []
     nonisolated(unsafe) private(set) var lastSeenTimestamp: SRAbsoluteTime?
     
     private let semaphore = DispatchSemaphore(value: 0)
@@ -308,6 +315,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     func stop() {
         lock.lock()
         samples.removeAll()
+        sourceDevices.removeAll()
         lastSeenTimestamp = nil
         let continuation = nextBatchContinuation
         nextBatchContinuation = nil
@@ -385,7 +393,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
                 }
                 return start..<end
             }()
-            value = RawElement(timeRange: timeRange, device: deviceInfo, samples: samples)
+            value = RawElement(timeRange: timeRange, device: deviceInfo, sourceDevices: sourceDevices, samples: samples)
         } else {
             // samples is empty
             value = nil
@@ -396,6 +404,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         let deliveredAnchor = lastSeenTimestamp.map { QueryAnchor(timestamp: Date($0)) }
         lastSeenTimestamp = nil
         samples.removeAll(keepingCapacity: true)
+        sourceDevices.removeAll()
         return (nextBatchContinuation, (value, deliveredAnchor))
     }
     
@@ -408,9 +417,9 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         }
     }
 
-    func process(sample object: AnyObject, timestamp: SRAbsoluteTime) -> Bool {
+    func process(sample object: AnyObject, timestamp: SRAbsoluteTime, sourceDevice: SensorKit.SourceDeviceInfo? = nil) -> Bool {
         process(timestamp: timestamp) {
-            try SensorKit.FetchResult(sample: object, timestamp: timestamp, for: sensor)
+            try SensorKit.FetchResult(sample: object, timestamp: timestamp, sourceDevice: sourceDevice, for: sensor)
         }
     }
 
@@ -432,6 +441,9 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             // check above, in which case the batch must be dropped (post-stop, `samples` stays empty).
             if state.isFetching {
                 self.samples.append(contentsOf: processed)
+                if !processed.isEmpty, let sourceDevice = fetchResult.sourceDevice, !sourceDevices.contains(sourceDevice) {
+                    sourceDevices.append(sourceDevice)
+                }
                 lastSeenTimestamp = lastSeenTimestamp.map { max($0, timestamp) } ?? timestamp
             }
             lock.unlock()

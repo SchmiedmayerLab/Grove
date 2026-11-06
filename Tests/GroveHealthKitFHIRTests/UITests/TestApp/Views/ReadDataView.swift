@@ -61,10 +61,10 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             return healthKitSample
         }
         var bundles: [ModelsR4.Bundle] = []
-        _ = try await makeFHIRTestExporter().export(healthKitSamples) { export in
+        try await makeFHIRTestExporter().export(healthKitSamples) { export in
             switch export.outcome {
-            case .graph(let graph):
-                bundles.append(graph.bundle)
+            case .record(let record):
+                bundles.append(try JSONDecoder().decode(ModelsR4.Bundle.self, from: record.json))
             case .refused(let error):
                 throw error
             }

@@ -57,9 +57,7 @@ enum ContentCorpusCatalog {
             "outputs": .array(HealthKitContentPlan[sourceType].outputs.map { output in
                 .object([
                     "role": .string(output.role),
-                    "discriminator": .string(output.discriminator),
-                    "resourceType": .string(output.resourceType.rawValue),
-                    "retractionRole": .string(output.retractionRole.rawValue)
+                    "discriminator": .string(output.discriminator)
                 ])
             })
         ])

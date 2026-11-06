@@ -123,7 +123,7 @@ struct HealthKitMetadataConsumptionTests {
             let keys = Set(group.keys)
             let without = try row.convert(full.filter { !keys.contains($0.key) })
             let stated = keys.isSubset(of: row.carried)
-            #expect((without.graph.json != conversion.graph.json) == stated, "\(keys.sorted())")
+            #expect((without.record.json != conversion.record.json) == stated, "\(keys.sorted())")
         }
     }
 

@@ -70,17 +70,14 @@ final class HealthKitManager: Sendable {
 }
 
 
-/// Creates the exporter of this disposable UI-test producer, over an in-memory ledger.
-///
-/// A production app keeps one exporter per participant over a durable ledger, so an exact redelivery reproduces each
-/// event; the UI test starts a fresh ledger every time, so each export takes new events.
+/// Creates the exporter of this disposable UI-test producer.
 func makeFHIRTestExporter() throws -> HealthKitFHIRExporter {
     let systemRoot = "https://grovealliance.org/fhir/testing/identifiers/ui-test"
     let producer = try ExchangeProducer(
         identityScope: try OpaqueIdentityScope(
             root: IdentifierSystem(systemRoot),
             keyID: "ui-test",
-            epoch: EventSequence(1),
+            epoch: KeyEpoch(1),
             key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
         ),
         subject: .logical(try BusinessIdentifier(
@@ -95,11 +92,10 @@ func makeFHIRTestExporter() throws -> HealthKitFHIRExporter {
         ),
         host: try HostDevice(
             operatingSystemVersion: ProcessInfo.processInfo.operatingSystemVersionString,
+            productType: "UI Test Device",
             name: "Grove HealthKit FHIR UI Test Host",
-            manufacturer: "Apple",
-            modelNumber: "UI Test Device"
-        ),
-        storage: ExchangeProducer.InMemoryStorage()
+            manufacturer: "Apple"
+        )
     )
     return try HealthKitFHIRExporter(
         producer: producer,

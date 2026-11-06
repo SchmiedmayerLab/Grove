@@ -51,16 +51,49 @@ extension OpaqueIdentityScope {
     }
 
     /// Identifies the logical record the writer application assigned, when the platform supplies it.
+    ///
+    /// It is per subject, so one writer's record id never links the accounts that share a key.
     package func writerRecord(
+        subject: BusinessIdentifier,
         writerApplication: BusinessIdentifier,
         writerRecordID: String
     ) throws(ExchangeIdentityError) -> RoledIdentifier {
         try identifier(
             kind: .writerRecord,
             components: [
+                subject.system.rawValue,
+                subject.value,
                 writerApplication.system.rawValue,
                 writerApplication.value,
                 writerRecordID
+            ]
+        )
+    }
+
+    /// Keys one version of a source record: the entry key of its conversion Provenance.
+    ///
+    /// - Parameter contentDigest: The record's ``LosslessJSONValue/recordContentDigest(provenance:outputs:)``.
+    package func recordVersion(
+        sourceRecord: BusinessIdentifier,
+        contentDigest: String
+    ) throws(ExchangeIdentityError) -> RoledIdentifier {
+        try identifier(
+            kind: .recordVersion,
+            components: [
+                sourceRecord.system.rawValue,
+                sourceRecord.value,
+                contentDigest
+            ]
+        )
+    }
+
+    /// The one retraction key of a source record: the entry key of every retraction Provenance that addresses it.
+    package func recordRetraction(sourceRecord: BusinessIdentifier) throws(ExchangeIdentityError) -> RoledIdentifier {
+        try identifier(
+            kind: .recordRetraction,
+            components: [
+                sourceRecord.system.rawValue,
+                sourceRecord.value
             ]
         )
     }

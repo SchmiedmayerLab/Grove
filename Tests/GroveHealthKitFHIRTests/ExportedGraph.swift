@@ -17,8 +17,8 @@ import ModelsR4
 import Testing
 
 
-/// Every graph one export call delivered for a record, read back: the record's own first, then its companions (an
-/// ECG's symptoms). The accessors beside all read the record's own graph.
+/// Every record one export call delivered for an input, read back: the input's own first, then its companions (an ECG's
+/// symptoms). The accessors beside all read the input's own record.
 struct ExportedRecord {
     let all: [ExportedGraph]
 
@@ -27,6 +27,7 @@ struct ExportedRecord {
     /// Every graph's warnings, in ``all`` order.
     var warnings: [ProducerDiagnostic] { all.flatMap(\.warnings) }
 
+    var record: ExchangeRecord { primary.record }
     var graph: ExchangeGraph { primary.graph }
     var bundle: ModelsR4.Bundle { primary.bundle }
     var identifiers: ExchangeGraphIdentifiers { primary.identifiers }
@@ -56,9 +57,11 @@ struct ExportedRecord {
 }
 
 
-/// One exported graph, read back the way the tests assert it: each resource by the role it plays, and the identities
-/// the graph states for them, found through the Provenance's links rather than reported by the exporter.
+/// One exported record, read back the way the tests assert it: each resource by the role it plays, and the identities
+/// the record states for them, found through the Provenance's links rather than reported by the exporter.
 struct ExportedGraph {
+    let record: ExchangeRecord
+    /// The record's one-record Bundle.
     let graph: ExchangeGraph
     let source: HealthKitFHIRExporter.Export.Source
     let warnings: [ProducerDiagnostic]
@@ -75,15 +78,16 @@ struct ExportedGraph {
     var writer: Device? { identifiers.writerSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
     var writerHost: Device? { identifiers.writerHostSnapshot.flatMap { graph.resource(Device.self, at: $0) } }
 
-    /// The graph `export` delivered, which must be an active graph.
+    /// The record `export` delivered, which must be an active record.
     init(_ export: HealthKitFHIRExporter.Export) throws {
-        guard let graph = export.graph else {
-            throw ExportFixtureError.noGraph(export.outcome)
+        guard let record = export.record else {
+            throw ExportFixtureError.noRecord(export.outcome)
         }
-        self.graph = graph
+        self.record = record
+        self.graph = record.graph
         self.source = export.source
         self.warnings = export.warnings
-        self.identifiers = try Self.identifiers(of: graph)
+        self.identifiers = try Self.identifiers(of: self.graph)
     }
 
     /// The identities the graph's entries state: the Provenance's targets are the outputs, primary first; its assembler
@@ -103,7 +107,7 @@ struct ExportedGraph {
         }
         let provenanceEntry = entries.first { $0.resource?.get(if: Provenance.self) != nil }
         let provenance = try #require(provenanceEntry?.resource?.get(if: Provenance.self))
-        let provenanceKey = provenanceEntry?.extension?.first { $0.url == Canonicals.entryNodeKey }.flatMap { key -> Identifier? in
+        let provenanceKey = provenanceEntry?.extension?.first { $0.url == Canonicals.entryKey }.flatMap { key -> Identifier? in
             guard case .identifier(let identifier)? = key.value else {
                 return nil
             }
@@ -115,9 +119,8 @@ struct ExportedGraph {
         let author = provenance.entity?.first?.agent?.first { $0.type?.coding?.first?.code?.value?.string == "author" }
         let writer = entry(author?.who)
         let ownWriterHost = writer?.fullUrl != application?.fullUrl && writer?.fullUrl != nil
-        let recording = entries.first { identity($0, .recordingDevice) != nil }
+        let recording = entries.first { $0.resource?.get(if: Device.self)?.meta?.profile?.contains(Profile.groveRecordingDevice) == true }
         return ExchangeGraphIdentifiers(
-            event: graph.eventIdentifier.identifier,
             sourceRecord: try #require(identity(primary, .sourceRecord)),
             primaryOutput: try #require(identity(primary, .sourceOutput)),
             applicationSnapshot: try #require(identity(application, .deviceSnapshot)),

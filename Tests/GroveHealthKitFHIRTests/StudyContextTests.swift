@@ -27,8 +27,8 @@ struct StudyContextTests {
     private static let sample = HKQuantitySample(
         type: HKQuantityType(.heartRate),
         quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 72),
-        start: TestEvent.testInstant,
-        end: TestEvent.testInstant,
+        start: TestDeployment.testInstant,
+        end: TestDeployment.testInstant,
         metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"]
     )
 
@@ -117,12 +117,15 @@ struct StudyContextTests {
         #expect(conversion.observation.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
         #expect(conversion.observation.value == baseline.observation.value)
         #expect(conversion.observation.effective == baseline.observation.effective)
-        #expect(conversion.identifiers == baseline.identifiers)
-        #expect(conversion.provenance == baseline.provenance)
-        #expect(conversion.bundle.identifier == baseline.bundle.identifier)
-        let fullURLs = Set(conversion.bundle.entry?.compactMap(\.fullUrl) ?? [])
-        let baselineURLs = Set(baseline.bundle.entry?.compactMap(\.fullUrl) ?? [])
-        #expect(baselineURLs.isSubset(of: fullURLs))
+        #expect(conversion.identifiers.sourceRecord == baseline.identifiers.sourceRecord)
+        #expect(conversion.identifiers.primaryOutput == baseline.identifiers.primaryOutput)
+        #expect(conversion.identifiers.applicationSnapshot == baseline.identifiers.applicationSnapshot)
+        #expect(conversion.provenance.entity == baseline.provenance.entity)
+        #expect(conversion.provenance.target == baseline.provenance.target)
+        #expect((conversion.record.version == baseline.record.version) == (studyCount == 0), "the study references are the output's content")
+        let fullURLs = Set(conversion.bundle.entry?.compactMap { $0.fullUrl?.value?.url.absoluteString } ?? [])
+        let baselineURLs = Set(baseline.bundle.entry?.compactMap { $0.fullUrl?.value?.url.absoluteString } ?? [])
+        #expect(baselineURLs.subtracting([baseline.record.version.fullURL]).isSubset(of: fullURLs))
         #expect(try Self.revalidate(conversion.primary.graph) { $0 } == nil)
     }
 
@@ -157,13 +160,14 @@ struct StudyContextTests {
         ])
     }
 
-    @Test("A retry of the persisted context rebuilds the same event, study context included")
+    @Test("A retry rebuilds the same record, study context included, and another context is another version")
     func retryPreservesTheStudyContext() async throws {
-        let original = try await Self.graph()
-        let retry = try await Self.graph()
-        #expect(original.eventIdentifier == retry.eventIdentifier)
-        #expect(original.isSemanticallyEqual(to: retry))
-        await #expect(!original.isSemanticallyEqual(to: try Self.conversion(studies: [.test("a")]).primary.graph))
+        let original = try await Self.conversion().record
+        let retry = try await Self.conversion().record
+        #expect(original == retry)
+        let other = try await Self.conversion(studies: [.test("a")]).record
+        #expect(other.version != original.version)
+        #expect(other.sourceRecord == original.sourceRecord)
     }
 
     @Test("A study without its ResearchSubject is refused")

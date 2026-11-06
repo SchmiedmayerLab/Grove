@@ -12,7 +12,7 @@ import ModelsR4
 
 
 /// The SensorKit adapter's content: the outputs one record yields before the shared assembler applies the
-/// event's envelope (identities, subject, devices, study context, Provenance and Bundle).
+/// record's envelope (identities, subject, devices, study context and Provenance).
 enum SensorKitConverter {
     /// What a record's content depends on beside the record itself.
     struct ContentContext {
@@ -25,20 +25,15 @@ enum SensorKitConverter {
     /// The closed adapter token every SensorKit identity preimage carries.
     static let adapterID = "sensorkit"
 
-    /// The revision of the content this adapter drafts. Bump it whenever the bytes it emits can change for equal
-    /// inputs: it enters every exporter's context fingerprint, so an event reserved under an older revision is
-    /// never redelivered under the same identifier with different bytes.
-    static let outputRevision: UInt = 3
-
     static let adapter = ExchangeAdapterContract(
         adapterID: adapterID,
         provenanceProfile: profile(SensorKitContract.conversionProvenanceProfile),
         applicationDeviceProfile: Profile.groveApplicationDevice
-    )
+    ) { $0.appleBundleIdentifier }
 
     /// The record's outputs, the designated primary first: the structured Observation, then the raw
     /// DocumentReference, as the record's catalog row admits them. Each names the other by its source-output
-    /// identity, which does not depend on the event; `nativeIdentifier` travels on the primary alone.
+    /// identity; `nativeIdentifier` travels on the primary alone.
     static func outputs(
         of record: SensorKitRecord,
         sourceRecord: SourceRecordIdentity,
@@ -70,6 +65,8 @@ enum SensorKitConverter {
                 role: "native-recording",
                 discriminator: discriminator,
                 resource: .document(try buildDocument(record, native: native, relatedURL: structuredURL, context: context)),
+                // A hybrid document's `context.related` is exactly its Observation, which states the studies for both.
+                links: structuredURL == nil ? .all : ExchangeOutputDraft.Links.all.subtracting(.studies),
                 artifactFormatCode: native.format.rawValue
             ))
         }
@@ -78,19 +75,6 @@ enum SensorKitConverter {
         }
         outputs[0].clearIdentifiers = nativeIdentifier.map { [$0] } ?? []
         return outputs
-    }
-
-    /// The Device body a recording device states from its own facts; the assembler adds its identities.
-    static func recordingDevice(_ device: RecordingDevice) -> ExchangeRecordingDeviceDraft {
-        var resource = Device()
-        resource.meta = Meta(profile: [Profile.groveRecordingDevice])
-        resource.status = FHIRPrimitive(.active)
-        if let name = device.name {
-            resource.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
-        }
-        resource.manufacturer = device.manufacturer?.asFHIRStringPrimitive()
-        resource.modelNumber = device.modelNumber?.asFHIRStringPrimitive()
-        return ExchangeRecordingDeviceDraft(device: device, resource: resource)
     }
 
     private static func validateCatalogContract(_ record: SensorKitRecord) throws {

@@ -20,6 +20,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         case resetGeneration
         case batchSequence
         case pendingBatch
+        case streamPartition
     }
 
     struct PendingBatch: Hashable, Codable, Sendable {
@@ -83,9 +84,23 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     /// fail closed if SensorKit backfills or reorders the pending delivery.
     let pendingBatch: PendingBatch?
 
+    /// Separates this cursor's acquisition coordinates from those of every other cursor of its sensor and device.
+    ///
+    /// A cursor that starts without persisted state restarts at the same coordinates as the one before it, for example
+    /// after a reinstall, so a fresh cursor mints a random partition and keeps it through every later state. It mints it
+    /// the first time it persists anything, never in ``init()``: that value is the empty sentinel which loading returns and
+    /// ``ManagedQueryAnchor`` compares against. `0` is the partition of a cursor persisted before partitions existed.
+    let streamPartition: UInt64
+
+    /// The partition of the state that follows this one: a fresh cursor mints its own as it leaves the empty sentinel.
+    private var nextStreamPartition: UInt64 {
+        self == QueryAnchor() ? .random(in: 1...UInt64.max) : streamPartition
+    }
+
     @available(iOS 18, macOS 15, watchOS 11, *)
     var acquisitionBatchCoordinate: SensorKit.AcquisitionBatchCoordinate {
         SensorKit.AcquisitionBatchCoordinate(
+            streamPartition: streamPartition,
             cursorTimestamp: timestamp,
             resetGeneration: resetGeneration,
             sequence: batchSequence
@@ -98,6 +113,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         self.resetGeneration = 0
         self.batchSequence = 0
         self.pendingBatch = nil
+        self.streamPartition = 0
     }
     
     /// Creates a new `QueryAnchor` for the specified timestamp.
@@ -105,12 +121,14 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         timestamp: Date,
         resetGeneration: UInt64 = 0,
         batchSequence: UInt64 = 0,
-        pendingBatch: PendingBatch? = nil
+        pendingBatch: PendingBatch? = nil,
+        streamPartition: UInt64 = 0
     ) {
         self.timestamp = timestamp
         self.resetGeneration = resetGeneration
         self.batchSequence = batchSequence
         self.pendingBatch = pendingBatch
+        self.streamPartition = streamPartition
     }
 
     init(from decoder: any Decoder) throws {
@@ -125,7 +143,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
             timestamp: try container.decode(Date.self, forKey: .timestamp),
             resetGeneration: try container.decode(UInt64.self, forKey: .resetGeneration),
             batchSequence: try container.decodeIfPresent(UInt64.self, forKey: .batchSequence) ?? 0,
-            pendingBatch: try container.decodeIfPresent(PendingBatch.self, forKey: .pendingBatch)
+            pendingBatch: try container.decodeIfPresent(PendingBatch.self, forKey: .pendingBatch),
+            streamPartition: try container.decodeIfPresent(UInt64.self, forKey: .streamPartition) ?? 0
         )
     }
 
@@ -141,7 +160,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         Self(
             timestamp: timestamp,
             resetGeneration: resetGeneration,
-            batchSequence: batchSequence
+            batchSequence: batchSequence,
+            streamPartition: nextStreamPartition
         )
     }
 
@@ -150,7 +170,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
             timestamp: timestamp,
             resetGeneration: resetGeneration,
             batchSequence: batchSequence,
-            pendingBatch: pendingBatch
+            pendingBatch: pendingBatch,
+            streamPartition: nextStreamPartition
         )
     }
 
@@ -166,12 +187,13 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         return Self(
             timestamp: pendingBatch.upperBound,
             resetGeneration: resetGeneration,
-            batchSequence: nextSequence
+            batchSequence: nextSequence,
+            streamPartition: streamPartition
         )
     }
 
     func reset() -> Self {
-        Self(timestamp: .distantPast, resetGeneration: resetGeneration &+ 1)
+        Self(timestamp: .distantPast, resetGeneration: resetGeneration &+ 1, streamPartition: nextStreamPartition)
     }
 
     /// Abandons the pending batch but keeps the committed cursor, under a new reset generation.
@@ -179,7 +201,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     /// The abandoned range is fetched again, and the new generation gives its records fresh
     /// acquisition coordinates, so no identity minted for the abandoned delivery is reused.
     func discardingPendingBatch() -> Self {
-        Self(timestamp: timestamp, resetGeneration: resetGeneration &+ 1)
+        Self(timestamp: timestamp, resetGeneration: resetGeneration &+ 1, streamPartition: streamPartition)
     }
     
     func encode(to encoder: any Encoder) throws {
@@ -188,6 +210,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         try container.encode(resetGeneration, forKey: .resetGeneration)
         try container.encode(batchSequence, forKey: .batchSequence)
         try container.encodeIfPresent(pendingBatch, forKey: .pendingBatch)
+        try container.encode(streamPartition, forKey: .streamPartition)
     }
 }
 

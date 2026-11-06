@@ -46,12 +46,12 @@ struct DocumentContextMergeTests {
     @Test("An exported HealthKit document states exactly the study references as its context")
     func healthKitDocumentContextIsTheStudies() async throws {
         let record = try Self.record()
-        let producer = try ExporterFixtures.producer(studies: Self.enrollments, storage: ExchangeProducer.InMemoryStorage())
-        let (exports, _) = try await ExporterFixtures.collect(
+        let producer = try ExporterFixtures.producer(studies: Self.enrollments)
+        let exports = try await ExporterFixtures.collect(
             try ExporterFixtures.exporter(producer),
             [.heartbeatSeries(record.series, beats: record.heartbeats)]
         )
-        let (document, studies) = try Self.document(in: try #require(exports.first?.graph))
+        let (document, studies) = try Self.document(in: try #require(exports.first?.record?.graph))
         #expect(studies.count == 2)
         #expect(document.context == DocumentReferenceContext(related: document.context?.related))
         #expect(document.context?.related?.compactMap { $0.reference?.value?.string } == studies)
@@ -70,7 +70,7 @@ struct DocumentContextMergeTests {
         let adapterReference = Reference(display: "The adapter's own related output".asFHIRStringPrimitive())
         document.context = DocumentReferenceContext(period: period, related: [adapterReference])
         // No exporter input states a document context of its own, so the assembly is handed one directly.
-        let base = TestEvent.test()
+        let base = TestDeployment.test()
         let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
             adapter: HealthKitAssembly.adapter,
             identityScope: base.identityScope,
@@ -78,12 +78,11 @@ struct DocumentContextMergeTests {
             repositoryScope: base.repositoryScope
         ))
         let request = HealthKitAssembly.Request(
-            event: base.event,
             instant: base.conversionInstant,
-            facts: ExchangeEventFacts(application: base.application, host: base.host, studies: Self.enrollments)
+            facts: ConversionFacts(application: base.application, host: base.host, studies: Self.enrollments)
         )
         let conversion = try #require(try assembly.documentGraph(for: record.series, plan: plan, document: document, request: request).first)
-        let (stated, studies) = try Self.document(in: conversion.graph)
+        let (stated, studies) = try Self.document(in: conversion.record.graph)
         #expect(studies.count == 2)
         #expect(stated.context?.period == period)
         #expect(stated.context?.related?.first == adapterReference)

@@ -29,6 +29,16 @@ private final class ConversionFailingSample: NSObject, SensorKitSampleProtocol {
     }
 }
 
+private final class PassingSample: NSObject, SensorKitSampleProtocol {
+    typealias SafeRepresentation = AnchoredFetcherSafeSample
+
+    static func processIntoSafeRepresentation(
+        _ samples: some Sequence<(timestamp: Date, sample: PassingSample)>
+    ) -> [AnchoredFetcherSafeSample] {
+        samples.map { AnchoredFetcherSafeSample(timeRange: $0.timestamp..<$0.timestamp) }
+    }
+}
+
 @Suite("Anchored fetch failure handling")
 struct AnchoredFetcherFailureTests {
     @Test("Native sample materialization exceptions become fetch errors")
@@ -90,7 +100,7 @@ struct AnchoredFetcherFailureTests {
         let delegate = SamplesFetcherDelegate(makeConversionFailingSensor())
 
         await #expect(throws: SensorKit.FetchResultTypeError.self) {
-            _ = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[AnchoredFetcherSafeSample], any Error>) in
+            let _: SensorKit.FetchedSamples<AnchoredFetcherSafeSample> = try await withCheckedThrowingContinuation { continuation in
                 delegate.continuation = continuation
                 let shouldContinue = delegate.process(
                     sample: NSObject(),
@@ -136,7 +146,7 @@ struct AnchoredFetcherFailureTests {
             quarantineCutoff: cutoff,
             batchSize: 60,
             device: .current,
-            fetchOperation: { _, _, _ in [sample] }
+            fetchOperation: { _, _, _ in SensorKit.FetchedSamples(samples: [sample]) }
         )
 
         let original = try #require(try await originalFetcher.next(isolation: nil))
@@ -151,7 +161,7 @@ struct AnchoredFetcherFailureTests {
             quarantineCutoff: cutoff,
             batchSize: 10,
             device: .current,
-            fetchOperation: { _, _, _ in [sample] }
+            fetchOperation: { _, _, _ in SensorKit.FetchedSamples(samples: [sample]) }
         )
         let retry = try #require(try await restartedFetcher.next(isolation: nil))
         #expect(retry.info.timeRange == original.info.timeRange)
@@ -162,6 +172,84 @@ struct AnchoredFetcherFailureTests {
         let next = try #require(try await restartedFetcher.next(isolation: nil))
         #expect(next.info.timeRange == start.addingTimeInterval(60)..<start.addingTimeInterval(70))
         #expect(next.info.acquisitionBatch != retry.info.acquisitionBatch)
+    }
+
+    @Test("The first pending time-range batch of a fresh cursor states the partition it persisted, and a crash retry repeats it")
+    @available(iOS 18, *)
+    func timeIntervalFreshCursorStatesItsPartition() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_700)
+        let anchor = ManagedQueryAnchor.ephemeral()
+        func fetcher() -> AnchoredFetcher<ConversionFailingSample>.TimeIntervalBasedFetcher {
+            AnchoredFetcher<ConversionFailingSample>.TimeIntervalBasedFetcher(
+                sensor: makeConversionFailingSensor(),
+                anchor: anchor,
+                quarantineCutoff: start,
+                batchSize: 60,
+                device: .current,
+                fetchOperation: { _, _, _ in SensorKit.FetchedSamples(samples: [AnchoredFetcherSafeSample(timeRange: start..<start)]) }
+            )
+        }
+        var first = fetcher()
+        let original = try #require(try await first.next(isolation: nil))
+        #expect(original.info.acquisitionBatch.streamPartition != 0)
+        #expect(original.info.acquisitionBatch == (try anchor.value.acquisitionBatchCoordinate))
+
+        var restarted = fetcher()
+        let retry = try #require(try await restarted.next(isolation: nil))
+        #expect(retry.info.acquisitionBatch == original.info.acquisitionBatch)
+
+        try await retry.acknowledge()
+        #expect(try anchor.value.streamPartition == original.info.acquisitionBatch.streamPartition)
+    }
+
+    @Test("Time-range batches state the peripherals their fetch named")
+    @available(iOS 18, *)
+    func timeIntervalBatchesStateSourceDevices() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_800)
+        let peripheral = SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-1", manufacturer: "Example Audio")
+        var fetcher = AnchoredFetcher<ConversionFailingSample>.TimeIntervalBasedFetcher(
+            sensor: makeConversionFailingSensor(),
+            anchor: .ephemeral(startDate: start),
+            quarantineCutoff: start.addingTimeInterval(180),
+            batchSize: 60,
+            device: .current,
+            fetchOperation: { _, _, _ in
+                SensorKit.FetchedSamples(samples: [AnchoredFetcherSafeSample(timeRange: start..<start)], sourceDevices: [peripheral])
+            }
+        )
+
+        let batch = try #require(try await fetcher.next(isolation: nil))
+        #expect(batch.info.sourceDevices == [peripheral])
+    }
+
+    @Test("Sample-count batches state each peripheral of their fetch results once, in first-named order")
+    @available(iOS 18, *)
+    func sampleCountBatchesStateSourceDevices() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_900)
+        let peripherals = [
+            SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-1"),
+            SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-2")
+        ]
+        let fetcher = AnchoredFetcher<PassingSample>.SampleCountBasedFetcher(
+            sensor: makePassingSensor(),
+            batchSize: 3,
+            anchor: .ephemeral(startDate: start),
+            device: .current,
+            startFetch: { _, _ in }
+        )
+        // The delegate holds a full batch back until a consumer asks for it, so the results arrive on a thread of their own,
+        // as SensorKit's callbacks do.
+        nonisolated(unsafe) let reader = fetcher
+        let timestamp = SRAbsoluteTime(start.addingTimeInterval(1))
+        let results = Task.detached {
+            for sourceDevice in [peripherals[0], peripherals[1], peripherals[0]] {
+                _ = reader.processForTesting(sample: PassingSample(), timestamp: timestamp, sourceDevice: sourceDevice)
+            }
+        }
+        let batch = try #require(try await fetcher.next(isolation: nil))
+        await results.value
+        #expect(batch.info.sourceDevices == peripherals)
+        #expect(batch.samples.count == 3)
     }
 
     @Test("Reset during a native sample-count fetch rejects its terminal cursor")
@@ -209,6 +297,16 @@ struct AnchoredFetcherFailureTests {
             anchor: anchor,
             device: .current,
             startFetch: { _, _ in }
+        )
+    }
+
+    @available(iOS 18, *)
+    private func makePassingSensor() -> Sensor<PassingSample> {
+        Sensor(
+            srSensor: .ambientLightSensor,
+            displayName: "Passing test sensor",
+            dataQuarantineDuration: .zero,
+            sensorKitFetchReturnType: .object
         )
     }
 

@@ -93,6 +93,7 @@ struct ConformanceFixtureTests {
         "workout-session-context",
         "writer-non-ascii-name",
         "gad7-assessment",
+        "device-metadata-facts",
         "exporter-default-apple-watch-heart-rate",
         "exporter-default-apple-watch-heart-rate-without-unit-token",
         "exporter-deployment-own-heart-rate",
@@ -578,7 +579,7 @@ struct ConformanceFixtureTests {
         let validatedGoldens = Self.validatedGoldens.subtracting(GoldenCase.unavailableHere)
         #expect(Set(GoldenCase.all.map(\.name)).isSuperset(of: validatedGoldens))
         for goldenCase in GoldenCase.all where validatedGoldens.contains(goldenCase.name) {
-            try await goldenCase.output().graph.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
+            try await goldenCase.output().record.json.write(to: directory.appendingPathComponent("golden-\(goldenCase.name).json"))
         }
         #expect(fixtures.count == 30)
         let emittedVectorIDs = Set(fixtures.keys).intersection(Set(MobileSemanticVectorFixtures.all.map(\.id)))

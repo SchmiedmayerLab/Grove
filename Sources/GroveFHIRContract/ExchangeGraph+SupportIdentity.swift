@@ -11,53 +11,36 @@ import ModelsR4
 
 
 extension ExchangeGraph {
+    /// Every supporting resource lies in a record unit: the directed closure of the lifecycle Provenances and their
+    /// targets, so a node that only points at a record, as an orphaned application Device points at its host, is not in one.
     static func validateSupportingConnectivity(
+        kind: Kind,
         entries: [BundleEntry],
         document: ValidationDocument
     ) throws(ExchangeGraphError) {
-        let resourcePairs: [(String, (resource: ResourceProxy, index: Int))] = entries.enumerated().compactMap { index, entry in
-            guard let fullURL = entry.fullUrl?.value?.url.absoluteString,
-                  let resource = entry.resource else {
-                return nil
-            }
-            return (fullURL, (resource, index))
-        }
-        let entriesByFullURL = [String: (resource: ResourceProxy, index: Int)](
-            uniqueKeysWithValues: resourcePairs
-        )
-        let resourcesByFullURL = entriesByFullURL.mapValues(\.resource)
-        var adjacency = [String: Set<String>](
-            uniqueKeysWithValues: resourcesByFullURL.keys.map { ($0, Set<String>()) }
-        )
+        let units: RecordUnits
         do {
-            for (fullURL, entry) in entriesByFullURL {
-                for object in try document.resourceObjects(at: entry.index) {
-                    guard let reference = object["reference"] as? String, resourcesByFullURL[reference] != nil else {
-                        continue
-                    }
-                    adjacency[fullURL, default: []].insert(reference)
-                    adjacency[reference, default: []].insert(fullURL)
-                }
-            }
+            units = try RecordUnits(entries: entries, document: document)
         } catch {
             throw .invalidEntries(String(reflecting: type(of: error)))
         }
-        var reachable = Set(resourcesByFullURL.compactMap { fullURL, resource in
-            isActiveOutput(resource) || resource.resourceType == ExchangeContract.activeLifecycleResourceType
-                ? fullURL
-                : nil
-        })
-        var pending = Array(reachable)
-        while let current = pending.popLast() {
-            for neighbor in adjacency[current, default: []] where reachable.insert(neighbor).inserted {
-                pending.append(neighbor)
+        var starts: [String] = []
+        for entry in entries {
+            guard case .provenance(let provenance)? = entry.resource, let fullURL = entry.fullUrl?.value?.url.absoluteString else {
+                continue
             }
+            starts.append(fullURL)
+            starts += provenance.target.compactMap { $0.reference?.value?.string }
         }
-        let disconnected = resourcesByFullURL.contains { fullURL, resource in
-            ExchangeContract.activeSupportingResourceTypes.contains(resource.resourceType)
-                && !reachable.contains(fullURL)
+        let connected = units.unit(from: starts)
+        let supportingTypes = kind == .active ? ExchangeContract.activeSupportingResourceTypes : [ResourceType.device.rawValue]
+        let isDisconnected = entries.contains { entry in
+            guard let resource = entry.resource, let fullURL = entry.fullUrl?.value?.url.absoluteString else {
+                return false
+            }
+            return supportingTypes.contains(resource.resourceType) && !connected.contains(fullURL)
         }
-        guard !disconnected else {
+        guard !isDisconnected else {
             throw .ruleViolation(.mobileSupportConnected)
         }
     }
@@ -121,9 +104,9 @@ extension ExchangeGraph {
                 throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
         } else if profiles[0] == Profile.groveRecordingDevice {
-            guard device.identifier?.count == 2,
-                  identifiers.count == 2,
-                  identifiers.filter({ $0.role == .recordingDevice }).count == 1 else {
+            // The physical-unit identity is optional, and clear source identifiers may ride beside the typed ones.
+            guard identifiers.filter({ $0.role == .recordingDevice }).count <= 1,
+                  identifiers.allSatisfy({ $0.role == .deviceSnapshot || $0.role == .recordingDevice }) else {
                 throw .ruleViolation(.mobileDeviceRecordingDeviceDualIdentity)
             }
         } else if profiles[0] == Profile.groveHostDevice {

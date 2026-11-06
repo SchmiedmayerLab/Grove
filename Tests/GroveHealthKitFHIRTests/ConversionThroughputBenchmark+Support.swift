@@ -133,12 +133,8 @@ final class ManagedFailureCount: @unchecked Sendable {
 }
 
 
-/// The per-deployment facts a long-lived producer would hold once; only the event differs per sample.
+/// The per-deployment facts a long-lived producer would hold once.
 struct BenchScope {
-    static let producerInstance = UUID(uuid: (
-        0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
-        0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
-    ))
     static let nativeRecordSystem: IdentifierSystem = "https://bench.example.org/fhir/identifiers/healthkit-record"
 
     let systems: DeploymentIdentifierSystems
@@ -153,12 +149,12 @@ struct BenchScope {
         systems = try! DeploymentIdentifierSystems.derived(
             root: "https://bench.example.org/fhir",
             keyID: "store",
-            epoch: EventSequence(1)
+            epoch: KeyEpoch(1)
         )
         identityScope = try! OpaqueIdentityScope(
             systems: systems,
             keyID: "store",
-            epoch: EventSequence(1),
+            epoch: KeyEpoch(1),
             key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
         )
         repositoryScope = try! BusinessIdentifier(
@@ -177,9 +173,9 @@ struct BenchScope {
         )
         host = try! HostDevice(
             operatingSystemVersion: "26.1",
+            productType: "iPhone17,1",
             name: "iPhone",
-            manufacturer: "Apple Inc.",
-            modelNumber: "iPhone17,1"
+            manufacturer: "Apple Inc."
         )
         studies = [
             try! StudyEnrollment(
@@ -197,28 +193,20 @@ struct BenchScope {
         ]
     }
 
-    /// A fresh exporter configured for `style`, over its own in-memory ledger: the exporter a deployment keeps per
-    /// participant, before its first event.
+    /// A fresh exporter configured for `style`: the exporter a deployment keeps per participant.
     func exporter(style: ContextStyle) -> HealthKitFHIRExporter {
         let producer = try! ExchangeProducer(
             identityScope: identityScope,
             subject: subject,
             application: application,
             host: host,
-            studies: style == .deployment ? studies : [],
-            storage: ExchangeProducer.InMemoryStorage()
+            studies: style == .deployment ? studies : []
         )
         var options = HealthKitFHIRExporter.Options()
         if style == .deployment {
             options.nativeIdentifier = .authorized(system: Self.nativeRecordSystem)
-            options.legacyBundleID = .healthKitUUID
         }
         return try! HealthKitFHIRExporter(producer: producer, repositoryScope: repositoryScope, options: options)
-    }
-
-    /// The event identifier with `sequence` under the fixed producer instance.
-    func event(_ sequence: UInt64) -> ExchangeEventIdentifier {
-        try! ExchangeEventIdentifier(system: systems.event, producerInstance: Self.producerInstance, sequence: EventSequence(sequence))
     }
 }
 

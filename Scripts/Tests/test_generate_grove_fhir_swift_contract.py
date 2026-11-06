@@ -218,7 +218,18 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         ],
                         "otherProfilesAllowed": False,
                         "requiredIdentifierRoles": ["device-snapshot"],
-                    }
+                    },
+                    {
+                        "id": "mobile-recording-device",
+                        "cardinality": 1,
+                        "profiles": [
+                            "https://grovealliance.org/fhir/mobile/StructureDefinition/"
+                            "grove-recording-device"
+                        ],
+                        "otherProfilesAllowed": False,
+                        "requiredIdentifierRoles": ["device-snapshot"],
+                        "optionalIdentifierRoles": ["recording-device"],
+                    },
                 ],
                 "activeQuestionnaireResponseClaim": {
                     "cardinality": 1,
@@ -470,9 +481,9 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             "exchange-protocol.json": {
                 **base,
                 "extensions": {
-                    "entryNodeKey": (
+                    "entryKey": (
                         "https://grovealliance.org/fhir/mobile/StructureDefinition/"
-                        "grove-exchange-entry-node-key"
+                        "grove-exchange-entry-key"
                     )
                 },
                 "entryIdentity": {
@@ -480,15 +491,16 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         "algorithm": "UUID version 5 over length-framed system and value",
                         "namespace": "43df4575-bff7-5a57-9a80-2472cd2b0623",
                     },
-                    "entryNode": {
-                        "recommendedSystemForm": "<deployment-root>/NamingSystem/grove-entry-node-v0",
-                    },
+                    "contextSnapshotRoles": [
+                        "patient",
+                        "research-study",
+                        "research-subject",
+                        "plan-definition",
+                        "questionnaire-response",
+                    ],
                 },
                 "lifecycle": {
                     "active": {
-                        "studyContext": {
-                            "entryNodeRoles": ["patient", "research-study", "research-subject", "plan-definition"],
-                        },
                         "entryResourcePolicy": {
                             "outputResourceTypes": [
                                 "Observation",
@@ -533,9 +545,9 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 },
                 "producerDiagnostics": [
                     {
-                        "code": "mobile-exchange.entry-node-key",
+                        "code": "mobile-exchange.entry-key",
                         "emittedBy": "conformance-kit",
-                        "reason": "Every Bundle entry must carry exactly one complete Grove exchange entry node key.",
+                        "reason": "Every Bundle entry must carry exactly one complete Grove exchange entry key.",
                     },
                     {
                         "code": "mobile-input.unclassified",
@@ -543,33 +555,39 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         "reason": "A producer refused a source record without a more specific registered input rule.",
                     },
                     {
-                        "code": "mobile-omission.recording-device",
+                        "code": "mobile-omission.source-offset",
                         "emittedBy": "client",
                         "severity": "warning",
-                        "reason": "The source names a recording device without a stable per-unit token.",
+                        "reason": "The source states no UTC offset for a local time.",
                     },
                 ],
                 "opaqueIdentity": {
                     "recommendedSystemForm": (
                         "<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"
                     ),
-                    "componentRequirements": {"unsignedDecimal": ["part-index"]},
+                    "componentRequirements": {
+                        "unsignedDecimal": ["part-index"],
+                        "digestComponents": ["record-content-digest"],
+                    },
                     "identityKinds": [
                         {
                             "kind": "source-artifact",
                             "identifierRole": "source-artifact",
                             "components": ["adapter-id", "format-code", "part-index"],
                         },
+                        {
+                            "kind": "record-version",
+                            "identifierRole": "record-version",
+                            "components": ["source-record-system", "source-record-value", "record-content-digest"],
+                        },
                     ],
-                },
-                "event": {
-                    "bundleIdentifier": {
-                        "recommendedSystemForm": "<deployment-root>/NamingSystem/grove-event-v0",
-                    },
                 },
                 "payload": {
                     "equality": {
-                        "vectors": "Conformance/corpora/receiver-lifecycle: reformatted-retry and lexeme-retry",
+                        "vectors": (
+                            "Conformance/corpora/receiver-lifecycle: reformatted-retry, lexeme-retry, and "
+                            "altered-retry; testVectors.canonicalJson and testVectors.recordContents"
+                        ),
                     },
                 },
             },
@@ -612,17 +630,17 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         generated = self.generate(self.catalogs())
 
         self.assertIn("public enum ExchangeGraphRule: String, CaseIterable, Sendable", generated)
-        self.assertIn('case mobileExchangeEntryNodeKey = "mobile-exchange.entry-node-key"', generated)
+        self.assertIn('case mobileExchangeEntryKey = "mobile-exchange.entry-key"', generated)
         self.assertIn('case mobileInputUnclassified = "mobile-input.unclassified"', generated)
-        self.assertIn('case mobileOmissionRecordingDevice = "mobile-omission.recording-device"', generated)
-        self.assertIn("case .mobileOmissionRecordingDevice:\n            .warning", generated)
-        self.assertIn("case .mobileExchangeEntryNodeKey, .mobileInputUnclassified:\n            .error", generated)
+        self.assertIn('case mobileOmissionSourceOffset = "mobile-omission.source-offset"', generated)
+        self.assertIn("case .mobileOmissionSourceOffset:\n            .warning", generated)
+        self.assertIn("case .mobileExchangeEntryKey, .mobileInputUnclassified:\n            .error", generated)
         self.assertIn(
-            '"Every Bundle entry must carry exactly one complete Grove exchange entry node key."',
+            '"Every Bundle entry must carry exactly one complete Grove exchange entry key."',
             generated,
         )
 
-    def test_generates_identifier_system_forms_study_roles_and_equality_vectors(self):
+    def test_generates_the_identifier_system_form_snapshot_roles_and_equality_vectors(self):
         generated = self.generate(self.catalogs())
 
         self.assertIn(
@@ -630,18 +648,14 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             '"<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"',
             generated,
         )
-        self.assertIn(
-            'package static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"',
-            generated,
-        )
-        self.assertIn(
-            'package static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"',
-            generated,
-        )
-        self.assertIn("package enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {", generated)
+        self.assertNotIn("eventIdentifierSystemForm", generated)
+        self.assertNotIn("entryNodeIdentifierSystemForm", generated)
+        self.assertIn("package enum ContextSnapshotRole: String, CaseIterable, Sendable {", generated)
         self.assertIn('case researchStudy = "research-study"', generated)
+        self.assertIn('case questionnaireResponse = "questionnaire-response"', generated)
         self.assertIn('package static let equalityFormattingVector = "reformatted-retry"', generated)
         self.assertIn('package static let equalityDecimalLexemeVector = "lexeme-retry"', generated)
+        self.assertIn('package static let equalityAlteredRetryVector = "altered-retry"', generated)
         self.assertIn('package static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"', generated)
         self.assertNotIn("entryIdentifierExtension", generated)
 
@@ -663,6 +677,9 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn('        case .sourceArtifact:\n            ["adapter-id", "format-code", "part-index"]', generated)
         self.assertIn("        case .sourceArtifact: .sourceArtifact", generated)
         self.assertIn('static let unsignedDecimalComponents: Set<String> = ["part-index"]', generated)
+        self.assertIn('static let digestComponents: Set<String> = ["record-content-digest"]', generated)
+        self.assertIn('optionalIdentifierRoles: ["recording-device"]', generated)
+        self.assertIn("        case .recordVersion: .recordVersion", generated)
 
     def test_rejects_an_unsigned_decimal_rule_for_no_identity_component(self):
         catalogs = self.catalogs()
@@ -671,10 +688,26 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not identity components"):
             self.generate(catalogs)
 
+    def test_rejects_a_digest_rule_for_no_identity_component(self):
+        catalogs = self.catalogs()
+        catalogs["exchange-protocol.json"]["opaqueIdentity"]["componentRequirements"]["digestComponents"] = ["digest"]
+
+        with self.assertRaisesRegex(ValueError, "not identity components"):
+            self.generate(catalogs)
+
+    def test_rejects_equality_vectors_that_name_no_altered_retry(self):
+        catalogs = self.catalogs()
+        catalogs["exchange-protocol.json"]["payload"]["equality"]["vectors"] = (
+            "Conformance/corpora/receiver-lifecycle: reformatted-retry and lexeme-retry"
+        )
+
+        with self.assertRaisesRegex(ValueError, "three retries"):
+            self.generate(catalogs)
+
     def test_rejects_rules_whose_codes_collapse_to_one_swift_case(self):
         catalogs = self.catalogs()
         catalogs["exchange-protocol.json"]["producerDiagnostics"].append(
-            {"code": "mobile-exchange.entry.node-key", "emittedBy": "client", "reason": "Duplicate."}
+            {"code": "mobile-exchange.entry.key", "emittedBy": "client", "reason": "Duplicate."}
         )
 
         with self.assertRaisesRegex(ValueError, "same Swift case"):

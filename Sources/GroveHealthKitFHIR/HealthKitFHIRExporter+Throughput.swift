@@ -23,10 +23,8 @@ extension HealthKitFHIRExporter {
     public struct Throughput: Sendable, CustomStringConvertible {
         /// The time spent in each phase of the export calls.
         public struct Phases: Sendable, Equatable {
-            /// Planning each record: its content plan, an ECG's evidence, the policies and the request fingerprint.
+            /// Planning each record: its content plan, an ECG's evidence and the policies.
             public internal(set) var plan: Duration = .zero
-            /// The ledger transaction that reserves a call's events, once per call.
-            public internal(set) var reserve: Duration = .zero
             /// Building each graph: its content, envelope, Devices, Provenance and identities.
             public internal(set) var assemble: Duration = .zero
             /// Encoding each graph and validating it against the guide.
@@ -36,7 +34,7 @@ extension HealthKitFHIRExporter {
 
             /// The exporter's own time: every phase but ``receive``.
             public var exporter: Duration {
-                plan + reserve + assemble + validate
+                plan + assemble + validate
             }
         }
 
@@ -77,7 +75,7 @@ extension HealthKitFHIRExporter {
             var lines = [
                 "HealthKit export: \(Self.count(records, "record")) in \(Self.count(calls, "call")), \(Self.seconds(busy)) busy"
                     + " (\(Self.rate(records, in: busy)) records/s; \(Self.rate(records, in: phases.exporter)) records/s of exporter time)",
-                "  plan \(share(phases.plan)) · reserve \(share(phases.reserve)) (\(Self.milliseconds(phases.reserve / calls)) per call)"
+                "  plan \(share(phases.plan))"
                     + " · assemble \(share(phases.assemble)) · validate \(share(phases.validate))"
                     + " · receive \(share(phases.receive)) (caller)"
             ]
@@ -132,7 +130,6 @@ extension HealthKitFHIRExporter {
             records += other.records
             busy += other.busy
             phases.plan += other.phases.plan
-            phases.reserve += other.phases.reserve
             phases.assemble += other.phases.assemble
             phases.validate += other.phases.validate
             phases.receive += other.phases.receive
@@ -212,13 +209,6 @@ extension HealthKitFHIRExporter.Throughput {
             measured.sourceTypes[type, default: .init()].duration += duration
         }
 
-        func reserved(since start: ContinuousClock.Instant?) {
-            guard let start else {
-                return
-            }
-            measured.phases.reserve += now - start
-        }
-
         /// One record's graphs built in `building`, of which `validation` validated them; the rest is assembly.
         func built(_ type: String, in building: Duration, validation: Duration) {
             let assembly = building - validation
@@ -231,9 +221,9 @@ extension HealthKitFHIRExporter.Throughput {
             measured.phases.receive += duration
             let type = export.source.typeIdentifier
             switch export.outcome {
-            case .graph(let graph):
+            case .record(let record):
                 measured.sourceTypes[type, default: .init()].graphs += 1
-                measured.sourceTypes[type, default: .init()].bytes += graph.json.count
+                measured.sourceTypes[type, default: .init()].bytes += record.json.count
             case .refused:
                 measured.sourceTypes[type, default: .init()].refusals += 1
             }

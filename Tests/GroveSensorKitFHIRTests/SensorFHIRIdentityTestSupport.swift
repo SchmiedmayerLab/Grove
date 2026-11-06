@@ -16,19 +16,13 @@ import GroveFHIRContract
 
 
 enum SensorFHIRIdentityTestSupport {
-    static let producerInstance = UUID(uuid: (
-        0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0x4c, 0xcc,
-        0x8d, 0xdd, 0xee, 0xee, 0xee, 0xee, 0xee, 0xee
-    ))
-    static let entryNodeIdentifierSystem: IdentifierSystem =
-        "https://grovealliance.org/fhir/testing/identifiers/exchange-entry-node"
     static let visitLocationIdentifierSystem: IdentifierSystem =
         "https://grovealliance.org/fhir/testing/identifiers/sensorkit-location"
     static let converterHost = try! HostDevice(
         operatingSystemVersion: "20.1",
+        productType: "Phone One",
         name: "Test Host",
-        manufacturer: "Example Device Company",
-        modelNumber: "Phone One"
+        manufacturer: "Example Device Company"
     )
     static let subjectIdentifier = try! BusinessIdentifier(
         system: "https://grovealliance.org/fhir/testing/identifiers/participant",
@@ -51,11 +45,13 @@ enum SensorFHIRIdentityTestSupport {
             sourceContext: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/source-context/test/1",
             recordingDevice: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/recording-device/test/1",
             deviceSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/device-snapshot/test/1",
-            event: "https://grovealliance.org/fhir/testing/identifiers/exchange-event",
-            entryNode: entryNodeIdentifierSystem
+            contextSnapshot: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/context-snapshot/test/1",
+            recordVersion: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/record-version/test/1",
+            recordRetraction: "https://grovealliance.org/fhir/testing/identifiers/pseudonym/record-retraction/test/1",
+            deviceLocalIdentifier: "https://grovealliance.org/fhir/testing/identifiers/device-local-identifier"
         ),
         keyID: "test",
-        epoch: EventSequence(1),
+        epoch: KeyEpoch(1),
         key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
     )
 
@@ -91,13 +87,38 @@ extension ApplicationDevice {
 
 
 extension RecordingDevice {
+    /// A recording Device stating every fact of an `SRDevice`, as `RecordingDevice(batch.info.device)` does.
     static func test(
-        stableUnitToken: String,
-        name: String? = nil,
-        manufacturer: String? = nil,
-        modelNumber: String? = nil
+        name: String = "Example Watch",
+        model: String = "Apple Watch",
+        systemName: String = "watchOS",
+        systemVersion: String = "11.2",
+        productType: String = "Watch7,1"
     ) -> RecordingDevice {
-        try! RecordingDevice(stableUnitToken: stableUnitToken, name: name, manufacturer: manufacturer, modelNumber: modelNumber)
+        var device = RecordingDevice()
+        device.name = name
+        device.model = model
+        device.systemName = systemName
+        device.systemVersion = systemVersion
+        device.productType = productType
+        return device
+    }
+
+    /// A recording Device stating every fact of an `SRSourceDevice`, as `RecordingDevice(batch.info.sourceDevices[0])` does.
+    static func testPeripheral(
+        localIdentifier: String = "peripheral-7",
+        manufacturer: String = "Example Audio",
+        model: String = "Ear One",
+        hardwareVersion: String = "2",
+        firmwareVersion: String = "5.1"
+    ) -> RecordingDevice {
+        var device = RecordingDevice()
+        device.localIdentifier = localIdentifier
+        device.manufacturer = manufacturer
+        device.model = model
+        device.hardwareVersion = hardwareVersion
+        device.firmwareVersion = firmwareVersion
+        return device
     }
 }
 

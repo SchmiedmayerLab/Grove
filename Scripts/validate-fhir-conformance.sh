@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-0.7.0}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-06c46125767609b70600c2af864e8d9f741cb4be}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -102,6 +102,11 @@ fi
 if [ "$COMPONENT" = "healthkit" ]; then
     python3 Scripts/generate-grove-fhir-guide-example-fixtures.py --guides "$GUIDES" --check
 fi
+
+# The catalog's vector suites skip without a grove-fhir checkout, so they run here, the one place that has it. Every
+# component runs them: which components a change selects says nothing about whether it touched the shared contract.
+echo "==> checking the exchange protocol vectors"
+./Scripts/run-package-tests.sh GroveFHIR macOS >/dev/null
 
 mkdir -p "$OUT"
 find "$OUT" -type f -delete

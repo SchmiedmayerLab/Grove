@@ -108,10 +108,10 @@ struct HealthKitMetadataWarningTests {
         for conversion in conversions {
             #expect(conversion.withheldMetadataKeys == metadata.keys.sorted(), "\(conversion.source.typeIdentifier)")
             #expect(conversion.warnings == [Self.unmodeled], "\(conversion.source.typeIdentifier)")
-            let documents = conversion.graph.bundle.entry?.compactMap { $0.resource?.get(if: DocumentReference.self) } ?? []
+            let documents = conversion.record.bundle.entry?.compactMap { $0.resource?.get(if: DocumentReference.self) } ?? []
             let roles = try documents.flatMap { try ($0.identifier ?? []).map { try RoledIdentifier($0).role } }
             #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact], "\(conversion.source.typeIdentifier)")
-            #expect(try HealthKitWriterRecordPairingTests.unpairedWriterRecords(in: LosslessJSONValue(parsing: conversion.graph.json)).isEmpty)
+            #expect(try HealthKitWriterRecordPairingTests.unpairedWriterRecords(in: LosslessJSONValue(parsing: conversion.record.json)).isEmpty)
         }
     }
 
@@ -120,7 +120,7 @@ struct HealthKitMetadataWarningTests {
         let unentered: [String: any Sendable] = [HKMetadataKeyTimeZone: GoldenFixtures.timeZone, HKMetadataKeyWasUserEntered: false]
         let observation = try Self.heartRate(metadata: unentered)
         #expect(observation.warnings.isEmpty)
-        #expect(!String(decoding: observation.graph.json, as: UTF8.self).contains("grove-recording-method"))
+        #expect(!String(decoding: observation.record.json, as: UTF8.self).contains("grove-recording-method"))
         #expect(try Self.heartbeatSeries(metadata: [HKMetadataKeyWasUserEntered: false]).withheldMetadataKeys.isEmpty)
     }
 
@@ -139,7 +139,7 @@ struct HealthKitMetadataWarningTests {
             let conversion = try Self.stepCount(metadata: zone.merging([key: value]) { $1 })
             #expect(conversion.withheldMetadataKeys == [key], "\(key)")
             #expect(conversion.warnings == [Self.unmodeled], "\(key)")
-            #expect(conversion.graph.json == baseline.graph.json, "\(key)")
+            #expect(conversion.record.json == baseline.record.json, "\(key)")
         }
     }
 
@@ -167,11 +167,11 @@ struct HealthKitMetadataWarningTests {
         let motion = try Self.heartRate(metadata: zone.merging([HKMetadataKeyHeartRateMotionContext: "active"]) { $1 })
         #expect(motion.withheldMetadataKeys == [HKMetadataKeyHeartRateMotionContext])
         #expect(motion.warnings == [Self.unmodeled])
-        #expect(motion.graph.json == (try Self.heartRate(metadata: zone)).graph.json, "no component")
+        #expect(motion.record.json == (try Self.heartRate(metadata: zone)).record.json, "no component")
         let entered = try Self.heartRate(metadata: zone.merging([HKMetadataKeyWasUserEntered: "yes"]) { $1 })
         #expect(entered.withheldMetadataKeys == [HKMetadataKeyWasUserEntered])
         #expect(entered.warnings == [Self.unmodeled])
-        #expect(entered.graph.json == (try Self.heartRate(metadata: zone)).graph.json, "no recording method")
+        #expect(entered.record.json == (try Self.heartRate(metadata: zone)).record.json, "no recording method")
     }
 
     @Test("A valid sync pair without an attributable writer is validated, not carried, and reported")
@@ -180,7 +180,7 @@ struct HealthKitMetadataWarningTests {
         let conversion = try Self.heartRate(metadata: metadata, writer: .unattributed)
         #expect(conversion.withheldMetadataKeys == [HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion].sorted())
         #expect(conversion.warnings == [Self.unmodeled])
-        #expect(!String(decoding: conversion.graph.json, as: UTF8.self).contains("writer-record"))
+        #expect(!String(decoding: conversion.record.json, as: UTF8.self).contains("writer-record"))
         #expect(try Self.heartRate(metadata: metadata).warnings.isEmpty, "an attributable writer's Observation carries the pair")
     }
 
@@ -191,7 +191,7 @@ struct HealthKitMetadataWarningTests {
         let conversion = try Self.electrocardiogram(metadata: metadata)
         #expect(conversion.withheldMetadataKeys.isEmpty)
         #expect(conversion.warnings.isEmpty)
-        #expect(String(decoding: conversion.graph.json, as: UTF8.self).contains(Canonicals.timezone.value?.url.absoluteString ?? "timezone"))
+        #expect(String(decoding: conversion.record.json, as: UTF8.self).contains(Canonicals.timezone.value?.url.absoluteString ?? "timezone"))
     }
 
     @Test("The withheld-metadata diagnostic is located at the source's metadata, also as the exporter reports it")
@@ -202,7 +202,7 @@ struct HealthKitMetadataWarningTests {
             facts: GoldenCase.seriesFacts(uuid: 0xFB, duration: 2)
         )
         let beats = ContentCorpusGrid.heartbeats.map(\.heartbeat)
-        let (exports, _) = try await ExporterFixtures.collect(ExporterFixtures.exporter(), [.heartbeatSeries(series, beats: beats)])
+        let exports = try await ExporterFixtures.collect(ExporterFixtures.exporter(), [.heartbeatSeries(series, beats: beats)])
         try #require(exports.count == 1)
         #expect(exports[0].warnings == [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")])
     }
