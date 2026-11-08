@@ -49,7 +49,9 @@ struct FHIRRoute: View {
         // An attachment item that asks for a photo.
         .init(.imageCaptureExample),
         // The slider itemControl with a step size.
-        .init(.sliderExample)
+        .init(.sliderExample),
+        // A hidden calculatedExpression item converting a mmol/L answer into mg/dL.
+        .init(.unitConversionExample)
     ]
 
     @State private var imported: FHIRExample?
