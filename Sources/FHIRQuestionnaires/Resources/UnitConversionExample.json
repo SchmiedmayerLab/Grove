@@ -1,0 +1,55 @@
+{
+  "resourceType": "Questionnaire",
+  "language": "en-US",
+  "id": "unit-conversion-example",
+  "title": "Unit Conversion Example",
+  "status": "draft",
+  "publisher": "Stanford University",
+  "url": "https://example.org/fhir/Questionnaire/unit-conversion-example",
+  "version": "1.0.0",
+  "item": [
+    {
+      "linkId": "glucose-mmol",
+      "type": "quantity",
+      "text": "What is your fasting blood glucose?",
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
+          "valueCoding": {
+            "system": "http://unitsofmeasure.org",
+            "code": "mmol/L",
+            "display": "mmol/L"
+          }
+        }
+      ]
+    },
+    {
+      "linkId": "glucose-mg-dl",
+      "type": "quantity",
+      "text": "Fasting blood glucose, converted to mg/dL",
+      "readOnly": true,
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden",
+          "valueBoolean": true
+        },
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+          "valueExpression": {
+            "description": "The mmol/L answer, converted to mg/dL (1 mmol/L = 18.0156 mg/dL)",
+            "language": "text/fhirpath",
+            "expression": "%resource.item.where(linkId = 'glucose-mmol').answer.value.value * 18.0156"
+          }
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
+          "valueCoding": {
+            "system": "http://unitsofmeasure.org",
+            "code": "mg/dL",
+            "display": "mg/dL"
+          }
+        }
+      ]
+    }
+  ]
+}

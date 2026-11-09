@@ -32,24 +32,24 @@ It allows you to:
 
 | FHIR R4 [QuestionnaireItemType](https://www.hl7.org/fhir/valueset-item-type.html) | ResearchKit Type | FHIR Response Type
 |------------------------------|-----------------------------|--------------------------|
-| [display](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-display) | [ORKInstructionStep](http://researchkit.org/docs/Classes/ORKInstructionStep.html) | *none*
-| [group](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-group) | [ORKFormStep](http://researchkit.org/docs/Classes/ORKFormStep.html) | *none*
-| [boolean](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-boolean) | [ORKBooleanAnswerFormat](http://researchkit.org/docs/Classes/ORKBooleanAnswerFormat.html) | valueBoolean
-| [choice](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-choice) | [ORKTextChoice](http://researchkit.org/docs/Classes/ORKTextChoice.html) | valueCoding  
-| [date](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-date) | [ORKDateAnswerFormat](http://researchkit.org/docs/Classes/ORKDateAnswerFormat.html)(style: [ORKDateAnswerStyle.date](http://researchkit.org/docs/Constants/ORKDateAnswerStyle.html) | valueDate 
-| [dateTime](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-dateTime) | [ORKDateAnswerFormat](http://researchkit.org/docs/Classes/ORKDateAnswerFormat.html)(style: [ORKDateAnswerStyle.dateAndTime](http://researchkit.org/docs/Constants/ORKDateAnswerStyle.html) | valueDateTime 
-| [time](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-time) | [ORKTimeOfDayAnswerFormat](http://researchkit.org/docs/Classes/ORKTimeOfDayAnswerFormat.html) | valueTime 
-| [decimal](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-decimal) | [ORKNumericAnswerFormat](http://researchkit.org/docs/Classes/ORKNumericAnswerFormat.html).decimalAnswerFormat | valueDecimal 
-| [quantity](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-quantity) | [ORKNumericAnswerFormat](http://researchkit.org/docs/Classes/ORKNumericAnswerFormat.html).decimalAnswerFormat(withUnit: quantityUnit) | valueQuantity 
-| [integer](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-integer) | [ORKNumericAnswerFormat](http://researchkit.org/docs/Classes/ORKNumericAnswerFormat.html).integerAnswerFormat | valueInteger 
-| [text](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-text) | [ORKTextAnswerFormat](http://researchkit.org/docs/Classes/ORKTextAnswerFormat.html) | valueString 
-| [string](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-string) | [ORKTextAnswerFormat](http://researchkit.org/docs/Classes/ORKTextAnswerFormat.html) | valueString 
+| [display](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-display) | `ORKInstructionStep` | *none*
+| [group](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-group) | `ORKFormStep` | *none*
+| [boolean](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-boolean) | `ORKBooleanAnswerFormat` | valueBoolean
+| [choice](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-choice) | `ORKTextChoice` | valueCoding  
+| [date](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-date) | `ORKDateAnswerFormat` (style: `ORKDateAnswerStyle.date`) | valueDate 
+| [dateTime](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-dateTime) | `ORKDateAnswerFormat` (style: `ORKDateAnswerStyle.dateAndTime`) | valueDateTime 
+| [time](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-time) | `ORKTimeOfDayAnswerFormat` | valueTime 
+| [decimal](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-decimal) | `ORKNumericAnswerFormat.decimalAnswerFormat` | valueDecimal 
+| [quantity](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-quantity) | `ORKNumericAnswerFormat.decimalAnswerFormat(withUnit: quantityUnit)` | valueQuantity 
+| [integer](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-integer) | `ORKNumericAnswerFormat.integerAnswerFormat` | valueInteger 
+| [text](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-text) | `ORKTextAnswerFormat` | valueString 
+| [string](https://www.hl7.org/fhir/codesystem-item-type.html#item-type-string) | `ORKTextAnswerFormat` | valueString 
 
 ### Navigation Rules
 
-The following table describes how the FHIR [enableWhen](https://www.hl7.org/fhir/questionnaire-definitions.html#Questionnaire.item.enableWhen) is converted to a ResearchKit [ORKSkipStepNavigationRule](http://researchkit.org/docs/Classes/ORKSkipStepNavigationRule.html) for each supported type and operator. (The conversion is performed by constructing an ORKResultPredicate from the enableWhen expression and negating it.)
+The following table describes how the FHIR [enableWhen](https://www.hl7.org/fhir/questionnaire-definitions.html#Questionnaire.item.enableWhen) is converted to a ResearchKit `ORKSkipStepNavigationRule` for each supported type and operator. (The conversion is performed by constructing an ORKResultPredicate from the enableWhen expression and negating it.)
 
-| FHIR R4 [QuestionnaireItemType](https://www.hl7.org/fhir/valueset-item-type.html) | Supported [QuestionnaireItemOperators](https://www.hl7.org/fhir/valueset-questionnaire-enable-operator.html) | ResearchKit [ORKResultPredicate](http://researchkit.org/docs/Classes/ORKResultPredicate.html) |
+| FHIR R4 [QuestionnaireItemType](https://www.hl7.org/fhir/valueset-item-type.html) | Supported [QuestionnaireItemOperators](https://www.hl7.org/fhir/valueset-questionnaire-enable-operator.html) | ResearchKit `ORKResultPredicate` |
 | ---------------------------- | ------------------- | ------------------------------ |
 | boolean | =, != | .predicateForBooleanQuestionResult
 | integer | =, !=, <=, >= | .predicateForNumericQuestionResult

@@ -58,6 +58,11 @@ extension Questionnaire {
         loadQuestionnaire(withName: "SliderExample")
     }
 
+    /// A FHIR questionnaire demonstrating a hidden `calculatedExpression` item that converts a quantity answer into another unit
+    public static var unitConversionExample: Questionnaire {
+        loadQuestionnaire(withName: "UnitConversionExample")
+    }
+
     /// A collection of example `Questionnaire`s provided by the FHIRQuestionnaires target to demonstrate functionality
     public static var exampleQuestionnaires: [Questionnaire] {
         [

@@ -89,3 +89,10 @@ A FHIR questionnaire demonstrating the use of a contained ValueSet:
 ```swift
 Questionnaire.containedValueSetExample
 ```
+
+**Unit Conversion Example**
+
+A FHIR questionnaire that asks for a value in mmol/L and records it in mg/dL as well, through a hidden item with an SDC `calculatedExpression`:
+```swift
+Questionnaire.unitConversionExample
+```
