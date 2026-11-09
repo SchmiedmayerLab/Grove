@@ -142,6 +142,78 @@ struct FHIRExpressionTests {
         #expect(totalItem?.answer?.first?.value == .decimal(FHIRPrimitive(FHIRDecimal(4))))
     }
 
+    /// A hidden quantity item can convert another quantity answer: the expression reads the participant's
+    /// mmol/L value, and the result is emitted in the calculated item's own unit, which is what extraction reads.
+    @Test
+    func calculatedQuantityConvertsIntoItsOwnUnit() throws {
+        func unitOption(_ code: String, _ display: String) -> Extension {
+            Extension(
+                url: "http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption",
+                value: .coding(Coding(
+                    code: code.asFHIRStringPrimitive(),
+                    display: display.asFHIRStringPrimitive(),
+                    system: "http://unitsofmeasure.org".asFHIRURIPrimitive()
+                ))
+            )
+        }
+        var entered = ModelsR4.QuestionnaireItem(linkId: "glucose-entered".asFHIRStringPrimitive(), type: .init(.quantity))
+        entered.text = "glucose-entered".asFHIRStringPrimitive()
+        entered.extension = [unitOption("mmol/L", "millimole per litre")]
+        var converted = ModelsR4.QuestionnaireItem(linkId: "glucose".asFHIRStringPrimitive(), type: .init(.quantity))
+        converted.text = "glucose".asFHIRStringPrimitive()
+        converted.readOnly = FHIRPrimitive(FHIRBool(true))
+        converted.extension = [
+            Extension(
+                url: "http://hl7.org/fhir/StructureDefinition/questionnaire-hidden",
+                value: .boolean(FHIRPrimitive(FHIRBool(true)))
+            ),
+            Extension(
+                url: "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-calculatedExpression",
+                value: .expression(fhirPath("%resource.item.where(linkId = 'glucose-entered').answer.value.value * 18.0156"))
+            ),
+            unitOption("mg/dL", "milligram per deciliter")
+        ]
+        let questionnaire = try GroveQuestionnaire.Questionnaire(
+            makeQuestionnaire(items: [entered, converted]),
+            clock: questionnaireResponseTestClock
+        )
+        let task = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "glucose" })
+        #expect(task.isHidden)
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["glucose-entered"] = .init(value: .number(5.5))
+        guard case .number(let milligrams) = responses.responses["glucose"].value else {
+            Issue.record("the calculated item must hold a number, got \(responses.responses["glucose"].value)")
+            return
+        }
+        #expect(abs(milligrams - 99.0858) < 0.0001)
+
+        let fhirResponse = try ModelsR4.QuestionnaireResponse(
+            responses,
+            renderedIn: questionnaireResponseTestLocale,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
+        let enteredItem = fhirResponse.item?.first { $0.linkId.value?.string == "glucose-entered" }
+        guard case .quantity(let enteredQuantity)? = enteredItem?.answer?.first?.value else {
+            Issue.record("the participant's answer must be emitted as a Quantity")
+            return
+        }
+        #expect(enteredQuantity.code?.value?.string == "mmol/L")
+        let convertedItem = fhirResponse.item?.first { $0.linkId.value?.string == "glucose" }
+        guard case .quantity(let quantity)? = convertedItem?.answer?.first?.value else {
+            Issue.record("the hidden calculated item must be emitted as a Quantity")
+            return
+        }
+        #expect(quantity.code?.value?.string == "mg/dL")
+        #expect(quantity.system?.value?.url.absoluteString == "http://unitsofmeasure.org")
+        let emitted = try #require(quantity.value?.value?.decimal)
+        #expect((emitted - 99.0858).magnitude < 0.0001)
+
+        // Withdrawing the participant's answer withdraws the value calculated from it.
+        responses.responses["glucose-entered"] = .init(value: .none)
+        #expect(responses.responses["glucose"].value == .none)
+    }
+
     // MARK: variable
 
     @Test
