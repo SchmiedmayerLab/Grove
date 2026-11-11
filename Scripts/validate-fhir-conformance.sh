@@ -20,7 +20,12 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-0.8.0}"
+# Grove pins a grove-fhir release by its version and by the commit its tag named when pinned. A tag can be moved, as
+# grove-fhir's 0.6.0 was, and a moved tag would change the contract checked here without any change to Grove.
+# .github/workflows/tests.yml defaults to the same version.
+PINNED_GROVE_FHIR_VERSION=0.8.0
+PINNED_GROVE_FHIR_COMMIT=cde0cdb92e4f63e96b463085f2a5765a77f5211f
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-$PINNED_GROVE_FHIR_VERSION}"
 GUIDE_SOURCE="${GROVE_FHIR_GUIDE_SOURCE:-}"
 
 if [ "$COMPONENT" = "all" ]; then
@@ -61,6 +66,11 @@ EXPECTED_GROVE_FHIR_REF="$(git -C "$GUIDES" rev-parse --verify "$GROVE_FHIR_REF^
 if [ -z "$EXPECTED_GROVE_FHIR_REF" ] || [ "$ACTUAL_GROVE_FHIR_REF" != "$EXPECTED_GROVE_FHIR_REF" ]; then
     echo "error: $GUIDES is not checked out at requested grove-fhir ref $GROVE_FHIR_REF" >&2
     echo "error: actual grove-fhir SHA is $ACTUAL_GROVE_FHIR_REF" >&2
+    exit 1
+fi
+if [ "$GROVE_FHIR_REF" = "$PINNED_GROVE_FHIR_VERSION" ] && [ "$ACTUAL_GROVE_FHIR_REF" != "$PINNED_GROVE_FHIR_COMMIT" ]; then
+    echo "error: grove-fhir $GROVE_FHIR_REF names $ACTUAL_GROVE_FHIR_REF, not the pinned $PINNED_GROVE_FHIR_COMMIT" >&2
+    echo "error: the tag was moved; review what changed before pinning the commit it names now" >&2
     exit 1
 fi
 echo "$ACTUAL_GROVE_FHIR_REF"
