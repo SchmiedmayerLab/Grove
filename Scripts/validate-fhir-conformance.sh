@@ -21,6 +21,7 @@ cd "$(dirname "$0")/.."
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
 GROVE_FHIR_REF="${GROVE_FHIR_REF:-0.8.0}"
+GUIDE_SOURCE="${GROVE_FHIR_GUIDE_SOURCE:-}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -79,27 +80,71 @@ if [ "$COMPONENT" = "sensor" ]; then
         --check
 fi
 
+FHIR_HOME="${GROVE_FHIR_HOME_OVERRIDE:-$GUIDES/.build/fhir-home}"
 VALIDATOR="${FHIR_VALIDATOR:-$GUIDES/.build/fhir-tools/validator_cli.jar}"
-if [ ! -f "$VALIDATOR" ]; then
+# The validator resolves packages from the cache the download seeds; a validator supplied from elsewhere brings none.
+if [ ! -f "$VALIDATOR" ] || [ ! -d "$FHIR_HOME/.fhir/packages" ]; then
     echo "==> downloading the validator pinned by grove-fhir"
-    (cd "$GUIDES" && ./Scripts/download-fhir-tools.sh .build/fhir-tools)
+    # The download seeds the validator's package cache with grove-fhir's Node helper, which needs its packages.
+    (cd "$GUIDES" && npm ci && ./Scripts/download-fhir-tools.sh .build/fhir-tools)
+fi
+
+# Where the guide packages come from: `release` installs the ones the grove-fhir release built from this tag, `build`
+# builds them from source, and `compare` builds them and checks that they match the release. Building takes most of an
+# hour, so a tag defaults to its release; a commit has no release and is built.
+if [ -z "$GUIDE_SOURCE" ]; then
+    if [ "$(git -C "$GUIDES" rev-parse -q --verify "refs/tags/$GROVE_FHIR_REF^{commit}" || true)" = "$ACTUAL_GROVE_FHIR_REF" ]; then
+        GUIDE_SOURCE=release
+    else
+        GUIDE_SOURCE=build
+    fi
 fi
 
 package_arguments=()
 manifest_package_arguments=()
-missing_package=false
 for guide in "${GUIDE_NAMES[@]}"; do
-    package_path="$GUIDES/$guide/output/package.tgz"
-    package_arguments+=(--package "$guide=$package_path")
+    package_arguments+=(--package "$guide=$GUIDES/$guide/output/package.tgz")
     manifest_package_arguments+=(--package "$guide=org.grovealliance.fhir.$guide")
-    if [ ! -f "$package_path" ]; then
-        missing_package=true
-    fi
 done
-if [ "$missing_package" = true ]; then
-    echo "==> building ${GUIDE_NAMES[*]} implementation guides"
-    (cd "$GUIDES" && npm ci && ./Scripts/build-guides.sh "${GUIDE_NAMES[@]}")
-fi
+release_packages=(
+    python3 Scripts/fetch-grove-fhir-release-packages.py
+    --guides "$GUIDES" --release "$GROVE_FHIR_REF" --commit "$ACTUAL_GROVE_FHIR_REF"
+)
+case "$GUIDE_SOURCE" in
+    release)
+        echo "==> installing the ${GUIDE_NAMES[*]} guide packages from the grove-fhir $GROVE_FHIR_REF release"
+        if [ ! -d "$GUIDES/node_modules" ]; then
+            (cd "$GUIDES" && npm ci)
+        fi
+        "${release_packages[@]}" --fhir-home "$FHIR_HOME" "${GUIDE_NAMES[@]}"
+        ;;
+    build|compare)
+        # A package installed from a release carries a marker, so it is rebuilt rather than passed off as a build. A
+        # comparison always builds afresh, since a package in place may predate edits to the guide sources; only the
+        # workflow, whose packages come from this commit's build, declares them current.
+        rebuild=false
+        if [ "$GUIDE_SOURCE" = compare ] && [ "${GROVE_FHIR_GUIDES_CURRENT:-0}" != 1 ]; then
+            rebuild=true
+        fi
+        for guide in "${GUIDE_NAMES[@]}"; do
+            if [ ! -f "$GUIDES/$guide/output/package.tgz" ] || [ -e "$GUIDES/$guide/output/package.tgz.release" ]; then
+                rebuild=true
+            fi
+        done
+        if [ "$rebuild" = true ]; then
+            echo "==> building ${GUIDE_NAMES[*]} implementation guides"
+            (cd "$GUIDES" && npm ci && ./Scripts/build-guides.sh "${GUIDE_NAMES[@]}")
+        fi
+        if [ "$GUIDE_SOURCE" = compare ]; then
+            echo "==> checking that the built ${GUIDE_NAMES[*]} packages match the grove-fhir $GROVE_FHIR_REF release"
+            "${release_packages[@]}" --compare "${GUIDE_NAMES[@]}"
+        fi
+        ;;
+    *)
+        echo "error: GROVE_FHIR_GUIDE_SOURCE must be release, build, or compare, not '$GUIDE_SOURCE'" >&2
+        exit 2
+        ;;
+esac
 # The content corpus converts the HealthKit guide's generated examples, read from its built package.
 if [ "$COMPONENT" = "healthkit" ]; then
     python3 Scripts/generate-grove-fhir-guide-example-fixtures.py --guides "$GUIDES" --check
