@@ -43,11 +43,8 @@ struct HealthKitFHIRApplicationIdentityTests {
         #expect(throws: HostDevice.ValidationError.blankOperatingSystemVersion) {
             try HostDevice(operatingSystemVersion: "")
         }
-        #expect(throws: HostDevice.ValidationError.blankModelNumber) {
-            try HostDevice(operatingSystemVersion: "26.0", modelNumber: " ")
-        }
-        #expect(throws: RecordingDevice.ValidationError.blankStableUnitToken) {
-            try RecordingDevice(stableUnitToken: "")
+        #expect(throws: HostDevice.ValidationError.blankProductType) {
+            try HostDevice(operatingSystemVersion: "26.0", productType: " ")
         }
     }
 }

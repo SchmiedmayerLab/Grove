@@ -15,8 +15,8 @@ import ModelsR4
 
 
 /// The metadata keys a source type's own content carries, and whether its record holds its correlation's members'
-/// metadata. The keys every path can carry (the time zone, manual entry and the sync pair) are carried as the graph's
-/// outputs show; every other key is withheld and reported.
+/// metadata. The keys every path can carry (the time zone, manual entry, the sync pair and the device keys) are carried as
+/// the graph's outputs and recording Device show; every other key is withheld and reported.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MetadataRule: Sendable {
     /// The rule of a type whose content reads no metadata key of its own.
@@ -316,19 +316,20 @@ extension HealthKitSampleMetadata {
         return (carried[key] as? NSObject)?.isEqual(value) == true
     }
 
-    /// The keys the sample, or an object it contains, carried that the graph's `outputs` do not represent, each once and
-    /// sorted. The outputs are final but for the envelope: they state the record's entry method and writer record.
+    /// The keys the sample, or an object it contains, carried that the graph's `outputs` and the `device` they reference do
+    /// not represent, each once and sorted. The outputs are final but for the envelope: they state the record's entry
+    /// method and writer record.
     ///
     /// A key is carried only through the representation the guide publishes for it, on an output that has that
     /// representation: "There is no generic metadata extension." (healthkit mapping.md, Supported HealthKit metadata)
     /// A blood-pressure member's zone or manual entry that the record takes, because the correlation states none,
     /// is carried as the record's own would be.
-    func withheldKeys(in outputs: [ExchangeOutputDraft]) -> [String] {
+    func withheldKeys(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String] {
         guard !values.isEmpty || !containedValues.isEmpty else {
             return []
         }
         let carried = recordValues.filter { key, value in
-            carries(key, value: value, in: outputs)
+            carries(key, value: value, in: outputs, device: device)
         }
         // A blood-pressure member's zone and manual entry count only toward the record's, as the rules above define,
         // so neither is withheld from the member (healthkit mapping.md, Blood-pressure correlation objects).
@@ -348,14 +349,16 @@ extension HealthKitSampleMetadata {
         return ([values] + memberValues).contains { ($0[HKMetadataKeyWasUserEntered] as? Bool) == true }
     }
 
-    /// Whether `outputs` represent the sample's `value` for `key`:
+    /// Whether `outputs` and the recording `device` represent the sample's `value` for `key`:
     /// - the sync pair as the writer-record identity and version, which only an Observation primary states, and only for
     ///   an attributable writer (healthkit profiles.fsh, healthkit-writer-record-1);
     /// - manual entry, `false` by omission and `true` as an Observation's manual-entry recording method;
     /// - the time zone as a `timezone` extension on an Observation's effective time (mapping.md: "Map an available
     ///   IANA time-zone name to the standard FHIR `timezone` extension"), which a document has no element for;
+    /// - a device key as the very value the Device an Observation references states in the element the guide gives it, so
+    ///   a value an `HKDevice` property replaced is withheld, and so is every device key of a sample with no `HKDevice`;
     /// - a key of the type's own content when its reader accepts the value.
-    private func carries(_ key: String, value: Any, in outputs: [ExchangeOutputDraft]) -> Bool {
+    private func carries(_ key: String, value: Any, in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> Bool {
         switch key {
         case HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion:
             return outputs.first?.writerRecord != nil
@@ -366,6 +369,12 @@ extension HealthKitSampleMetadata {
             return !entered || outputs.contains(where: \.statesManualEntry)
         case HKMetadataKeyTimeZone:
             return outputs.contains(where: \.namesEffectiveZone)
+        case HKMetadataKeyDeviceSerialNumber, HKMetadataKeyDeviceName, HKMetadataKeyDeviceManufacturerName,
+            HKMetadataKeyUDIDeviceIdentifier, HKMetadataKeyUDIProductionIdentifier:
+            guard let stated = value as? String, outputs.contains(where: \.isObservation) else {
+                return false
+            }
+            return device?.statedFact(forMetadataKey: key) == stated
         default:
             return contentFields.contains { $0.key == key && $0.readerAccepts(value) }
         }
@@ -374,6 +383,11 @@ extension HealthKitSampleMetadata {
 
 
 extension ExchangeOutputDraft {
+    /// Whether the output is an Observation.
+    var isObservation: Bool {
+        if case .observation = resource { true } else { false }
+    }
+
     /// Whether the output is an Observation stating the manual-entry recording method.
     fileprivate var statesManualEntry: Bool {
         if case .observation = resource { links.contains(.manualEntry) && wasUserEntered } else { false }

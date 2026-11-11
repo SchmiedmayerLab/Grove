@@ -227,7 +227,7 @@ extension HealthKitBloodPressureMemberTests {
         #expect(conversion.warnings == [Self.unmodeled])
         #expect(conversion.writer != nil, "the correlation's writer travels")
         #expect(conversion.observation.extension?.map(\.url) == [Canonicals.healthKitSourceTypeExtension], "no writer-record version")
-        #expect(conversion.graph.json == unsynced.graph.json)
+        #expect(conversion.record.json == unsynced.graph.json)
     }
 }
 

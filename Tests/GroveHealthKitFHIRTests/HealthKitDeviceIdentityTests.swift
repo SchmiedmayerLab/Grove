@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
@@ -20,10 +20,8 @@ import Testing
 struct HealthKitFHIRDeviceIdentityTests {
     private let timestamp = Date(timeIntervalSince1970: 1_787_148_600)
 
-    /// One export's inputs; events a test tells apart take distinct sequences, as distinct conversion instants did.
     private func inputs(
         subjectID: String = "1a2b3c",
-        eventOffset: UInt64 = 0,
         stableUnitToken: String? = nil,
         writer: HealthKitFHIRExporter.WriterPolicy = .omit
     ) -> ExportInputs {
@@ -37,10 +35,9 @@ struct HealthKitFHIRDeviceIdentityTests {
         )
         inputs.graphIdentifierSystem = "https://study.example.org/fhir/identifiers/mobile-graph"
         inputs.instant = timestamp
-        inputs.sequence = 1 + eventOffset
         inputs.options.writer = writer
         if let stableUnitToken {
-            inputs.options.recordingDevice = .custom(FixedTokenRecordingDeviceResolver(token: stableUnitToken))
+            inputs.options.unitToken = .custom { _, _ in stableUnitToken }
         }
         return inputs
     }
@@ -61,8 +58,13 @@ struct HealthKitFHIRDeviceIdentityTests {
         )
     }
 
-    private func sample(_ device: HKDevice, offset: TimeInterval = 0) -> HKQuantitySample {
-        HKQuantitySample(
+    /// A heart rate `writer` stored, which `device` measured.
+    private func sample(
+        _ device: HKDevice,
+        offset: TimeInterval = 0,
+        writer: StoredSampleFixtures.Writer = GoldenFixtures.foreignWriter
+    ) throws -> HKQuantitySample {
+        let sample = HKQuantitySample(
             type: HKQuantityType(.heartRate),
             quantity: HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: 62),
             start: timestamp.addingTimeInterval(offset),
@@ -70,14 +72,34 @@ struct HealthKitFHIRDeviceIdentityTests {
             device: device,
             metadata: nil
         )
+        return try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0xB0), writer: writer)
     }
 
-    @Test("Model and version facts alone never claim a physical Device instance")
-    func unknownPhysicalUnitIsOmitted() async throws {
+    /// The typed identities of `device`, leaving out its clear local identifier.
+    private func typedIdentities(of device: Device?) throws -> [RoledIdentifier] {
+        try #require(device?.identifier).compactMap { try? RoledIdentifier($0) }
+    }
+
+    @Test("A Device without a unit token is still emitted and referenced, and proves no physical unit")
+    func deviceWithoutATokenIsEmitted() async throws {
         let conversion = try await ExporterFixtures.export(sample(watch()), inputs())
+        let snapshot = try #require(conversion.identifiers.recordingDeviceSnapshot)
+
+        #expect(try typedIdentities(of: conversion.recordingDevice).map(\.role) == [.deviceSnapshot])
+        #expect(conversion.observation.device?.reference?.value?.string == (try snapshot.fullURLString))
+    }
+
+    @Test("A sample without an HKDevice names no recording Device")
+    func noDeviceNamesNone() async throws {
+        let bare = HKQuantitySample(
+            type: HKQuantityType(.heartRate),
+            quantity: HKQuantity(unit: HKUnit.count().unitDivided(by: .minute()), doubleValue: 62),
+            start: timestamp,
+            end: timestamp
+        )
+        let conversion = try await ExporterFixtures.export(bare, inputs())
 
         #expect(conversion.recordingDevice == nil)
-        #expect(conversion.identifiers.recordingDeviceSnapshot == nil)
         #expect(conversion.observation.device == nil)
     }
 
@@ -108,7 +130,7 @@ struct HealthKitFHIRDeviceIdentityTests {
             inputs(stableUnitToken: "watch-unit-7")
         )
         let device = try #require(conversion.recordingDevice)
-        let identifiers = try #require(device.identifier).map { try RoledIdentifier($0) }
+        let identifiers = try typedIdentities(of: device)
 
         #expect(identifiers.map(\.role) == [.deviceSnapshot, .recordingDevice])
         #expect(identifiers[0] == conversion.identifiers.recordingDeviceSnapshot)
@@ -119,51 +141,99 @@ struct HealthKitFHIRDeviceIdentityTests {
     func firmwareChangesDoNotMutateHistory() async throws {
         let before = try await ExporterFixtures.export(
             sample(watch(firmware: "11.2")),
-            inputs(eventOffset: 0, stableUnitToken: "watch-unit-7")
+            inputs(stableUnitToken: "watch-unit-7")
         )
         let after = try await ExporterFixtures.export(
             sample(watch(firmware: "11.3"), offset: 600),
-            inputs(eventOffset: 1, stableUnitToken: "watch-unit-7")
+            inputs(stableUnitToken: "watch-unit-7")
         )
-        let beforeIdentifiers = try #require(before.recordingDevice?.identifier).map { try RoledIdentifier($0) }
-        let afterIdentifiers = try #require(after.recordingDevice?.identifier).map { try RoledIdentifier($0) }
+        let beforeIdentifiers = try typedIdentities(of: before.recordingDevice)
+        let afterIdentifiers = try typedIdentities(of: after.recordingDevice)
 
         #expect(beforeIdentifiers[1] == afterIdentifiers[1])
         #expect(beforeIdentifiers[0] != afterIdentifiers[0])
         #expect(before.recordingDevice?.version != after.recordingDevice?.version)
     }
 
+    @Test("Equal device content is one snapshot in every record")
+    func equalContentIsOneSnapshot() async throws {
+        let first = try await ExporterFixtures.export(sample(watch()), inputs())
+        let second = try await ExporterFixtures.export(sample(watch(), offset: 600), inputs())
+
+        #expect(first.identifiers.recordingDeviceSnapshot == second.identifiers.recordingDeviceSnapshot)
+    }
+
     @Test("Stable physical identity is scoped to the subject")
     func stableIdentityIsSubjectScoped() async throws {
         let mine = try await ExporterFixtures.export(
             sample(watch()),
-            inputs(subjectID: "1a2b3c", eventOffset: 0, stableUnitToken: "watch-unit-7")
+            inputs(subjectID: "1a2b3c", stableUnitToken: "watch-unit-7")
         )
         let yours = try await ExporterFixtures.export(
             sample(watch()),
-            inputs(subjectID: "9z8y7x", eventOffset: 1, stableUnitToken: "watch-unit-7")
+            inputs(subjectID: "9z8y7x", stableUnitToken: "watch-unit-7")
         )
-        let mineIdentifiers = try #require(mine.recordingDevice?.identifier).map { try RoledIdentifier($0) }
-        let yoursIdentifiers = try #require(yours.recordingDevice?.identifier).map { try RoledIdentifier($0) }
 
-        #expect(mineIdentifiers[1] != yoursIdentifiers[1])
+        #expect(try typedIdentities(of: mine.recordingDevice)[1] != typedIdentities(of: yours.recordingDevice)[1])
     }
 
-    @Test("A HealthKit local identifier can supply the stable source token")
-    func localIdentifierSuppliesStableEvidence() async throws {
-        let conversion = try await ExporterFixtures.export(
-            sample(watch(localIdentifier: "healthkit-device-42")),
-            inputs()
-        )
+    @Test("The same token from two writers names two units")
+    func stableIdentityIsScopedToTheWriter() async throws {
+        let device = watch(localIdentifier: "shared-local-identifier")
+        let firstConversion = try await ExporterFixtures.export(sample(device), inputs())
+        let secondConversion = try await ExporterFixtures.export(sample(device, writer: GoldenFixtures.selfWriter(revisionVersion: "1")), inputs())
 
-        #expect(conversion.recordingDevice != nil)
-        #expect(conversion.identifiers.recordingDeviceSnapshot != nil)
+        #expect(try typedIdentities(of: firstConversion.recordingDevice)[1] != typedIdentities(of: secondConversion.recordingDevice)[1])
+    }
+
+    @Test("A source without a bundle identifier names hardware, not a unit: a token needs the writer that assigned it")
+    func aTokenNeedsItsWriter() async throws {
+        let blank = StoredSampleFixtures.Writer(name: "Unknown", bundleIdentifier: "", version: nil, productType: nil)
+        let conversion = try await ExporterFixtures.export(sample(watch(localIdentifier: "healthkit-device-42"), writer: blank), inputs())
+
+        #expect(try typedIdentities(of: conversion.recordingDevice).map(\.role) == [.deviceSnapshot])
+    }
+
+    @Test("HKDevice.localIdentifier is the default token, under every policy a clear identifier of the Device")
+    func localIdentifierIsTokenAndFact() async throws {
+        let device = watch(localIdentifier: "healthkit-device-42")
+        func clearIdentifier(_ conversion: ExportedRecord) throws -> Identifier? {
+            try #require(conversion.recordingDevice?.identifier).first { $0.type?.coding?.first?.code == "device-local-identifier" }
+        }
+        let byDefault = try await ExporterFixtures.export(sample(device), inputs())
+        #expect(try typedIdentities(of: byDefault.recordingDevice).map(\.role) == [.deviceSnapshot, .recordingDevice])
+
+        var withoutToken = inputs()
+        withoutToken.options.unitToken = .none
+        let withheld = try await ExporterFixtures.export(sample(device), withoutToken)
+        #expect(try typedIdentities(of: withheld.recordingDevice).map(\.role) == [.deviceSnapshot])
+
+        for conversion in [byDefault, withheld] {
+            let identifier = try #require(try clearIdentifier(conversion))
+            #expect(identifier.value == "healthkit-device-42")
+            #expect(identifier.type?.coding?.first?.system == Canonicals.groveDeviceIdentifierType)
+            #expect(identifier.system?.value?.url.absoluteString == withoutToken.base.identityScope.systems.deviceLocalIdentifier.rawValue)
+        }
+    }
+
+    @Test("A custom token sees the HKDevice and the HKSource, and a blank answer states no unit")
+    func customTokenSeesItsInputs() async throws {
+        let stored = try sample(watch())
+        var named = inputs()
+        named.options.unitToken = .custom { device, source in "\(source.bundleIdentifier)/\(device.model ?? "")" }
+        let reference = try await ExporterFixtures.export(stored, inputs(stableUnitToken: "org.example.writer/Watch"))
+        let conversion = try await ExporterFixtures.export(stored, named)
+        #expect(try typedIdentities(of: conversion.recordingDevice) == typedIdentities(of: reference.recordingDevice))
+
+        var blank = inputs()
+        blank.options.unitToken = .custom { _, _ in "  " }
+        let unnamed = try await ExporterFixtures.export(stored, blank)
+        #expect(try typedIdentities(of: unnamed.recordingDevice).map(\.role) == [.deviceSnapshot])
     }
 
     @Test("An unclassified source keeps the recording Device its HKDevice names, and the Provenance names no author")
     func unclassifiedSourceKeepsTheRecordingDevice() async throws {
-        let attributed = try StoredSampleFixtures.stored(sample(watch()), uuid: GoldenFixtures.uuid(0xB7), writer: GoldenFixtures.foreignWriter)
-        let conversion = try await ExporterFixtures.export(attributed, inputs(stableUnitToken: "watch-unit-7", writer: .omit))
+        let conversion = try await ExporterFixtures.export(sample(watch()), inputs(stableUnitToken: "watch-unit-7", writer: .omit))
         let recordingDevice = try #require(conversion.identifiers.recordingDeviceSnapshot)
 
         #expect(conversion.writer == nil)
@@ -184,11 +254,11 @@ struct HealthKitFHIRDeviceIdentityTests {
             var bundle = graph.bundle
             bundle.entry?[index].resource = ResourceProxy(with: observation)
             #expect(throws: ExchangeGraphError.ruleViolation(.mobileExchangeReferenceTargetType)) {
-                try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: bundle)
+                try ExchangeGraph(kind: .active, bundle: bundle)
             }
         }
         // The recording Device the export linked revalidates.
-        _ = try ExchangeGraph(kind: .active, eventIdentifier: graph.eventIdentifier, bundle: graph.bundle)
+        _ = try ExchangeGraph(kind: .active, bundle: graph.bundle)
     }
 }
 

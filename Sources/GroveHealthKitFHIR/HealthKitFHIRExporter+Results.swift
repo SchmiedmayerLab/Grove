@@ -19,11 +19,11 @@ extension HealthKitFHIRExporter {
     /// One input of ``export(records:at:receive:)``: a sample, plus the companion data HealthKit keeps
     /// outside the sample for the kinds that need it. The exporter never queries HealthKit itself.
     public enum Record: Sendable {
-        /// Any sample; an `HKElectrocardiogram`, `HKHeartbeatSeriesSample` or `HKWorkoutRoute` passed here reserves
-        /// its event and is then refused, as its companion data is missing.
+        /// Any sample; an `HKElectrocardiogram`, `HKHeartbeatSeriesSample` or `HKWorkoutRoute` passed here is refused, as
+        /// its companion data is missing.
         case sample(HKSample)
-        /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes an
-        /// event of its own.
+        /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes a
+        /// record of its own.
         case electrocardiogram(HKElectrocardiogram, voltages: [HKElectrocardiogram.VoltageMeasurement], symptoms: [HKCategorySample])
         /// A heartbeat series with its beats, exported as a recording document.
         case heartbeatSeries(HKHeartbeatSeriesSample, beats: [Heartbeat])
@@ -55,8 +55,7 @@ extension HealthKitFHIRExporter {
     /// A deleted HealthKit object as the app noted it: HealthKit reports no deletion time, so the
     /// retraction states the bounds the app knows.
     ///
-    /// Both bounds key the retraction event, so persist them with the deletion until its retraction's receipt is
-    /// released: a retry that recomputes either, such as `detectedAt` from the clock, mints a second retraction event.
+    /// The bounds key nothing: the retraction key is the source record alone, and the first accepted retraction wins.
     public struct Deletion: Hashable, Sendable {
         public let uuid: UUID
         public let sourceType: HealthKitSourceType
@@ -80,11 +79,10 @@ extension HealthKitFHIRExporter {
         }
     }
 
-    /// What one record produced: an exchange graph, or the reason it produced none.
+    /// What one input produced: an exchange record, or the reason it produced none.
     public struct Export: Sendable {
         /// The record's coordinate in the HealthKit store. It stays on the device and is never on the wire
-        /// unless ``Options/nativeIdentifier`` discloses it, or ``Options/legacyBundleID`` repeats its UUID as
-        /// `Bundle.id`.
+        /// unless ``Options/nativeIdentifier`` discloses it.
         public struct Source: Hashable, Sendable {
             public let uuid: UUID
             /// The HealthKit type identifier, such as `HKQuantityTypeIdentifierHeartRate`.
@@ -94,8 +92,8 @@ extension HealthKitFHIRExporter {
         }
 
         public enum Outcome: Sendable {
-            /// The validated graph; store or upload `ExchangeGraph.json` verbatim.
-            case graph(ExchangeGraph)
+            /// The validated record; stage `ExchangeRecord.json` verbatim, and pack it for upload.
+            case record(ExchangeRecord)
             /// The record was refused; nothing was emitted and the export continued. Refusals are
             /// deterministic, so an exact redelivery refuses identically.
             case refused(HealthKitConversionError)
@@ -103,26 +101,26 @@ extension HealthKitFHIRExporter {
 
         public let source: Source
         public let outcome: Outcome
-        /// What the record carried that its graph does not; each is a registered omission rule. ``WarningReport``
+        /// What the sample carried that its record does not; each is a registered omission rule. ``WarningReport``
         /// summarizes them by kind across many exports.
         public let warnings: [ProducerDiagnostic]
 
-        /// The graph, when one was produced.
-        public var graph: ExchangeGraph? {
-            if case .graph(let graph) = outcome { graph } else { nil }
+        /// The record, when one was produced.
+        public var record: ExchangeRecord? {
+            if case .record(let record) = outcome { record } else { nil }
         }
     }
 
-    /// What one ``Deletion`` produced: a retraction graph, or the reason it produced none.
+    /// What one ``Deletion`` produced: a retraction record, or the reason it produced none.
     public struct Retraction: Sendable {
         public enum Outcome: Sendable {
-            /// The validated retraction graph; store or upload `ExchangeGraph.json` verbatim.
-            case graph(ExchangeGraph)
+            /// The validated retraction record; pack it into a retraction Bundle for upload.
+            case record(ExchangeRecord)
             /// The deletion was refused; nothing was emitted and the retraction continued. Refusals are
             /// deterministic, so an exact redelivery refuses identically.
             case refused(HealthKitConversionError)
             /// The deletion names no output this exporter can have emitted: a source type without outputs, or a
-            /// workout route while ``Options/route`` is `.omit`. No event is reserved for it.
+            /// workout route while ``Options/route`` is `.omit`.
             case nothingToRetract
         }
 
@@ -130,9 +128,9 @@ extension HealthKitFHIRExporter {
         public let deletion: Deletion
         public let outcome: Outcome
 
-        /// The graph, when one was produced.
-        public var graph: ExchangeGraph? {
-            if case .graph(let graph) = outcome { graph } else { nil }
+        /// The record, when one was produced.
+        public var record: ExchangeRecord? {
+            if case .record(let record) = outcome { record } else { nil }
         }
     }
 }

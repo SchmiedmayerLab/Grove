@@ -42,7 +42,7 @@ struct HealthKitWorkoutSegmentTests {
         var inputs = ExportInputs.applicationWriter
         inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
         let conversion = try AssemblyFixtures.conversion(sample, inputs)
-        let entries = try #require(conversion.graph.bundle.entry)
+        let entries = try #require(conversion.record.bundle.entry)
         let observations = entries.compactMap { $0.resource?.get(if: Observation.self) }
         let session = try #require(observations.first)
         let count = (sample.workoutEvents ?? []).count + sample.workoutActivities.count
@@ -110,7 +110,7 @@ struct HealthKitWorkoutSegmentTests {
         try StoredSampleFixtures.restate(workout, with: ["workoutActivityType": 999])
         let stored = try StoredSampleFixtures.stored(workout, uuid: GoldenFixtures.uuid(0xC3))
         let conversion = try AssemblyFixtures.conversion(stored)
-        let observations = conversion.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        let observations = conversion.record.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         #expect(observations.count == 2 + workout.workoutActivities.count)
         for observation in observations.prefix(2) {
             guard case .codeableConcept(let value)? = observation.value else {

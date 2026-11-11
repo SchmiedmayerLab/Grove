@@ -12,7 +12,7 @@ import Foundation
 import ModelsR4
 
 
-/// The SensorKit exporter under the test deployment, and the graph views the converter tests read.
+/// The SensorKit exporter under the test deployment, and the views of a record's one-record Bundle the converter tests read.
 enum SensorKitExporterFixtures {
     static let application = ApplicationDevice.test(
         name: "Sensor Conformance",
@@ -20,9 +20,9 @@ enum SensorKitExporterFixtures {
         version: "0.5.0"
     )
     static let start = Date(timeIntervalSince1970: 1_787_009_400)
-    /// The instant every single-record export reserves its event at.
+    /// The instant every single-record export converts at.
     static let instant = start.addingTimeInterval(60)
-    static let watch = RecordingDevice.test(stableUnitToken: "watch-42", name: "Example Watch")
+    static let watch = RecordingDevice.test()
     static let nativeSystem: IdentifierSystem = "https://study.example.org/fhir/identifier/sensorkit-source-record"
 
     static var timeZone: TimeZone {
@@ -34,26 +34,13 @@ enum SensorKitExporterFixtures {
         }
     }
 
-    /// A producer over `storage` that hands out `sequence` next under the fixed producer instance.
-    static func producer(
-        sequence: UInt64 = 1,
-        application: ApplicationDevice = application,
-        studies: [StudyEnrollment] = [],
-        storage: ExchangeProducer.InMemoryStorage = ExchangeProducer.InMemoryStorage()
-    ) throws -> ExchangeProducer {
-        try storage.transaction { transaction in
-            if try transaction.read(LedgerKey.producer) == nil {
-                let entry = ProducerEntry(instance: SensorFHIRIdentityTestSupport.producerInstance, next: sequence)
-                try transaction.write(entry.encoded(), for: LedgerKey.producer)
-            }
-        }
-        return try ExchangeProducer(
+    static func producer(application: ApplicationDevice = application, studies: [StudyEnrollment] = []) throws -> ExchangeProducer {
+        try ExchangeProducer(
             identityScope: SensorFHIRIdentityTestSupport.identityScope,
             subject: SensorFHIRIdentityTestSupport.subject,
             application: application,
             host: SensorFHIRIdentityTestSupport.converterHost,
-            studies: studies,
-            storage: storage
+            studies: studies
         )
     }
 
@@ -72,40 +59,79 @@ enum SensorKitExporterFixtures {
         )
     }
 
-    /// Every export of one call, in delivery order, and the call's receipt.
+    /// Every export of one call, in delivery order.
     static func collect(
         _ exporter: SensorKitFHIRExporter,
         _ records: [SensorKitRecord],
         timeZone: TimeZone? = nil,
         recordingDevice: RecordingDevice? = watch,
+        sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false,
         at instant: Date = instant
-    ) async throws -> (exports: [SensorKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> [SensorKitFHIRExporter.Export] {
         var exports: [SensorKitFHIRExporter.Export] = []
-        let receipt = try await exporter.export(
+        try await exporter.export(
             records,
             sourceTimeZone: timeZone ?? Self.timeZone,
             recordingDevice: recordingDevice,
+            sourceDevices: sourceDevices,
+            sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample,
             at: instant
         ) { exports.append($0) }
-        return (exports, receipt)
+        return exports
     }
 
-    /// The graph of `record` exported alone through a fresh ledger, or the refusal thrown.
-    static func graph(
-        _ record: SensorKitRecord,
+    /// `input` exported alone, or the refusal thrown.
+    static func record(
+        _ input: SensorKitRecord,
         nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit,
-        recordingDevice: RecordingDevice? = watch
-    ) async throws -> ExchangeGraph {
+        recordingDevice: RecordingDevice? = watch,
+        sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false
+    ) async throws -> ExchangeRecord {
         let exporter = try exporter(producer(), nativeIdentifier: nativeIdentifier)
-        let exports = try await collect(exporter, [record], recordingDevice: recordingDevice).exports
+        let exports = try await collect(
+            exporter,
+            [input],
+            recordingDevice: recordingDevice,
+            sourceDevices: sourceDevices,
+            sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample
+        )
         guard exports.count == 1 else {
             throw CocoaError(.featureUnsupported)
         }
         switch exports[0].outcome {
-        case .graph(let graph):
-            return graph
+        case .record(let record):
+            return record
         case .refused(let refusal):
             throw refusal
+        }
+    }
+
+    /// The one-record Bundle of ``record(_:nativeIdentifier:recordingDevice:sourceDevices:)``, decoded for reading.
+    static func graph(
+        _ input: SensorKitRecord,
+        nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit,
+        recordingDevice: RecordingDevice? = watch,
+        sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false
+    ) async throws -> ExchangeGraph {
+        try await record(
+            input,
+            nativeIdentifier: nativeIdentifier,
+            recordingDevice: recordingDevice,
+            sourceDevices: sourceDevices,
+            sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample
+        ).graph
+    }
+}
+
+
+extension ExchangeRecord {
+    /// The record's one-record Bundle, decoded for reading.
+    var graph: ExchangeGraph {
+        get throws {
+            try ExchangeGraph(validating: json, kind: kind == .active ? .active : .retraction)
         }
     }
 }
@@ -122,6 +148,10 @@ extension ExchangeGraph {
 
     var recordingDocument: DocumentReference? {
         resources.lazy.compactMap { $0 as? DocumentReference }.first
+    }
+
+    var devices: [Device] {
+        resources.compactMap { $0 as? Device }
     }
 
     var provenance: Provenance {

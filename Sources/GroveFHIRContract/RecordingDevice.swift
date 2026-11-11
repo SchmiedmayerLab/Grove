@@ -9,45 +9,42 @@
 import Foundation
 
 
-/// The physical recorder, identified by a source-local token that stays stable for the same unit.
+/// The hardware that acquired a record: every fact its source states about it, and the unit it is when that is known.
 ///
-/// The token is never emitted. Adapters feed it to the deployment-scoped `recording-device`
-/// identity instead of disclosing a platform identifier.
+/// A record names a recording Device whenever its source names the hardware; a Device needs no stable unit token. The
+/// Device states every fact set here, each as the adapter's catalog maps it, and its content snapshot covers them all.
+/// Equal facts never prove one physical unit: only ``stableUnitToken`` does. A blank fact counts as unset.
 public struct RecordingDevice: Hashable, Sendable {
-    /// Why the stated recorder is not one a Device can name.
-    public enum ValidationError: Error, Equatable, Sendable {
-        case blankStableUnitToken
-        case blankName
-        case blankManufacturer
-        case blankModelNumber
-    }
+    /// A verified per-unit token. It is never emitted: it enters the deployment-scoped `recording-device` identity, and
+    /// needs ``tokenScope`` to do so.
+    public var stableUnitToken: String?
+    /// The authority that assigned ``stableUnitToken``, such as the writer's `HKSource.bundleIdentifier`: a platform's unit
+    /// token can be local to its host, so the same value from two writers names two units. The scope separates writers
+    /// only: a writer that states the same token for distinct units of one subject, on one host or on several, merges
+    /// them.
+    public var tokenScope: String?
+    /// The name a person gave the device, which may name that person.
+    public var name: String?
+    public var manufacturer: String?
+    /// The model the source states. `Device.modelNumber` states it unless ``productType`` does; then it is the device's
+    /// model name.
+    public var model: String?
+    /// The hardware product type, such as `Watch7,1`.
+    public var productType: String?
+    public var systemName: String?
+    public var systemVersion: String?
+    public var hardwareVersion: String?
+    public var firmwareVersion: String?
+    public var softwareVersion: String?
+    /// The clear identifier the source states for the device, carried as a `Device.identifier` under the deployment's
+    /// ``DeploymentIdentifierSystems/deviceLocalIdentifier`` system. It is local to the host that recorded it, so this
+    /// clear copy proves nothing about the unit; only ``stableUnitToken``, under its ``tokenScope``, does.
+    public var localIdentifier: String?
+    public var udiDeviceIdentifier: String?
+    /// The raw UDI production identifier, which may embed a lot or serial number.
+    public var udiProductionIdentifier: String?
+    /// A serial number, which links globally.
+    public var serialNumber: String?
 
-    public let stableUnitToken: String
-    public let name: String?
-    public let manufacturer: String?
-    public let modelNumber: String?
-
-    public init(
-        stableUnitToken: String,
-        name: String? = nil,
-        manufacturer: String? = nil,
-        modelNumber: String? = nil
-    ) throws(ValidationError) {
-        guard !stableUnitToken.isBlank else {
-            throw .blankStableUnitToken
-        }
-        guard name?.isBlank != true else {
-            throw .blankName
-        }
-        guard manufacturer?.isBlank != true else {
-            throw .blankManufacturer
-        }
-        guard modelNumber?.isBlank != true else {
-            throw .blankModelNumber
-        }
-        self.stableUnitToken = stableUnitToken
-        self.name = name
-        self.manufacturer = manufacturer
-        self.modelNumber = modelNumber
-    }
+    public init() {}
 }

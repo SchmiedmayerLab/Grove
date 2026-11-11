@@ -4940,7 +4940,7 @@ package enum HealthKitContract {
             measurementIDs: ["electrocardiogram"],
             profiles: [Profile.groveSensorEcgObservation, Profile.healthkitEcgObservation],
             implementationStatus: .supported,
-            requirement: "The caller supplies the HKElectrocardiogram, every voltage measurement with its exact timeSinceSampleStart, and each associated HKCategorySample when symptomsStatus is present. Classification is Observation.interpretation; Apple ECG algorithm version is Observation.method; optional average heart rate is a separate LOINC 8867-4 Observation derived from the waveform. Each supplied symptom is converted through its existing HealthKit symptom Observation profile as a separate source event, and the ECG hasMember carries that Observation's opaque source-output Identifier. Sampling frequency and reported count are validated against SampledData but are not duplicated on the wire. The adapter preserves source and waveform intervals, lead, offsets, and voltages without fetching or resampling."
+            requirement: "The caller supplies the HKElectrocardiogram, every voltage measurement with its exact timeSinceSampleStart, and each associated HKCategorySample when symptomsStatus is present. Classification is Observation.interpretation; Apple ECG algorithm version is Observation.method; optional average heart rate is a separate LOINC 8867-4 Observation derived from the waveform. Each supplied symptom is converted through its existing HealthKit symptom Observation profile as a separate record, and the ECG hasMember carries that Observation's opaque source-output Identifier. Sampling frequency and reported count are validated against SampledData but are not duplicated on the wire. The adapter preserves source and waveform intervals, lead, offsets, and voltages without fetching or resampling."
         ),
         HealthKitContractRow(
             sourceTypeIdentifier: "HKDataTypeIdentifierHeartbeatSeries",
@@ -5990,6 +5990,7 @@ package enum HealthKitContract {
 package struct DirectProfileClaim: Sendable {
     package let profiles: [FHIRPrimitive<Canonical>]
     package let requiredIdentifierRoles: [String]
+    package let optionalIdentifierRoles: [String]
 }
 
 
@@ -6427,34 +6428,39 @@ package enum ProfileClaims {
             profiles: [
                 Profile.groveSensorRecordingDocument,
             ],
-            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"]
+            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
+            optionalIdentifierRoles: []
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.groveSensorRecordingDocument,
                 Profile.healthkitRecordingDocument,
             ],
-            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"]
+            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
+            optionalIdentifierRoles: []
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.healthkitClinicalRecordDocument,
             ],
-            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"]
+            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
+            optionalIdentifierRoles: []
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.groveSensorRecordingDocument,
                 Profile.sensorkitRecordingDocument,
             ],
-            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"]
+            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
+            optionalIdentifierRoles: []
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.groveSensorRecordingDocument,
                 Profile.providersRecordingDocument,
             ],
-            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"]
+            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
+            optionalIdentifierRoles: []
         ),
     ]
 
@@ -6464,25 +6470,29 @@ package enum ProfileClaims {
             profiles: [
                 Profile.groveRecordingDevice,
             ],
-            requiredIdentifierRoles: ["recording-device", "device-snapshot"]
+            requiredIdentifierRoles: ["device-snapshot"],
+            optionalIdentifierRoles: ["recording-device"]
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.groveApplicationDevice,
             ],
-            requiredIdentifierRoles: ["device-snapshot"]
+            requiredIdentifierRoles: ["device-snapshot"],
+            optionalIdentifierRoles: []
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.groveHostDevice,
             ],
-            requiredIdentifierRoles: ["device-snapshot"]
+            requiredIdentifierRoles: ["device-snapshot"],
+            optionalIdentifierRoles: []
         ),
         DirectProfileClaim(
             profiles: [
                 Profile.healthkitApplicationDevice,
             ],
-            requiredIdentifierRoles: ["device-snapshot"]
+            requiredIdentifierRoles: ["device-snapshot"],
+            optionalIdentifierRoles: []
         ),
     ]
 
@@ -6492,7 +6502,8 @@ package enum ProfileClaims {
             profiles: [
                 Profile.groveQuestionnaireResponse,
             ],
-            requiredIdentifierRoles: []
+            requiredIdentifierRoles: [],
+            optionalIdentifierRoles: []
         ),
     ]
 
@@ -6823,12 +6834,14 @@ package enum ProfileClaims {
 /// Every registered Grove producer rule, generated from exchange-protocol.json.
 public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case mobileExchangeUnclassified = "mobile-exchange.unclassified"
-    case mobileExchangeEntryNodeKey = "mobile-exchange.entry-node-key"
+    case mobileExchangeEntryKey = "mobile-exchange.entry-key"
     case mobileExchangeDeterministicFullUrl = "mobile-exchange.deterministic-full-url"
     case mobileExchangeResolvedReference = "mobile-exchange.resolved-reference"
-    case mobileExchangeEventIdentity = "mobile-exchange.event-identity"
-    case mobileExchangeEntryNodeDigest = "mobile-exchange.entry-node-digest"
-    case mobileExchangeEntryNodeOrdinal = "mobile-exchange.entry-node-ordinal"
+    case mobileExchangeContentSnapshotKey = "mobile-exchange.content-snapshot-key"
+    case mobileExchangeRecordVersionKey = "mobile-exchange.record-version-key"
+    case mobileExchangeRecordVersionExtension = "mobile-exchange.record-version-extension"
+    case mobileExchangeContextSnapshotExtension = "mobile-exchange.context-snapshot-extension"
+    case mobileExchangeCanonicalJson = "mobile-exchange.canonical-json"
     case mobileExchangeIdentitySystemRole = "mobile-exchange.identity-system-role"
     case mobileOutputSourceOutputRequired = "mobile-output.source-output-required"
     case mobileOutputHybridCompanion = "mobile-output.hybrid-companion"
@@ -6885,7 +6898,8 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case healthkitInputSourceApplicationInvalid = "healthkit-input.source-application-invalid"
     case mobileExchangeBundleProfile = "mobile-exchange.bundle-profile"
     case mobileExchangeEntryRequired = "mobile-exchange.entry-required"
-    case mobileExchangeEventTimes = "mobile-exchange.event-times"
+    case mobileExchangeBundleIdentifier = "mobile-exchange.bundle-identifier"
+    case mobileExchangeRecordTimes = "mobile-exchange.record-times"
     case mobileExchangeDistinctEntryKey = "mobile-exchange.distinct-entry-key"
     case mobileExchangeEntryKeySelection = "mobile-exchange.entry-key-selection"
     case mobileExchangeIdentifierRole = "mobile-exchange.identifier-role"
@@ -6894,6 +6908,11 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case mobileExchangeOutputRequired = "mobile-exchange.output-required"
     case mobileExchangeProvenanceAssembler = "mobile-exchange.provenance-assembler"
     case mobileExchangeProvenanceTargets = "mobile-exchange.provenance-targets"
+    case mobileExchangeOutputTargetedOnce = "mobile-exchange.output-targeted-once"
+    case mobileExchangeDistinctSourceRecord = "mobile-exchange.distinct-source-record"
+    case mobileExchangeCrossRecordReference = "mobile-exchange.cross-record-reference"
+    case mobileExchangeSingleSubject = "mobile-exchange.single-subject"
+    case mobileExchangePatientPseudonym = "mobile-exchange.patient-pseudonym"
     case mobileExchangeAdapterProvenanceGraph = "mobile-exchange.adapter-provenance-graph"
     case mobileOutputAdapterSourceMarker = "mobile-output.adapter-source-marker"
     case mobileDeviceHostDeviceIdentity = "mobile-device.host-device-identity"
@@ -6903,10 +6922,10 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case sensorRecordingDocumentEmbeddedIntegrity = "sensor-recording-document.embedded-integrity"
     case sensorRecordingDocumentFormat = "sensor-recording-document.format"
     case mobileRetractionProvenance = "mobile-retraction.provenance"
+    case mobileRetractionRetractionKey = "mobile-retraction.retraction-key"
     case mobileRetractionTargetRequired = "mobile-retraction.target-required"
     case mobileRetractionDistinctTarget = "mobile-retraction.distinct-target"
     case mobileRetractionSourceRecordTarget = "mobile-retraction.source-record-target"
-    case mobileOmissionRecordingDevice = "mobile-omission.recording-device"
     case mobileOmissionSourceOffset = "mobile-omission.source-offset"
     case mobileOmissionUnmodeledMetadata = "mobile-omission.unmodeled-metadata"
     case mobileOmissionRecordingMethod = "mobile-omission.recording-method"
@@ -6916,28 +6935,32 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         switch self {
         case .mobileExchangeUnclassified:
             "A producer-contract failure reached the exchange diagnostic boundary without a more specific registered rule; validation fails closed and the conformance kit must classify the gap."
-        case .mobileExchangeEntryNodeKey:
-            "Every Bundle entry must carry exactly one complete Grove exchange entry node key."
+        case .mobileExchangeEntryKey:
+            "Every Bundle entry must carry exactly one complete Grove exchange entry key."
         case .mobileExchangeDeterministicFullUrl:
             "Bundle.entry.fullUrl must be the UUID version 5 value derived from its complete entry identifier."
         case .mobileExchangeResolvedReference:
             "Every internal UUID URN reference must resolve to a Bundle entry fullUrl."
-        case .mobileExchangeEventIdentity:
-            "Bundle.identifier.value must be the canonical e0 producer UUID and positive sequence form."
-        case .mobileExchangeEntryNodeDigest:
-            "An entry-node digest must be derived from the enclosing event identifier, role, and ordinal."
-        case .mobileExchangeEntryNodeOrdinal:
-            "An entry-node ordinal is the zero-based position of its entry among the entries sharing that node-role, in Bundle entry order."
+        case .mobileExchangeContentSnapshotKey:
+            "A shared node carries one typed device-snapshot or context-snapshot v0 Identifier for its node role, in Resource.identifier or, on a QuestionnaireResponse, in grove-context-snapshot; its shape is always checked, and under the published test key it recomputes from the node's canonical content over the one subject its Bundle's records state. An active Bundle whose records state no one subject fails; a retraction Bundle states no subject, so its Device snapshots are checked for shape only."
+        case .mobileExchangeRecordVersionKey:
+            "The entry key of a conversion Provenance is its typed record-version Identifier pair over its source-record entity and record content digest; its shape is always checked, and it recomputes only when its key id is the published test key."
+        case .mobileExchangeRecordVersionExtension:
+            "A conversion Provenance carries exactly one grove-record-version extension, equal in system and value to its entry key; a retraction Provenance carries none."
+        case .mobileExchangeContextSnapshotExtension:
+            "A QuestionnaireResponse in an exchange Bundle carries exactly one grove-context-snapshot extension, equal in system and value to its entry key; no other resource carries it."
+        case .mobileExchangeCanonicalJson:
+            "Every resource of a record canonicalizes under grove-canonical-json-v0."
         case .mobileExchangeIdentitySystemRole:
-            "Within one event graph, each Grove Identifier.system names exactly one Grove identifier role; one namespace cannot change meaning between nodes."
+            "Within one Bundle, each Grove Identifier.system names exactly one Grove identifier role; one namespace cannot change meaning between nodes."
         case .mobileOutputSourceOutputRequired:
             "Every active clinical output must carry its exact typed source-output identity in addition to source-record identity."
         case .mobileOutputHybridCompanion:
             "A hybrid-required output and its exact source-preservation companion must form the catalog-declared closed, same-source, bidirectionally linked graph."
         case .healthkitEcgOutputGraph:
-            "A HealthKit ECG event must satisfy the catalog-owned waveform, optional average-heart-rate, symptom-member, relationship-direction, identity, and effective-period graph contract."
+            "A HealthKit ECG record must satisfy the catalog-owned waveform, optional average-heart-rate, symptom-member, relationship-direction, identity, and effective-period graph contract."
         case .mobileExchangeTransformProvenance:
-            "An active event must contain exactly one transform Provenance and no retraction Provenance."
+            "An active Bundle must contain at least one transform Provenance, exactly one for each record, and no retraction Provenance."
         case .mobileRetractionLogicalTarget:
             "A retraction target must be a typed logical Reference without a literal reference."
         case .mobileRetractionTargetRole:
@@ -6947,17 +6970,17 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .mobileRetractionNativeRecordIdentifier:
             "An optional retraction native record identifier carries one complete Identifier in the adapter's own absolute native key space and never a Grove identifier-role coding."
         case .mobileExchangeCollectionEntryOperation:
-            "A Mobile exchange event is a collection Bundle; an entry may carry neither a request nor a response, because an event is an assertion and never a transaction instruction."
+            "A Mobile exchange Bundle is a collection Bundle; an entry may carry neither a request nor a response, because a record is an assertion and never a transaction instruction."
         case .mobileSupportQuestionnaireResponseProfile:
             "Every supporting QuestionnaireResponse must directly claim exactly the Grove Questionnaire Response profile."
         case .mobileDeviceRecordingDeviceDualIdentity:
-            "A recording Device carries both its durable recording-device identity and its event-scoped device-snapshot identity; neither may stand alone."
+            "A recording Device always carries exactly one content device-snapshot identity and carries at most one durable recording-device identity, which is optional."
         case .healthkitClinicalFhirRepresentation:
             "A HealthKit clinical-record envelope must carry the exact admitted FHIR release and preserve the source representation its adapter contract declares."
         case .sensorRecordingDocumentIdentityAndContent:
             "Every Sensor Recording Document carries its source-record, source-output, and source-artifact identities together with exactly one attachment payload."
         case .mobileRetractionNoClinicalCopy:
-            "A retraction event contains its lifecycle Provenance and optional Device agents, never a copied or mutilated clinical resource."
+            "A retraction Bundle contains its retraction Provenances and the Device snapshots their agents reach, never a copied or mutilated clinical resource."
         case .mobileExchangeLifecycleCoding:
             "A lifecycle Provenance must carry exactly one coding across the ISO transform and Grove retraction lifecycle systems; translations from other systems remain open."
         case .mobileOutputSemanticProfile:
@@ -6983,17 +7006,17 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .mobileOutputAdapterOnlyProfile:
             "An adapter-only active output type must directly claim exactly its one admitted adapter profile."
         case .mobileExchangeEntryResourceType:
-            "An active event admits only its closed output, supporting, and lifecycle resource type set."
+            "An active Bundle admits only its closed output, supporting, and lifecycle resource type set."
         case .mobileExchangeContainedResourceProhibited:
-            "Mobile exchange events prohibit contained resources; every graph node must be an addressable Bundle entry."
+            "Mobile exchange Bundles prohibit contained resources; every graph node must be an addressable Bundle entry."
         case .mobileOutputDocumentProfile:
             "Every active DocumentReference must directly claim exactly one admitted recording or clinical-document profile mode."
         case .mobileSupportDeviceProfile:
             "Every active Device must directly claim exactly one admitted Grove Device profile mode."
         case .mobileSupportConnected:
-            "Every supporting resource must be connected to an output or the lifecycle Provenance."
+            "Every supporting resource must lie in the directed record-unit closure of at least one record of its Bundle."
         case .mobileExchangeProvenanceProfile:
-            "The sole active lifecycle Provenance must directly claim exactly one admitted Mobile or adapter conversion profile."
+            "Every active conversion Provenance must directly claim exactly one admitted Mobile or adapter conversion profile."
         case .mobileInputUnclassified:
             "A producer refused a source record without a more specific registered input rule; the refusal is reported, never silently dropped."
         case .mobileInputUnsupportedSourceType:
@@ -7017,7 +7040,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .mobileInputEffectivePeriodInvalid:
             "The source record's effective instant or period is not a valid FHIR date or time, starts after it ends, or places a sample outside its own interval."
         case .mobileInputConversionInstantPrecedesSourceVersion:
-            "The conversion instant precedes the source record's own last-modified time, so the event would misstate its order."
+            "The conversion instant precedes the source record's own last-modified time, so Provenance.recorded would misstate the order of the record's versions."
         case .mobileInputTextNotUnicodeScalar:
             "A source text field contains an unpaired UTF-16 surrogate and cannot enter a FHIR string or an identity preimage."
         case .mobileInputNativeIdentifierInvalid:
@@ -7037,15 +7060,17 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .healthkitInputSourceApplicationInvalid:
             "A source revision the caller classified as an application carries no valid Apple bundle identifier."
         case .mobileExchangeBundleProfile:
-            "An exchange Bundle directly claims exactly the Grove Mobile exchange or retraction Bundle profile for its event kind."
+            "An exchange Bundle directly claims exactly the Grove Mobile exchange or retraction Bundle profile for the kind of records it carries."
         case .mobileExchangeEntryRequired:
-            "An exchange event carries at least one entry; an empty Bundle is not an event."
-        case .mobileExchangeEventTimes:
-            "An event states its Bundle timestamp, and its lifecycle Provenance states occurred[x] and recorded."
+            "An exchange Bundle carries at least one entry; an empty Bundle carries no record."
+        case .mobileExchangeBundleIdentifier:
+            "Bundle.identifier is an optional, untyped transport id: it carries no Grove identifier role, names no record, and enters no identity."
+        case .mobileExchangeRecordTimes:
+            "A Bundle states Bundle.timestamp, its packing time, which enters no identity, and every lifecycle Provenance states occurred[x] and recorded."
         case .mobileExchangeDistinctEntryKey:
-            "No two entries of one event carry the same entry key system and value pair."
+            "No two entries of one Bundle carry the same entry key system and value pair; a shared node appears once, however many records reference it."
         case .mobileExchangeEntryKeySelection:
-            "An entry key is the entry resource's highest-priority typed business identifier, or its entry-node key when the resource carries none."
+            "An entry key follows entryIdentity.selection: an output's highest-priority typed business Identifier, a shared node's content-snapshot Identifier, never a canonical url|version or an untyped business identifier, and a Provenance's record-version or record-retraction Identifier."
         case .mobileExchangeIdentifierRole:
             "A Grove-typed resource Identifier carries exactly one closed Grove identifier-role coding."
         case .mobileExchangeOpaqueResourceIdentity:
@@ -7053,19 +7078,29 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .mobileExchangeDistinctResourceIdentityRole:
             "A resource carries at most one Identifier for each Grove identifier role."
         case .mobileExchangeOutputRequired:
-            "An active event carries at least one clinical or source-artifact output."
+            "Every record of an active Bundle carries at least one clinical or source-artifact output."
         case .mobileExchangeProvenanceAssembler:
-            "A conversion Provenance names exactly one assembler agent, and that agent is the event's application Device snapshot."
+            "A conversion Provenance names exactly one assembler agent, and that agent is the application Device snapshot of its record."
         case .mobileExchangeProvenanceTargets:
-            "A conversion Provenance targets every active clinical output of its event and nothing else."
+            "A conversion Provenance targets only active clinical or source-artifact outputs carrying its source-record Identifier, and every such output of its Bundle."
+        case .mobileExchangeOutputTargetedOnce:
+            "Every output of an active Bundle is targeted by exactly one conversion Provenance, and no Provenance repeats a target reference."
+        case .mobileExchangeDistinctSourceRecord:
+            "No two conversion Provenances of one active Bundle name the same source-record entity; two versions of one source record travel in different Bundles."
+        case .mobileExchangeCrossRecordReference:
+            "A literal Reference resolves to an output of its own record or to a shared node of the same Bundle; a reference to an output of another record is identifier-only."
+        case .mobileExchangeSingleSubject:
+            "Every record of one exchange Bundle states the same subject."
+        case .mobileExchangePatientPseudonym:
+            "A Patient entry carries exactly one identifier without a Grove role, the deployment's complete pseudonym under a system the protocol doesn't reserve, and it names the subject its Bundle's records state."
         case .mobileExchangeAdapterProvenanceGraph:
-            "Every adapter output of an event claims the adapter profile its conversion Provenance governs, and a source-neutral event claims no adapter output."
+            "Every adapter output of a record claims the adapter profile its conversion Provenance governs, and a source-neutral record claims no adapter output."
         case .mobileOutputAdapterSourceMarker:
             "An adapter's source marker appears exactly once on each catalog-owned output of that adapter and never on a source-neutral or different-adapter output."
         case .mobileDeviceHostDeviceIdentity:
-            "A host Device carries exactly one event-scoped device-snapshot identity."
+            "A host Device carries exactly one content device-snapshot identity."
         case .mobileSupportStudyContext:
-            "A bundled study context carries one ResearchStudy, its exact-revision PlanDefinition with canonical url and version, and one ResearchSubject linking the subject to the study, each keyed as an entry node with its study-context role."
+            "A bundled study context carries one ResearchStudy, its exact-revision PlanDefinition with canonical url and version, and one ResearchSubject linking the subject to the study, each a shared node keyed by its context-snapshot Identifier with its node role."
         case .healthkitDeviceApplicationBundleIdentifier:
             "A HealthKit application Device carries exactly one typed Apple bundle identifier."
         case .healthConnectProvenanceDataOriginAgent:
@@ -7075,19 +7110,19 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .sensorRecordingDocumentFormat:
             "A recording attachment's format coding and content type match one active entry of the Grove recording-format registry, with no Coding.version."
         case .mobileRetractionProvenance:
-            "A retraction event carries exactly one retraction Provenance and no transform Provenance."
+            "A retraction Bundle carries at least one retraction Provenance, each under a distinct record-retraction key, and no transform Provenance."
+        case .mobileRetractionRetractionKey:
+            "The entry key of a retraction Provenance is the typed record-retraction Identifier pair of its source-record entity; under the published test key it recomputes."
         case .mobileRetractionTargetRequired:
             "A retraction Provenance names at least one logical target."
         case .mobileRetractionDistinctTarget:
             "No two retraction targets carry the same Identifier system and value pair."
         case .mobileRetractionSourceRecordTarget:
             "A source-record retraction target is the Provenance's only target, states no Reference.type, and repeats the exact source-record Identifier of the Provenance source entity."
-        case .mobileOmissionRecordingDevice:
-            "The source names a recording device without a stable per-unit token, so the producer emits no recording Device and the output carries no device reference."
         case .mobileOmissionSourceOffset:
             "The source supplies an effective instant without a UTC offset or time-zone name, so the producer serializes it in UTC and attaches no timezone extension."
         case .mobileOmissionUnmodeledMetadata:
-            "The source record, or a part of it, carries metadata that no output of its graph represents, so the producer withholds those fields."
+            "The source record, or a part of it, carries metadata that neither an output of its graph nor the recording Device it references represents, so the producer withholds those fields."
         case .mobileOmissionRecordingMethod:
             "Part of the source record that the adapter's capture-mode rules read states a capture mode that the record as a whole does not establish, so the producer omits the grove-recording-method extension."
         }
@@ -7096,21 +7131,22 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     /// A warning names what an accepted record lost; every other rule refuses the record or graph.
     public var severity: ProducerDiagnostic.Severity {
         switch self {
-        case .mobileOmissionRecordingDevice, .mobileOmissionSourceOffset, .mobileOmissionUnmodeledMetadata, .mobileOmissionRecordingMethod:
+        case .mobileOmissionSourceOffset, .mobileOmissionUnmodeledMetadata, .mobileOmissionRecordingMethod:
             .warning
-        case .mobileExchangeUnclassified, .mobileExchangeEntryNodeKey, .mobileExchangeDeterministicFullUrl, .mobileExchangeResolvedReference, .mobileExchangeEventIdentity, .mobileExchangeEntryNodeDigest, .mobileExchangeEntryNodeOrdinal, .mobileExchangeIdentitySystemRole, .mobileOutputSourceOutputRequired, .mobileOutputHybridCompanion, .healthkitEcgOutputGraph, .mobileExchangeTransformProvenance, .mobileRetractionLogicalTarget, .mobileRetractionTargetRole, .mobileRetractionOpaqueTarget, .mobileRetractionNativeRecordIdentifier, .mobileExchangeCollectionEntryOperation, .mobileSupportQuestionnaireResponseProfile, .mobileDeviceRecordingDeviceDualIdentity, .healthkitClinicalFhirRepresentation, .sensorRecordingDocumentIdentityAndContent, .mobileRetractionNoClinicalCopy, .mobileExchangeLifecycleCoding, .mobileOutputSemanticProfile, .mobileOutputFixedQuantityUnit, .mobileOutputQuantityValueDomain, .mobileExchangeReferenceTargetType, .mobileExchangeReferenceDeclaredType, .mobileExchangeLogicalSourceEntity, .mobileRetractionRoleTargetType, .mobileExchangeSingleSourceEntity, .mobileExchangeReferenceShape, .mobileExchangeLogicalPatientReference, .mobileOutputAdapterOnlyProfile, .mobileExchangeEntryResourceType, .mobileExchangeContainedResourceProhibited, .mobileOutputDocumentProfile, .mobileSupportDeviceProfile, .mobileSupportConnected, .mobileExchangeProvenanceProfile, .mobileInputUnclassified, .mobileInputUnsupportedSourceType, .mobileInputIntentionallyUnsupportedSourceType, .mobileInputNotYetConvertible, .mobileInputPlatformExclusiveSourceType, .mobileInputValueShapeInvalid, .mobileInputValueOutsideDomain, .mobileInputUnsupportedSourceValue, .mobileInputRequiredMetadataMissing, .mobileInputRequiredComponentMissing, .mobileInputEffectivePeriodInvalid, .mobileInputConversionInstantPrecedesSourceVersion, .mobileInputTextNotUnicodeScalar, .mobileInputNativeIdentifierInvalid, .mobileInputRecordingPayloadTooLarge, .mobileInputEmptyRecordingSeries, .healthkitInputEcgEvidence, .healthkitInputClinicalReleaseUnsupported, .healthkitInputClinicalRecordEmpty, .healthkitInputComponentRequiresCorrelation, .healthkitInputSourceApplicationInvalid, .mobileExchangeBundleProfile, .mobileExchangeEntryRequired, .mobileExchangeEventTimes, .mobileExchangeDistinctEntryKey, .mobileExchangeEntryKeySelection, .mobileExchangeIdentifierRole, .mobileExchangeOpaqueResourceIdentity, .mobileExchangeDistinctResourceIdentityRole, .mobileExchangeOutputRequired, .mobileExchangeProvenanceAssembler, .mobileExchangeProvenanceTargets, .mobileExchangeAdapterProvenanceGraph, .mobileOutputAdapterSourceMarker, .mobileDeviceHostDeviceIdentity, .mobileSupportStudyContext, .healthkitDeviceApplicationBundleIdentifier, .healthConnectProvenanceDataOriginAgent, .sensorRecordingDocumentEmbeddedIntegrity, .sensorRecordingDocumentFormat, .mobileRetractionProvenance, .mobileRetractionTargetRequired, .mobileRetractionDistinctTarget, .mobileRetractionSourceRecordTarget:
+        case .mobileExchangeUnclassified, .mobileExchangeEntryKey, .mobileExchangeDeterministicFullUrl, .mobileExchangeResolvedReference, .mobileExchangeContentSnapshotKey, .mobileExchangeRecordVersionKey, .mobileExchangeRecordVersionExtension, .mobileExchangeContextSnapshotExtension, .mobileExchangeCanonicalJson, .mobileExchangeIdentitySystemRole, .mobileOutputSourceOutputRequired, .mobileOutputHybridCompanion, .healthkitEcgOutputGraph, .mobileExchangeTransformProvenance, .mobileRetractionLogicalTarget, .mobileRetractionTargetRole, .mobileRetractionOpaqueTarget, .mobileRetractionNativeRecordIdentifier, .mobileExchangeCollectionEntryOperation, .mobileSupportQuestionnaireResponseProfile, .mobileDeviceRecordingDeviceDualIdentity, .healthkitClinicalFhirRepresentation, .sensorRecordingDocumentIdentityAndContent, .mobileRetractionNoClinicalCopy, .mobileExchangeLifecycleCoding, .mobileOutputSemanticProfile, .mobileOutputFixedQuantityUnit, .mobileOutputQuantityValueDomain, .mobileExchangeReferenceTargetType, .mobileExchangeReferenceDeclaredType, .mobileExchangeLogicalSourceEntity, .mobileRetractionRoleTargetType, .mobileExchangeSingleSourceEntity, .mobileExchangeReferenceShape, .mobileExchangeLogicalPatientReference, .mobileOutputAdapterOnlyProfile, .mobileExchangeEntryResourceType, .mobileExchangeContainedResourceProhibited, .mobileOutputDocumentProfile, .mobileSupportDeviceProfile, .mobileSupportConnected, .mobileExchangeProvenanceProfile, .mobileInputUnclassified, .mobileInputUnsupportedSourceType, .mobileInputIntentionallyUnsupportedSourceType, .mobileInputNotYetConvertible, .mobileInputPlatformExclusiveSourceType, .mobileInputValueShapeInvalid, .mobileInputValueOutsideDomain, .mobileInputUnsupportedSourceValue, .mobileInputRequiredMetadataMissing, .mobileInputRequiredComponentMissing, .mobileInputEffectivePeriodInvalid, .mobileInputConversionInstantPrecedesSourceVersion, .mobileInputTextNotUnicodeScalar, .mobileInputNativeIdentifierInvalid, .mobileInputRecordingPayloadTooLarge, .mobileInputEmptyRecordingSeries, .healthkitInputEcgEvidence, .healthkitInputClinicalReleaseUnsupported, .healthkitInputClinicalRecordEmpty, .healthkitInputComponentRequiresCorrelation, .healthkitInputSourceApplicationInvalid, .mobileExchangeBundleProfile, .mobileExchangeEntryRequired, .mobileExchangeBundleIdentifier, .mobileExchangeRecordTimes, .mobileExchangeDistinctEntryKey, .mobileExchangeEntryKeySelection, .mobileExchangeIdentifierRole, .mobileExchangeOpaqueResourceIdentity, .mobileExchangeDistinctResourceIdentityRole, .mobileExchangeOutputRequired, .mobileExchangeProvenanceAssembler, .mobileExchangeProvenanceTargets, .mobileExchangeOutputTargetedOnce, .mobileExchangeDistinctSourceRecord, .mobileExchangeCrossRecordReference, .mobileExchangeSingleSubject, .mobileExchangePatientPseudonym, .mobileExchangeAdapterProvenanceGraph, .mobileOutputAdapterSourceMarker, .mobileDeviceHostDeviceIdentity, .mobileSupportStudyContext, .healthkitDeviceApplicationBundleIdentifier, .healthConnectProvenanceDataOriginAgent, .sensorRecordingDocumentEmbeddedIntegrity, .sensorRecordingDocumentFormat, .mobileRetractionProvenance, .mobileRetractionRetractionKey, .mobileRetractionTargetRequired, .mobileRetractionDistinctTarget, .mobileRetractionSourceRecordTarget:
             .error
         }
     }
 }
 
 
-/// The entry-node roles of a bundled study context, generated from exchange-protocol.json.
-package enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {
+/// The node roles of a context-snapshot key, generated from exchange-protocol.json.
+package enum ContextSnapshotRole: String, CaseIterable, Sendable {
     case patient = "patient"
     case researchStudy = "research-study"
     case researchSubject = "research-subject"
     case planDefinition = "plan-definition"
+    case questionnaireResponse = "questionnaire-response"
 }
 
 
@@ -7124,7 +7160,7 @@ extension OpaqueIdentityKind {
         case .sourceOutput:
             ["adapter-id", "source-type", "repository-scope-system", "repository-scope-value", "native-record-id", "output-role", "output-discriminator"]
         case .writerRecord:
-            ["writer-application-system", "writer-application-value", "writer-record-id"]
+            ["subject-system", "subject-value", "writer-application-system", "writer-application-value", "writer-record-id"]
         case .providerRecord:
             ["provider-code", "source-type", "provider-scope-system", "provider-scope-value", "native-record-id"]
         case .providerOutput:
@@ -7136,9 +7172,15 @@ extension OpaqueIdentityKind {
         case .sourceContext:
             ["adapter-id", "context-type", "repository-scope-system", "repository-scope-value", "native-context-id"]
         case .recordingDevice:
-            ["adapter-id", "subject-system", "subject-value", "stable-unit-token"]
+            ["adapter-id", "subject-system", "subject-value", "token-scope", "stable-unit-token"]
         case .deviceSnapshot:
-            ["event-system", "event-value", "device-role", "source-device-token"]
+            ["subject-system", "subject-value", "node-role", "content-digest"]
+        case .contextSnapshot:
+            ["subject-system", "subject-value", "node-role", "content-digest"]
+        case .recordVersion:
+            ["source-record-system", "source-record-value", "record-content-digest"]
+        case .recordRetraction:
+            ["source-record-system", "source-record-value"]
         }
     }
 
@@ -7155,11 +7197,17 @@ extension OpaqueIdentityKind {
         case .sourceContext: .sourceContext
         case .recordingDevice: .recordingDevice
         case .deviceSnapshot: .deviceSnapshot
+        case .contextSnapshot: .contextSnapshot
+        case .recordVersion: .recordVersion
+        case .recordRetraction: .recordRetraction
         }
     }
 
     /// Components whose value is a canonical unsigned decimal.
     static let unsignedDecimalComponents: Set<String> = ["part-index"]
+
+    /// Components whose value is a SHA-256 digest in base64url without padding.
+    static let digestComponents: Set<String> = ["content-digest", "record-content-digest"]
 }
 
 
@@ -7167,11 +7215,10 @@ extension OpaqueIdentityKind {
 package enum ExchangeContract {
     package static let fullURLNamespace = "43df4575-bff7-5a57-9a80-2472cd2b0623"
     package static let opaqueIdentitySystemForm = "<deployment-root>/NamingSystem/grove-<identity-kind>-v0/<key-id>/<epoch>"
-    package static let eventIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-event-v0"
-    package static let entryNodeIdentifierSystemForm = "<deployment-root>/NamingSystem/grove-entry-node-v0"
     package static let equalityVectorCorpus = "Conformance/corpora/receiver-lifecycle"
     package static let equalityFormattingVector = "reformatted-retry"
     package static let equalityDecimalLexemeVector = "lexeme-retry"
+    package static let equalityAlteredRetryVector = "altered-retry"
     package static let activeOutputResourceTypes: Set<String> = [
         "Observation",
         "DocumentReference",

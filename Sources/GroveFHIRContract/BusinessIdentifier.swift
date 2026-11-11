@@ -83,7 +83,7 @@ public struct BusinessIdentifier: Hashable, Sendable {
         try self.init(system: IdentifierSystem(system), value: value)
     }
 
-    /// For values this module has already shaped, such as a minted `v0:` or `e0:` form.
+    /// For values this module has already shaped, such as a minted `v0:` form.
     init(system: IdentifierSystem, nonemptyValue value: String) {
         self.system = system
         self.value = value

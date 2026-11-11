@@ -7,13 +7,13 @@
 //
 
 
-/// Complete business identities of one emitted exchange graph.
+/// Complete business identities of one emitted record.
 package struct ExchangeGraphIdentifiers: Hashable, Sendable {
-    package let event: RoledIdentifier
     package let sourceRecord: RoledIdentifier
     package let primaryOutput: RoledIdentifier
     package let applicationSnapshot: RoledIdentifier
     package let hostSnapshot: RoledIdentifier
+    /// The conversion Provenance's entry key: the record version.
     package let provenance: RoledIdentifier
     package let childOutputs: [RoledIdentifier]
     package let sourceArtifact: RoledIdentifier?
@@ -22,7 +22,6 @@ package struct ExchangeGraphIdentifiers: Hashable, Sendable {
     package let writerHostSnapshot: RoledIdentifier?
 
     package init(
-        event: RoledIdentifier,
         sourceRecord: RoledIdentifier,
         primaryOutput: RoledIdentifier,
         applicationSnapshot: RoledIdentifier,
@@ -34,7 +33,6 @@ package struct ExchangeGraphIdentifiers: Hashable, Sendable {
         writerSnapshot: RoledIdentifier? = nil,
         writerHostSnapshot: RoledIdentifier? = nil
     ) {
-        self.event = event
         self.sourceRecord = sourceRecord
         self.primaryOutput = primaryOutput
         self.applicationSnapshot = applicationSnapshot

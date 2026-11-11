@@ -158,7 +158,7 @@ struct HealthKitSampleProjectionTests {
             HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 70), start: start, end: start),
             uuid: GoldenFixtures.uuid(1)
         )
-        let projected = try await ExporterFixtures.export(sample).graph.healthKitSamples()
+        let projected = try await ExporterFixtures.export(sample).record.healthKitSamples()
         #expect(projected.failures.isEmpty)
         #expect(projected.conversions.map(\.startDate) == [start])
     }

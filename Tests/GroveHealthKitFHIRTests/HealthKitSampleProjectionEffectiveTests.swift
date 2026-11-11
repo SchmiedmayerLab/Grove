@@ -119,14 +119,14 @@ struct HealthKitSampleProjectionEffectiveTests {
     @Test("A converted heart-rate interval reads back as the sample it came from, syncing under its minted identity")
     func heartRateIntervalRoundTrips() async throws {
         let output = try await #require(GoldenCase.all.first { $0.name == "heart-rate-interval" }).output()
-        let projection = output.graph.healthKitSamples()
+        let projection = output.record.healthKitSamples()
         #expect(projection.failures.isEmpty)
         let sample = try #require(projection.conversions.first)
         #expect(projection.conversions.count == 1)
         #expect(sample.sampleType == HKQuantityType(.heartRate))
         #expect(sample.startDate == GoldenFixtures.sampleStart)
         #expect(sample.endDate == GoldenFixtures.sampleStart.addingTimeInterval(45))
-        let observation = try #require(output.graph.bundle.entry?.lazy.compactMap { $0.resource?.get(if: Observation.self) }.first)
+        let observation = try #require(output.record.bundle.entry?.lazy.compactMap { $0.resource?.get(if: Observation.self) }.first)
         let identity = try #require(observation.identifier?.compactMap { try? RoledIdentifier($0) }.first { $0.role == .sourceOutput })
             .identifier.value
         #expect(sample.metadata?[HKMetadataKeySyncIdentifier] as? String == identity)
@@ -226,8 +226,8 @@ struct HealthKitSampleProjectionEffectiveTests {
 
     @Test("Every golden's Observations project or refuse without trapping, never for their effective", arguments: GoldenCase.all)
     func goldenObservationsProject(_ goldenCase: GoldenCase) async throws {
-        let graph = try await goldenCase.output().graph
-        let projection = graph.healthKitSamples()
+        let record = try await goldenCase.output().record
+        let projection = record.healthKitSamples()
         for failure in projection.failures {
             switch failure.error {
             case .effectiveMissing, .effectiveTypeNotAdmitted, .effectivePeriodInvalid:
@@ -236,7 +236,7 @@ struct HealthKitSampleProjectionEffectiveTests {
                 break
             }
         }
-        let averageHeartRates = (graph.bundle.entry ?? []).compactMap { entry -> FHIRPrimitive<FHIRURI>? in
+        let averageHeartRates = (record.bundle.entry ?? []).compactMap { entry -> FHIRPrimitive<FHIRURI>? in
             guard case .observation(let observation)? = entry.resource,
                   observation.extension?.contains(where: { $0.value == .code(Self.electrocardiogramLineage.asFHIRStringPrimitive()) }) == true,
                   observation.code.coding?.first?.code?.value?.string == MeasurementCatalog.heartRate.code.code else {

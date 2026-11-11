@@ -40,18 +40,24 @@ extension Data {
     /// Every UTF-8 field preceded by its unsigned 32-bit big-endian byte count: the frozen framing of every HMAC
     /// preimage and UUIDv5 entry name, so no delimiter is special.
     package init(lengthFramedUTF8 fields: [String]) throws(ExchangeIdentityError) {
+        try self.init(lengthFramed: fields.map(\.utf8))
+    }
+
+    /// Every field preceded by its unsigned 32-bit big-endian byte count: the framing of a record-content digest,
+    /// whose fields are canonical JSON bytes.
+    package init(lengthFramed fields: [some Collection<UInt8>]) throws(ExchangeIdentityError) {
         var capacity = 0
         for field in fields {
-            guard UInt32(exactly: field.utf8.count) != nil else {
-                throw .identityComponentTooLarge(field.utf8.count)
+            guard UInt32(exactly: field.count) != nil else {
+                throw .identityComponentTooLarge(field.count)
             }
-            capacity += 4 + field.utf8.count
+            capacity += 4 + field.count
         }
         var data = Data(capacity: capacity)
         for field in fields {
-            var bigEndianLength = UInt32(field.utf8.count).bigEndian
+            var bigEndianLength = UInt32(field.count).bigEndian
             Swift.withUnsafeBytes(of: &bigEndianLength) { data.append(contentsOf: $0) }
-            data.append(contentsOf: field.utf8)
+            data.append(contentsOf: field)
         }
         self = data
     }
@@ -61,5 +67,9 @@ extension Data {
 extension UInt8 {
     var isASCIIAlphaNumeric: Bool {
         (0x30...0x39).contains(self) || (0x41...0x5A).contains(self) || (0x61...0x7A).contains(self)
+    }
+
+    var isASCIIHexDigit: Bool {
+        (0x30...0x39).contains(self) || (0x41...0x46).contains(self) || (0x61...0x66).contains(self)
     }
 }

@@ -6,12 +6,16 @@
 // SPDX-License-Identifier: MIT
 //
 
+import CryptoKit
 import Foundation
 @testable import GroveFHIRContract
 @testable import GroveSensorKitFHIR
 import ModelsR4
 import Testing
 
+
+// One suite covers the exporter's whole surface: its records, their devices and their packing.
+// swiftlint:disable type_body_length
 
 @Suite
 struct SensorKitFHIRExporterTests {
@@ -39,7 +43,12 @@ struct SensorKitFHIRExporterTests {
             sourceRecordID: sourceID(ordinal),
             sourceToken: "SRSensor.heartRate",
             effectivePeriod: DateInterval(start: Fixtures.start, duration: 1),
-            nativeRecording: try SensorKitNativeRecording(title: title, format: .heartRateSamples, payload: payload, admission: .verifiedSanitizedInput)
+            nativeRecording: try SensorKitNativeRecording(
+                title: title,
+                format: .heartRateSamples,
+                payload: payload,
+                admission: .verifiedSanitizedInput
+            )
         ))
     }
 
@@ -56,35 +65,52 @@ struct SensorKitFHIRExporterTests {
         ))
     }
 
-    private static func sequences(_ exports: [SensorKitFHIRExporter.Export]) -> [String?] {
-        exports.map { $0.graph?.eventIdentifier.sequence.rawValue }
+    private static func recordingDevices(in graph: ExchangeGraph) -> [(url: String, device: Device)] {
+        (graph.bundle.entry ?? []).compactMap { entry in
+            guard let device = entry.resource?.get() as? Device,
+                  device.meta?.profile?.contains(Profile.groveRecordingDevice) == true,
+                  let url = entry.fullUrl?.value?.url.absoluteString else {
+                return nil
+            }
+            return (url, device)
+        }
     }
 
-    @Test("One call reserves one event per record; a redelivery before release restates it even from a rebuilt producer")
-    func redeliveryReproducesEvents() async throws {
-        let storage = ExchangeProducer.InMemoryStorage()
-        let exporter = try Fixtures.exporter(Fixtures.producer(storage: storage))
+    private static func versionCodes(of device: Device) -> [String?] {
+        (device.version ?? []).map { $0.type?.coding?.first?.code?.value?.string }
+    }
+
+    private static func values(of device: Device, code: String) -> [String?] {
+        (device.version ?? []).filter { $0.type?.coding?.first?.code?.value?.string == code }.map { $0.value.value?.string }
+    }
+
+    private static func names(of device: Device) -> [DeviceNameType?: String?] {
+        Dictionary(uniqueKeysWithValues: (device.deviceName ?? []).map { ($0.type.value, $0.name.value?.string) })
+    }
+
+    @Test("A redelivery at the persisted instant repeats every record, byte for byte, even through a rebuilt exporter")
+    func redeliveryRepeatsEveryRecord() async throws {
         let records = [Self.sleep(1), try Self.heartRate(2)]
-        let (first, receipt) = try await Fixtures.collect(exporter, records)
-        #expect(Set(Self.sequences(first)) == ["1", "2"])
+        let first = try await Fixtures.collect(Fixtures.exporter(Fixtures.producer()), records)
         #expect(first.map(\.source) == [Self.sourceID(1), Self.sourceID(2)])
-
-        // Another application and an enrollment later, the reserved events still state the facts they froze.
-        let rebuilt = try Fixtures.exporter(Fixtures.producer(
-            application: .test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.6.0"),
-            studies: [.test("study-a")],
-            storage: storage
-        ))
-        let (again, againReceipt) = try await Fixtures.collect(rebuilt, records, at: Fixtures.instant.addingTimeInterval(3_600))
-        #expect(again.map(\.graph?.json) == first.map(\.graph?.json))
-
-        receipt.release()
-        againReceipt.release()
-        let (afterRelease, _) = try await Fixtures.collect(rebuilt, [records[0]])
-        #expect(Self.sequences(afterRelease) == ["3"])
+        let again = try await Fixtures.collect(Fixtures.exporter(Fixtures.producer()), records)
+        #expect(first.compactMap(\.record).count == 2)
+        #expect(again.map(\.record?.json) == first.map(\.record?.json))
     }
 
-    @Test("A refused record reserves nothing and the export continues in input order")
+    @Test("A later conversion is a new version of the same source record")
+    func laterConversionIsANewVersion() async throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let first = try #require(try await Fixtures.collect(exporter, [Self.sleep(3)]).first?.record)
+        let later = try #require(
+            try await Fixtures.collect(exporter, [Self.sleep(3)], at: Fixtures.instant.addingTimeInterval(3_600)).first?.record
+        )
+        #expect(later.sourceRecord == first.sourceRecord)
+        #expect(later.outputFullURLs == first.outputFullURLs)
+        #expect(later.version != first.version)
+    }
+
+    @Test("A refused record stops nothing and the export continues in input order")
     func refusalsDoNotEndTheExport() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let refused = SensorKitRecord.messagesUsage(SensorKitMessagesUsageRecord(
@@ -95,7 +121,7 @@ struct SensorKitFHIRExporterTests {
             totalOutgoingMessages: 1,
             totalUniqueContacts: 1
         ))
-        let (exports, _) = try await Fixtures.collect(exporter, [refused, Self.sleep(4)])
+        let exports = try await Fixtures.collect(exporter, [refused, Self.sleep(4)])
         try #require(exports.count == 2)
         guard case .refused(let reason) = exports[0].outcome else {
             Issue.record("expected a refusal, got \(exports[0].outcome)")
@@ -103,151 +129,100 @@ struct SensorKitFHIRExporterTests {
         }
         #expect(reason == .invalidRecord(.invalidReportDuration(field: "duration")))
         #expect(exports[0].source == Self.sourceID(3))
-        #expect(Self.sequences(exports) == [nil, "1"])
+        #expect(exports[0].record == nil)
+        #expect(exports[1].record != nil)
     }
 
-    @Test("A record named again with other content in one call is refused; named again exactly, it shares the event")
+    @Test("A record named again in one call is delivered again: exactly, it repeats; with other content, it is a second version")
     func duplicatesInOneCall() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        let (conflicting, _) = try await Fixtures.collect(exporter, [Self.sleep(5), Self.sleep(5, hours: 7)])
-        guard case .refused(.conflictingDuplicate) = conflicting[1].outcome else {
-            Issue.record("expected a conflicting duplicate, got \(conflicting[1].outcome)")
-            return
-        }
-        #expect(Self.sequences(conflicting) == ["1", nil])
-        let (exact, _) = try await Fixtures.collect(exporter, [Self.sleep(6), Self.sleep(6)])
-        #expect(exact[0].graph?.json == exact[1].graph?.json)
-        #expect(Self.sequences(exact) == ["2", "2"])
+        let exact = try await Fixtures.collect(exporter, [Self.sleep(6), Self.sleep(6)])
+        #expect(exact[0].record != nil)
+        #expect(exact[0].record == exact[1].record)
+        let changed = try await Fixtures.collect(exporter, [Self.sleep(5), Self.sleep(5, hours: 7)])
+        let first = try #require(changed[0].record)
+        let second = try #require(changed[1].record)
+        #expect(first.sourceRecord == second.sourceRecord)
+        #expect(first.version != second.version)
     }
 
-    @Test("Any content a graph states from the record or the call mints a new event under a held key")
-    func contentChangesMintNewEvents() async throws {
-        let storage = ExchangeProducer.InMemoryStorage()
-        let exporter = try Fixtures.exporter(Fixtures.producer(storage: storage))
-        var receipts: [ExchangeProducer.Receipt] = []
-        func sequence(
-            _ record: SensorKitRecord,
+    @Test("Any content a record states from the source or the call gives it a new version")
+    func contentChangesMintNewVersions() async throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        func record(
+            _ input: SensorKitRecord,
             through exporter: SensorKitFHIRExporter = exporter,
             timeZone: TimeZone? = nil,
-            recordingDevice: RecordingDevice? = Fixtures.watch
-        ) async throws -> String? {
-            let (exports, receipt) = try await Fixtures.collect(exporter, [record], timeZone: timeZone, recordingDevice: recordingDevice)
-            receipts.append(receipt)
-            return exports.first?.graph?.eventIdentifier.sequence.rawValue
+            recordingDevice: RecordingDevice? = Fixtures.watch,
+            sourceDevices: [RecordingDevice] = []
+        ) async throws -> ExchangeRecord {
+            try #require(try await Fixtures.collect(
+                exporter,
+                [input],
+                timeZone: timeZone,
+                recordingDevice: recordingDevice,
+                sourceDevices: sourceDevices
+            ).first?.record)
         }
         let base = try Self.heartRate(7)
-        #expect(try await sequence(base) == "1")
-        #expect(try await sequence(base) == "1")
-        #expect(try await sequence(base, timeZone: TimeZone(identifier: "Europe/Berlin")) == "2")
-        #expect(try await sequence(Self.heartRate(7, title: "Another title")) == "3")
-        #expect(try await sequence(Self.heartRate(7, payload: .sidecar(path: "sensorkit/other.csv", bytes: Self.heartRateCSV))) == "4")
-        #expect(try await sequence(Self.heartRate(7, payload: .inline(Self.heartRateCSV))) == "5")
         let otherBytes = Data("timestamp,value,confidence,device\n1787009400,73,3,Watch\n".utf8)
-        #expect(try await sequence(Self.heartRate(7, payload: .sidecar(path: "sensorkit/heart-rate.csv", bytes: otherBytes))) == "6")
-        #expect(try await sequence(base, recordingDevice: .test(stableUnitToken: "watch-42", name: "Renamed Watch")) == "7")
-        #expect(try await sequence(base, recordingDevice: .test(stableUnitToken: "watch-43", name: "Example Watch")) == "8")
-        #expect(try await sequence(base, recordingDevice: nil) == "9")
-        // Each setting changes alone against the step before it, so no other change masks it.
+        var tokenized = Fixtures.watch
+        tokenized.stableUnitToken = "watch-42"
+        tokenized.tokenScope = "org.example.fleet"
+        var otherToken = tokenized
+        otherToken.stableUnitToken = "watch-43"
+        let disclosing = try Fixtures.exporter(Fixtures.producer(), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
+        let otherApplication = try Fixtures.exporter(Fixtures.producer(
+            application: .test(name: "Sensor Conformance", bundleIdentifier: "org.grovealliance.sensor-conformance", version: "0.6.0")
+        ))
+        let records = [
+            try await record(base),
+            try await record(base, timeZone: TimeZone(identifier: "Europe/Berlin")),
+            try await record(Self.heartRate(7, title: "Another title")),
+            try await record(Self.heartRate(7, payload: .sidecar(path: "sensorkit/other.csv", bytes: Self.heartRateCSV))),
+            try await record(Self.heartRate(7, payload: .inline(Self.heartRateCSV))),
+            try await record(Self.heartRate(7, payload: .sidecar(path: "sensorkit/heart-rate.csv", bytes: otherBytes))),
+            try await record(base, recordingDevice: .test(name: "Renamed Watch")),
+            try await record(base, recordingDevice: .test(systemVersion: "11.3")),
+            try await record(base, recordingDevice: tokenized),
+            try await record(base, recordingDevice: otherToken),
+            try await record(base, recordingDevice: nil),
+            try await record(base, sourceDevices: [.testPeripheral()]),
+            try await record(base, sourceDevices: [.testPeripheral(firmwareVersion: "5.2")]),
+            try await record(base, through: disclosing),
+            try await record(base, through: otherApplication)
+        ]
+        #expect(Set(records.map(\.sourceRecord)).count == 1)
+        #expect(Set(records.map(\.version)).count == records.count)
+    }
+
+    @Test("A setting the record's bytes do not show leaves its version alone")
+    func unstatedSettingsKeepTheVersion() async throws {
+        let base = try Self.heartRate(7)
+        let exporter = try Fixtures.exporter(Fixtures.producer())
         let otherVisitSystem = try Fixtures.exporter(
-            Fixtures.producer(storage: storage),
+            Fixtures.producer(),
             visitLocationIdentifierSystem: "https://study.example.org/fhir/NamingSystem/other-visit-location"
         )
-        #expect(try await sequence(base, through: otherVisitSystem, recordingDevice: nil) == "10", "a setting the record's bytes do not show")
-        #expect(try await sequence(base, recordingDevice: nil) == "11", "the key keeps only its latest content's event")
-        let disclosing = try Fixtures.exporter(Fixtures.producer(storage: storage), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
-        #expect(try await sequence(base, through: disclosing, recordingDevice: nil) == "12")
+        let first = try await Fixtures.collect(exporter, [base]).first?.record
+        let again = try await Fixtures.collect(otherVisitSystem, [base]).first?.record
+        #expect(first != nil)
+        #expect(first == again)
     }
 
-    @Test("One source-record identifier under two sensors names two records, each with its own event")
-    func sensorsKeepTheirOwnEvents() async throws {
+    @Test("One source-record identifier under two sensors names two source records")
+    func sensorsKeepTheirOwnRecords() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
-        let (exports, _) = try await Fixtures.collect(exporter, [Self.sleep(12), try Self.heartRate(12)])
-        #expect(Set(Self.sequences(exports)) == ["1", "2"])
+        let exports = try await Fixtures.collect(exporter, [Self.sleep(12), try Self.heartRate(12)])
+        #expect(Set(exports.compactMap(\.record?.sourceRecord)).count == 2)
     }
 
-    @Test("The request's content parts name every stored property of the drafts, and its context every option")
-    func fingerprintCoversEveryProperty() throws {
-        let sourceRecord = try SensorFHIRIdentityTestSupport.identityScope.sourceRecord(
-            adapterID: SensorKitConverter.adapterID,
-            sourceType: "SRSensor.wristTemperature",
-            repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
-            nativeRecordID: Self.sourceID(8).value
-        )
-        let outputs = try SensorKitConverter.outputs(
-            of: Self.wristTemperature(8),
-            sourceRecord: sourceRecord,
-            nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy.authorized(system: Fixtures.nativeSystem).identifier(for: Self.sourceID(8).value),
-            context: SensorKitConverter.ContentContext(
-                sourceTimeZone: Fixtures.timeZone,
-                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem
-            )
-        )
-        try #require(outputs.count == 2)
-        #expect(outputs[0].trailingExtensions.count == 1)
-        for output in outputs {
-            #expect(try output.contentParts.map(\.property) == Mirror(reflecting: output).children.map { $0.label ?? "" })
-        }
-        let device = SensorKitConverter.recordingDevice(Fixtures.watch)
-        #expect(try device.contentParts.map(\.property) == Mirror(reflecting: device).children.map { $0.label ?? "" })
-        #expect(Mirror(reflecting: Fixtures.watch).children.map(\.label) == ["stableUnitToken", "name", "manufacturer", "modelNumber"])
-
-        var options = SensorKitFHIRExporter.Options()
-        for policy in [GovernedSourceIdentifierDisclosurePolicy.omit, .authorized(system: Fixtures.nativeSystem)] {
-            options.nativeIdentifier = policy
-            // How many child tasks build a call changes its speed, never its graphs.
-            let stored = Mirror(reflecting: options).children.filter { $0.label != "maximumConcurrency" }.map { child in
-                (property: child.label ?? "", parts: (child.value as? any ExchangeContextFingerprinted)?.fingerprintParts ?? [])
-            }
-            #expect(options.fingerprintParts.map(\.property) == stored.map(\.property))
-            #expect(options.fingerprintParts.map(\.parts) == stored.map(\.parts))
-        }
-    }
-
-    @Test("Changing only primary membership changes the request fingerprint")
-    func primaryMembershipChangesFingerprint() throws {
-        let exporter = try Fixtures.exporter(Fixtures.producer())
-        let key = ExchangeEventKey(kind: .active, adapterID: SensorKitConverter.adapterID, sourceRecord: "membership")
-        var output = ExchangeOutputDraft(
-            role: "structured",
-            resource: .observation(Observation(code: CodeableConcept(), status: .init(.final)))
-        )
-        let withoutMembership = try SensorKitFHIRExporter.Plan.contentParts(outputs: [output], recordingDevice: nil)
-        output.memberOfPrimary = true
-        let withMembership = try SensorKitFHIRExporter.Plan.contentParts(outputs: [output], recordingDevice: nil)
-        #expect(
-            exporter.context.request(for: key, recordParts: withoutMembership).fingerprint
-                != exporter.context.request(for: key, recordParts: withMembership).fingerprint
-        )
-    }
-
-    /// A reservation keeps the fingerprint it was made under, and every later export compares against it, across launches
-    /// and app updates: a build that derives the same request's fingerprint differently gives every pending reservation a
-    /// new sequence on redelivery, so the derivation, call parts and record parts alike, changes only on purpose, as
-    /// with an output revision.
-    @Test("A fixed record's request fingerprints to a known answer")
-    func requestFingerprintIsAKnownAnswer() throws {
-        try #require(ExchangeGraphAssembler.outputRevision == 1 && SensorKitConverter.outputRevision == 3, "a revision bump restates the answer")
-        let exporter = try Fixtures.exporter(Fixtures.producer(), nativeIdentifier: .authorized(system: Fixtures.nativeSystem))
-        let plan = SensorKitFHIRExporter.Plan(
-            try Self.wristTemperature(8),
-            content: SensorKitConverter.ContentContext(
-                sourceTimeZone: try Fixtures.timeZone,
-                visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem
-            ),
-            recordingDevice: SensorKitConverter.recordingDevice(Fixtures.watch),
-            exporter: exporter
-        )
-        let request = try plan.content.get().request
-        #expect(request.fingerprint == "NeRemjCcIYk3a6WZLylmdaMtvHsP1Z1qw9S9TOutsNA")
-    }
-
-    @Test("Every converter-clock instant states the reservation's millisecond, kept on a redelivery")
-    func instantsAreTheReservationsMillisecond() async throws {
+    @Test("Every converter-clock instant states the conversion's millisecond; `recorded` and the record's timestamp agree")
+    func instantsAreTheConversionsMillisecond() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let instant = Fixtures.start.addingTimeInterval(20.123_456_7)
-        let record = try Self.heartRate(9)
-        let (exports, _) = try await Fixtures.collect(exporter, [record], at: instant)
-        let graph = try #require(exports.first?.graph)
+        let exports = try await Fixtures.collect(exporter, [try Self.heartRate(9)], at: instant)
+        let graph = try #require(exports.first?.record).graph
         let provenance = try graph.provenance
         #expect(graph.bundle.timestamp?.value?.description == "2026-08-17T23:30:20.123Z")
         #expect(graph.recordingDocument?.date?.value?.description == "2026-08-17T23:30:20.123Z")
@@ -257,16 +232,14 @@ struct SensorKitFHIRExporterTests {
             return
         }
         #expect(occurred.value?.description == "2026-08-17T23:30:20.123Z")
-        let (again, _) = try await Fixtures.collect(exporter, [record], at: instant.addingTimeInterval(60))
-        #expect(again.first?.graph?.json == graph.json)
     }
 
-    @Test("Study references follow an output's own statements; the wrist-temperature algorithm version follows them")
+    @Test("Study references follow an Observation's own statements; the wrist-temperature algorithm version follows them")
     func studyContextOrder() async throws {
         let studies: [StudyEnrollment] = try [.test("study-a"), .test("study-b")]
         let exporter = try Fixtures.exporter(Fixtures.producer(studies: studies))
-        let (exports, _) = try await Fixtures.collect(exporter, [try Self.wristTemperature(10)], recordingDevice: nil)
-        let graph = try #require(exports.first?.graph)
+        let exports = try await Fixtures.collect(exporter, [try Self.wristTemperature(10)], recordingDevice: nil)
+        let graph = try #require(exports.first?.record).graph
         let observation = try #require(graph.observations.first)
         #expect(observation.extension?.map(\.url.value?.url.absoluteString) == [
             SensorKitContract.sourceTypeExtension,
@@ -275,26 +248,63 @@ struct SensorKitFHIRExporterTests {
             SensorKitContract.wristTemperatureAlgorithmVersionExtension
         ])
         let related = try #require(graph.recordingDocument?.context?.related)
-        #expect(related.count == 3)
-        #expect(related[0].reference?.value?.string == graph.bundle.entry?.first?.fullUrl?.value?.url.absoluteString)
-        #expect(related.dropFirst().allSatisfy { $0.type?.value?.url.absoluteString == "ResearchStudy" })
+        #expect(related.count == 1, "a hybrid document relates exactly to its Observation")
+        #expect(related.first?.reference?.value?.string == graph.bundle.entry?.first?.fullUrl?.value?.url.absoluteString)
     }
 
-    @Test("An error in the receiver ends the call with the reservations kept")
+    @Test("A document with no Observation states the study references itself")
+    func rawDocumentStatesTheStudies() async throws {
+        let studies: [StudyEnrollment] = try [.test("study-a"), .test("study-b")]
+        let exporter = try Fixtures.exporter(Fixtures.producer(studies: studies))
+        let raw = try SensorKitRawRecord(
+            sourceRecordID: SensorKitSourceRecordID(try #require(UUID(uuidString: "248b854a-8d64-4308-9ee0-d220e7d747d3"))),
+            sourceToken: "SRSensor.heartRate",
+            effectivePeriod: DateInterval(start: Fixtures.start, duration: 1),
+            nativeRecording: try SensorKitNativeRecording(
+                title: "Exact SensorKit heart rate batch",
+                format: .heartRateSamples,
+                payload: .inline(Data("timestamp,value,confidence,device\n1787009400,72,3,Watch\n".utf8)),
+                admission: .verifiedSanitizedInput
+            )
+        )
+        let exports = try await Fixtures.collect(exporter, [.raw(raw)], recordingDevice: nil)
+        let record = try #require(exports.first?.record)
+        let related = try #require(record.graph.recordingDocument?.context?.related)
+        #expect(related.count == 2)
+        #expect(related.allSatisfy { $0.type?.value?.url.absoluteString == "ResearchStudy" })
+    }
+
+    @Test("An error in the receiver ends the call")
     func receiverErrorsPropagate() async throws {
         struct Stop: Error {}
         let exporter = try Fixtures.exporter(Fixtures.producer())
         await #expect(throws: Stop.self) {
-            try await exporter.export([Self.sleep(11)], sourceTimeZone: Fixtures.timeZone) { _ in throw Stop() }
+            try await exporter.export(
+                [Self.sleep(11)],
+                sourceTimeZone: Fixtures.timeZone,
+                recordingDevice: nil,
+                at: Fixtures.instant
+            ) { _ in throw Stop() }
         }
-        let (again, _) = try await Fixtures.collect(exporter, [Self.sleep(11)], recordingDevice: nil)
-        #expect(Self.sequences(again) == ["1"])
+    }
+
+    @Test("An instant no FHIR instant can state ends the call before any record")
+    func unstatableInstantsEndTheCall() async throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        await #expect(throws: ExchangeIdentityError.invalidInstant) {
+            try await exporter.export(
+                [Self.sleep(11)],
+                sourceTimeZone: Fixtures.timeZone,
+                recordingDevice: nil,
+                at: .distantFuture.addingTimeInterval(315_576_000_000)
+            ) { _ in Issue.record("The call delivered a record") }
+        }
     }
 
     @Test("Every conversion failure narrows to the refusal domain by its type")
     func failuresNarrowToTheRefusalDomain() {
         struct Unmodelled: Error {}
-        #expect(SensorKitConversionError(conversionFailure: SensorKitConversionError.conflictingDuplicate) == .conflictingDuplicate)
+        #expect(SensorKitConversionError(conversionFailure: SensorKitConversionError.payloadTooLarge(byteCount: 1)) == .payloadTooLarge(byteCount: 1))
         #expect(SensorKitConversionError(conversionFailure: SensorKitRecordError.emptySamples) == .invalidRecord(.emptySamples))
         #expect(SensorKitConversionError(conversionFailure: ExchangeIdentityError.invalidInstant) == .exchangeIdentity(.invalidInstant))
         #expect(SensorKitConversionError(conversionFailure: ExchangeGraphError.missingTimestamp) == .exchangeGraph(.missingTimestamp))
@@ -305,15 +315,201 @@ struct SensorKitFHIRExporterTests {
     func identityFaultsKeepTheirCodes() {
         let faults = [
             ExchangeIdentityError.emptyComponent("source-record.native-record-id"),
-            .nonCanonicalPartIndex("source-artifact.part-index"),
-            .invalidEventIdentifier("e0:x")
+            .nonCanonicalPartIndex("source-artifact.part-index")
         ]
         for fault in faults {
             #expect(SensorKitConversionError.exchangeIdentity(fault).diagnostic == fault.diagnostic)
         }
-        #expect(faults.map(\.diagnostic.code) == [
-            "mobile-input.required-metadata-missing", "mobile-input.unclassified", "mobile-exchange.event-identity"
-        ])
+        #expect(faults.map(\.diagnostic.code) == ["mobile-input.required-metadata-missing", "mobile-input.unclassified"])
+    }
+
+    @Test("Every output names the recording Device of its SRDevice, which states each fact SensorKit exposes")
+    func recordingDeviceStatesEveryFact() async throws {
+        let graph = try await Fixtures.graph(try Self.wristTemperature(13))
+        let devices = Self.recordingDevices(in: graph)
+        try #require(devices.count == 1)
+        let device = devices[0].device
+        #expect(Self.names(of: device) == [.userFriendlyName: "Example Watch", .modelName: "Apple Watch"])
+        #expect(device.modelNumber?.value?.string == "Watch7,1")
+        #expect(Self.values(of: device, code: "os-name") == ["watchOS"])
+        #expect(Self.values(of: device, code: "os-version") == ["11.2"])
+        #expect(Self.versionCodes(of: device).count == 2)
+        #expect(device.serialNumber == nil)
+        let roles = (device.identifier ?? []).compactMap { try? RoledIdentifier($0).role }
+        #expect(roles == [.deviceSnapshot], "SensorKit states no per-unit token, so the snapshot is the Device's only key")
+        #expect(graph.observations.first?.device?.reference?.value?.string == devices[0].url)
+        #expect(graph.recordingDocument?.author?.first?.reference?.value?.string == devices[0].url)
+    }
+
+    @Test("A governed per-unit token adds the unit identity beside the snapshot")
+    func unitTokenAddsTheUnitIdentity() async throws {
+        var device = Fixtures.watch
+        device.stableUnitToken = "watch-42"
+        device.tokenScope = "org.example.fleet"
+        let graph = try await Fixtures.graph(Self.sleep(14), recordingDevice: device)
+        let identifiers = try #require(Self.recordingDevices(in: graph).first?.device.identifier)
+        #expect(identifiers.compactMap { try? RoledIdentifier($0).role } == [.deviceSnapshot, .recordingDevice])
+    }
+
+    @Test("A peripheral is a recording Device of its own, which the source entity names as performer, with the SRDevice as composer")
+    func peripheralIsARecordingDeviceOfItsOwn() async throws {
+        let record = try await Fixtures.record(try Self.wristTemperature(15), sourceDevices: [.testPeripheral()])
+        let graph = try record.graph
+        let devices = Self.recordingDevices(in: graph)
+        try #require(devices.count == 2)
+        let (watch, peripheral) = (devices[0], devices[1])
+        #expect(graph.observations.first?.device?.reference?.value?.string == watch.url)
+        #expect(graph.recordingDocument?.author?.map(\.reference?.value?.string).contains(peripheral.url) == false)
+
+        #expect(peripheral.device.manufacturer?.value?.string == "Example Audio")
+        #expect(peripheral.device.modelNumber?.value?.string == "Ear One")
+        #expect(peripheral.device.deviceName == nil)
+        #expect(Self.values(of: peripheral.device, code: "531974") == ["2"])
+        #expect(Self.values(of: peripheral.device, code: "531976") == ["5.1"])
+        let scope = SensorFHIRIdentityTestSupport.identityScope
+        let local = try #require(peripheral.device.identifier?.first {
+            $0.system?.value?.url.absoluteString == scope.systems.deviceLocalIdentifier.rawValue
+        })
+        #expect(local.value?.value?.string == "peripheral-7")
+        #expect(local.type?.coding?.first?.code?.value?.string == "device-local-identifier")
+        #expect(local.type?.coding?.first?.system == Canonicals.groveDeviceIdentifierType)
+
+        let agents = try #require(try graph.provenance.entity?.first?.agent)
+        #expect(agents.map(\.who.reference?.value?.string) == [peripheral.url, watch.url])
+        #expect(agents.map { $0.type?.coding?.first?.code?.value?.string } == ["performer", "composer"])
+        #expect(record.sharedNodeFullURLs.isSuperset(of: [watch.url, peripheral.url]))
+        try record.verifyVersion(in: scope)
+    }
+
+    @Test("Without a peripheral the source entity names no agent")
+    func noPeripheralNoAgent() async throws {
+        let graph = try await Fixtures.graph(Self.sleep(16))
+        #expect(try graph.provenance.entity?.first?.agent == nil)
+        #expect(Self.recordingDevices(in: graph).count == 1)
+    }
+
+    @Test("A peripheral named twice, or stating the recording Device's content, stays one entry")
+    func repeatedPeripheralsCollapse() async throws {
+        let peripheral = RecordingDevice.testPeripheral()
+        let other = RecordingDevice.testPeripheral(localIdentifier: "peripheral-8")
+        let graph = try await Fixtures.graph(Self.sleep(17), sourceDevices: [peripheral, other, peripheral])
+        #expect(Self.recordingDevices(in: graph).count == 3)
+        #expect(try graph.provenance.entity?.first?.agent?.count == 3, "Two performers and the composer")
+
+        let same = try await Fixtures.graph(Self.sleep(17), recordingDevice: peripheral, sourceDevices: [peripheral])
+        #expect(Self.recordingDevices(in: same).count == 1)
+        #expect(try same.provenance.entity?.first?.agent == nil)
+    }
+
+    @Test("An Observation names a sole peripheral as its device only when it supplied every sample")
+    func soleWholePeripheralIsTheObservationDevice() async throws {
+        let peripheral = RecordingDevice.testPeripheral()
+        let whole = try await Fixtures.graph(Self.sleep(20), sourceDevices: [peripheral], sourceDevicesSuppliedEverySample: true)
+        let devices = Self.recordingDevices(in: whole)
+        try #require(devices.count == 2)
+        let (watch, named) = (devices[0], devices[1])
+        #expect(whole.observations.first?.device?.reference?.value?.string == named.url)
+        let agents = try #require(try whole.provenance.entity?.first?.agent)
+        #expect(agents.map(\.who.reference?.value?.string) == [named.url, watch.url], "The composer keeps the SRDevice in the record")
+
+        let partial = try await Fixtures.graph(Self.sleep(20), sourceDevices: [peripheral])
+        #expect(partial.observations.first?.device?.reference?.value?.string == watch.url)
+        let two = try await Fixtures.graph(
+            Self.sleep(20),
+            sourceDevices: [peripheral, .testPeripheral(localIdentifier: "peripheral-8")],
+            sourceDevicesSuppliedEverySample: true
+        )
+        #expect(two.observations.first?.device?.reference?.value?.string == watch.url)
+        // A peripheral that states the SRDevice's very content is that entry, so beside another one there is no sole peripheral.
+        let recordingAsPeripheral = try await Fixtures.graph(
+            Self.sleep(20),
+            sourceDevices: [Fixtures.watch, peripheral],
+            sourceDevicesSuppliedEverySample: true
+        )
+        #expect(recordingAsPeripheral.observations.first?.device?.reference?.value?.string == watch.url)
+        let none = try await Fixtures.graph(Self.sleep(20), sourceDevicesSuppliedEverySample: true)
+        #expect(none.observations.first?.device?.reference?.value?.string == watch.url)
+        #expect(try none.provenance.entity?.first?.agent == nil)
+    }
+
+    @Test("A peripheral survives packing: read back from its Bundle, a record keeps both recording Devices and its version")
+    func peripheralSurvivesPacking() async throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let exports = try await Fixtures.collect(exporter, [Self.sleep(18), Self.sleep(19)], sourceDevices: [.testPeripheral()])
+        let records = exports.compactMap(\.record)
+        var packer = ExchangeBundlePacker(kind: .active)
+        for record in records {
+            #expect(try packer.insert(record) == .inserted)
+        }
+        let packed = try packer.bundle(packedAt: Fixtures.instant.addingTimeInterval(60))
+        #expect(Self.recordingDevices(in: packed).count == 2, "Both records share one Device entry each")
+        let readBack = try packed.records()
+        #expect(readBack.map(\.version) == records.map(\.version))
+        #expect(readBack.map(\.sharedNodeFullURLs) == records.map(\.sharedNodeFullURLs))
+    }
+
+    @Test("The application Device states its Apple bundle identifier")
+    func applicationDeviceStatesItsBundleIdentifier() async throws {
+        let graph = try await Fixtures.graph(Self.sleep(20))
+        let application = try #require(graph.devices.first { $0.meta?.profile?.contains(Profile.groveApplicationDevice) == true })
+        let bundleIdentifier = try #require(application.identifier?.first {
+            $0.type?.coding?.first?.code?.value?.string == HealthKitContract.appleBundleIdentifierTypeCode
+        })
+        #expect(bundleIdentifier.system == HealthKitContract.appleBundleIdentifierSystem)
+        #expect(bundleIdentifier.value?.value?.string == Fixtures.application.bundleIdentifier)
+    }
+
+    @Test("A call's records pack into one Bundle stating each shared node once, and read back unchanged")
+    func recordsPackIntoOneBundle() async throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let exports = try await Fixtures.collect(exporter, [Self.sleep(21), try Self.heartRate(22), try Self.wristTemperature(23)])
+        let records = exports.compactMap(\.record)
+        try #require(records.count == 3)
+        #expect(Set(records.map(\.sourceRecord)).count == 3)
+        let shared = Set(records.flatMap(\.sharedNodeFullURLs))
+        #expect(shared.count == records[0].sharedNodeFullURLs.count, "The records of one call state the same shared nodes")
+
+        var packer = ExchangeBundlePacker(kind: .active)
+        for record in records {
+            #expect(try packer.insert(record) == .inserted)
+        }
+        let packed = try packer.bundle(packedAt: Fixtures.instant.addingTimeInterval(60))
+        let provenances = records.count
+        let outputs = records.reduce(0) { $0 + $1.outputFullURLs.count }
+        #expect(packed.bundle.entry?.count == shared.count + provenances + outputs)
+        #expect(packed.bundle.timestamp?.value?.description == "2026-08-17T23:32:00Z")
+        let readBack = try packed.records()
+        #expect(readBack.map(\.version) == records.map(\.version))
+        for record in readBack {
+            try record.verifyVersion(in: SensorFHIRIdentityTestSupport.identityScope)
+        }
+    }
+
+    @Test("Every record reads back from its own bytes, and its version only recomputes under the identity key")
+    func recordsReadBackFromTheirBytes() async throws {
+        let record = try await Fixtures.record(try Self.wristTemperature(24))
+        let readBack = try ExchangeRecord(validating: record.json)
+        #expect(readBack == record)
+        try readBack.verifyVersion(in: SensorFHIRIdentityTestSupport.identityScope)
+        let otherKey = try OpaqueIdentityScope(
+            systems: SensorFHIRIdentityTestSupport.identityScope.systems,
+            keyID: "test",
+            epoch: KeyEpoch(1),
+            key: SymmetricKey(data: Data(repeating: 0x43, count: 32))
+        )
+        #expect(throws: ExchangeGraphError.invalidRecordVersion) {
+            try readBack.verifyVersion(in: otherKey)
+        }
+    }
+
+    @Test("Every identity system of the deployment stays reserved, the record-version and context-snapshot systems too")
+    func newSystemsAreReserved() throws {
+        let systems = SensorFHIRIdentityTestSupport.identityScope.systems
+        for system in [systems.recordVersion, systems.recordRetraction, systems.contextSnapshot] {
+            #expect(throws: SensorKitFHIRExporter.ConfigurationError.reservedIdentifierSystem(system)) {
+                try Fixtures.exporter(Fixtures.producer(), visitLocationIdentifierSystem: system)
+            }
+        }
     }
 }
 

@@ -17,7 +17,7 @@ import Testing
 
 
 /// The envelope rules the pinned guide states and the first assembler missed: what a document graph
-/// carries, how event instants are written, and which deletions a route policy lets the exporter retract.
+/// carries, how record instants are written, and which deletions a route policy lets the exporter retract.
 /// One revision and converter build, and whether the converter wrote the sample in the build it runs.
 struct SameBuildCase: CustomTestStringConvertible, Sendable {
     let revisionVersion: String?
@@ -33,7 +33,7 @@ struct SameBuildCase: CustomTestStringConvertible, Sendable {
 
 @Suite
 struct ExchangeEnvelopeFixTests {
-    private static let base = TestEvent.test()
+    private static let base = TestDeployment.test()
 
     /// The default inputs at an instant with sub-millisecond digits.
     private static var subMillisecondInputs: ExportInputs {
@@ -50,8 +50,7 @@ struct ExchangeEnvelopeFixTests {
             identityScope: base.identityScope,
             subject: base.subject,
             application: application,
-            host: base.host,
-            storage: ExchangeProducer.InMemoryStorage()
+            host: base.host
         )
         var options = HealthKitFHIRExporter.Options()
         configure(&options)
@@ -77,14 +76,12 @@ struct ExchangeEnvelopeFixTests {
         var inputs = ExportInputs()
         inputs.options.role = .gatewayApplication(gateway)
         let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 90), inputs)
-        let snapshot = try inputs.base.identityScope.deviceSnapshot(
-            event: conversion.graph.eventIdentifier,
-            role: .application,
-            sourceDeviceToken: gateway.sourceDeviceToken
-        )
-        #expect(conversion.graph.resource(Device.self, at: snapshot) == nil)
+        let applications = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Device.self) }.filter {
+            $0.meta?.profile?.contains(HealthKitContract.applicationDeviceProfile) == true
+        }
+        #expect(applications?.count == 1, "only the converting application")
         let assembled = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 90))
-        #expect(conversion.graph.json == assembled.graph.json)
+        #expect(conversion.record == assembled.record)
     }
 
     #if !os(watchOS)
@@ -126,8 +123,8 @@ struct ExchangeEnvelopeFixTests {
         }
     }
 
-    @Test("Event instants are written in UTC at millisecond precision, without binary noise")
-    func eventInstantsAreMilliseconds() async throws {
+    @Test("Record instants are written in UTC at millisecond precision, without binary noise")
+    func recordInstantsAreMilliseconds() async throws {
         let conversion = try await ExporterFixtures.export(try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92)), Self.subMillisecondInputs)
         #expect(conversion.bundle.timestamp?.value?.description == "2026-08-17T23:30:00.251Z")
         let provenance = try #require(conversion.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
@@ -137,11 +134,10 @@ struct ExchangeEnvelopeFixTests {
             return
         }
         #expect(occurred.value?.description == "2026-08-17T23:30:00.251Z")
-        // No FHIR instant states an event before year 1: the call ends before the ledger is touched, and nothing is
-        // written as a sentinel.
+        // No FHIR instant states a record before year 1: the call ends, and nothing is written as a sentinel.
         var unstatable = ExportInputs()
         unstatable.instant = .distantPast
-        let (exporter, _) = try ExporterFixtures.exporter(unstatable)
+        let exporter = try ExporterFixtures.exporter(unstatable)
         await #expect(throws: ExchangeIdentityError.self) {
             try await ExporterFixtures.collect(exporter, samples: [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(92))], at: .distantPast)
         }
@@ -172,20 +168,20 @@ struct ExchangeEnvelopeFixTests {
         #expect(bounded.provenance.recorded.value?.description == "2026-08-17T23:30:00.251Z")
         #expect(bounded.bundle.timestamp?.value?.description == "2026-08-17T23:30:00.251Z")
         // A deletion the source timed exactly occurs at that instant; HealthKit reports no deletion time, so only the
-        // event shape states one.
+        // record shape states one.
         let record = try Self.base.identityScope.sourceRecord(
             adapterID: HealthKitAssembly.adapter.adapterID,
             sourceType: HealthKitSourceType.heartRate.rawValue,
             repositoryScope: Self.base.repositoryScope,
             nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()
         )
-        let target = try RetractionEvent.Target(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
-        let exact = try TestEvent.test(conversionInstant: Self.subMillisecondInputs.instant).retraction(
+        let target = try RetractionRecord.Target(sourceRecord: record.identifier)
+        let exact = try TestDeployment.test(conversionInstant: Self.subMillisecondInputs.instant).retraction(
             of: record.identifier,
             targets: [target],
             occurred: .instant(Date(timeIntervalSince1970: 1_787_009_400.2516))
         )
-        let exactProvenance = try #require(exact.graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let exactProvenance = try #require(exact.record.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         guard case .dateTime(let instant)? = exactProvenance.occurred else {
             Issue.record("A retraction at an instant occurs at that instant")
             return
@@ -208,26 +204,26 @@ struct ExchangeEnvelopeFixTests {
             repositoryScope: Self.base.repositoryScope,
             nativeRecordID: GoldenFixtures.uuid(96).uuidString.lowercased()
         )
-        let target = try RetractionEvent.Target(identifier: record.output(role: "primary", discriminator: "0"), resourceType: .observation, role: .primaryOutput)
-        func retraction(_ occurred: RetractionEvent.Occurrence, recordedAt: Date = GoldenFixtures.conversionInstant) throws {
-            _ = try TestEvent.test(conversionInstant: recordedAt).retraction(of: record.identifier, targets: [target], occurred: occurred)
+        let target = try RetractionRecord.Target(sourceRecord: record.identifier)
+        func retraction(_ occurred: RetractionRecord.Occurrence, recordedAt: Date = GoldenFixtures.conversionInstant) throws {
+            _ = try TestDeployment.test(conversionInstant: recordedAt).retraction(of: record.identifier, targets: [target], occurred: occurred)
         }
         let yearTenThousand = Date(timeIntervalSince1970: 253_402_300_800)
-        let unstatable: [RetractionEvent.Occurrence] = [
+        let unstatable: [RetractionRecord.Occurrence] = [
             .instant(.distantPast), .instant(yearTenThousand), .period(start: nil, end: .distantPast), .period(start: nil, end: yearTenThousand)
         ]
         for occurred in unstatable {
-            #expect(throws: RetractionEvent.ValidationError.invalidInstant, "occurred \(occurred)") {
+            #expect(throws: RetractionRecord.ValidationError.invalidInstant, "occurred \(occurred)") {
                 try retraction(occurred)
             }
         }
-        #expect(throws: RetractionEvent.ValidationError.invalidInstant, "recorded before year 1") {
+        #expect(throws: RetractionRecord.ValidationError.invalidInstant, "recorded before year 1") {
             try retraction(.instant(GoldenFixtures.conversionInstant), recordedAt: .distantPast)
         }
         try retraction(.period(start: .distantPast, end: GoldenFixtures.conversionInstant))
     }
 
-    @Test("A document's date is the event instant in UTC at millisecond precision")
+    @Test("A document's date is the conversion instant in UTC at millisecond precision")
     func documentDateIsMilliseconds() async throws {
         let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 97), Self.subMillisecondInputs)
         #expect(conversion.document.date?.value?.description == "2026-08-17T23:30:00.251Z")
@@ -249,7 +245,7 @@ struct ExchangeEnvelopeFixTests {
         }
         var authorized: [HealthKitFHIRExporter.Retraction] = []
         _ = try await Self.exporter { $0.route = .authorized }.retract([deletion], at: GoldenFixtures.conversionInstant) { authorized.append($0) }
-        #expect(authorized.first?.graph?.kind == .retraction)
+        #expect(authorized.first?.record?.kind == .retraction)
     }
 
     @Test("Under gatewayForOwnWrites only a sample written by the converting build is mediated by it")
@@ -261,7 +257,7 @@ struct ExchangeEnvelopeFixTests {
         var exports: [HealthKitFHIRExporter.Export] = []
         _ = try await exporter.export([sameBuild, olderBuild], at: GoldenFixtures.conversionInstant) { exports.append($0) }
         func statesGateway(_ export: HealthKitFHIRExporter.Export) -> Bool {
-            let observation = export.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first
+            let observation = export.record?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first
             return observation?.extension?.contains { $0.url == Canonicals.gatewayDevice } == true
         }
         try #require(exports.count == 2)
@@ -288,15 +284,14 @@ struct ExchangeEnvelopeFixTests {
         #expect(HealthKitAssembly.isSameBuild(sample.sourceRevision, as: application) == testCase.expected)
     }
 
-    /// Spec F2: a gateway no output names is no snapshot, so a writer whose token equals it gets its own entries.
+    /// Spec F2: a gateway no output names is no snapshot, so a writer of its bundle and build gets its own entries.
     @Test("A writer equal to a gateway no output names is its own snapshot and author, beside its own host")
     func writerEqualToAnUnnamedGatewayIsItsOwnSnapshot() async throws {
         var inputs = ExportInputs.applicationWriter
-        // HealthKit supplies the build but no marketing version; match the writer's complete snapshot token.
+        // HealthKit supplies the build but no marketing version; match the writer's complete snapshot.
         inputs.options.role = .gatewayApplication(.test(
             name: "Cuff Companion", bundleIdentifier: "org.example.writer", version: "unknown", build: "42"
         ))
-        inputs.sequence = 99
         let document = try await ExporterFixtures.export(try Self.heartbeatSeries(uuid: 99), inputs)
         let writer = try #require(document.writer)
         let writerHost = try #require(document.identifiers.writerHostSnapshot)
@@ -304,17 +299,16 @@ struct ExchangeEnvelopeFixTests {
         #expect(writer.parent?.reference?.value?.string == (try writerHost.fullURLString))
         let author = document.provenance.entity?.first?.agent?.first { $0.type?.coding?.first?.code?.value?.string == "author" }
         #expect(author?.who.reference?.value?.string == (try document.identifiers.writerSnapshot?.fullURLString))
-        // On an Observation, which names the gateway, the same writer is the gateway's entry.
-        inputs.sequence = 100_099
+        // An Observation names the gateway, whose content differs from the writer's: two application snapshots.
         let observation = try await ExporterFixtures.export(GoldenCase.attributedHeartRate(uuid: 0x99, writer: GoldenFixtures.foreignWriter), inputs)
-        #expect(observation.writer?.deviceName?.first?.name.value?.string == "Cuff Companion")
-        #expect(observation.identifiers.writerHostSnapshot == nil)
+        #expect(observation.writer?.deviceName?.first?.name.value?.string == "Example Writer")
+        #expect(observation.identifiers.writerHostSnapshot != nil)
         let gateway = observation.observation.extension?.first { $0.url == Canonicals.gatewayDevice }
         guard case .reference(let reference)? = gateway?.value else {
             Issue.record("The Observation names its gateway")
             return
         }
-        #expect(reference.reference?.value?.string == (try observation.identifiers.writerSnapshot?.fullURLString))
+        #expect(reference.reference?.value?.string != (try observation.identifiers.writerSnapshot?.fullURLString))
     }
 }
 

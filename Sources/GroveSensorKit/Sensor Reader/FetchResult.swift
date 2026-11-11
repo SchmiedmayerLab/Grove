@@ -31,27 +31,37 @@ extension SensorKit {
         public let sensorKitTimestamp: Date
         /// The samples.
         public let samples: [Sample]
+        /// The peripheral that supplied the samples through the queried device, when SensorKit names one, which it does
+        /// from iOS 27.
+        public let sourceDevice: SourceDeviceInfo?
         
         init(_ fetchResult: SRFetchResult<AnyObject>, for sensor: Sensor<Sample>) throws {
             // IMPORTANT: accessing the `SRFetchResult.sample` is where SensorKit (if needed) will lazily materialize the batch;
             // for some sensors (eg PPG, or motion), this getter will perform actual O(n) decoding work, delegated to the sensor's
             // respective underlying framework.
-            try self.init(timestamp: fetchResult.timestamp, for: sensor) {
+            try self.init(timestamp: fetchResult.timestamp, sourceDevice: Self.sourceDevice(of: fetchResult), for: sensor) {
                 fetchResult.sample
             }
         }
 
         init(
             timestamp: SRAbsoluteTime,
+            sourceDevice: SourceDeviceInfo? = nil,
             for sensor: Sensor<Sample>,
             materializingSample: () -> AnyObject
         ) throws {
             let object = try catchingNSException(materializingSample)
-            try self.init(sample: object, timestamp: timestamp, for: sensor)
+            try self.init(sample: object, timestamp: timestamp, sourceDevice: sourceDevice, for: sensor)
         }
 
-        init(sample object: AnyObject, timestamp: SRAbsoluteTime, for sensor: Sensor<Sample>) throws {
+        init(
+            sample object: AnyObject,
+            timestamp: SRAbsoluteTime,
+            sourceDevice: SourceDeviceInfo? = nil,
+            for sensor: Sensor<Sample>
+        ) throws {
             sensorKitTimestamp = Date(timestamp)
+            self.sourceDevice = sourceDevice
             switch sensor.sensorKitFetchReturnType {
             case .object:
                 guard let sample = object as? Sample else {
@@ -64,6 +74,29 @@ extension SensorKit {
                 }
                 self.samples = samples
             }
+        }
+
+        private static func sourceDevice(of fetchResult: SRFetchResult<AnyObject>) -> SourceDeviceInfo? {
+            #if compiler(>=6.4)
+            if #available(iOS 27, *) {
+                return fetchResult.sourceDevice.map(SourceDeviceInfo.init)
+            }
+            #endif
+            return nil
+        }
+    }
+
+    /// The samples of one time-range fetch and the peripherals that supplied them, in the order SensorKit first named them.
+    struct FetchedSamples<Sample: Sendable>: Sendable {
+        let samples: [Sample]
+        let sourceDevices: [SourceDeviceInfo]
+        /// Whether SensorKit named a peripheral for every fetch result that contributed samples.
+        let sourceDevicesSuppliedEverySample: Bool
+
+        init(samples: [Sample], sourceDevices: [SourceDeviceInfo] = [], sourceDevicesSuppliedEverySample: Bool = false) {
+            self.samples = samples
+            self.sourceDevices = sourceDevices
+            self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample
         }
     }
 }

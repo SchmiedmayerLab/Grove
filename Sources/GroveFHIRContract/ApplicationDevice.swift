@@ -7,6 +7,7 @@
 //
 
 public import Foundation
+package import ModelsR4
 
 
 /// The converting application, as the immutable application Device snapshot states it.
@@ -24,12 +25,6 @@ public struct ApplicationDevice: Hashable, Sendable {
     /// The marketing version alone; the build that produced the resource is ``build``.
     public let version: String
     public let build: String?
-
-    /// The token the application's event-scoped Device snapshot identity is minted from:
-    /// `<bundle identifier>|<version>`, then `|<build>` when the application states one.
-    public var sourceDeviceToken: String {
-        Self.sourceDeviceToken(bundleIdentifier: bundleIdentifier, version: version, build: build)
-    }
 
     public init(
         name: String,
@@ -70,17 +65,27 @@ public struct ApplicationDevice: Hashable, Sendable {
         )
     }
 
-    /// The snapshot token of an application that states these facts; every application snapshot in a graph, the
-    /// writer a questionnaire response names included, is minted from it.
-    package static func sourceDeviceToken(bundleIdentifier: String, version: String, build: String?) -> String {
-        [bundleIdentifier, version, build].compactMap(\.self).joined(separator: "|")
-    }
-
     /// Apple's bundle-identifier grammar: dot-separated, nonempty ASCII alphanumeric or hyphen labels.
     package static func isValidBundleIdentifier(_ value: String) -> Bool {
         guard !value.isEmpty, !value.hasPrefix("."), !value.hasSuffix("."), !value.contains("..") else {
             return false
         }
         return value.utf8.allSatisfy { $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E }
+    }
+}
+
+
+extension ApplicationDevice {
+    /// The application's typed Apple bundle identifier, which names a product, never an installation or host.
+    package var appleBundleIdentifier: Identifier {
+        let type = Coding(
+            code: HealthKitContract.appleBundleIdentifierTypeCode.asFHIRStringPrimitive(),
+            system: HealthKitContract.appleBundleIdentifierTypeSystem
+        )
+        return Identifier(
+            system: HealthKitContract.appleBundleIdentifierSystem,
+            type: CodeableConcept(coding: [type]),
+            value: bundleIdentifier.asFHIRStringPrimitive()
+        )
     }
 }

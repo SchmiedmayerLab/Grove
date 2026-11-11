@@ -187,7 +187,6 @@ struct StoredSampleFixturesTests {
     func converterReadsTheStoredFacts() async throws {
         let sample = try GoldenFixtures.heartRate(uuid: Self.uuid, device: GoldenFixtures.watch, writer: Self.writer)
         var inputs = ExportInputs.applicationWriter
-        inputs.sequence = 250
         let conversion = try await ExporterFixtures.export(sample, inputs).primary
 
         #expect(conversion.source.uuid == Self.uuid)
@@ -200,11 +199,11 @@ struct StoredSampleFixturesTests {
         #expect(conversion.identifiers.sourceRecord == expectedRecord)
 
         let writerSnapshot = try #require(conversion.identifiers.writerSnapshot)
-        let writer = try #require(conversion.graph.resource(Device.self, at: writerSnapshot))
+        let writer = try #require(conversion.record.graph.resource(Device.self, at: writerSnapshot))
         #expect(writer.deviceName?.first?.name.value?.string == Self.writer.name)
         #expect(writer.identifier?.last?.value?.value?.string == Self.writer.bundleIdentifier)
         let writerHostSnapshot = try #require(conversion.identifiers.writerHostSnapshot)
-        let writerHost = try #require(conversion.graph.resource(Device.self, at: writerHostSnapshot))
+        let writerHost = try #require(conversion.record.graph.resource(Device.self, at: writerHostSnapshot))
         #expect(writerHost.modelNumber?.value?.string == Self.writer.productType)
         #expect(writerHost.version?.first?.value.value?.string == "26.1.0")
     }

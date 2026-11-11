@@ -9,12 +9,12 @@
 package import ModelsR4
 
 
-/// One Device snapshot, the minted identity every graph reference resolves to, and the fullUrl it is stated at.
+/// One Device snapshot, the content key every reference to it resolves through, and the fullUrl it is stated at.
 ///
-/// Every adapter mints device snapshots the same way, so the pairing lives here rather than being
+/// Every adapter keys device snapshots the same way, so the pairing lives here rather than being
 /// redeclared per producer.
 package struct IdentifiedDevice: Sendable {
-    package var resource: Device
+    package let resource: Device
     package let identity: RoledIdentifier
     /// ``identity``'s fullUrl, for the snapshot's entry and every reference to it.
     package let url: String
@@ -24,7 +24,16 @@ package struct IdentifiedDevice: Sendable {
         BundleEntry(identifier: identity, fullURL: url, resource: ResourceProxy(with: resource))
     }
 
-    package init(resource: Device, identity: RoledIdentifier) throws(ExchangeIdentityError) {
+    /// Keys `body`, which must be final and state every node it references, and adds the key as its first identifier.
+    package init(
+        keying body: Device,
+        role: OpaqueIdentityScope.NodeRole,
+        subject: BusinessIdentifier,
+        identityScope: OpaqueIdentityScope
+    ) throws(ExchangeIdentityError) {
+        let identity = try identityScope.contentSnapshot(of: body, subject: subject, role: role)
+        var resource = body
+        resource.identifier = [identity.fhirIdentifier] + (body.identifier ?? [])
         self.resource = resource
         self.identity = identity
         self.url = try identity.fullURLString

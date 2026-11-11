@@ -15,18 +15,13 @@ import ModelsR4
 
 /// One output a source type's conversion mints, and how its draft enters the graph.
 ///
-/// Additions draft through the slot and retractions name its output, so both read one table: a conversion can never
-/// mint an identity a retraction cannot name.
+/// A type without slots mints nothing, which is how a retraction knows it has nothing to retract.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitOutputSlot: Sendable {
     /// The output role its identity extends the source record with.
     let role: String
     /// The output discriminator its identity extends the source record with.
     let discriminator: String
-    /// The resource type the output is.
-    let resourceType: ResourceType
-    /// How a retraction names the output.
-    let retractionRole: RetractionEvent.Target.Role
     /// The envelope statements the output carries.
     let links: ExchangeOutputDraft.Links
     /// Whether the output states the primary under `derivedFrom`.
@@ -39,8 +34,6 @@ struct HealthKitOutputSlot: Sendable {
         HealthKitOutputSlot(
             role: role,
             discriminator: discriminator,
-            resourceType: .observation,
-            retractionRole: .primaryOutput,
             links: .all,
             derivedFromPrimary: false,
             artifactFormatCode: nil
@@ -52,8 +45,6 @@ struct HealthKitOutputSlot: Sendable {
         HealthKitOutputSlot(
             role: role,
             discriminator: discriminator,
-            resourceType: .observation,
-            retractionRole: .childOutput,
             links: .all,
             derivedFromPrimary: true,
             artifactFormatCode: nil
@@ -66,8 +57,6 @@ struct HealthKitOutputSlot: Sendable {
         HealthKitOutputSlot(
             role: role,
             discriminator: "single",
-            resourceType: .documentReference,
-            retractionRole: .sourceArtifact,
             links: [.subject, .recordingDevice, .studies],
             derivedFromPrimary: false,
             artifactFormatCode: format.rawValue

@@ -19,52 +19,37 @@ import HealthKit
 import ModelsR4
 
 
-/// Names every unit by one fixed token, for tests that assert a recording Device regardless of the sample's device.
-struct FixedTokenRecordingDeviceResolver: HealthKitFHIRExporter.RecordingDeviceResolver {
-    let token: String
-
-    func recordingDevice(for device: HKDevice) -> RecordingDevice? {
-        try? RecordingDevice(
-            stableUnitToken: token,
-            name: device.name?.nonBlank,
-            manufacturer: device.manufacturer?.nonBlank,
-            modelNumber: device.model?.nonBlank
-        )
-    }
-}
-
-
-/// The test deployment and one event under it: the subject, identity scope and repository scope every export states, and
-/// the event identifier, application, host and instant one event freezes.
-struct TestEvent {
+/// The test deployment: the subject, identity scope and repository scope every export states, and the application, host
+/// and instant a producer states.
+struct TestDeployment {
     static let testInstant = Date(timeIntervalSince1970: 1_787_009_400)
 
     let subject: Subject
-    let event: ExchangeEventIdentifier
     let identityScope: OpaqueIdentityScope
     let repositoryScope: BusinessIdentifier
     let application: ApplicationDevice
     let host: HostDevice
     let conversionInstant: Date
 
-    /// The deployment's entry-node system, held by the identity scope.
-    var entryNodeIdentifierSystem: IdentifierSystem { identityScope.systems.entryNode }
+    /// The envelope every record of this deployment states.
+    var envelope: ExchangeEnvelope {
+        ExchangeEnvelope(
+            scope: ExchangeEnvelope.Scope(
+                adapter: HealthKitAssembly.adapter,
+                identityScope: identityScope,
+                subject: subject,
+                repositoryScope: repositoryScope
+            ),
+            facts: ConversionFacts(application: application, host: host, studies: [])
+        )
+    }
 
-    /// The test deployment rooted at `graphIdentifierSystem`, and the event it numbers by the instant in milliseconds.
-    static func test(graphIdentifierSystem: IdentifierSystem? = nil, conversionInstant: Date = testInstant) -> TestEvent {
+    /// The test deployment rooted at `graphIdentifierSystem`.
+    static func test(graphIdentifierSystem: IdentifierSystem? = nil, conversionInstant: Date = testInstant) -> TestDeployment {
         let base = graphIdentifierSystem ?? "https://grovealliance.org/fhir/testing/identifiers/healthkit"
         let systemRoot = base.rawValue
-        let sequence = UInt64(max(1, Int64(conversionInstant.timeIntervalSince1970 * 1_000)))
-        return try! TestEvent(
+        return try! TestDeployment(
             subject: .testPatient,
-            event: ExchangeEventIdentifier(
-                system: IdentifierSystem("\(systemRoot)/event"),
-                producerInstance: UUID(uuid: (
-                    0x1f, 0x5c, 0x58, 0xaa, 0x6e, 0xc6, 0x4e, 0x79,
-                    0xa6, 0x82, 0x82, 0x9a, 0x9d, 0xeb, 0xd3, 0xf5
-                )),
-                sequence: EventSequence(sequence)
-            ),
             identityScope: OpaqueIdentityScope(
                 systems: DeploymentIdentifierSystems(
                     sourceRecord: IdentifierSystem("\(systemRoot)/source-record/test/1"),
@@ -77,11 +62,13 @@ struct TestEvent {
                     sourceContext: IdentifierSystem("\(systemRoot)/source-context/test/1"),
                     recordingDevice: IdentifierSystem("\(systemRoot)/recording-device/test/1"),
                     deviceSnapshot: IdentifierSystem("\(systemRoot)/device-snapshot/test/1"),
-                    event: IdentifierSystem("\(systemRoot)/event"),
-                    entryNode: IdentifierSystem("\(systemRoot)/entry-node")
+                    contextSnapshot: IdentifierSystem("\(systemRoot)/context-snapshot/test/1"),
+                    recordVersion: IdentifierSystem("\(systemRoot)/record-version/test/1"),
+                    recordRetraction: IdentifierSystem("\(systemRoot)/record-retraction/test/1"),
+                    deviceLocalIdentifier: IdentifierSystem("\(systemRoot)/device-local-identifier")
                 ),
                 keyID: "test",
-                epoch: EventSequence(1),
+                epoch: KeyEpoch(1),
                 key: SymmetricKey(data: Data(repeating: 0x42, count: 32))
             ),
             repositoryScope: BusinessIdentifier(system: IdentifierSystem("\(systemRoot)/repository"), value: "primary"),
@@ -91,21 +78,13 @@ struct TestEvent {
         )
     }
 
-    /// The retraction of `sourceRecord` as this event, recorded at its instant.
+    /// The retraction of `sourceRecord` under this deployment, recorded at its instant.
     func retraction(
         of sourceRecord: RoledIdentifier,
-        targets: [RetractionEvent.Target],
-        occurred: RetractionEvent.Occurrence
-    ) throws(RetractionEvent.ValidationError) -> RetractionEvent {
-        try RetractionEvent(
-            event: event,
-            instant: conversionInstant,
-            identityScope: identityScope,
-            application: application,
-            sourceRecord: sourceRecord,
-            targets: targets,
-            occurred: occurred
-        )
+        targets: [RetractionRecord.Target],
+        occurred: RetractionRecord.Occurrence
+    ) throws(RetractionRecord.ValidationError) -> RetractionRecord {
+        try ExchangeGraphAssembler(envelope: envelope).retraction(of: sourceRecord, targets: targets, occurred: occurred, at: conversionInstant)
     }
 }
 
@@ -158,10 +137,23 @@ extension ApplicationDevice {
 extension HostDevice {
     static let test = try! HostDevice(
         operatingSystemVersion: "20.1",
+        productType: "Phone One",
         name: "Grove Test Host",
-        manufacturer: "Example Device Company",
-        modelNumber: "Phone One"
+        manufacturer: "Example Device Company"
     )
+}
+
+
+extension ExchangeRecord {
+    /// The record's one-record Bundle, read back and validated the way a stored record is.
+    var graph: ExchangeGraph {
+        try! ExchangeGraph(validating: json, kind: kind == .active ? .active : .retraction)
+    }
+
+    /// The record's one-record Bundle, decoded.
+    var bundle: ModelsR4.Bundle {
+        try! JSONDecoder().decode(ModelsR4.Bundle.self, from: json)
+    }
 }
 
 

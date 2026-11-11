@@ -13,7 +13,7 @@ import Testing
 
 @Suite
 struct ExchangeGraphSerializedInputTests {
-    @Test("Serialized events reject ambiguous or malformed JSON before model decoding", arguments: [
+    @Test("Serialized Bundles reject ambiguous or malformed JSON before model decoding", arguments: [
         #"{"resourceType":"Bundle","resourceType":"Patient"}"#,
         #"{"resourceType":"Bundle","entry":[{"resource":{"id":"first","id":"second"}}]}"#,
         #"{"resourceType":"Bundle","resourceType":"Bundle"}"#,
@@ -24,17 +24,17 @@ struct ExchangeGraphSerializedInputTests {
         "{\"nested\":" + String(repeating: "[", count: 513) + "0" + String(repeating: "]", count: 513) + "}"
     ], [ExchangeGraph.Kind.active, .retraction])
     func rejectsMalformedJSON(json: String, kind: ExchangeGraph.Kind) {
-        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
+        #expect(throws: ExchangeGraphError.invalidEntries("Serialized Bundle is not strict JSON")) {
             try ExchangeGraph(validating: Data(json.utf8), kind: kind)
         }
     }
 
-    @Test("Serialized events reject invalid UTF-8 before model decoding", arguments: [
+    @Test("Serialized Bundles reject invalid UTF-8 before model decoding", arguments: [
         ExchangeGraph.Kind.active, .retraction
     ])
     func rejectsInvalidUTF8(kind: ExchangeGraph.Kind) {
         let bytes = Data([0x7B, 0x22, 0x78, 0x22, 0x3A, 0x22, 0xFF, 0x22, 0x7D])
-        #expect(throws: ExchangeGraphError.invalidEntries("Serialized event is not strict JSON")) {
+        #expect(throws: ExchangeGraphError.invalidEntries("Serialized Bundle is not strict JSON")) {
             try ExchangeGraph(validating: bytes, kind: kind)
         }
     }

@@ -54,6 +54,8 @@ enum SampleCountFetchState {
 struct SampleCountRawElement<Sample: SensorKitSampleProtocol> {
     let timeRange: Range<Date>
     let device: SensorKit.DeviceInfo
+    let sourceDevices: [SensorKit.SourceDeviceInfo]
+    let sourceDevicesSuppliedEverySample: Bool
     let samples: [Sample.SafeRepresentation]
 }
 
@@ -222,9 +224,9 @@ extension SensorKit {
     /// - Note: Since the same `DeviceInfo` instance is associated with many samples, and might be passed around a lot in code,
     ///     this is a class rather than a struct, in order to reduce the required amount of copying.
     public final class DeviceInfo: CustomStringConvertible, Sendable {
-        /// The user-defined name of the device.
-        public let model: String
         /// The framework-defined name of the device.
+        public let model: String
+        /// The user-defined name of the device, which may name a person.
         public let name: String
         /// The device’s operating system.
         public let systemName: String
@@ -247,7 +249,54 @@ extension SensorKit {
             productType = device.productType
         }
     }
+
+    /// Info about a peripheral that supplied sensor data through a common device, as `SRFetchResult.sourceDevice` states it.
+    public struct SourceDeviceInfo: Hashable, Sendable {
+        /// The identifier that tells the peripherals of a common device apart; it is local to that device.
+        public let localIdentifier: String
+        /// The peripheral's manufacturer.
+        public let manufacturer: String?
+        /// The peripheral's model.
+        public let model: String?
+        /// The peripheral's hardware version.
+        public let hardwareVersion: String?
+        /// The peripheral's firmware version.
+        public let firmwareVersion: String?
+
+        /// Creates a new `SourceDeviceInfo`.
+        @inlinable
+        public init(
+            localIdentifier: String,
+            manufacturer: String? = nil,
+            model: String? = nil,
+            hardwareVersion: String? = nil,
+            firmwareVersion: String? = nil
+        ) {
+            self.localIdentifier = localIdentifier
+            self.manufacturer = manufacturer
+            self.model = model
+            self.hardwareVersion = hardwareVersion
+            self.firmwareVersion = firmwareVersion
+        }
+    }
 }
+
+
+#if compiler(>=6.4)
+@available(iOS 27, *)
+extension SensorKit.SourceDeviceInfo {
+    /// Creates a new `SourceDeviceInfo` from an `SRSourceDevice`.
+    init(_ device: SRSourceDevice) {
+        self.init(
+            localIdentifier: device.localIdentifier,
+            manufacturer: device.manufacturer,
+            model: device.model,
+            hardwareVersion: device.hardwareVersion,
+            firmwareVersion: device.firmwareVersion
+        )
+    }
+}
+#endif
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -282,18 +331,22 @@ extension SensorKit {
     /// crash retries, changes when the cursor is reset, and advances even when two consecutive
     /// batches share a SensorKit timestamp. It intentionally contains no measured value.
     public struct AcquisitionBatchCoordinate: Hashable, Codable, Sendable {
+        /// The cursor's random stream partition, which keeps a reinstall's coordinates apart from the earlier
+        /// installation's; `0` for a cursor persisted before partitions existed.
+        public let streamPartition: UInt64
         public let cursorTimestamp: Date
         public let resetGeneration: UInt64
         public let sequence: UInt64
 
-        /// Canonical local-ledger representation suitable for a length-delimited identity preimage.
+        /// Canonical representation suitable for a length-delimited identity preimage.
         public var stableValue: String {
-            "sensorkit-batch-v0:\(cursorTimestamp.timeIntervalSinceReferenceDate.bitPattern):"
+            "sensorkit-batch-v1:\(streamPartition):\(cursorTimestamp.timeIntervalSinceReferenceDate.bitPattern):"
                 + "\(resetGeneration):\(sequence)"
         }
 
         @inlinable
-        public init(cursorTimestamp: Date, resetGeneration: UInt64, sequence: UInt64) {
+        public init(streamPartition: UInt64 = 0, cursorTimestamp: Date, resetGeneration: UInt64, sequence: UInt64) {
+            self.streamPartition = streamPartition
             self.cursorTimestamp = cursorTimestamp
             self.resetGeneration = resetGeneration
             self.sequence = sequence
@@ -305,6 +358,16 @@ extension SensorKit {
         public let timeRange: Range<Date>
         /// The source device queried for when SensorKit returned this batch's samples.
         public let device: DeviceInfo
+        /// The peripherals that supplied this batch's samples through ``device``, in the order SensorKit first named them.
+        ///
+        /// SensorKit names a peripheral per fetch result, from iOS 27, and a sample can fold several fetch results, so
+        /// this states the batch, not one sample. It is empty when SensorKit names none.
+        public let sourceDevices: [SourceDeviceInfo]
+        /// Whether SensorKit named a peripheral for every fetch result that contributed samples to this batch.
+        ///
+        /// With exactly one ``sourceDevices`` entry, it means that peripheral supplied every sample of the batch. It is
+        /// `false` when some samples came without a named peripheral, and when the batch names none.
+        public let sourceDevicesSuppliedEverySample: Bool
         /// Durable acquisition coordinate allocated before this batch is exposed to its consumer.
         public let acquisitionBatch: AcquisitionBatchCoordinate
         
@@ -312,10 +375,14 @@ extension SensorKit {
         public init(
             timeRange: Range<Date>,
             device: DeviceInfo,
+            sourceDevices: [SourceDeviceInfo] = [],
+            sourceDevicesSuppliedEverySample: Bool = false,
             acquisitionBatch: AcquisitionBatchCoordinate
         ) {
             self.timeRange = timeRange
             self.device = device
+            self.sourceDevices = sourceDevices
+            self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample && !sourceDevices.isEmpty
             self.acquisitionBatch = acquisitionBatch
         }
     }

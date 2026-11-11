@@ -23,30 +23,30 @@ enum GoldenCaseError: Error {
 
 /// The ECG, recording-document and retraction shapes the goldens pin.
 extension GoldenCase {
-    /// Sequences 60-79: graphs whose source has no public initializer, built on stored-sample fixtures.
+    /// Records whose source has no public initializer, built on stored-sample fixtures.
     ///
     /// The ECG states the content corpus's reading (`ContentCorpusGrid.electrocardiogramReading`) through
     /// `StoredSampleFixtures.electrocardiogram(facts:reading:)` and exports with its voltages, as the series and route
     /// state the corpus's beats and fixes.
     static let documents: [GoldenCase] = [
-        GoldenCase("electrocardiogram", sequence: 60) { sequence in
-            try await electrocardiogram(uuid: 60, sequence: sequence, symptom: nil, index: 0)
+        GoldenCase("electrocardiogram") {
+            try await electrocardiogram(uuid: 60, symptom: nil, index: 0)
         },
-        GoldenCase("electrocardiogram-with-symptom", sequence: 61) { sequence in
-            try await electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 0)
+        GoldenCase("electrocardiogram-with-symptom") {
+            try await electrocardiogram(uuid: 61, symptom: GoldenFixtures.uuid(0x61), index: 0)
         },
-        GoldenCase("electrocardiogram-symptom-companion", sequence: 61) { sequence in
-            try await electrocardiogram(uuid: 61, sequence: sequence, symptom: GoldenFixtures.uuid(0x61), index: 1)
+        GoldenCase("electrocardiogram-symptom-companion") {
+            try await electrocardiogram(uuid: 61, symptom: GoldenFixtures.uuid(0x61), index: 1)
         },
-        GoldenCase("heartbeat-series", sequence: 62) { sequence in
+        GoldenCase("heartbeat-series") {
             let series = try StoredSampleFixtures.seriesSample(
                 HKHeartbeatSeriesSample.self,
                 sampleType: HKSeriesType.heartbeat(),
                 facts: seriesFacts(uuid: 62, duration: 2)
             )
-            return try await GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)), sequence: sequence)
+            return try await GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)))
         },
-        GoldenCase("workout-route", sequence: 63) { sequence in
+        GoldenCase("workout-route") {
             let route = try StoredSampleFixtures.seriesSample(
                 HKWorkoutRoute.self,
                 sampleType: HKSeriesType.workoutRoute(),
@@ -54,29 +54,29 @@ extension GoldenCase {
             )
             var inputs = ExportInputs()
             inputs.options.route = .authorized
-            return try await GoldenFixtures.export(.workoutRoute(route, locations: routeLocations), sequence: sequence, inputs)
+            return try await GoldenFixtures.export(.workoutRoute(route, locations: routeLocations), inputs)
         }
     ] + clinicalDocuments
 
-    /// Sequences 80-99: retractions of deleted records, each stating the bounds a deletion the app noted carries. (The
-    /// deleted context API could state an exact deletion instant; HealthKit reports none, so the exporter states bounds.)
+    /// Retractions of deleted records, each stating the bounds a deletion the app noted carries: HealthKit reports no exact
+    /// deletion instant.
     static let retractions: [GoldenCase] = [
-        GoldenCase("retraction-heart-rate", sequence: 80) { sequence in
-            try await retraction(of: .heartRate, uuid: 80, sequence: sequence)
+        GoldenCase("retraction-heart-rate") {
+            try await retraction(of: .heartRate, uuid: 80)
         },
-        GoldenCase("retraction-heart-rate-native-identifier", sequence: 81) { sequence in
+        GoldenCase("retraction-heart-rate-native-identifier") {
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
-            return try await retraction(of: .heartRate, uuid: 81, sequence: sequence, deletedAfter: GoldenFixtures.sampleStart, inputs)
+            return try await retraction(of: .heartRate, uuid: 81, deletedAfter: GoldenFixtures.sampleStart, inputs)
         },
-        GoldenCase("retraction-electrocardiogram", sequence: 82) { sequence in
-            try await retraction(of: .electrocardiogram, uuid: 82, sequence: sequence)
+        GoldenCase("retraction-electrocardiogram") {
+            try await retraction(of: .electrocardiogram, uuid: 82)
         },
-        GoldenCase("retraction-blood-pressure", sequence: 83) { sequence in
-            try await retraction(of: .bloodPressure, uuid: 83, sequence: sequence)
+        GoldenCase("retraction-blood-pressure") {
+            try await retraction(of: .bloodPressure, uuid: 83)
         },
-        GoldenCase("retraction-workout", sequence: 84) { sequence in
-            try await retraction(of: .workout, uuid: 84, sequence: sequence)
+        GoldenCase("retraction-workout") {
+            try await retraction(of: .workout, uuid: 84)
         }
     ]
 
@@ -85,14 +85,14 @@ extension GoldenCase {
     #else
     /// `HKCDADocumentSample` has a public initializer, but no watchOS.
     static let clinicalDocuments: [GoldenCase] = [
-        GoldenCase("clinical-document", sequence: 64) { sequence in
+        GoldenCase("clinical-document") {
             let document = try HKCDADocumentSample(
                 data: Data(clinicalDocumentXML.utf8),
                 start: GoldenFixtures.sampleStart,
                 end: GoldenFixtures.sampleStart.addingTimeInterval(1),
                 metadata: GoldenFixtures.timeZoneMetadata
             )
-            return try await GoldenFixtures.export(StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(64)), sequence: sequence)
+            return try await GoldenFixtures.export(StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(64)))
         }
     ]
     #endif
@@ -124,14 +124,10 @@ extension GoldenCase {
 
     /// The graph at `index` of the sinus-rhythm ECG the conformance fixtures use, exported with or without one
     /// correlated symptom: the ECG's own graph first, then the symptom's.
-    ///
-    /// The symptom's own event takes `sequence + 100`, the only second sequence any case states.
-    static func electrocardiogram(uuid ordinal: UInt8, sequence: UInt64, symptom: UUID?, index: Int) async throws -> GoldenOutput {
+    static func electrocardiogram(uuid ordinal: UInt8, symptom: UUID?, index: Int) async throws -> GoldenOutput {
         let symptoms = try symptom.map { [try Self.symptom(uuid: $0)] } ?? []
-        var inputs = ExportInputs()
-        inputs.symptomSequences = [sequence + 100]
         let record = try ExporterFixtures.electrocardiogram(electrocardiogramRecord(uuid: ordinal, symptoms: symptoms), symptoms: symptoms)
-        return try await GoldenFixtures.export(record, sequence: sequence, inputs, index: index, of: 1 + symptoms.count)
+        return try await GoldenFixtures.export(record, index: index, of: 1 + symptoms.count)
     }
 
     /// The retraction of the record of `type` with the `ordinal` UUID, deleted after `deletedAfter` when known and
@@ -139,20 +135,16 @@ extension GoldenCase {
     static func retraction(
         of type: HealthKitSourceType,
         uuid ordinal: UInt8,
-        sequence: UInt64,
         deletedAfter: Date? = nil,
         _ inputs: ExportInputs = ExportInputs()
     ) async throws -> GoldenOutput {
-        var inputs = inputs
-        inputs.sequence = sequence
         let deletion = HealthKitFHIRExporter.Deletion(
             uuid: GoldenFixtures.uuid(ordinal),
             sourceType: type,
             deletedAfter: deletedAfter,
             detectedAt: GoldenFixtures.conversionInstant
         )
-        let (exporter, _) = try ExporterFixtures.exporter(inputs)
-        let (retractions, _) = try await ExporterFixtures.retract(exporter, [deletion])
+        let retractions = try await ExporterFixtures.retract(ExporterFixtures.exporter(inputs), [deletion])
         return try GoldenOutput(ExporterGolden.single(retractions))
     }
 

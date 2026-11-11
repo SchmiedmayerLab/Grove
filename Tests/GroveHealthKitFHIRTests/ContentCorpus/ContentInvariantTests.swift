@@ -126,7 +126,7 @@ struct ContentInvariantTests {
                 unconverted.insert(row.sourceTypeIdentifier)
             case .platformExclusive where !outputs.isEmpty:
                 documents.insert(row.sourceTypeIdentifier)
-                #expect(outputs.map(\.resourceType) == [.documentReference], "\(row.sourceTypeIdentifier) mints \(outputs)")
+                #expect(outputs.count == 1 && outputs[0].artifactFormatCode != nil, "\(row.sourceTypeIdentifier) mints \(outputs)")
             case .intentionallyUnsupported:
                 #expect(outputs.isEmpty, "\(row.sourceTypeIdentifier) is intentionally unsupported but mints outputs")
             default:

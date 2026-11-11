@@ -85,15 +85,15 @@ struct GoldenOutline: Codable, Equatable {
 
 /// Pins the exporter's wire output, token for token, so a refactor can be proven identical.
 ///
-/// Each case exports fixed inputs through `HealthKitFHIRExporter` and compares the graph's stored JSON
-/// (`ExchangeGraph.json`, the bytes a consumer uploads) with the checked-in golden over lossless tokens: member order
-/// is free, array order and decimal lexemes are not. A failure names the first differing path.
+/// Each case exports fixed inputs through `HealthKitFHIRExporter` and compares the record's JSON (`ExchangeRecord.json`,
+/// the bytes a consumer stages) with the checked-in golden over lossless tokens: member order is free, array order and
+/// decimal lexemes are not. A failure names the first differing path.
 @Suite
 struct GoldenGraphTests {
     @Test(.enabled(if: !GoldenStore.resources.isGenerating), arguments: GoldenCase.all)
     func matchesCheckedInGolden(_ goldenCase: GoldenCase) async throws {
         let output = try await goldenCase.output()
-        let actual = try LosslessJSONValue(parsing: output.graph.json)
+        let actual = try LosslessJSONValue(parsing: output.record.json)
         let expected = try LosslessJSONValue(parsing: GoldenStore.data(named: goldenCase.name))
         let outline = try #require(GoldenStore.outlines()[goldenCase.name], "no outline is pinned for \(goldenCase.name)")
 
@@ -105,9 +105,9 @@ struct GoldenGraphTests {
             GoldenOutline(expected, warnings: outline.warnings) == outline,
             "\(goldenCase.name): outlines.json does not describe the checked-in golden"
         )
-        let scope = TestEvent.test()
+        let scope = TestDeployment.test()
         let mismatches = try output.reportMismatches(identityScope: scope.identityScope, repositoryScope: scope.repositoryScope)
-        #expect(mismatches.isEmpty, "\(goldenCase.name) reports what its graph does not carry: \(mismatches)")
+        #expect(mismatches.isEmpty, "\(goldenCase.name) reports what its record does not carry: \(mismatches)")
         if let difference = TokenDiff.firstDifference(expected: expected, actual: actual) {
             Issue.record("\(goldenCase.name) drifted from its golden at \(difference)")
         }
@@ -126,28 +126,29 @@ struct GoldenGraphTests {
         #expect(strayOutlines.isEmpty, "outlines without a case: \(strayOutlines.sorted())")
     }
 
-    /// Every case is named once, mints its own event, converts to the same tokens and warnings twice in one process,
-    /// and re-encodes with sorted members to the same tokens as its wire bytes. With `GROVE_GOLDEN_OUTPUT_DIR` set,
+    /// Every case is named once, states its own record version, converts to the same tokens and warnings twice in one
+    /// process, and re-encodes with sorted members to the same tokens as its wire bytes. With `GROVE_GOLDEN_OUTPUT_DIR` set,
     /// this is also the regeneration: each case's sorted-member JSON and the outlines are written there, and the run
     /// fails, as it compared nothing.
     @Test
     func everyCaseIsDeterministicAndPinnable() async throws {
         var outlines: [String: GoldenOutline] = [:]
-        var events: [String: String] = [:]
+        var versions: [String: String] = [:]
         for goldenCase in GoldenCase.all {
             let output = try await goldenCase.output()
-            let graph = output.graph
-            let wire = try LosslessJSONValue(parsing: graph.json)
+            let record = output.record
+            let wire = try LosslessJSONValue(parsing: record.json)
             let again = try await goldenCase.output()
-            #expect(try LosslessJSONValue(parsing: again.graph.json) == wire, "\(goldenCase.name) is not deterministic")
+            #expect(again.record == record, "\(goldenCase.name) is not deterministic")
             #expect(again.renderedWarnings == output.renderedWarnings, "\(goldenCase.name) does not warn deterministically")
-            let sorted = try GoldenStore.encoder.encode(graph.bundle)
+            let sorted = try GoldenStore.encoder.encode(record.graph.bundle)
             #expect(try LosslessJSONValue(parsing: sorted) == wire, "\(goldenCase.name): a sorted re-encode changes the tokens")
 
             let outline = GoldenOutline(wire, warnings: output.renderedWarnings)
             #expect(outlines.updateValue(outline, forKey: goldenCase.name) == nil, "\(goldenCase.name) is named twice")
-            let event = graph.eventIdentifier.identifier.value
-            #expect(events.updateValue(goldenCase.name, forKey: event) == nil, "\(goldenCase.name) shares its event with \(events[event] ?? "")")
+            let version = record.version.identifier.identifier.value
+            let earlier = versions.updateValue(goldenCase.name, forKey: version)
+            #expect(earlier == nil, "\(goldenCase.name) shares its version with \(earlier ?? "")")
 
             try GoldenStore.resources.write(sorted, toFile: "\(goldenCase.name).json")
         }
@@ -161,9 +162,7 @@ struct GoldenGraphTests {
     @Test(arguments: [false, true])
     func workoutsExportEverySegment(withEvents: Bool) async throws {
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: withEvents), uuid: GoldenFixtures.uuid(0xA0))
-        var inputs = ExportInputs()
-        inputs.sequence = 200
-        let conversion = try await ExporterFixtures.export(workout, inputs)
+        let conversion = try await ExporterFixtures.export(workout)
         let observations = conversion.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
         let childCount = (workout.workoutEvents ?? []).count + workout.workoutActivities.count
         #expect(observations.count == childCount + 1)
@@ -178,13 +177,9 @@ struct GoldenGraphTests {
     func workoutRetractionIsExact() async throws {
         #expect(HealthKitContentPlan[.workout].outputs.map { "\($0.role)|\($0.discriminator)" } == ["workout|single"])
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA2))
-        var inputs = ExportInputs()
-        inputs.sequence = 202
-        let conversion = try await ExporterFixtures.export(workout, inputs)
-        inputs.sequence = 203
+        let conversion = try await ExporterFixtures.export(workout)
         let retraction = try await ExporterFixtures.retraction(
-            HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant),
-            inputs
+            HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant)
         )
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         let emitted = [conversion.identifiers.sourceRecord.identifier.value]
@@ -196,15 +191,15 @@ struct GoldenGraphTests {
     func ecgRetractionDoesNotInventAnAverageHeartRateChild() async throws {
         let record = try GoldenCase.electrocardiogramRecord(uuid: 0xA4, symptoms: [], averageHeartRate: nil)
         let ecg = record.electrocardiogram
-        var inputs = ExportInputs()
-        inputs.sequence = 204
-        let conversion = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: []), inputs).primary
+        let conversion = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: [])).primary
         #expect(conversion.identifiers.childOutputs.isEmpty, "an ECG without an average emits no child")
-        inputs.sequence = 205
-        let retraction = try await ExporterFixtures.retraction(
-            HealthKitFHIRExporter.Deletion(uuid: ecg.uuid, sourceType: .electrocardiogram, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant),
-            inputs
+        let deletion = HealthKitFHIRExporter.Deletion(
+            uuid: ecg.uuid,
+            sourceType: .electrocardiogram,
+            deletedAfter: nil,
+            detectedAt: GoldenFixtures.conversionInstant
         )
+        let retraction = try await ExporterFixtures.retraction(deletion)
         let provenance = try #require(retraction.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         let targets = provenance.target.compactMap { $0.identifier?.value?.value?.string }
         #expect(targets == [conversion.identifiers.sourceRecord.identifier.value])
@@ -217,10 +212,8 @@ struct GoldenGraphTests {
         var writer = GoldenFixtures.foreignWriter
         writer.bundleIdentifier = "not a bundle id"
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xA1), writer: writer)
-        var inputs = ExportInputs.applicationWriter
-        inputs.sequence = 201
         await #expect(throws: HealthKitConversionError.sourceApplicationInvalid) {
-            try await ExporterFixtures.export(sample, inputs)
+            try await ExporterFixtures.export(sample, .applicationWriter)
         }
     }
 
@@ -248,8 +241,9 @@ struct GoldenGraphTests {
         #expect(GoldenOutline(golden, warnings: ["a"]) != GoldenOutline(golden, warnings: []))
     }
 
-    /// Strings and member names compare scalar by scalar, as the guide's reference comparator does: a canonically
-    /// equivalent spelling and a leading U+FEFF are different content, while a `\u` escape is the scalar it names.
+    /// Strings compare scalar by scalar, as the guide's reference comparator does: a canonically equivalent spelling and a
+    /// leading U+FEFF are different content, while a `\u` escape is the scalar it names. A non-ASCII member name has no
+    /// canonical reading at all.
     @Test
     func tokensCompareUnicodeScalars() throws {
         func tokens(_ json: String) throws -> LosslessJSONValue {
@@ -259,11 +253,9 @@ struct GoldenGraphTests {
         let decomposed = try tokens(#"{"name":"Sante\#u{301}"}"#)
         #expect(precomposed != decomposed)
         #expect(TokenDiff.firstDifference(expected: precomposed, actual: decomposed) == #"$.name: golden "Sant\u{e9}", actual "Sante\u{301}""#)
-        #expect(try tokens(#"{"Sant\#u{E9}":1}"#) != tokens(#"{"Sante\#u{301}":1}"#))
-        #expect(
-            TokenDiff.firstDifference(expected: try tokens(#"{"Sant\#u{E9}":1}"#), actual: try tokens(#"{"Sante\#u{301}":1}"#))
-                == "$: a member name differs in its Unicode scalars"
-        )
+        #expect(throws: LosslessJSONValue.ParseError.nonASCIIMemberName) {
+            try tokens(#"{"Sant\#u{E9}":1}"#)
+        }
         let marked = try tokens(#"{"name":"\#u{FEFF}x"}"#)
         #expect(try tokens(#"{"name":"x"}"#) != marked)
         #expect(try tokens(#"{"name":"\uFEFFx"}"#) == marked)

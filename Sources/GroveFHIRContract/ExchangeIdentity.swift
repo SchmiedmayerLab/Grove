@@ -128,7 +128,7 @@ package enum ExchangeIdentity {
             return false
         }
         let epoch = value[utf8.index(after: keyIDEnd)..<epochEnd]
-        // The epoch is an EventSequence: canonical and positive.
+        // The epoch is a KeyEpoch: canonical and positive.
         return OpaqueIdentityScope.isValidKeyID(value[keyIDStart..<keyIDEnd])
             && CanonicalNonnegativeDecimal.isCanonical(epoch) && epoch != "0"
             && isUnpaddedBase64URLDigest(value[utf8.index(after: epochEnd)...])
