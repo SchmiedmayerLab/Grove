@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 
 COMPONENT="${1:-${GROVE_FHIR_COMPONENT:-healthkit}}"
 GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
-GROVE_FHIR_REF="${GROVE_FHIR_REF:-966279d94455ee2843391b14bf5b88df552ba51e}"
+GROVE_FHIR_REF="${GROVE_FHIR_REF:-0.8.0}"
 
 if [ "$COMPONENT" = "all" ]; then
     for component in healthkit questionnaire sensor; do
@@ -48,7 +48,9 @@ if [ ! -d "$GUIDES" ]; then
     git init "$GUIDES"
     git -C "$GUIDES" remote add origin \
         "${GROVE_FHIR_REMOTE:-https://github.com/SchmiedmayerLab/grove-fhir.git}"
-    git -C "$GUIDES" fetch --depth 1 origin "$GROVE_FHIR_REF"
+    # A tag is fetched into its own ref, so the check below can resolve it; a commit is fetched as is.
+    git -C "$GUIDES" fetch --depth 1 origin "+refs/tags/$GROVE_FHIR_REF:refs/tags/$GROVE_FHIR_REF" 2>/dev/null \
+        || git -C "$GUIDES" fetch --depth 1 origin "$GROVE_FHIR_REF"
     git -C "$GUIDES" checkout --detach FETCH_HEAD
 fi
 
