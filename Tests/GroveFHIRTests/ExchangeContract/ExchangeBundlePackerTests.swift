@@ -12,6 +12,31 @@ import ModelsR4
 import Testing
 
 
+/// A literal reference a test adds to a packed Bundle, in `element` of the entry at `referrer`, or in a
+/// `workflow-supportingInfo` extension when `element` is `extension`.
+private struct AddedReference {
+    let referrer: String
+    let element: String
+    let target: String
+
+    /// `graph`'s JSON with this reference added.
+    func applied(to graph: ExchangeGraph) throws -> Data {
+        var root = try #require(try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])
+        var entries = try #require(root["entry"] as? [[String: Any]])
+        let index = try #require(entries.firstIndex { $0["fullUrl"] as? String == referrer })
+        var resource = try #require(entries[index]["resource"] as? [String: Any])
+        let reference: [String: Any] = ["reference": target]
+        let item: [String: Any] = element == "extension"
+            ? ["url": "http://hl7.org/fhir/StructureDefinition/workflow-supportingInfo", "valueReference": reference]
+            : reference
+        resource[element] = (resource[element] as? [[String: Any]] ?? []) + [item]
+        entries[index]["resource"] = resource
+        root["entry"] = entries
+        return try JSONSerialization.data(withJSONObject: root)
+    }
+}
+
+
 @Suite("Exchange Bundle packer")
 struct ExchangeBundlePackerTests {
     private typealias Fixtures = ExchangeRecordFixtures
@@ -217,6 +242,57 @@ struct ExchangeBundlePackerTests {
             try ExchangeGraph(validating: tampered, kind: .active)
         } throws: { error in
             (error as? ExchangeGraphError)?.diagnostic.code == "mobile-exchange.cross-record-reference"
+        }
+    }
+
+    @Test("No literal reference reaches a lifecycle Provenance, not even its own record's")
+    func provenanceLiteralReference() throws {
+        let first = try Fixtures.record()
+        let second = try Fixtures.record(nativeRecordID: "record-2")
+        var packer = ExchangeBundlePacker(kind: .active)
+        _ = try packer.add(first)
+        _ = try packer.add(second)
+        let graph = try packer.bundle(packedAt: Fixtures.instant)
+        let output = try #require(second.outputFullURLs.first)
+        let recordEntries = Set([first.version.fullURL, second.version.fullURL] + first.outputFullURLs + second.outputFullURLs)
+        let shared = try #require(
+            graph.bundle.entry?.compactMap { $0.fullUrl?.value?.url.absoluteString }.first { !recordEntries.contains($0) }
+        )
+        let references = [
+            AddedReference(referrer: output, element: "extension", target: first.version.fullURL),
+            AddedReference(referrer: output, element: "basedOn", target: first.version.fullURL),
+            AddedReference(referrer: output, element: "extension", target: second.version.fullURL),
+            AddedReference(referrer: second.version.fullURL, element: "extension", target: first.version.fullURL),
+            AddedReference(referrer: shared, element: "extension", target: first.version.fullURL)
+        ]
+        for reference in references {
+            let tampered = try reference.applied(to: graph)
+            #expect {
+                try ExchangeGraph(validating: tampered, kind: .active)
+            } throws: { error in
+                (error as? ExchangeGraphError)?.diagnostic.code == "mobile-exchange.cross-record-reference"
+            }
+        }
+    }
+
+    @Test("No literal reference reaches a retraction Provenance")
+    func retractionProvenanceLiteralReference() throws {
+        let first = try Fixtures.retraction()
+        let second = try Fixtures.retraction(nativeRecordID: "record-2")
+        var packer = ExchangeBundlePacker(kind: .retraction)
+        _ = try packer.add(first)
+        _ = try packer.add(second)
+        let graph = try packer.bundle(packedAt: Fixtures.instant)
+        let device = try #require(graph.bundle.entry?.first { entry in
+            if case .device? = entry.resource { true } else { false }
+        }?.fullUrl?.value?.url.absoluteString)
+        for referrer in [second.version.fullURL, device] {
+            let tampered = try AddedReference(referrer: referrer, element: "extension", target: first.version.fullURL).applied(to: graph)
+            #expect {
+                try ExchangeGraph(validating: tampered, kind: .retraction)
+            } throws: { error in
+                (error as? ExchangeGraphError)?.diagnostic.code == "mobile-exchange.cross-record-reference"
+            }
         }
     }
 

@@ -103,6 +103,9 @@ extension ExchangeGraph {
 
     /// The Bundle's records, in entry order: each lifecycle Provenance with its outputs and the shared nodes it reaches,
     /// as ``ExchangeRecord/json`` states them. No record is altered: each keeps its record version in any Bundle.
+    ///
+    /// - Throws: ``ExchangeGraphError/invalidEntries(_:)`` when a record's unit reaches a second lifecycle Provenance,
+    ///   which validation already refuses as `mobile-exchange.cross-record-reference`.
     public func records() throws(ExchangeGraphError) -> [ExchangeRecord] {
         try records(subject: nil)
     }

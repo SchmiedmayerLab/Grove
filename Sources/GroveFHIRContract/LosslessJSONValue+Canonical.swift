@@ -142,9 +142,10 @@ extension LosslessJSONValue {
     /// length-framed `org.grovealliance.fhir.record-content.v0`, the Provenance's canonical bytes and each output's.
     ///
     /// The Provenance loses `id` and every `grove-record-version` extension, with `extension` dropped if it is left
-    /// empty; each output loses `id`. Nothing else is removed. Shared nodes enter only through the content-derived
-    /// fullUrls the record references. Parse every resource from the bytes the record carries, never from a FHIR model's
-    /// re-encoding, which rewrites decimal lexemes.
+    /// empty; each output loses `id`. Nothing else is removed. A shared node that the Provenance or an output references
+    /// enters through its content-derived fullUrl; a ResearchSubject joined only by the study rule, and any node only it
+    /// reaches, stays outside the record version. Parse every resource from the bytes the record carries, never from a
+    /// FHIR model's re-encoding, which rewrites decimal lexemes.
     ///
     /// - Parameters:
     ///   - provenance: The record's conversion Provenance.

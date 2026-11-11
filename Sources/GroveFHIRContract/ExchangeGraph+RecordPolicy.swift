@@ -279,21 +279,31 @@ extension ExchangeGraph {
                 recordByProvenance[fullURL] = record.index
             }
         }
+        try validateLiteralReferences(entries: entries, document: document) { referrer, reference in
+            let ownRecord = recordByOutput[referrer] ?? recordByProvenance[referrer]
+            let reachesProvenance = recordByProvenance[reference] != nil
+            let reachesOtherRecord = recordByOutput[reference].map { $0 != ownRecord } ?? false
+            return reachesProvenance || reachesOtherRecord
+        }
+    }
+
+    /// Throws `cross-record-reference` for the first literal reference, in entry order, that `crosses` refuses.
+    ///
+    /// - parameter crosses: Whether the entry with fullUrl `referrer` may not reference `reference` literally.
+    private static func validateLiteralReferences(
+        entries: [BundleEntry],
+        document: ValidationDocument,
+        crosses: (_ referrer: String, _ reference: String) -> Bool
+    ) throws(ExchangeGraphError) {
         for (index, entry) in entries.enumerated() {
             let fullURL = entry.fullUrl?.value?.url.absoluteString ?? ""
-            let ownRecord = recordByOutput[fullURL] ?? recordByProvenance[fullURL]
             let objects: [[String: Any]]
             do {
                 objects = try document.resourceObjects(at: index)
             } catch {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
-            for reference in objects.compactMap({ $0["reference"] as? String }) {
-                let reachesProvenance = recordByProvenance[reference] != nil
-                let reachesOtherRecord = recordByOutput[reference].map { $0 != ownRecord } ?? false
-                guard reachesProvenance || reachesOtherRecord else {
-                    continue
-                }
+            for reference in objects.compactMap({ $0["reference"] as? String }) where crosses(fullURL, reference) {
                 let resource = try? document.resourceObject(at: index)
                 let path = resource.flatMap { elementPath(ofReference: reference, in: $0 as Any) } ?? ""
                 throw diagnostic(.mobileExchangeCrossRecordReference, location: "Bundle.entry[\(index)].resource.\(path).reference")
@@ -526,6 +536,11 @@ extension ExchangeGraph {
             guard sources.insert(sourceEntity).inserted else {
                 throw diagnostic(.mobileRetractionProvenance, location: "Bundle.entry[\(index)].resource.entity")
             }
+        }
+        // literalClosure holds in a retraction Bundle too: nothing references a retraction Provenance.
+        let provenanceFullURLs = Set(provenances.compactMap { entries[$0.index].fullUrl?.value?.url.absoluteString })
+        try validateLiteralReferences(entries: entries, document: document) { _, reference in
+            provenanceFullURLs.contains(reference)
         }
         try validateSupportingConnectivity(kind: .retraction, entries: entries, document: document)
     }

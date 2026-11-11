@@ -118,7 +118,8 @@ Internal nodes use deterministic `urn:uuid` full URLs.
 UUIDv5 input is the unsigned length-framed UTF-8 pair `[identifier.system, identifier.value]` for the selected typed identity.
 A node without an immutable business identity uses a typed content key, so the same content has the same fullUrl in every Bundle.
 An exact retry therefore rebuilds identical references, and changed content is a new snapshot rather than a second body under one fullUrl.
-A literal reference stays inside its record or points to a shared node of the same Bundle.
+A literal reference points to an output of its own record or to a shared node of the same Bundle.
+No literal reference reaches a lifecycle Provenance, not even the record's own, in an active or a retraction Bundle.
 
 ## Equality and retries
 

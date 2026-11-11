@@ -20,7 +20,8 @@ public struct RecordingDevice: Hashable, Sendable {
     public var stableUnitToken: String?
     /// The authority that assigned ``stableUnitToken``, such as the writer's `HKSource.bundleIdentifier`: a platform's unit
     /// token can be local to its host, so the same value from two writers names two units. The scope separates writers
-    /// only: a writer that states the same token for distinct units, on one host or on several, merges them.
+    /// only: a writer that states the same token for distinct units of one subject, on one host or on several, merges
+    /// them.
     public var tokenScope: String?
     /// The name a person gave the device, which may name that person.
     public var name: String?
