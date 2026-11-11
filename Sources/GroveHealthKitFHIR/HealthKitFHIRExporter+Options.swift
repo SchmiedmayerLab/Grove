@@ -21,6 +21,10 @@ extension HealthKitFHIRExporter {
         /// Whether the source is stated as an author. A source no author states carries the source-revision facts instead.
         public var writer: WriterPolicy = .omit
         /// Which token proves the physical unit behind a sample's `HKDevice`. See ``UnitTokenPolicy``.
+        ///
+        /// The default, ``UnitTokenPolicy/localIdentifier``, asserts that the deployment has verified the stability of
+        /// `HKDevice.localIdentifier` for what it acquires. A deployment that can't claim that uses
+        /// ``UnitTokenPolicy/none`` or its own ``UnitTokenPolicy/custom(_:)`` token.
         public var unitToken: UnitTokenPolicy = .localIdentifier
         /// How the converting application relates to each measurement. See ``RolePolicy``.
         public var role: RolePolicy = .assembler
@@ -109,6 +113,10 @@ extension HealthKitFHIRExporter {
     public enum UnitTokenPolicy: Sendable {
         /// `HKDevice.localIdentifier`, when the sample states one. It is local to the host that recorded the sample and
         /// writable by any application, so the same value from two writers names two units.
+        ///
+        /// The writer scopes the token, nothing else does: a writer that states the same value for distinct units, on one
+        /// host or on several, merges them into one identity. Choosing this policy asserts that the deployment has
+        /// verified the value's stability for what it acquires.
         case localIdentifier
         /// No token: no recording Device proves a physical unit.
         case none

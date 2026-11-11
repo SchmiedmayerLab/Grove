@@ -19,7 +19,8 @@ public struct RecordingDevice: Hashable, Sendable {
     /// needs ``tokenScope`` to do so.
     public var stableUnitToken: String?
     /// The authority that assigned ``stableUnitToken``, such as the writer's `HKSource.bundleIdentifier`: a platform's unit
-    /// token can be local to its host, so the same value from two writers names two units.
+    /// token can be local to its host, so the same value from two writers names two units. The scope separates writers
+    /// only: a writer that states the same token for distinct units, on one host or on several, merges them.
     public var tokenScope: String?
     /// The name a person gave the device, which may name that person.
     public var name: String?
@@ -35,8 +36,8 @@ public struct RecordingDevice: Hashable, Sendable {
     public var firmwareVersion: String?
     public var softwareVersion: String?
     /// The clear identifier the source states for the device, carried as a `Device.identifier` under the deployment's
-    /// ``DeploymentIdentifierSystems/deviceLocalIdentifier`` system. It is local to the host that recorded it, so equal
-    /// values never prove one unit.
+    /// ``DeploymentIdentifierSystems/deviceLocalIdentifier`` system. It is local to the host that recorded it, so this
+    /// clear copy proves nothing about the unit; only ``stableUnitToken``, under its ``tokenScope``, does.
     public var localIdentifier: String?
     public var udiDeviceIdentifier: String?
     /// The raw UDI production identifier, which may embed a lot or serial number.

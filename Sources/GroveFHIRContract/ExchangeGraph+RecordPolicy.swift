@@ -261,6 +261,9 @@ extension ExchangeGraph {
     }
 
     /// A literal reference stays inside its record or reaches a shared node; between records it is identifier-only.
+    ///
+    /// A lifecycle Provenance is neither an output nor a shared node, so nothing references one: followed, the reference
+    /// would pull another record's Provenance and outputs into the referring record.
     private static func validateRecordBoundaries(
         _ records: [ActiveRecord],
         entries: [BundleEntry],
@@ -286,7 +289,9 @@ extension ExchangeGraph {
                 throw .invalidEntries(String(reflecting: type(of: error)))
             }
             for reference in objects.compactMap({ $0["reference"] as? String }) {
-                guard let targetRecord = recordByOutput[reference], targetRecord != ownRecord else {
+                let reachesProvenance = recordByProvenance[reference] != nil
+                let reachesOtherRecord = recordByOutput[reference].map { $0 != ownRecord } ?? false
+                guard reachesProvenance || reachesOtherRecord else {
                     continue
                 }
                 let resource = try? document.resourceObject(at: index)

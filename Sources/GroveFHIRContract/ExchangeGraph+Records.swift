@@ -119,6 +119,12 @@ extension ExchangeGraph {
             indexes[entry.fullUrl?.value?.url.absoluteString ?? ""] = index
         }
         let subject = stated ?? Self.bundleSubject(in: entries)
+        let provenanceFullURLs = Set(entries.compactMap { entry -> String? in
+            guard case .provenance? = entry.resource else {
+                return nil
+            }
+            return entry.fullUrl?.value?.url.absoluteString ?? ""
+        })
         var records: [ExchangeRecord] = []
         for (index, entry) in entries.enumerated() {
             guard case .provenance(let provenance)? = entry.resource else {
@@ -127,6 +133,9 @@ extension ExchangeGraph {
             let outputs = kind == .active ? provenance.target.compactMap { $0.reference?.value?.string } : []
             let fullURL = entry.fullUrl?.value?.url.absoluteString ?? ""
             let unit = units.unit(from: [fullURL] + outputs)
+            guard unit.intersection(provenanceFullURLs) == [fullURL] else {
+                throw .invalidEntries("A record states exactly one lifecycle Provenance")
+            }
             do {
                 records.append(try ExchangeRecord(
                     kind: kind == .active ? .active : .retraction,
