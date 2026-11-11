@@ -26,9 +26,9 @@ public struct ExchangeBundlePacker: Sendable {
     }
 
     /// What happened to a record the packer did not refuse.
-    public enum Admission: Sendable, Equatable {
-        /// The record's entries were added.
-        case added
+    public enum InsertResult: Sendable, Equatable {
+        /// The record's entries were inserted.
+        case inserted
         /// The packer already holds this version and every entry the record states, or this retraction key, and keeps
         /// what it holds: the first accepted retraction of a source record wins.
         case duplicate
@@ -67,7 +67,7 @@ public struct ExchangeBundlePacker: Sendable {
         self.maximumBytes = maximumBytes
     }
 
-    /// Adds `record` to the Bundle, or reports why it does not join this one.
+    /// Inserts `record` into the Bundle, or reports why it does not join this one.
     ///
     /// `mixedSubjects` and `conflictingNode` compare `record` with the records already packed, and `mixedKinds` with the
     /// packer's kind, so an empty packer of the record's kind admits any one valid record, even one over `maximumBytes`:
@@ -79,7 +79,7 @@ public struct ExchangeBundlePacker: Sendable {
     /// put into the next Bundle. So is a version the packer holds when the record states an entry the packer doesn't, so
     /// that entry reaches the receiver too; only an active version that adds nothing is `.duplicate`, and a held
     /// retraction key always is.
-    public mutating func add(_ record: ExchangeRecord) throws(Failure) -> Admission {
+    public mutating func insert(_ record: ExchangeRecord) throws(Failure) -> InsertResult {
         guard record.kind == kind else {
             throw .mixedKinds
         }
@@ -110,7 +110,7 @@ public struct ExchangeBundlePacker: Sendable {
         }
         recordCount += 1
         byteCount += addedBytes
-        return .added
+        return .inserted
     }
 
     /// The entries of `record` the packer does not hold yet, once every entry it holds states the same tokens.

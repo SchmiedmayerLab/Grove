@@ -164,9 +164,9 @@ struct QuestionnaireRecordTests {
         })
         #expect(first.sourceRecord != second.sourceRecord)
         var packer = ExchangeBundlePacker(kind: .active)
-        #expect(try packer.add(first) == .added)
-        #expect(try packer.add(second) == .added)
-        #expect(try packer.add(first) == .duplicate)
+        #expect(try packer.insert(first) == .inserted)
+        #expect(try packer.insert(second) == .inserted)
+        #expect(try packer.insert(first) == .duplicate)
         let graph = try packer.bundle(packedAt: Fixtures.instant.addingTimeInterval(60))
         let resources = graph.bundle.entry?.compactMap { $0.resource?.resourceType } ?? []
         // Both records share the Patient and the writer's Devices; each states its own response.
@@ -187,8 +187,8 @@ struct QuestionnaireRecordTests {
         let first = try await Fixtures.exported(Fixtures.guideRecord())
         let amended = try await Fixtures.exported(Fixtures.guideRecord { $0.status = FHIRPrimitive(.amended) })
         var packer = ExchangeBundlePacker(kind: .active)
-        #expect(try packer.add(first) == .added)
-        #expect(try packer.add(amended) == .deferred)
+        #expect(try packer.insert(first) == .inserted)
+        #expect(try packer.insert(amended) == .deferred)
     }
 
     // MARK: The Writer's Host

@@ -75,7 +75,7 @@ struct HealthKitFHIRExporterTests {
 
         var packer = ExchangeBundlePacker(kind: .active)
         for record in records {
-            #expect(try packer.add(record) == .added)
+            #expect(try packer.insert(record) == .inserted)
         }
         let graph = try packer.bundle(packedAt: GoldenFixtures.conversionInstant)
         let entries = try #require(graph.bundle.entry)
@@ -94,7 +94,7 @@ struct HealthKitFHIRExporterTests {
         let records = try await Self.collect(Self.exporter(), samples).compactMap(\.record)
         var packer = ExchangeBundlePacker(kind: .active)
         for record in records {
-            _ = try packer.add(record)
+            _ = try packer.insert(record)
         }
         let packed = try packer.bundle(packedAt: GoldenFixtures.conversionInstant).healthKitSamples()
         let separate = records.map { $0.healthKitSamples() }

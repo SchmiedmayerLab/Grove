@@ -133,12 +133,12 @@ struct QuestionnaireFHIRExporterRetractionTests {
         let first = try await Self.retraction(of: Fixtures.guideRecord())
         let second = try await Self.retraction(of: other)
         var packer = ExchangeBundlePacker(kind: .retraction)
-        #expect(try packer.add(first) == .added)
-        #expect(try packer.add(second) == .added)
-        #expect(try packer.add(first) == .duplicate)
+        #expect(try packer.insert(first) == .inserted)
+        #expect(try packer.insert(second) == .inserted)
+        #expect(try packer.insert(first) == .duplicate)
         let active = try await Fixtures.exported(Fixtures.guideRecord())
         #expect(throws: ExchangeBundlePacker.Failure.mixedKinds) {
-            try packer.add(active)
+            try packer.insert(active)
         }
         let bundle = try packer.bundle(packedAt: Self.withdrawnAt)
         #expect(bundle.kind == .retraction)

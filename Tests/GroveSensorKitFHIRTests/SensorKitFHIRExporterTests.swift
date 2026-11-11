@@ -408,7 +408,7 @@ struct SensorKitFHIRExporterTests {
         let records = exports.compactMap(\.record)
         var packer = ExchangeBundlePacker(kind: .active)
         for record in records {
-            #expect(try packer.add(record) == .added)
+            #expect(try packer.insert(record) == .inserted)
         }
         let packed = try packer.bundle(packedAt: Fixtures.instant.addingTimeInterval(60))
         #expect(Self.recordingDevices(in: packed).count == 2, "Both records share one Device entry each")
@@ -440,7 +440,7 @@ struct SensorKitFHIRExporterTests {
 
         var packer = ExchangeBundlePacker(kind: .active)
         for record in records {
-            #expect(try packer.add(record) == .added)
+            #expect(try packer.insert(record) == .inserted)
         }
         let packed = try packer.bundle(packedAt: Fixtures.instant.addingTimeInterval(60))
         let provenances = records.count

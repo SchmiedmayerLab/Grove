@@ -65,9 +65,9 @@ struct HealthKitFHIRExporterBatchRetryTests {
         #expect(records[2].version != records[0].version)
 
         var packer = ExchangeBundlePacker(kind: .retraction)
-        #expect(try packer.add(records[0]) == .added)
-        #expect(try packer.add(records[1]) == .duplicate)
-        #expect(try packer.add(records[2]) == .added)
+        #expect(try packer.insert(records[0]) == .inserted)
+        #expect(try packer.insert(records[1]) == .duplicate)
+        #expect(try packer.insert(records[2]) == .inserted)
     }
 
     @Test("A call naming one ECG under two symptom sets delivers each input as it states it")

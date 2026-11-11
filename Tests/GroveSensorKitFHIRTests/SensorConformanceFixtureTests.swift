@@ -239,7 +239,7 @@ struct SensorConformanceFixtureTests {
         )
         var packer = ExchangeBundlePacker(kind: .active)
         for export in exports {
-            #expect(try packer.add(try #require(export.record)) == .added)
+            #expect(try packer.insert(try #require(export.record)) == .inserted)
         }
         #expect(packer.recordCount == records.count)
         try packer.bundle(packedAt: instant).json.write(to: Self.fixtureDirectory.appendingPathComponent("packed-exchange-bundle.json"))

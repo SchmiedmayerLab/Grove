@@ -60,13 +60,13 @@ struct ExtractionConformanceFixtureTests {
         ]))
         var active = ExchangeBundlePacker(kind: .active)
         for export in try await QuestionnaireExportFixtures.collect(exporter, records) {
-            #expect(try active.add(try #require(export.record)) == .added)
+            #expect(try active.insert(try #require(export.record)) == .inserted)
         }
         var retraction = ExchangeBundlePacker(kind: .retraction)
         let instant = QuestionnaireExportFixtures.instant
         try await exporter.retract(records.map { .init(record: $0, withdrawnAt: instant) }, at: instant) { withdrawal in
-            let admission = try retraction.add(try #require(withdrawal.record))
-            #expect(admission == .added)
+            let result = try retraction.insert(try #require(withdrawal.record))
+            #expect(result == .inserted)
         }
         try FileManager.default.createDirectory(at: Self.fixtureDirectory, withIntermediateDirectories: true)
         try active.bundle(packedAt: instant).json.write(to: Self.fixtureDirectory.appendingPathComponent("packed-exchange-bundle.json"))

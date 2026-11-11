@@ -49,7 +49,7 @@ struct ExchangeBundlePackerTests {
         let records = try (1...3).map { try Fixtures.record(nativeRecordID: "record-\($0)", recordingDevice: device, assembler: assembler) }
         var packer = ExchangeBundlePacker(kind: .active)
         for record in records {
-            #expect(try packer.add(record) == .added)
+            #expect(try packer.insert(record) == .inserted)
         }
         #expect(packer.recordCount == 3)
         let graph = try packer.bundle(packedAt: Fixtures.instant)
@@ -67,7 +67,7 @@ struct ExchangeBundlePackerTests {
     func bundleHeader() throws {
         let record = try Fixtures.record()
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(record)
+        _ = try packer.insert(record)
         let transport = try BusinessIdentifier(system: IdentifierSystem("https://study.example.org/upload"), value: "upload-1")
         let later = Fixtures.instant.addingTimeInterval(3_600)
         let graph = try packer.bundle(packedAt: later, transportIdentifier: transport)
@@ -79,8 +79,8 @@ struct ExchangeBundlePackerTests {
     @Test("A packed Bundle's bytes are canonical")
     func bundleIsCanonical() throws {
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(Fixtures.record())
-        _ = try packer.add(Fixtures.record(nativeRecordID: "record-2"))
+        _ = try packer.insert(Fixtures.record())
+        _ = try packer.insert(Fixtures.record(nativeRecordID: "record-2"))
         let graph = try packer.bundle(packedAt: Fixtures.instant)
         #expect(try LosslessJSONValue(parsing: graph.json).canonicalBytes() == graph.json)
     }
@@ -89,9 +89,9 @@ struct ExchangeBundlePackerTests {
     func duplicateVersion() throws {
         let record = try Fixtures.record()
         var packer = ExchangeBundlePacker(kind: .active)
-        #expect(try packer.add(record) == .added)
+        #expect(try packer.insert(record) == .inserted)
         let byteCount = packer.byteCount
-        #expect(try packer.add(record) == .duplicate)
+        #expect(try packer.insert(record) == .duplicate)
         #expect(packer.recordCount == 1)
         #expect(packer.byteCount == byteCount)
     }
@@ -100,9 +100,9 @@ struct ExchangeBundlePackerTests {
     func duplicateOfFullPacker() throws {
         let record = try Fixtures.record()
         var packer = ExchangeBundlePacker(kind: .active, maximumRecords: 1)
-        _ = try packer.add(record)
+        _ = try packer.insert(record)
         #expect(packer.isFull)
-        #expect(try packer.add(record) == .duplicate)
+        #expect(try packer.insert(record) == .duplicate)
     }
 
     @Test("The same version stating an entry the Bundle doesn't hold goes into the next Bundle")
@@ -115,13 +115,13 @@ struct ExchangeBundlePackerTests {
         #expect(reenrolled.version == packed.version)
         #expect(reenrolled.sharedNodeFullURLs != packed.sharedNodeFullURLs)
         var packer = ExchangeBundlePacker(kind: .active)
-        #expect(try packer.add(packed) == .added)
+        #expect(try packer.insert(packed) == .inserted)
         let byteCount = packer.byteCount
-        #expect(try packer.add(reenrolled) == .deferred)
+        #expect(try packer.insert(reenrolled) == .deferred)
         #expect(packer.recordCount == 1)
         #expect(packer.byteCount == byteCount)
         var next = ExchangeBundlePacker(kind: .active)
-        #expect(try next.add(reenrolled) == .added)
+        #expect(try next.insert(reenrolled) == .inserted)
         let records = try packer.bundle(packedAt: Fixtures.instant).records() + next.bundle(packedAt: Fixtures.instant).records()
         #expect(records.map(\.version) == [packed.version, packed.version])
         #expect(records.map(\.json) == [packed.json, reenrolled.json])
@@ -130,8 +130,8 @@ struct ExchangeBundlePackerTests {
     @Test("A second version of a packed source record is deferred")
     func secondVersionIsDeferred() throws {
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(Fixtures.record())
-        #expect(try packer.add(Fixtures.record(at: Fixtures.instant.addingTimeInterval(1))) == .deferred)
+        _ = try packer.insert(Fixtures.record())
+        #expect(try packer.insert(Fixtures.record(at: Fixtures.instant.addingTimeInterval(1))) == .deferred)
         #expect(packer.recordCount == 1)
     }
 
@@ -139,17 +139,17 @@ struct ExchangeBundlePackerTests {
     func capsDefer() throws {
         var byRecords = ExchangeBundlePacker(kind: .active, maximumRecords: 1)
         #expect(!byRecords.isFull)
-        #expect(try byRecords.add(Fixtures.record()) == .added)
+        #expect(try byRecords.insert(Fixtures.record()) == .inserted)
         #expect(byRecords.isFull)
-        #expect(try byRecords.add(Fixtures.record(nativeRecordID: "record-2")) == .deferred)
+        #expect(try byRecords.insert(Fixtures.record(nativeRecordID: "record-2")) == .deferred)
 
         let first = try Fixtures.record()
         var unbounded = ExchangeBundlePacker(kind: .active)
-        _ = try unbounded.add(first)
+        _ = try unbounded.insert(first)
         var byBytes = ExchangeBundlePacker(kind: .active, maximumBytes: unbounded.byteCount + 1)
-        #expect(try byBytes.add(first) == .added)
+        #expect(try byBytes.insert(first) == .inserted)
         #expect(!byBytes.isFull)
-        #expect(try byBytes.add(Fixtures.record(nativeRecordID: "record-2")) == .deferred)
+        #expect(try byBytes.insert(Fixtures.record(nativeRecordID: "record-2")) == .deferred)
         #expect(byBytes.recordCount == 1)
     }
 
@@ -158,11 +158,11 @@ struct ExchangeBundlePackerTests {
         let first = try Fixtures.record()
         let second = try Fixtures.record(nativeRecordID: "record-2")
         var unbounded = ExchangeBundlePacker(kind: .active)
-        _ = try unbounded.add(first)
-        _ = try unbounded.add(second)
+        _ = try unbounded.insert(first)
+        _ = try unbounded.insert(second)
         var packer = ExchangeBundlePacker(kind: .active, maximumBytes: unbounded.byteCount)
-        _ = try packer.add(first)
-        #expect(try packer.add(second) == .added)
+        _ = try packer.insert(first)
+        #expect(try packer.insert(second) == .inserted)
         #expect(packer.byteCount == unbounded.byteCount)
         #expect(packer.isFull)
     }
@@ -170,7 +170,7 @@ struct ExchangeBundlePackerTests {
     @Test("An empty packer of the record's kind admits any one record, over the byte cap too")
     func emptyPackerAdmitsAnyRecord() throws {
         var packer = ExchangeBundlePacker(kind: .active, maximumBytes: 1)
-        #expect(try packer.add(Fixtures.record()) == .added)
+        #expect(try packer.insert(Fixtures.record()) == .inserted)
         #expect(packer.isFull)
         #expect(try packer.bundle(packedAt: Fixtures.instant).records().count == 1)
     }
@@ -182,9 +182,9 @@ struct ExchangeBundlePackerTests {
         let conflicting = try ExchangeRecord(validating: tampered)
         let device = try #require(conflicting.entries.first { record.sharedNodeFullURLs.contains($0.fullURL) })
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(record)
+        _ = try packer.insert(record)
         #expect(throws: ExchangeBundlePacker.Failure.conflictingNode(fullURL: device.fullURL)) {
-            _ = try packer.add(conflicting)
+            _ = try packer.insert(conflicting)
         }
     }
 
@@ -194,9 +194,9 @@ struct ExchangeBundlePackerTests {
         let lexeme = String(decoding: record.json, as: UTF8.self).replacingOccurrences(of: #""value":72"#, with: #""value":72.0"#)
         let altered = try ExchangeRecord(validating: Data(lexeme.utf8))
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(record)
+        _ = try packer.insert(record)
         #expect(throws: ExchangeBundlePacker.Failure.conflictingNode(fullURL: record.outputFullURLs[0])) {
-            _ = try packer.add(altered)
+            _ = try packer.insert(altered)
         }
     }
 
@@ -204,11 +204,11 @@ struct ExchangeBundlePackerTests {
     func mixedKinds() throws {
         var active = ExchangeBundlePacker(kind: .active)
         #expect(throws: ExchangeBundlePacker.Failure.mixedKinds) {
-            _ = try active.add(Fixtures.retraction())
+            _ = try active.insert(Fixtures.retraction())
         }
         var retraction = ExchangeBundlePacker(kind: .retraction)
         #expect(throws: ExchangeBundlePacker.Failure.mixedKinds) {
-            _ = try retraction.add(Fixtures.record())
+            _ = try retraction.insert(Fixtures.record())
         }
     }
 
@@ -216,14 +216,14 @@ struct ExchangeBundlePackerTests {
     func mixedSubjects() throws {
         let other = try Fixtures.assembler(subject: Fixtures.subject("participant-002"))
         var active = ExchangeBundlePacker(kind: .active)
-        _ = try active.add(Fixtures.record())
+        _ = try active.insert(Fixtures.record())
         #expect(throws: ExchangeBundlePacker.Failure.mixedSubjects) {
-            _ = try active.add(Fixtures.record(nativeRecordID: "record-2", assembler: other))
+            _ = try active.insert(Fixtures.record(nativeRecordID: "record-2", assembler: other))
         }
         var retraction = ExchangeBundlePacker(kind: .retraction)
-        _ = try retraction.add(Fixtures.retraction())
+        _ = try retraction.insert(Fixtures.retraction())
         #expect(throws: ExchangeBundlePacker.Failure.mixedSubjects) {
-            _ = try retraction.add(Fixtures.retraction(nativeRecordID: "record-2", assembler: other))
+            _ = try retraction.insert(Fixtures.retraction(nativeRecordID: "record-2", assembler: other))
         }
     }
 
@@ -238,7 +238,7 @@ struct ExchangeBundlePackerTests {
         var packer = ExchangeBundlePacker(kind: .active)
         for (index, subject) in subjects.enumerated() {
             let assembler = try Fixtures.assembler(subject: subject, studies: [Fixtures.enrollment()])
-            #expect(try packer.add(Fixtures.record(nativeRecordID: "record-\(index)", assembler: assembler)) == .added)
+            #expect(try packer.insert(Fixtures.record(nativeRecordID: "record-\(index)", assembler: assembler)) == .inserted)
         }
         let records = try packer.bundle(packedAt: Fixtures.instant).records()
         #expect(records.count == subjects.count)
@@ -250,8 +250,8 @@ struct ExchangeBundlePackerTests {
         let first = try Fixtures.record()
         let second = try Fixtures.record(nativeRecordID: "record-2")
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(first)
-        _ = try packer.add(second)
+        _ = try packer.insert(first)
+        _ = try packer.insert(second)
         var root = try #require(try JSONSerialization.jsonObject(with: packer.bundle(packedAt: Fixtures.instant).json) as? [String: Any])
         var entries = try #require(root["entry"] as? [[String: Any]])
         let index = try #require(entries.firstIndex { $0["fullUrl"] as? String == second.outputFullURLs.first })
@@ -272,8 +272,8 @@ struct ExchangeBundlePackerTests {
         let first = try Fixtures.record()
         let second = try Fixtures.record(nativeRecordID: "record-2")
         var packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(first)
-        _ = try packer.add(second)
+        _ = try packer.insert(first)
+        _ = try packer.insert(second)
         let graph = try packer.bundle(packedAt: Fixtures.instant)
         let output = try #require(second.outputFullURLs.first)
         let recordEntries = Set([first.version.fullURL, second.version.fullURL] + first.outputFullURLs + second.outputFullURLs)
@@ -302,8 +302,8 @@ struct ExchangeBundlePackerTests {
         let first = try Fixtures.retraction()
         let second = try Fixtures.retraction(nativeRecordID: "record-2")
         var packer = ExchangeBundlePacker(kind: .retraction)
-        _ = try packer.add(first)
-        _ = try packer.add(second)
+        _ = try packer.insert(first)
+        _ = try packer.insert(second)
         let graph = try packer.bundle(packedAt: Fixtures.instant)
         let device = try #require(graph.bundle.entry?.first { entry in
             if case .device? = entry.resource { true } else { false }
@@ -324,9 +324,9 @@ struct ExchangeBundlePackerTests {
         let reported = try Fixtures.retraction(occurred: .period(start: nil, end: Fixtures.instant), at: Fixtures.instant.addingTimeInterval(60))
         let second = try Fixtures.retraction(nativeRecordID: "record-2")
         var packer = ExchangeBundlePacker(kind: .retraction)
-        #expect(try packer.add(first) == .added)
-        #expect(try packer.add(reported) == .duplicate)
-        #expect(try packer.add(second) == .added)
+        #expect(try packer.insert(first) == .inserted)
+        #expect(try packer.insert(reported) == .duplicate)
+        #expect(try packer.insert(second) == .inserted)
         let graph = try packer.bundle(packedAt: Fixtures.instant)
         #expect(graph.kind == .retraction)
         let records = try graph.records()
@@ -348,7 +348,7 @@ struct ExchangeBundlePackerTests {
         let assembler = try Fixtures.assembler(studies: [Fixtures.enrollment()])
         var packer = ExchangeBundlePacker(kind: .active)
         for index in 0..<500 {
-            _ = try packer.add(Fixtures.record(nativeRecordID: "record-\(index)", assembler: assembler))
+            _ = try packer.insert(Fixtures.record(nativeRecordID: "record-\(index)", assembler: assembler))
         }
         let graph = try packer.bundle(packedAt: Fixtures.instant)
         #expect(try graph.records().count == 500)

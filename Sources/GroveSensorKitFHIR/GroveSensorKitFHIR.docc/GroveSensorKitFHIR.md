@@ -114,11 +114,11 @@ try await exporter.export(
     guard let record = export.record else {
         return
     }
-    if try packer.add(record) == .deferred {
+    if try packer.insert(record) == .deferred {
         // The record belongs in the next Bundle: close this one and start that one with it.
         bundles.append(try packer.bundle(packedAt: conversionInstant))
         packer = ExchangeBundlePacker(kind: .active)
-        _ = try packer.add(record)
+        _ = try packer.insert(record)
     }
 }
 if packer.recordCount > 0 {
@@ -130,7 +130,7 @@ for bundle in bundles {
 try await batch.acknowledge()
 ```
 
-A record that would take the Bundle past a cap comes back from `add(_:)` as `deferred`, and starts the next Bundle; a fresh packer admits any one valid record.
+A record that would take the Bundle past a cap comes back from `insert(_:)` as `deferred`, and starts the next Bundle; a fresh packer admits any one valid record.
 Pack with the persisted conversion instant, so a redelivered batch stages the same bytes.
 
 What to persist, and why:
@@ -230,7 +230,7 @@ try await exporter.export(
 ) { export in
     if let record = export.record {
         try stageSidecar(recording.data, at: sidecarPath)
-        _ = try packer.add(record) // One record: an empty packer always adds it.
+        _ = try packer.insert(record) // One record: an empty packer always inserts it.
     }
 }
 try stage(packer.bundle(packedAt: conversionInstant).json)

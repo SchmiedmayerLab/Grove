@@ -48,7 +48,7 @@ struct PackedBundleFixtureTests {
     private static func packed(_ records: [ExchangeRecord], kind: ExchangeRecord.Kind) throws -> ExchangeGraph {
         var packer = ExchangeBundlePacker(kind: kind)
         for record in records {
-            #expect(try packer.add(record) == .added)
+            #expect(try packer.insert(record) == .inserted)
         }
         return try packer.bundle(packedAt: GoldenFixtures.conversionInstant)
     }

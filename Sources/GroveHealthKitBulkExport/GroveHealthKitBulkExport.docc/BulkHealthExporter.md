@@ -72,10 +72,10 @@ func packedBundles(of samples: [HKSample], exporter: HealthKitFHIRExporter) asyn
         guard let record = export.record else {
             return
         }
-        if try packer.add(record) == .deferred {
+        if try packer.insert(record) == .deferred {
             bundles.append(try packer.bundle(packedAt: .now))
             packer = ExchangeBundlePacker(kind: .active)
-            _ = try packer.add(record)
+            _ = try packer.insert(record)
         }
     }
     if packer.recordCount > 0 {
