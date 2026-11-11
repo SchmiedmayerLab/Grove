@@ -37,12 +37,12 @@ enum ExchangeRecordFixtures {
         .logical(try BusinessIdentifier(system: IdentifierSystem("https://study.example.org/fhir/identifiers/participant"), value: value))
     }
 
-    static func enrollment(protocolVersion: String = "1.0") throws -> StudyEnrollment {
+    static func enrollment(protocolVersion: String = "1.0", enrollment: String = "enrollment-1") throws -> StudyEnrollment {
         try StudyEnrollment(
             study: BusinessIdentifier(system: IdentifierSystem("https://study.example.org/fhir/identifiers/study"), value: "study-1"),
             protocolURL: "https://study.example.org/fhir/PlanDefinition/protocol",
             protocolVersion: protocolVersion,
-            enrollment: BusinessIdentifier(system: IdentifierSystem("https://study.example.org/fhir/identifiers/enrollment"), value: "enrollment-1")
+            enrollment: BusinessIdentifier(system: IdentifierSystem("https://study.example.org/fhir/identifiers/enrollment"), value: enrollment)
         )
     }
 

@@ -29,11 +29,13 @@ public struct ExchangeBundlePacker: Sendable {
     public enum Admission: Sendable, Equatable {
         /// The record's entries were added.
         case added
-        /// The packer already holds this version, or this retraction key, and keeps what it holds: the first accepted
-        /// retraction of a source record wins.
+        /// The packer already holds this version and every entry the record states, or this retraction key, and keeps
+        /// what it holds: the first accepted retraction of a source record wins.
         case duplicate
         /// The record belongs in the next Bundle: a second version of a source record already packed, whose outputs share
-        /// their fullUrls with the first, or a record that would take this non-empty packer past a cap.
+        /// their fullUrls with the first; the same version stating an entry this Bundle doesn't hold, such as a changed
+        /// ResearchSubject, which stays outside the record version; or a record that would take this non-empty packer past
+        /// a cap.
         case deferred
     }
 
@@ -74,7 +76,8 @@ public struct ExchangeBundlePacker: Sendable {
     /// read back from bytes, is compared with no one, so a caller that needs that check holds the subject itself.
     ///
     /// A record that would take a non-empty packer past `maximumRecords` or `maximumBytes` is `.deferred`, for the caller to
-    /// put into the next Bundle.
+    /// put into the next Bundle. So is a version the packer holds when the record states an entry the packer doesn't, so
+    /// that entry reaches the receiver too; only a version that adds nothing is `.duplicate`.
     public mutating func add(_ record: ExchangeRecord) throws(Failure) -> Admission {
         guard record.kind == kind else {
             throw .mixedKinds
@@ -92,7 +95,7 @@ public struct ExchangeBundlePacker: Sendable {
         }
         let added = try unpackedEntries(of: record)
         if versions[record.sourceRecord] != nil {
-            return .duplicate
+            return added.isEmpty ? .duplicate : .deferred
         }
         let addedBytes = added.reduce(0) { $0 + $1.json.count }
         guard recordCount == 0 || (recordCount < maximumRecords && byteCount + addedBytes <= maximumBytes) else {

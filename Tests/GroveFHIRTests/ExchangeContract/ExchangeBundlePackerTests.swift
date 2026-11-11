@@ -105,6 +105,28 @@ struct ExchangeBundlePackerTests {
         #expect(try packer.add(record) == .duplicate)
     }
 
+    @Test("The same version stating an entry the Bundle doesn't hold goes into the next Bundle")
+    func sameVersionWithANewEntryIsDeferred() throws {
+        // A changed enrollment is a new ResearchSubject, which stays outside the record version.
+        let packed = try Fixtures.record(assembler: Fixtures.assembler(studies: [Fixtures.enrollment()]))
+        let reenrolled = try Fixtures.record(
+            assembler: Fixtures.assembler(studies: [Fixtures.enrollment(enrollment: "enrollment-2")])
+        )
+        #expect(reenrolled.version == packed.version)
+        #expect(reenrolled.sharedNodeFullURLs != packed.sharedNodeFullURLs)
+        var packer = ExchangeBundlePacker(kind: .active)
+        #expect(try packer.add(packed) == .added)
+        let byteCount = packer.byteCount
+        #expect(try packer.add(reenrolled) == .deferred)
+        #expect(packer.recordCount == 1)
+        #expect(packer.byteCount == byteCount)
+        var next = ExchangeBundlePacker(kind: .active)
+        #expect(try next.add(reenrolled) == .added)
+        let records = try packer.bundle(packedAt: Fixtures.instant).records() + next.bundle(packedAt: Fixtures.instant).records()
+        #expect(records.map(\.version) == [packed.version, packed.version])
+        #expect(records.map(\.json) == [packed.json, reenrolled.json])
+    }
+
     @Test("A second version of a packed source record is deferred")
     func secondVersionIsDeferred() throws {
         var packer = ExchangeBundlePacker(kind: .active)
