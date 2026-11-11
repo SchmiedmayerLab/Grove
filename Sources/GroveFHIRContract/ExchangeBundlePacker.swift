@@ -77,7 +77,8 @@ public struct ExchangeBundlePacker: Sendable {
     ///
     /// A record that would take a non-empty packer past `maximumRecords` or `maximumBytes` is `.deferred`, for the caller to
     /// put into the next Bundle. So is a version the packer holds when the record states an entry the packer doesn't, so
-    /// that entry reaches the receiver too; only a version that adds nothing is `.duplicate`.
+    /// that entry reaches the receiver too; only an active version that adds nothing is `.duplicate`, and a held
+    /// retraction key always is.
     public mutating func add(_ record: ExchangeRecord) throws(Failure) -> Admission {
         guard record.kind == kind else {
             throw .mixedKinds

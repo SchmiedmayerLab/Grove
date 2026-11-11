@@ -100,9 +100,10 @@ let exporter = try SensorKitFHIRExporter(
 )
 ```
 
-Export each anchored batch, pack its records into one Bundle, stage that Bundle's bytes verbatim, and acknowledge the batch; "Publish an anchored batch" below walks through one batch.
+Export each anchored batch, pack its records into Bundles, stage each Bundle's bytes verbatim, and acknowledge the batch; "Publish an anchored batch" below walks through one batch.
 
 ```swift
+var bundles: [ExchangeGraph] = []
 var packer = ExchangeBundlePacker(kind: .active)
 try await exporter.export(
     records,
@@ -110,15 +111,26 @@ try await exporter.export(
     recordingDevice: RecordingDevice(batch.info.device),
     at: conversionInstant
 ) { export in
-    if let record = export.record {
+    guard let record = export.record else {
+        return
+    }
+    if try packer.add(record) == .deferred {
+        // The record belongs in the next Bundle: close this one and start that one with it.
+        bundles.append(try packer.bundle(packedAt: conversionInstant))
+        packer = ExchangeBundlePacker(kind: .active)
         _ = try packer.add(record)
     }
 }
-try stage(packer.bundle(packedAt: conversionInstant).json)
+if packer.recordCount > 0 {
+    bundles.append(try packer.bundle(packedAt: conversionInstant))
+}
+for bundle in bundles {
+    try stage(bundle.json)
+}
 try await batch.acknowledge()
 ```
 
-A record that would take the Bundle past a cap comes back from `add(_:)` as `deferred`, and starts the next Bundle.
+A record that would take the Bundle past a cap comes back from `add(_:)` as `deferred`, and starts the next Bundle; a fresh packer admits any one valid record.
 Pack with the persisted conversion instant, so a redelivered batch stages the same bytes.
 
 What to persist, and why:
@@ -218,7 +230,7 @@ try await exporter.export(
 ) { export in
     if let record = export.record {
         try stageSidecar(recording.data, at: sidecarPath)
-        _ = try packer.add(record)
+        _ = try packer.add(record) // One record: an empty packer always adds it.
     }
 }
 try stage(packer.bundle(packedAt: conversionInstant).json)
