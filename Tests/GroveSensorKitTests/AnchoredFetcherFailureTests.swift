@@ -111,6 +111,27 @@ struct AnchoredFetcherFailureTests {
         }
     }
 
+    @Test("A time-path fetch states whether its peripherals supplied every sample")
+    @available(iOS 18, *)
+    func timePathStatesWhetherPeripheralsSuppliedEverySample() async throws {
+        let timestamp = SRAbsoluteTime(Date(timeIntervalSinceReferenceDate: 3_100))
+        let peripheral = SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-1")
+        let cases: [([SensorKit.SourceDeviceInfo?], Bool)] = [([peripheral, peripheral], true), ([peripheral, nil], false), ([nil], false)]
+        for (sourceDevices, expected) in cases {
+            let delegate = SamplesFetcherDelegate(makePassingSensor())
+            let fetched: SensorKit.FetchedSamples<AnchoredFetcherSafeSample> = try await withCheckedThrowingContinuation { continuation in
+                delegate.continuation = continuation
+                for sourceDevice in sourceDevices {
+                    #expect(delegate.process(sample: PassingSample(), timestamp: timestamp, sourceDevice: sourceDevice))
+                }
+                delegate.completeFetch()
+            }
+            #expect(fetched.samples.count == sourceDevices.count)
+            #expect(fetched.sourceDevices == (sourceDevices.contains(peripheral) ? [peripheral] : []))
+            #expect(fetched.sourceDevicesSuppliedEverySample == expected)
+        }
+    }
+
     @Test("Time-interval fetch failure leaves its cursor unchanged")
     @available(iOS 18, *)
     func timeIntervalFailureRetainsCursor() async throws {

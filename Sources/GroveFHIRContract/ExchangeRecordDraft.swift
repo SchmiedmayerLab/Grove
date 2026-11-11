@@ -92,8 +92,10 @@ package struct ExchangeOutputDraft: Sendable {
     package struct Links: OptionSet, Sendable {
         /// `subject`: who the measurement is about.
         package static let subject = Links(rawValue: 1 << 0)
-        /// On an Observation, `device` names the recording Device when the record has one. On a DocumentReference,
-        /// `author` names the recording Device when the record has one, then the converting application, always.
+        /// On an Observation, `device` names the record's sole peripheral when it supplied every sample
+        /// (``ExchangeRecordDraft/sourceDevicesSuppliedEverySample``), and otherwise the recording Device when the record has
+        /// one. On a DocumentReference, `author` names the recording Device when the record has one, then the converting
+        /// application, always.
         package static let recordingDevice = Links(rawValue: 1 << 1)
         /// The gateway-device extension when the converter role names a gateway.
         package static let gateway = Links(rawValue: 1 << 2)

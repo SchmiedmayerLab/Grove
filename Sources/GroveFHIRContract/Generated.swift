@@ -6942,7 +6942,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         case .mobileExchangeResolvedReference:
             "Every internal UUID URN reference must resolve to a Bundle entry fullUrl."
         case .mobileExchangeContentSnapshotKey:
-            "A shared node carries one typed device-snapshot or context-snapshot v0 Identifier for its node role, in Resource.identifier or, on a QuestionnaireResponse, in grove-context-snapshot; its shape is always checked, and under the published test key it recomputes from the node's canonical content."
+            "A shared node carries one typed device-snapshot or context-snapshot v0 Identifier for its node role, in Resource.identifier or, on a QuestionnaireResponse, in grove-context-snapshot; its shape is always checked, and under the published test key it recomputes from the node's canonical content over the one subject its Bundle's records state. An active Bundle whose records state no one subject fails; a retraction Bundle states no subject, so its Device snapshots are checked for shape only."
         case .mobileExchangeRecordVersionKey:
             "The entry key of a conversion Provenance is its typed record-version Identifier pair over its source-record entity and record content digest; its shape is always checked, and it recomputes only when its key id is the published test key."
         case .mobileExchangeRecordVersionExtension:

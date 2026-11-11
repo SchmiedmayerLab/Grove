@@ -218,6 +218,103 @@ struct ExchangeRecordTests {
         try ExchangeGraph(validating: first.json, kind: .active).validateDerivedKeys(in: Fixtures.identityScope)
     }
 
+    @Test("A bundled Patient names exactly one pseudonym, the subject its records state")
+    func bundledPatientNamesOnePseudonym() throws {
+        let identifier = try Fixtures.subject().identifier
+        let subject = Subject.bundled(identifier, Patient(identifier: [identifier.fhirIdentifier]))
+        let record = try Fixtures.record(assembler: Fixtures.assembler(subject: subject, studies: [Fixtures.enrollment()]))
+        let index = try #require(try Fixtures.resources(of: record).firstIndex { $0["resourceType"] as? String == "Patient" })
+        let reserved = Canonicals.identifierRoleCodeSystemValue
+        let cases: [(String, ([[String: Any]]) -> [[String: Any]])] = [
+            ("a medical record number", { $0 + [["system": "https://hospital.example.org/mrn", "value": "mrn-7"]] }),
+            ("no pseudonym", { $0.filter { $0["type"] != nil } }),
+            ("a reserved system", { $0.map { $0["type"] == nil ? ["system": reserved, "value": "p-1"] : $0 } }),
+            ("a relative system", { $0.map { $0["type"] == nil ? ["system": "participant", "value": "p-1"] : $0 } })
+        ]
+        for (name, change) in cases {
+            let tampered = try Fixtures.json(of: record, changing: "Patient") { patient in
+                patient["identifier"] = change(patient["identifier"] as? [[String: Any]] ?? [])
+            }
+            #expect("\(name)") {
+                try ExchangeGraph(validating: tampered, kind: .active)
+            } throws: { error in
+                let diagnostic = (error as? ExchangeGraphError)?.diagnostic
+                return diagnostic?.code == "mobile-exchange.patient-pseudonym"
+                    && diagnostic?.location == "Bundle.entry[\(index)].resource.identifier"
+            }
+        }
+    }
+
+    @Test("A bundled Patient that names another participant than the records is refused")
+    func bundledPatientNamesTheRecordsSubject() throws {
+        let identifier = try Fixtures.subject().identifier
+        let subject = Subject.bundled(identifier, Patient(identifier: [identifier.fhirIdentifier]))
+        let record = try Fixtures.record(assembler: Fixtures.assembler(subject: subject))
+        let resources = try Fixtures.resources(of: record)
+        let index = try #require(resources.firstIndex { $0["resourceType"] as? String == "Patient" })
+        let patientURL = try #require(
+            (resources.first { $0["resourceType"] as? String == "Observation" }?["subject"] as? [String: Any])?["reference"] as? String
+        )
+        // The Observation names the pseudonym identifier-only, and reaches the Patient, which names participant-999, as its
+        // performer.
+        var root = try #require(try JSONSerialization.jsonObject(with: record.json) as? [String: Any])
+        var entries = root["entry"] as? [[String: Any]] ?? []
+        for position in entries.indices {
+            guard var resource = entries[position]["resource"] as? [String: Any] else {
+                continue
+            }
+            switch resource["resourceType"] as? String {
+            case "Observation":
+                resource["subject"] = ["type": "Patient", "identifier": ["system": identifier.system.rawValue, "value": identifier.value]]
+                resource["performer"] = [["reference": patientURL]]
+            case "Patient":
+                resource["identifier"] = (resource["identifier"] as? [[String: Any]] ?? []).map {
+                    $0["type"] == nil ? ["system": identifier.system.rawValue, "value": "participant-999"] : $0
+                }
+            default:
+                continue
+            }
+            entries[position]["resource"] = resource
+        }
+        root["entry"] = entries
+        let tampered = try JSONSerialization.data(withJSONObject: root)
+        #expect {
+            try ExchangeGraph(validating: tampered, kind: .active)
+        } throws: { error in
+            let diagnostic = (error as? ExchangeGraphError)?.diagnostic
+            return diagnostic?.code == "mobile-exchange.patient-pseudonym"
+                && diagnostic?.location == "Bundle.entry[\(index)].resource.identifier"
+        }
+    }
+
+    @Test("An active record that states no subject cannot recompute its content snapshots, and is refused")
+    func subjectlessSnapshotsFailClosed() throws {
+        let assembler = try Fixtures.assembler()
+        var draft = try Fixtures.draft(assembler: assembler)
+        draft.outputs[0].links.remove(.subject)
+        let record = try assembler.assemble(draft).record
+        let graph = try ExchangeGraph(validating: record.json, kind: .active)
+        #expect {
+            try graph.validateDerivedKeys(in: Fixtures.identityScope)
+        } throws: { error in
+            let diagnostic = (error as? ExchangeGraphError)?.diagnostic
+            return diagnostic?.code == "mobile-exchange.content-snapshot-key"
+                && diagnostic?.location.hasSuffix(".extension.valueIdentifier.value") == true
+        }
+    }
+
+    @Test("A retraction checks its Device snapshots for shape only, as nothing in it states their subject")
+    func retractionSnapshotsAreShapeOnly() throws {
+        let retraction = try Fixtures.retraction()
+        try ExchangeGraph(validating: retraction.json, kind: .retraction).validateDerivedKeys(in: Fixtures.identityScope)
+        let changed = try Fixtures.json(of: retraction, changing: "Device") { device in
+            device["meta"] = (device["meta"] as? [String: Any] ?? [:]).merging(
+                ["tag": [["system": "https://example.org/tag", "code": "changed"]]]
+            ) { $1 }
+        }
+        try ExchangeGraph(validating: changed, kind: .retraction).validateDerivedKeys(in: Fixtures.identityScope)
+    }
+
     @Test("Study nodes carry their context-snapshot Identifier, and a new revision is a new node")
     func studyNodes() throws {
         let record = try Fixtures.record(assembler: Fixtures.assembler(studies: [Fixtures.enrollment()]))

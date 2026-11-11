@@ -220,9 +220,9 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
         }
     }
 
-    func process(sample object: AnyObject, timestamp: SRAbsoluteTime) -> Bool {
+    func process(sample object: AnyObject, timestamp: SRAbsoluteTime, sourceDevice: SensorKit.SourceDeviceInfo? = nil) -> Bool {
         process {
-            try SensorKit.FetchResult(sample: object, timestamp: timestamp, for: sensor)
+            try SensorKit.FetchResult(sample: object, timestamp: timestamp, sourceDevice: sourceDevice, for: sensor)
         }
     }
 
@@ -252,6 +252,11 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
     }
     
     func sensorReader(_ reader: SRSensorReader, didCompleteFetch fetchRequest: SRFetchRequest) {
+        completeFetch()
+    }
+
+    /// Resumes the fetch with every result processed so far.
+    func completeFetch() {
         guard let continuation else {
             self.results = []
             return

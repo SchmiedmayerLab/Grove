@@ -39,6 +39,8 @@ package struct ExchangeGraphAssembler: Sendable {
         let recording: IdentifiedDevice?
         /// The record's peripherals, each once; one that states ``recording``'s very content is that entry.
         let sources: [IdentifiedDevice]
+        /// The record's one peripheral, when it names exactly one and that one isn't ``recording``.
+        let soleSource: IdentifiedDevice?
         let writer: WriterSnapshots?
 
         /// Every Device entry, in its fixed order.
@@ -71,7 +73,7 @@ package struct ExchangeGraphAssembler: Sendable {
                 subject: studyContext.subjectReference,
                 studyReferences: studyContext.studyReferences,
                 recordingURL: recording?.url,
-                observationDeviceURL: sources.count == 1 && sourceDevicesSuppliedEverySample ? sources[0].url : recording?.url,
+                observationDeviceURL: (sourceDevicesSuppliedEverySample ? soleSource ?? recording : recording)?.url,
                 gatewayURL: converter.gatewayURL,
                 converterURL: converter.application.url
             )

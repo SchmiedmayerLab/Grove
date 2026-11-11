@@ -61,10 +61,14 @@ extension ExchangeGraphAssembler {
         }
         let converter = try converterSnapshots(role: draft.converterRole, statesGateway: statesGateway)
         let recording = try draft.recordingDevice.map(recordingSnapshot)
+        let peripherals = try draft.sourceDevices.map(recordingSnapshot)
         var stated = Set([recording?.identity].compactMap { $0 })
-        let sources = try draft.sourceDevices.map(recordingSnapshot).filter { stated.insert($0.identity).inserted }
+        let sources = peripherals.filter { stated.insert($0.identity).inserted }
+        // A peripheral that states the recording Device's very content is that entry, so a record that names it beside
+        // another peripheral has two devices that supplied samples, not a sole peripheral.
+        let soleSource = Set(peripherals.map(\.identity)).count == 1 ? sources.first : nil
         let writer = try writerSnapshots(draft.writer, converter: converter)
-        return Devices(converter: converter, recording: recording, sources: sources, writer: writer)
+        return Devices(converter: converter, recording: recording, sources: sources, soleSource: soleSource, writer: writer)
     }
 
     /// The converting application's snapshot and its host's, which every record of the envelope shares.

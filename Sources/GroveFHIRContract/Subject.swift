@@ -35,7 +35,8 @@ public enum Subject: Hashable, Sendable {
         case .logical(let identifier):
             return Patient(identifier: [identifier.fhirIdentifier])
         case .bundled(let identifier, var patient):
-            if patient.identifier?.contains(identifier.fhirIdentifier) != true {
+            // A Patient that already carries the pseudonym, typed or with a `use`, keeps it as its own.
+            if patient.identifier?.contains(where: { (try? BusinessIdentifier($0)) == identifier }) != true {
                 patient.identifier = (patient.identifier ?? []) + [identifier.fhirIdentifier]
             }
             return patient

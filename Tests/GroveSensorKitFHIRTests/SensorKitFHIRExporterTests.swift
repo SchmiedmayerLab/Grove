@@ -420,6 +420,13 @@ struct SensorKitFHIRExporterTests {
             sourceDevicesSuppliedEverySample: true
         )
         #expect(two.observations.first?.device?.reference?.value?.string == watch.url)
+        // A peripheral that states the SRDevice's very content is that entry, so beside another one there is no sole peripheral.
+        let recordingAsPeripheral = try await Fixtures.graph(
+            Self.sleep(20),
+            sourceDevices: [Fixtures.watch, peripheral],
+            sourceDevicesSuppliedEverySample: true
+        )
+        #expect(recordingAsPeripheral.observations.first?.device?.reference?.value?.string == watch.url)
         let none = try await Fixtures.graph(Self.sleep(20), sourceDevicesSuppliedEverySample: true)
         #expect(none.observations.first?.device?.reference?.value?.string == watch.url)
         #expect(try none.provenance.entity?.first?.agent == nil)

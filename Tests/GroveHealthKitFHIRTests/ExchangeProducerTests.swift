@@ -147,6 +147,15 @@ struct ExchangeProducerTests {
         #expect(producer.subject.identifier == pseudonym)
         let named = try Self.producer(subject: .bundled(pseudonym, Patient(identifier: [pseudonym.fhirIdentifier])))
         #expect(named.subject.identifier == pseudonym)
+        // A Patient that carries the pseudonym with a `use` or a non-Grove type keeps it as its one pseudonym.
+        let described = Identifier(
+            system: pseudonym.system.uri,
+            type: CodeableConcept(coding: [Coding(code: "ANON", system: "http://terminology.hl7.org/CodeSystem/v2-0203")]),
+            use: FHIRPrimitive(.official),
+            value: pseudonym.value.asFHIRStringPrimitive()
+        )
+        let typed = try Self.producer(subject: .bundled(pseudonym, Patient(identifier: [described])))
+        #expect(typed.subject.bundledPatient.identifier == [described])
     }
 
     @Test("A bundled Patient that carries a second business identifier is refused")
