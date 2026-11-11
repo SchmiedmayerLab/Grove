@@ -223,6 +223,7 @@ extension AnchoredFetcher {
                 timeRange: timeRange,
                 device: SensorKit.DeviceInfo(device),
                 sourceDevices: results.sourceDevices,
+                sourceDevicesSuppliedEverySample: results.sourceDevicesSuppliedEverySample,
                 acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate
             )
             let anchor = self.anchor

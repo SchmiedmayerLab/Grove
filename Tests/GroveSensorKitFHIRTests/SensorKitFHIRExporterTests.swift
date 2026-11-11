@@ -351,7 +351,7 @@ struct SensorKitFHIRExporterTests {
         #expect(identifiers.compactMap { try? RoledIdentifier($0).role } == [.deviceSnapshot, .recordingDevice])
     }
 
-    @Test("A peripheral is a recording Device of its own, which the source entity names and no output references")
+    @Test("A peripheral is a recording Device of its own, which the source entity names as performer, with the SRDevice as composer")
     func peripheralIsARecordingDeviceOfItsOwn() async throws {
         let record = try await Fixtures.record(try Self.wristTemperature(15), sourceDevices: [.testPeripheral()])
         let graph = try record.graph
@@ -375,8 +375,8 @@ struct SensorKitFHIRExporterTests {
         #expect(local.type?.coding?.first?.system == Canonicals.groveDeviceIdentifierType)
 
         let agents = try #require(try graph.provenance.entity?.first?.agent)
-        #expect(agents.map(\.who.reference?.value?.string) == [peripheral.url])
-        #expect(agents.first?.type?.coding?.first?.code?.value?.string == "performer")
+        #expect(agents.map(\.who.reference?.value?.string) == [peripheral.url, watch.url])
+        #expect(agents.map { $0.type?.coding?.first?.code?.value?.string } == ["performer", "composer"])
         #expect(record.sharedNodeFullURLs.isSuperset(of: [watch.url, peripheral.url]))
         try record.verifyVersion(in: scope)
     }
@@ -394,11 +394,35 @@ struct SensorKitFHIRExporterTests {
         let other = RecordingDevice.testPeripheral(localIdentifier: "peripheral-8")
         let graph = try await Fixtures.graph(Self.sleep(17), sourceDevices: [peripheral, other, peripheral])
         #expect(Self.recordingDevices(in: graph).count == 3)
-        #expect(try graph.provenance.entity?.first?.agent?.count == 2)
+        #expect(try graph.provenance.entity?.first?.agent?.count == 3, "Two performers and the composer")
 
         let same = try await Fixtures.graph(Self.sleep(17), recordingDevice: peripheral, sourceDevices: [peripheral])
         #expect(Self.recordingDevices(in: same).count == 1)
         #expect(try same.provenance.entity?.first?.agent == nil)
+    }
+
+    @Test("An Observation names a sole peripheral as its device only when it supplied every sample")
+    func soleWholePeripheralIsTheObservationDevice() async throws {
+        let peripheral = RecordingDevice.testPeripheral()
+        let whole = try await Fixtures.graph(Self.sleep(20), sourceDevices: [peripheral], sourceDevicesSuppliedEverySample: true)
+        let devices = Self.recordingDevices(in: whole)
+        try #require(devices.count == 2)
+        let (watch, named) = (devices[0], devices[1])
+        #expect(whole.observations.first?.device?.reference?.value?.string == named.url)
+        let agents = try #require(try whole.provenance.entity?.first?.agent)
+        #expect(agents.map(\.who.reference?.value?.string) == [named.url, watch.url], "The composer keeps the SRDevice in the record")
+
+        let partial = try await Fixtures.graph(Self.sleep(20), sourceDevices: [peripheral])
+        #expect(partial.observations.first?.device?.reference?.value?.string == watch.url)
+        let two = try await Fixtures.graph(
+            Self.sleep(20),
+            sourceDevices: [peripheral, .testPeripheral(localIdentifier: "peripheral-8")],
+            sourceDevicesSuppliedEverySample: true
+        )
+        #expect(two.observations.first?.device?.reference?.value?.string == watch.url)
+        let none = try await Fixtures.graph(Self.sleep(20), sourceDevicesSuppliedEverySample: true)
+        #expect(none.observations.first?.device?.reference?.value?.string == watch.url)
+        #expect(try none.provenance.entity?.first?.agent == nil)
     }
 
     @Test("A peripheral survives packing: read back from its Bundle, a record keeps both recording Devices and its version")

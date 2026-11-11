@@ -130,6 +130,7 @@ extension AnchoredFetcher {
                     timeRange: rawElement.timeRange,
                     device: rawElement.device,
                     sourceDevices: rawElement.sourceDevices,
+                    sourceDevicesSuppliedEverySample: rawElement.sourceDevicesSuppliedEverySample,
                     acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate
                 ),
                 samples: rawElement.samples,
@@ -245,6 +246,8 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     nonisolated(unsafe) private(set) var samples: [Sample.SafeRepresentation] = []
     /// The peripherals that supplied `samples`, in the order SensorKit first named them.
     nonisolated(unsafe) private(set) var sourceDevices: [SensorKit.SourceDeviceInfo] = []
+    /// Whether some of `samples` came from a fetch result that named no peripheral.
+    nonisolated(unsafe) private(set) var hasSamplesWithoutSourceDevice = false
     nonisolated(unsafe) private(set) var lastSeenTimestamp: SRAbsoluteTime?
     
     private let semaphore = DispatchSemaphore(value: 0)
@@ -316,6 +319,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         lock.lock()
         samples.removeAll()
         sourceDevices.removeAll()
+        hasSamplesWithoutSourceDevice = false
         lastSeenTimestamp = nil
         let continuation = nextBatchContinuation
         nextBatchContinuation = nil
@@ -393,7 +397,13 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
                 }
                 return start..<end
             }()
-            value = RawElement(timeRange: timeRange, device: deviceInfo, sourceDevices: sourceDevices, samples: samples)
+            value = RawElement(
+                timeRange: timeRange,
+                device: deviceInfo,
+                sourceDevices: sourceDevices,
+                sourceDevicesSuppliedEverySample: !sourceDevices.isEmpty && !hasSamplesWithoutSourceDevice,
+                samples: samples
+            )
         } else {
             // samples is empty
             value = nil
@@ -405,6 +415,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         lastSeenTimestamp = nil
         samples.removeAll(keepingCapacity: true)
         sourceDevices.removeAll()
+        hasSamplesWithoutSourceDevice = false
         return (nextBatchContinuation, (value, deliveredAnchor))
     }
     
@@ -441,8 +452,14 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             // check above, in which case the batch must be dropped (post-stop, `samples` stays empty).
             if state.isFetching {
                 self.samples.append(contentsOf: processed)
-                if !processed.isEmpty, let sourceDevice = fetchResult.sourceDevice, !sourceDevices.contains(sourceDevice) {
-                    sourceDevices.append(sourceDevice)
+                if !processed.isEmpty {
+                    if let sourceDevice = fetchResult.sourceDevice {
+                        if !sourceDevices.contains(sourceDevice) {
+                            sourceDevices.append(sourceDevice)
+                        }
+                    } else {
+                        hasSamplesWithoutSourceDevice = true
+                    }
                 }
                 lastSeenTimestamp = lastSeenTimestamp.map { max($0, timestamp) } ?? timestamp
             }

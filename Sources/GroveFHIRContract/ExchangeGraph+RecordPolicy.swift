@@ -27,12 +27,6 @@ extension ExchangeGraph {
         let resourceType: String
     }
 
-    /// A subject one output states: a complete pair, or the Patient entry that names none or several.
-    enum SubjectStatement: Hashable {
-        case pair(BusinessIdentifier)
-        case entry(String)
-    }
-
     /// The retraction-target role that addresses the source record as a whole rather than one emitted node.
     private static let sourceRecordTargetRole = "source-record"
 
@@ -105,6 +99,7 @@ extension ExchangeGraph {
         try validateSingleSubject(entries: entries)
         try validateStudyContext(entries: entries)
         try validateSupportingConnectivity(kind: .active, entries: entries, document: document)
+        try validatePatientsNameTheSubject(entries: entries)
         try validateAdapterProvenanceGraph(records: records, entries: entries, document: document)
     }
 
@@ -339,14 +334,11 @@ extension ExchangeGraph {
         }
     }
 
-    /// The one subject pair a Bundle's outputs state, or `nil` when they state none, several, or a Patient entry that
-    /// names none or several: a retraction states no subject at all.
+    /// The one subject a Bundle's outputs state, or `nil` when they state none or several: a retraction states no subject
+    /// at all.
     static func bundleSubject(in entries: [BundleEntry]) -> BusinessIdentifier? {
         let statements = subjectStatements(in: entries)
-        guard statements.count == 1, case .pair(let subject)? = statements.first else {
-            return nil
-        }
-        return subject
+        return statements.count == 1 ? statements.first : nil
     }
 
     /// The Bundle's Patient entries by fullUrl, which a literal subject resolves against.
@@ -360,7 +352,7 @@ extension ExchangeGraph {
         return patients
     }
 
-    static func subjectStatements(in entries: [BundleEntry]) -> Set<SubjectStatement> {
+    static func subjectStatements(in entries: [BundleEntry]) -> Set<BusinessIdentifier> {
         let patients = Self.patients(in: entries)
         return Set(entries.compactMap { entry in
             guard let resource = entry.resource, isActiveOutput(resource), let subject = outputSubject(of: resource) else {
@@ -370,21 +362,57 @@ extension ExchangeGraph {
         })
     }
 
-    /// A logical reference states its pseudonym pair, and a literal one the Patient entry's one untyped pair.
-    static func subjectStatement(_ reference: Reference, patients: [String: Patient]) -> SubjectStatement? {
+    /// A logical reference states its pseudonym pair, and a literal one the referenced Patient entry's pseudonym, which
+    /// ``validatePatientEntries(_:)`` already required.
+    static func subjectStatement(_ reference: Reference, patients: [String: Patient]) -> BusinessIdentifier? {
         guard let literal = reference.reference?.value?.string else {
-            return reference.identifier.flatMap { try? BusinessIdentifier($0) }.map(SubjectStatement.pair)
+            return reference.identifier.flatMap { try? BusinessIdentifier($0) }
         }
-        guard let patient = patients[literal] else {
+        return patients[literal].flatMap(patientPseudonym)
+    }
+
+    /// The pseudonym of a Patient entry: its one identifier without a Grove role, when it is complete; `nil` when the
+    /// Patient states none, several, or an incomplete one.
+    ///
+    /// A Patient that names no pseudonym cannot state the subject its subject-scoped keys were minted over.
+    static func patientPseudonym(_ patient: Patient) -> BusinessIdentifier? {
+        let plain = (patient.identifier ?? []).filter { identifier in
+            identifier.type?.coding?.contains {
+                $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
+            } != true
+        }
+        guard plain.count == 1 else {
             return nil
         }
-        let pairs = (patient.identifier ?? []).compactMap { identifier -> BusinessIdentifier? in
-            let isTyped = identifier.type?.coding?.contains {
-                $0.system?.value?.url.absoluteString == Canonicals.identifierRoleCodeSystemValue
-            } == true
-            return isTyped ? nil : try? BusinessIdentifier(identifier)
+        return try? BusinessIdentifier(plain[0])
+    }
+
+    /// Every Patient entry names exactly one pseudonym, under a system the protocol doesn't reserve.
+    static func validatePatientEntries(_ entries: [BundleEntry]) throws(ExchangeGraphError) {
+        for (index, entry) in entries.enumerated() {
+            guard case .patient(let patient)? = entry.resource else {
+                continue
+            }
+            guard let pseudonym = patientPseudonym(patient),
+                  !logicalPatientReservedSystems.contains(pseudonym.system.rawValue) else {
+                throw diagnostic(.mobileExchangePatientPseudonym, location: "Bundle.entry[\(index)].resource.identifier")
+            }
         }
-        return pairs.count == 1 ? .pair(pairs[0]) : .entry(literal)
+    }
+
+    /// Every Patient entry of an active Bundle names the one subject its records state, including one that no output's
+    /// subject reaches, such as one a QuestionnaireResponse names. It runs after connectivity, so a disconnected Patient
+    /// reports that first.
+    private static func validatePatientsNameTheSubject(entries: [BundleEntry]) throws(ExchangeGraphError) {
+        guard let subject = bundleSubject(in: entries) else {
+            return
+        }
+        for (index, entry) in entries.enumerated() {
+            guard case .patient(let patient)? = entry.resource, patientPseudonym(patient) != subject else {
+                continue
+            }
+            throw diagnostic(.mobileExchangePatientPseudonym, location: "Bundle.entry[\(index)].resource.identifier")
+        }
     }
 
     private static func validateRecordingDocumentTypedIdentity(

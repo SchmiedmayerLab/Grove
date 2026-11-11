@@ -220,6 +220,32 @@ struct AnchoredFetcherFailureTests {
 
         let batch = try #require(try await fetcher.next(isolation: nil))
         #expect(batch.info.sourceDevices == [peripheral])
+        #expect(!batch.info.sourceDevicesSuppliedEverySample)
+    }
+
+    @Test("Time-range batches state whether the peripherals supplied every sample")
+    @available(iOS 18, *)
+    func timeIntervalBatchesStateWhetherPeripheralsSuppliedEverySample() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_850)
+        let peripheral = SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-1")
+        for (sourceDevices, everySample, expected) in [([peripheral], true, true), ([], true, false)] {
+            var fetcher = AnchoredFetcher<ConversionFailingSample>.TimeIntervalBasedFetcher(
+                sensor: makeConversionFailingSensor(),
+                anchor: .ephemeral(startDate: start),
+                quarantineCutoff: start.addingTimeInterval(180),
+                batchSize: 60,
+                device: .current,
+                fetchOperation: { _, _, _ in
+                    SensorKit.FetchedSamples(
+                        samples: [AnchoredFetcherSafeSample(timeRange: start..<start)],
+                        sourceDevices: sourceDevices,
+                        sourceDevicesSuppliedEverySample: everySample
+                    )
+                }
+            )
+            let batch = try #require(try await fetcher.next(isolation: nil))
+            #expect(batch.info.sourceDevicesSuppliedEverySample == expected, "A batch that names no peripheral never states one")
+        }
     }
 
     @Test("Sample-count batches state each peripheral of their fetch results once, in first-named order")
@@ -250,6 +276,32 @@ struct AnchoredFetcherFailureTests {
         await results.value
         #expect(batch.info.sourceDevices == peripherals)
         #expect(batch.samples.count == 3)
+        #expect(batch.info.sourceDevicesSuppliedEverySample)
+    }
+
+    @Test("A sample-count batch with a sample no peripheral named does not state that its peripheral supplied every sample")
+    @available(iOS 18, *)
+    func sampleCountBatchesWithAnUnnamedSample() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_950)
+        let peripheral = SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-1")
+        let fetcher = AnchoredFetcher<PassingSample>.SampleCountBasedFetcher(
+            sensor: makePassingSensor(),
+            batchSize: 2,
+            anchor: .ephemeral(startDate: start),
+            device: .current,
+            startFetch: { _, _ in }
+        )
+        nonisolated(unsafe) let reader = fetcher
+        let timestamp = SRAbsoluteTime(start.addingTimeInterval(1))
+        let results = Task.detached {
+            for sourceDevice in [peripheral, nil] {
+                _ = reader.processForTesting(sample: PassingSample(), timestamp: timestamp, sourceDevice: sourceDevice)
+            }
+        }
+        let batch = try #require(try await fetcher.next(isolation: nil))
+        await results.value
+        #expect(batch.info.sourceDevices == [peripheral])
+        #expect(!batch.info.sourceDevicesSuppliedEverySample)
     }
 
     @Test("Reset during a native sample-count fetch rejects its terminal cursor")

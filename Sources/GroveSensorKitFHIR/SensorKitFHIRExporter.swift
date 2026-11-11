@@ -111,11 +111,16 @@ public final class SensorKitFHIRExporter: Sendable {
     ///   - records: The records of one fetched batch.
     ///   - sourceTimeZone: The zone the source reported the batch's instants in; every effective bound states its
     ///     offset. Persist it with the batch, so a redelivery states the same bounds.
-    ///   - recordingDevice: The `SRDevice` that recorded the batch, as `RecordingDevice(batch.info.device)` states it. Every
-    ///     output names it; pass `nil` only when the source does not state the hardware.
+    ///   - recordingDevice: The `SRDevice` that recorded the batch, as `RecordingDevice(batch.info.device)` states it. A
+    ///     Recording Document names it as its author; pass `nil` only when the source does not state the hardware.
     ///   - sourceDevices: The peripherals that supplied the batch, as `batch.info.sourceDevices` states them. Each becomes a
-    ///     recording Device that every record of the call names as its source entity's performer, since SensorKit states
-    ///     them per batch: split a batch across calls to state a record's own peripheral.
+    ///     recording Device that every record of the call names as its source entity's performer, with `recordingDevice`
+    ///     as the composer, since SensorKit states them per batch: split a batch across calls to state a record's own
+    ///     peripheral.
+    ///   - sourceDevicesSuppliedEverySample: Whether the peripherals supplied every sample of the batch, as
+    ///     `batch.info.sourceDevicesSuppliedEverySample` states it. With exactly one peripheral, an Observation then names
+    ///     it as its device; otherwise it names `recordingDevice`. Persist it with the batch, so a redelivery repeats every
+    ///     record version.
     ///   - instant: The conversion instant. Persist it with the batch, so a redelivery repeats every record version.
     ///   - receive: Called once per record, in input order.
     nonisolated(nonsending) public func export(
@@ -123,6 +128,7 @@ public final class SensorKitFHIRExporter: Sendable {
         sourceTimeZone: TimeZone,
         recordingDevice: RecordingDevice?,
         sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false,
         at instant: Date,
         receive: (Export) throws -> Void
     ) async throws {
@@ -138,7 +144,13 @@ public final class SensorKitFHIRExporter: Sendable {
             Plan(record, content: content, exporter: self)
         }
         try await ConcurrentBuild.forEach(plans, width: width) { plan in
-            self.deliver(plan, recordingDevice: recordingDevice, sourceDevices: sourceDevices, at: instant)
+            self.deliver(
+                plan,
+                recordingDevice: recordingDevice,
+                sourceDevices: sourceDevices,
+                sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample,
+                at: instant
+            )
         } hand: { plan, outcome in
             try receive(Export(source: plan.source, outcome: outcome))
         }
@@ -179,6 +191,7 @@ extension SensorKitFHIRExporter {
         _ plan: Plan,
         recordingDevice: RecordingDevice?,
         sourceDevices: [RecordingDevice],
+        sourceDevicesSuppliedEverySample: Bool,
         at instant: Date
     ) -> Export.Outcome {
         let content: Plan.Content
@@ -194,7 +207,8 @@ extension SensorKitFHIRExporter {
                 sourceRecord: content.sourceRecord,
                 outputs: content.outputs,
                 recordingDevice: recordingDevice,
-                sourceDevices: sourceDevices
+                sourceDevices: sourceDevices,
+                sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample
             )
             let envelope = ExchangeEnvelope(scope: scope, facts: producer.facts)
             return .record(try ExchangeGraphAssembler(envelope: envelope).assemble(draft).record)

@@ -27,6 +27,8 @@ package struct ExchangeGraphAssembler: Sendable {
         let subject: Reference
         let studyReferences: [Reference]
         let recordingURL: String?
+        /// The Device an Observation names as the one that generated its data.
+        let observationDeviceURL: String?
         let gatewayURL: String?
         let converterURL: String
     }
@@ -51,6 +53,28 @@ package struct ExchangeGraphAssembler: Sendable {
                 entries.append(gateway)
             }
             return entries + (writer?.entries ?? [])
+        }
+
+        /// The recording Device that recorded the peripherals' samples, which the source entity names as the composer so the
+        /// record unit keeps it when no output references it; `nil` when the record names no peripheral.
+        var composerURL: String? {
+            sources.isEmpty ? nil : recording?.url
+        }
+
+        /// The links every output of a record shares, with the Device an Observation names as the one that generated its
+        /// data: the sole peripheral when it supplied every sample, the recording Device otherwise.
+        func surroundings(
+            of studyContext: StudyContext,
+            sourceDevicesSuppliedEverySample: Bool
+        ) -> Surroundings {
+            Surroundings(
+                subject: studyContext.subjectReference,
+                studyReferences: studyContext.studyReferences,
+                recordingURL: recording?.url,
+                observationDeviceURL: sources.count == 1 && sourceDevicesSuppliedEverySample ? sources[0].url : recording?.url,
+                gatewayURL: converter.gatewayURL,
+                converterURL: converter.application.url
+            )
         }
     }
 
@@ -77,12 +101,9 @@ package struct ExchangeGraphAssembler: Sendable {
         }
         let studyContext = try StudyContext(subject: envelope.subject, studies: envelope.studies, identityScope: envelope.identityScope)
         let devices = try resolveDevices(for: draft)
-        let surroundings = Surroundings(
-            subject: studyContext.subjectReference,
-            studyReferences: studyContext.studyReferences,
-            recordingURL: devices.recording?.url,
-            gatewayURL: devices.converter.gatewayURL,
-            converterURL: devices.converter.application.url
+        let surroundings = devices.surroundings(
+            of: studyContext,
+            sourceDevicesSuppliedEverySample: draft.sourceDevicesSuppliedEverySample
         )
         let outputs = try decoratedOutputs(of: draft, surroundings: surroundings)
         let provenance = try Self.conversionProvenance(
@@ -92,6 +113,7 @@ package struct ExchangeGraphAssembler: Sendable {
             // The writer application is the Provenance author; without one the Provenance names none.
             authorURL: devices.writer?.application.url,
             sourceDeviceURLs: devices.sources.map(\.url),
+            composerURL: devices.composerURL,
             sourceExtensions: draft.sourceExtensions,
             profile: envelope.adapter.provenanceProfile,
             at: draft.instant
@@ -282,8 +304,8 @@ extension ExchangeGraphAssembler {
         if links.contains(.subject) {
             observation.subject = surroundings.subject
         }
-        if links.contains(.recordingDevice), let recordingURL = surroundings.recordingURL {
-            observation.device = Reference(reference: recordingURL.asFHIRStringPrimitive())
+        if links.contains(.recordingDevice), let deviceURL = surroundings.observationDeviceURL {
+            observation.device = Reference(reference: deviceURL.asFHIRStringPrimitive())
         }
         if links.contains(.manualEntry), wasUserEntered {
             observation.extension.replace(Self.manualEntry)
@@ -381,6 +403,7 @@ extension ExchangeGraphAssembler {
     ///   - assemblerURL: The fullUrl of the converting application's snapshot.
     ///   - authorURL: The fullUrl of the writer application's snapshot when the record names its author.
     ///   - sourceDeviceURLs: The fullUrl of each peripheral that supplied the source record.
+    ///   - composerURL: The fullUrl of the recording Device that recorded the peripherals' samples, when there are any.
     ///   - profile: The adapter's conversion Provenance profile.
     ///   - instant: The conversion instant.
     ///   - occurredOffset: The zone whose offset `occurred` states the instant at.
@@ -390,6 +413,7 @@ extension ExchangeGraphAssembler {
         assemblerURL: String,
         authorURL: String? = nil,
         sourceDeviceURLs: [String] = [],
+        composerURL: String? = nil,
         sourceExtensions: [Extension] = [],
         profile: FHIRPrimitive<Canonical>,
         at instant: Date,
@@ -400,6 +424,7 @@ extension ExchangeGraphAssembler {
         entity.extension = sourceExtensions.isEmpty ? nil : sourceExtensions
         let agents = [authorURL].compactMap { $0 }.map { sourceAgent($0, code: "author", display: "Author") }
             + sourceDeviceURLs.map { sourceAgent($0, code: "performer", display: "Performer") }
+            + [composerURL].compactMap { $0 }.map { sourceAgent($0, code: "composer", display: "Composer") }
         entity.agent = agents.isEmpty ? nil : agents
         return Provenance(
             activity: CodeableConcept(coding: [Coding(

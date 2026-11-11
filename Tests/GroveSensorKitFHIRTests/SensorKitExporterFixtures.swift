@@ -66,6 +66,7 @@ enum SensorKitExporterFixtures {
         timeZone: TimeZone? = nil,
         recordingDevice: RecordingDevice? = watch,
         sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false,
         at instant: Date = instant
     ) async throws -> [SensorKitFHIRExporter.Export] {
         var exports: [SensorKitFHIRExporter.Export] = []
@@ -74,6 +75,7 @@ enum SensorKitExporterFixtures {
             sourceTimeZone: timeZone ?? Self.timeZone,
             recordingDevice: recordingDevice,
             sourceDevices: sourceDevices,
+            sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample,
             at: instant
         ) { exports.append($0) }
         return exports
@@ -84,10 +86,17 @@ enum SensorKitExporterFixtures {
         _ input: SensorKitRecord,
         nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit,
         recordingDevice: RecordingDevice? = watch,
-        sourceDevices: [RecordingDevice] = []
+        sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false
     ) async throws -> ExchangeRecord {
         let exporter = try exporter(producer(), nativeIdentifier: nativeIdentifier)
-        let exports = try await collect(exporter, [input], recordingDevice: recordingDevice, sourceDevices: sourceDevices)
+        let exports = try await collect(
+            exporter,
+            [input],
+            recordingDevice: recordingDevice,
+            sourceDevices: sourceDevices,
+            sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample
+        )
         guard exports.count == 1 else {
             throw CocoaError(.featureUnsupported)
         }
@@ -104,9 +113,16 @@ enum SensorKitExporterFixtures {
         _ input: SensorKitRecord,
         nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit,
         recordingDevice: RecordingDevice? = watch,
-        sourceDevices: [RecordingDevice] = []
+        sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false
     ) async throws -> ExchangeGraph {
-        try await record(input, nativeIdentifier: nativeIdentifier, recordingDevice: recordingDevice, sourceDevices: sourceDevices).graph
+        try await record(
+            input,
+            nativeIdentifier: nativeIdentifier,
+            recordingDevice: recordingDevice,
+            sourceDevices: sourceDevices,
+            sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample
+        ).graph
     }
 }
 

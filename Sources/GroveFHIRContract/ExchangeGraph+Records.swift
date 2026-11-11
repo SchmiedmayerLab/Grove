@@ -173,6 +173,9 @@ extension ExchangeGraph {
     /// Recomputes every key derived from content under `scope`'s key: each shared node's content snapshot, for which the
     /// Bundle must state one subject pair, and each lifecycle Provenance's key.
     ///
+    /// An active graph that states no one subject has a content snapshot it cannot recompute, and is refused. A
+    /// retraction states no subject at all, so its Device snapshots are checked for shape only.
+    ///
     /// The validating initializers check these keys for shape only, because a receiver never holds a deployment's key.
     /// Only a holder of the identity key can run this, as the conformance kit does under the published test key. A key
     /// under another key id or epoch is left alone.
@@ -203,7 +206,13 @@ extension ExchangeGraph {
                 guard expected == key else {
                     throw Self.diagnostic(rule, location: location)
                 }
-            } else if let subject, let role = Self.nodeRole(of: entry, key: key) {
+            } else if let role = Self.nodeRole(of: entry, key: key) {
+                guard let subject else {
+                    if kind == .active {
+                        throw Self.diagnostic(.mobileExchangeContentSnapshotKey, location: location)
+                    }
+                    continue
+                }
                 let digest = try? resource.contentDigest
                 guard let digest, (try? scope.contentSnapshot(subject: subject, role: role, contentDigest: digest)) == key else {
                     throw Self.diagnostic(.mobileExchangeContentSnapshotKey, location: location)

@@ -194,6 +194,7 @@ public struct ExchangeGraph: Sendable {
         try validateEntryResourcePolicy(kind: kind, entries: entries, document: document)
         try validateEntryIdentities(kind: kind, entries: entries, document: document)
         try validateGovernedReferenceTargets(entries: entries, document: document)
+        try validatePatientEntries(entries)
         try validateLifecycle(kind: kind, entries: entries, document: document)
     }
 

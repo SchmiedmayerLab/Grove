@@ -12,7 +12,10 @@ public import ModelsR4
 /// The participant a record is about.
 ///
 /// The identifier is the deployment's pseudonym. By default it travels as an identifier-only
-/// logical Patient reference; a deployment that supplies a Patient bundles it as an entry instead.
+/// logical Patient reference; a deployment that supplies a Patient bundles it as an entry instead. A bundled Patient
+/// carries the pseudonym as its only identifier without a Grove role, so every reference to it states the same subject;
+/// another business identifier of the participant, such as a medical record number, does not travel on it, and
+/// ``ExchangeProducer`` refuses such a Patient.
 public enum Subject: Hashable, Sendable {
     case logical(BusinessIdentifier)
     case bundled(BusinessIdentifier, Patient)

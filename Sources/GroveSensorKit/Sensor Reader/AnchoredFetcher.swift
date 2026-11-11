@@ -55,6 +55,7 @@ struct SampleCountRawElement<Sample: SensorKitSampleProtocol> {
     let timeRange: Range<Date>
     let device: SensorKit.DeviceInfo
     let sourceDevices: [SensorKit.SourceDeviceInfo]
+    let sourceDevicesSuppliedEverySample: Bool
     let samples: [Sample.SafeRepresentation]
 }
 
@@ -362,6 +363,11 @@ extension SensorKit {
         /// SensorKit names a peripheral per fetch result, from iOS 27, and a sample can fold several fetch results, so
         /// this states the batch, not one sample. It is empty when SensorKit names none.
         public let sourceDevices: [SourceDeviceInfo]
+        /// Whether SensorKit named a peripheral for every fetch result that contributed samples to this batch.
+        ///
+        /// With exactly one ``sourceDevices`` entry, it means that peripheral supplied every sample of the batch. It is
+        /// `false` when some samples came without a named peripheral, and when the batch names none.
+        public let sourceDevicesSuppliedEverySample: Bool
         /// Durable acquisition coordinate allocated before this batch is exposed to its consumer.
         public let acquisitionBatch: AcquisitionBatchCoordinate
         
@@ -370,11 +376,13 @@ extension SensorKit {
             timeRange: Range<Date>,
             device: DeviceInfo,
             sourceDevices: [SourceDeviceInfo] = [],
+            sourceDevicesSuppliedEverySample: Bool = false,
             acquisitionBatch: AcquisitionBatchCoordinate
         ) {
             self.timeRange = timeRange
             self.device = device
             self.sourceDevices = sourceDevices
+            self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample && !sourceDevices.isEmpty
             self.acquisitionBatch = acquisitionBatch
         }
     }

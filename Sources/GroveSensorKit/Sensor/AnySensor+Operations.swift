@@ -263,7 +263,11 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
             }
             do {
                 let processedResults: [Sample.SafeRepresentation] = try Sample.processIntoSafeRepresentation(samples)
-                continuation.resume(returning: SensorKit.FetchedSamples(samples: processedResults, sourceDevices: sourceDevices(of: results)))
+                continuation.resume(returning: SensorKit.FetchedSamples(
+                    samples: processedResults,
+                    sourceDevices: sourceDevices(of: results),
+                    sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample(of: results)
+                ))
             } catch {
                 continuation.resume(throwing: error)
             }
@@ -281,5 +285,11 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
             }
         }
         return sourceDevices
+    }
+
+    /// Whether `results` name a peripheral for every one of them that holds samples.
+    private func sourceDevicesSuppliedEverySample(of results: [SensorKit.FetchResult<Sample>]) -> Bool {
+        let withSamples = results.filter { !$0.isEmpty }
+        return !withSamples.isEmpty && withSamples.allSatisfy { $0.sourceDevice != nil }
     }
 }

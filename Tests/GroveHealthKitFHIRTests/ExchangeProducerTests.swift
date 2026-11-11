@@ -145,6 +145,20 @@ struct ExchangeProducerTests {
         let pseudonym = try Self.identifier("https://study.example.org/fhir/participant", "p-1")
         let producer = try Self.producer(subject: .bundled(pseudonym, Patient()))
         #expect(producer.subject.identifier == pseudonym)
+        let named = try Self.producer(subject: .bundled(pseudonym, Patient(identifier: [pseudonym.fhirIdentifier])))
+        #expect(named.subject.identifier == pseudonym)
+    }
+
+    @Test("A bundled Patient that carries a second business identifier is refused")
+    func bundledPatientWithASecondIdentifierIsRefused() throws {
+        let pseudonym = try Self.identifier("https://study.example.org/fhir/participant", "p-1")
+        let recordNumber = try Self.identifier("https://hospital.example.org/mrn", "mrn-7")
+        let other = try Self.identifier("https://study.example.org/fhir/participant", "p-2")
+        for patient in [Patient(identifier: [recordNumber.fhirIdentifier]), Patient(identifier: [other.fhirIdentifier])] {
+            #expect(throws: ExchangeProducer.ConfigurationError.bundledPatientIdentifiers) {
+                try Self.producer(subject: .bundled(pseudonym, patient))
+            }
+        }
     }
 
     @Test("A subject numbered in a deployment identity system is refused")

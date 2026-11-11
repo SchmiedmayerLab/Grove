@@ -67,8 +67,9 @@ The exporter needs the system under which the exact `SRVisit.locationId` is carr
 Each export call adds these facts about the batch:
 
 - `sourceTimeZone` is the zone every effective bound states its offset in. SensorKit reports absolute instants and no zone, so use the device's zone when you first publish the batch, `TimeZone.current`, and persist it with the batch: a redelivery states the same bounds only under the same zone.
-- `recordingDevice` is the `SRDevice` that recorded the batch, `RecordingDevice(batch.info.device)`, which every output names. It states every fact SensorKit exposes: the name, model, system name and version, and product type. `SRDevice.name` is the name a person gave the device, so keep it out of logs and upload metadata. Equal facts never prove one physical unit; set `stableUnitToken` and `tokenScope` only when your deployment governs a stable token for that unit, such as one it assigned to the participant's paired watch.
-- `sourceDevices` are the peripherals that supplied the batch, `batch.info.sourceDevices.map(RecordingDevice.init)`, which SensorKit names from iOS 27. Each becomes a recording Device of its own, with its local identifier in the clear, that the Provenance's source entity names as its performer. SensorKit names them per fetch result and a record can fold several, so every record of the call states them all.
+- `recordingDevice` is the `SRDevice` that recorded the batch, `RecordingDevice(batch.info.device)`, which a Recording Document names as its author and an Observation as its device unless one peripheral supplied every sample. It states every fact SensorKit exposes: the name, model, system name and version, and product type. `SRDevice.name` is the name a person gave the device, so keep it out of logs and upload metadata. Equal facts never prove one physical unit; set `stableUnitToken` and `tokenScope` only when your deployment governs a stable token for that unit, such as one it assigned to the participant's paired watch.
+- `sourceDevices` are the peripherals that supplied the batch, `batch.info.sourceDevices.map(RecordingDevice.init)`, which SensorKit names from iOS 27. Each becomes a recording Device of its own, with its local identifier in the clear, that the Provenance's source entity names as its performer, with `recordingDevice` as the composer that recorded its samples. SensorKit names them per fetch result and a record can fold several, so every record of the call states them all.
+- `sourceDevicesSuppliedEverySample` is `batch.info.sourceDevicesSuppliedEverySample`: whether SensorKit named a peripheral for every fetch result of the batch. With exactly one peripheral, an Observation then names that peripheral as the device that generated its data. Persist it with the batch, like the devices, so a redelivery repeats every record version.
 - `at` is the conversion instant. Persist it with the batch, so a redelivery repeats every record version.
 
 > Note: The host defaults to `HostDevice.current()`.
@@ -167,6 +168,7 @@ try await disclosing.export(
     sourceTimeZone: batchTimeZone,
     recordingDevice: RecordingDevice(batch.info.device),
     sourceDevices: batch.info.sourceDevices.map(RecordingDevice.init),
+    sourceDevicesSuppliedEverySample: batch.info.sourceDevicesSuppliedEverySample,
     at: conversionInstant
 ) { export in
     try handle(export)

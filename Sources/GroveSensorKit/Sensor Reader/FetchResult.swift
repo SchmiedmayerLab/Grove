@@ -90,10 +90,13 @@ extension SensorKit {
     struct FetchedSamples<Sample: Sendable>: Sendable {
         let samples: [Sample]
         let sourceDevices: [SourceDeviceInfo]
+        /// Whether SensorKit named a peripheral for every fetch result that contributed samples.
+        let sourceDevicesSuppliedEverySample: Bool
 
-        init(samples: [Sample], sourceDevices: [SourceDeviceInfo] = []) {
+        init(samples: [Sample], sourceDevices: [SourceDeviceInfo] = [], sourceDevicesSuppliedEverySample: Bool = false) {
             self.samples = samples
             self.sourceDevices = sourceDevices
+            self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample
         }
     }
 }

@@ -22,6 +22,9 @@ public struct ExchangeProducer: Sendable {
         case duplicateStudy(BusinessIdentifier)
         /// Two enrollments carry the same enrollment identifier.
         case duplicateEnrollment(BusinessIdentifier)
+        /// The bundled Patient carries an identifier without a Grove role besides the pseudonym, such as a medical record
+        /// number, so it would name no one pseudonym.
+        case bundledPatientIdentifiers
 
         /// The registered diagnostic: every configuration fault is a deployment defect.
         public var diagnostic: ProducerDiagnostic {
@@ -54,6 +57,9 @@ public struct ExchangeProducer: Sendable {
         let reserved = identityScope.systems.all
         guard !reserved.contains(subject.identifier.system) else {
             throw .reservedSubjectIdentifierSystem(subject.identifier.system)
+        }
+        if case .bundled = subject, ExchangeGraph.patientPseudonym(subject.bundledPatient) != subject.identifier {
+            throw .bundledPatientIdentifiers
         }
         var seenStudies: Set<BusinessIdentifier> = []
         var seenEnrollments: Set<BusinessIdentifier> = []

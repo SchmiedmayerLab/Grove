@@ -230,8 +230,12 @@ package struct ExchangeRecordDraft: Sendable {
     /// The hardware the source names; the assembler renders it, with its identities, into the recording Device.
     package var recordingDevice: RecordingDevice?
     /// The peripherals that supplied the record through ``recordingDevice``. Each is a recording Device of its own, which
-    /// the outputs do not reference: the Provenance's source entity names it as a performer.
+    /// the Provenance's source entity names as a performer, with ``recordingDevice`` as the composer that recorded its
+    /// samples.
     package var sourceDevices: [RecordingDevice]
+    /// Whether the one entry of ``sourceDevices`` supplied every sample of the record: then an Observation names that
+    /// peripheral as its device, and ``recordingDevice`` otherwise.
+    package var sourceDevicesSuppliedEverySample: Bool
     package var writer: ExchangeWriterDraft?
     /// Adapter facts about the consumed source record, independent of its author agent.
     package var sourceExtensions: [Extension]
@@ -243,6 +247,7 @@ package struct ExchangeRecordDraft: Sendable {
         outputs: [ExchangeOutputDraft],
         recordingDevice: RecordingDevice? = nil,
         sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false,
         writer: ExchangeWriterDraft? = nil,
         sourceExtensions: [Extension] = [],
         converterRole: ConverterRole = .assembler
@@ -252,6 +257,7 @@ package struct ExchangeRecordDraft: Sendable {
         self.outputs = outputs
         self.recordingDevice = recordingDevice
         self.sourceDevices = sourceDevices
+        self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample
         self.writer = writer
         self.sourceExtensions = sourceExtensions
         self.converterRole = converterRole
