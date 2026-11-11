@@ -7,13 +7,9 @@
 //
 
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 import GeneratedOpenAIClient
 import GroveLLM
 import OpenAPIRuntime
-import OpenAPIURLSession
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -56,23 +52,13 @@ extension LLMOpenAILikeSession {
     ///
     /// - Returns: `true` if the client could be initialized, `false` otherwise.
     private func initializeClient() -> Bool {
-        // Initialize the OpenAI model
-        self.openAiClient = Client(
+        self.openAiClient = OpenAICompatibleClientFactory.makeClient(
             serverURL: self.platform.configuration.serverUrl,
-            transport: {
-                let session = URLSession.shared
-                session.configuration.timeoutIntervalForRequest = platform.configuration.timeout
-                return URLSessionTransport(configuration: .init(session: session))
-            }(),
-            middlewares: [
-                // Injects the bearer auth token for account verification into request headers
-                BearerAuthMiddleware(
-                    authToken: schema.parameters.overwritingAuthToken ?? platform.configuration.authToken,
-                    keychainStorage: keychainStorage
-                ),
-                // Retry policy for failed requests
-                RetryMiddleware(policy: self.platform.configuration.retryPolicy)
-            ] + platform.configuration.middlewares
+            authToken: schema.parameters.overwritingAuthToken ?? platform.configuration.authToken,
+            keychainStorage: keychainStorage,
+            retryPolicy: self.platform.configuration.retryPolicy,
+            timeout: platform.configuration.timeout,
+            middlewares: platform.configuration.middlewares
         )
         return true
     }

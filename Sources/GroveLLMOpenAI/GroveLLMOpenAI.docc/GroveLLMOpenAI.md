@@ -223,12 +223,38 @@ struct OnboardingFlow: View {
 
 Now the OpenAI API Key entry view will appear within your application's onboarding process. The API Key entered will be persisted across application launches.
 
+### Embeddings
+
+Use ``LLMOpenAIEmbeddingClient`` when you need embeddings without a chat session, Spezi `LLMRunner`, UI, or keychain dependency. Pass a caller-selected endpoint and ``RemoteLLMInferenceAuthToken`` (`.constant` or `.closure` work on Linux). Retries default to never; enabling retries can submit additional charged work.
+
+Chunking, vector storage, retrieval ranking, and authorization remain application responsibilities.
+
+```swift
+import GroveLLM
+import GroveLLMOpenAI
+
+let client = try LLMOpenAIEmbeddingClient(
+    serverURL: OpenAIPlatformDefinition.defaultServerUrl,
+    authToken: .constant("sk-...")
+)
+let result = try await client.embed(
+    ["hello", "world"],
+    model: "text-embedding-3-small",
+    dimensions: nil
+)
+```
+
 ## Topics
 
 ### LLM OpenAI abstraction
 
 - ``LLMOpenAISchema``
 - ``LLMOpenAISession``
+
+### Embeddings
+
+- ``LLMOpenAIEmbeddingClient``
+- ``LLMOpenAIEmbeddingError``
 
 ### LLM Execution
 
