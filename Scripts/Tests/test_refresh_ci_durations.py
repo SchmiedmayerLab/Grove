@@ -78,6 +78,14 @@ class RefreshCIDurationsTests(unittest.TestCase):
         })
         self.assertEqual(slots, {"self-hosted": [0.0], "github-hosted": [10.0, 10.0]})
 
+    def test_a_job_is_timed_by_its_most_recent_runs(self):
+        # Newest run first: three fast runs after the suite sped up, then four slow ones before it.
+        runs = [run(job("App UI (iOS)", MAC, 0, minutes)) for minutes in [15, 14, 16, 50, 49, 51, 50]]
+
+        minutes, _ = MODULE.summarize(runs)
+
+        self.assertEqual(minutes["App UI (iOS)"], {"self-hosted": 16.0})
+
     def test_previous_entries_survive_only_while_their_package_exists(self):
         merged = MODULE.merge_previous(
             {"App (iOS)": {"github-hosted": 2.0}},

@@ -34,7 +34,8 @@ The rule
   GitHub-hosted.
 
 The durations file
-  [minutes]          Median minutes per job and pool, keyed by the job name without ", self-hosted".
+  [minutes]          Minutes per job and pool: the median of its 5 most recent runs, keyed by the job
+                     name without ", self-hosted".
   [slots]            Minutes after `Detect affected packages` finishes at which each runner typically
                      becomes free for the run.
   self_hosted_speed  Self-hosted minutes per GitHub-hosted minute, for a job recorded on one pool only.
@@ -43,8 +44,10 @@ The durations file
 
 Refreshing
   Run this script and commit the regenerated file. It needs an authenticated `gh` with read access
-  to the repository's Actions runs, reads the last 50 Tests runs that passed on their first attempt
-  (--runs changes the count), and keeps an older entry for a job those runs did not schedule.
+  to the repository's Actions runs and reads the last 50 Tests runs that passed on their first
+  attempt (--runs changes the count). A job's duration is the median of its 5 most recent runs among
+  them, so a speed-up shows after 3 runs while a single slow run barely moves it. A job those runs did
+  not schedule keeps its older entry; the runner slots use every sampled run.
   Refresh when:
   - the Tests run's summary shows a "Runner assignment" warning: the durations are older than 60
     days, or a scheduled unit job has no recorded duration (a new package or platform);
@@ -82,6 +85,8 @@ DETECT_JOB = "Detect affected packages"
 FHIR_CONFORMANCE_JOB = "FHIR Output Conformance"
 # A runner slot counts as typical once this many runs had enough jobs to fill it and at least half got it.
 MIN_RUNS_PER_SLOT = 3
+# A job's duration is the median of its most recent runs, so a sped-up suite is routed by its new time.
+SAMPLES_PER_JOB = 5
 FALLBACK_DEFAULT_MINUTES = 12.0
 
 HEADER = """\
@@ -144,7 +149,8 @@ def typical_slots(runs):
 
 
 def summarize(runs_jobs):
-    """Durations per job and pool plus typical slot arrivals, from each run's first-attempt jobs."""
+    """Durations per job and pool plus typical slot arrivals, from each run's first-attempt jobs, newest
+    run first."""
     samples = {}
     pool_runs = {SELF_HOSTED: [], GITHUB_HOSTED: []}
     for jobs in runs_jobs:
@@ -165,7 +171,7 @@ def summarize(runs_jobs):
             if pool_intervals:
                 pool_runs[pool].append((len(pool_intervals), slot_arrivals(pool_intervals)))
     minutes = {
-        name: {pool: round(statistics.median(values), 1) for pool, values in pools.items()}
+        name: {pool: round(statistics.median(values[:SAMPLES_PER_JOB]), 1) for pool, values in pools.items()}
         for name, pools in samples.items()
     }
     return minutes, {pool: typical_slots(runs) for pool, runs in pool_runs.items()}
@@ -246,7 +252,7 @@ def recent_runs(count):
         # A re-run attempt mixes timelines, so only runs that passed on their first attempt are sampled.
         runs += [run for run in batch if run["run_attempt"] == 1]
         if not batch or len(runs) >= count:
-            return runs[:count]
+            return sorted(runs, key=lambda run: run["created_at"], reverse=True)[:count]
 
 
 def run_jobs(run_id):
