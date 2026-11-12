@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// Filter types used with the generic operand.
 ///
 /// These filter types are used with the ``RecordAccessGenericOperand``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessFilterType {
     /// Reserved for future use.
     public static let reserved = RecordAccessFilterType(rawValue: 0x00)
@@ -34,12 +35,15 @@ public struct RecordAccessFilterType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessFilterType: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessFilterType: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessFilterType: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {

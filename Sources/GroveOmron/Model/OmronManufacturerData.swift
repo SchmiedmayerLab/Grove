@@ -11,6 +11,7 @@ import GroveBluetooth
 public import struct NIOCore.ByteBuffer
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct OmronManufacturerDataPrefix {
     private let bitMask: Bool
     let flags: OmronManufacturerData.Flags
@@ -28,6 +29,7 @@ struct OmronManufacturerDataPrefix {
 
 
 /// Omron Manufacturer Data format.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OmronManufacturerData {
     /// The device's pairing mode.
     public enum PairingMode {
@@ -150,27 +152,35 @@ public struct OmronManufacturerData {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.Flags: OptionSet, Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.UserSlot: Identifiable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.UserSlot: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.PairingMode: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.StreamingMode: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.ServicesMode: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData.Flags: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {
@@ -185,6 +195,7 @@ extension OmronManufacturerData.Flags: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerData: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let companyIdentifier = ManufacturerIdentifier(from: &byteBuffer) else {
@@ -254,6 +265,7 @@ extension OmronManufacturerData: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronManufacturerDataPrefix: Hashable, Sendable, ByteEncodable {
     func encode(to byteBuffer: inout ByteBuffer) {
         if bitMask {

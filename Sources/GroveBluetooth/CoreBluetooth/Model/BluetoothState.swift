@@ -11,6 +11,7 @@ public import CoreBluetooth
 
 
 /// Represents the various states of Bluetooth.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum BluetoothState: UInt8 {
     /// The Bluetooth state is unknown.
     ///
@@ -27,12 +28,15 @@ public enum BluetoothState: UInt8 {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothState: RawRepresentable, AtomicValue {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothState: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothState: CustomStringConvertible {
     public var description: String {
         switch self {
@@ -51,6 +55,7 @@ extension BluetoothState: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothState {
     /// Derive peripheral state from CoreBluetooth
     public init(from state: CBManagerState) {

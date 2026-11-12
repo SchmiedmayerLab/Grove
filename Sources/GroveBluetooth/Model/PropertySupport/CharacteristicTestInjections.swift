@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class CharacteristicTestInjections<Value: Sendable>: Sendable {
     nonisolated(unsafe) private var _writeClosure: ((Value, WriteType) async throws -> Void)?
     nonisolated(unsafe) private var _readClosure: (() async throws -> Value)?

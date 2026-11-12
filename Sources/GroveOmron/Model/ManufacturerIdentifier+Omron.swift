@@ -9,6 +9,7 @@
 public import GroveBluetooth
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManufacturerIdentifier {
     /// Bluetooth manufacturer code for "Omron Healthcare Co., Ltd.".
     public static var omronHealthcareCoLtd: ManufacturerIdentifier {

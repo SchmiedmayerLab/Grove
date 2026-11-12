@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 /// The location of a temperature measurement.
 ///
 /// Refer to GATT Specification Supplement, 3.219 Temperature Type.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct TemperatureType {
     /// Reserved for future use.
     public static let reserved = TemperatureType(rawValue: 0x00)
@@ -46,12 +47,15 @@ public struct TemperatureType {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureType: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureType: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureType: CustomStringConvertible {
     public var description: String {
         switch self {
@@ -82,6 +86,7 @@ extension TemperatureType: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureType: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let value = UInt8(from: &byteBuffer) else {
@@ -97,4 +102,5 @@ extension TemperatureType: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureType: Codable {}

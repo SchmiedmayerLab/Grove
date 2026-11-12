@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 /// Range-based filter criteria format for the generic operand.
 ///
 /// The filter criteria format used with the ``RecordAccessGenericOperand``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RecordAccessRangeFilterCriteria {
     /// Filter records for range of sequence numbers.
     case sequenceNumber(min: UInt16, max: UInt16)
@@ -35,6 +36,7 @@ public enum RecordAccessRangeFilterCriteria {
 /// Filter criteria format for the generic operand.
 ///
 /// The filter criteria format used with the ``RecordAccessGenericOperand``.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RecordAccessFilterCriteria {
     /// Filter for the record's sequence number.
     case sequenceNumber(UInt16)
@@ -54,12 +56,15 @@ public enum RecordAccessFilterCriteria {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessFilterCriteria: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessRangeFilterCriteria: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessFilterCriteria: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let filterType = RecordAccessFilterType(from: &byteBuffer) else {
@@ -95,6 +100,7 @@ extension RecordAccessFilterCriteria: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessRangeFilterCriteria: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let filterType = RecordAccessFilterType(from: &byteBuffer) else {

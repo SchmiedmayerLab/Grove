@@ -8,21 +8,22 @@
 
 import Foundation
 import OrderedCollections
+import Synchronization
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class ChangeSubscriptions<Value: Sendable>: Sendable {
     private struct Registration: Sendable {
         let subscription: AsyncStream<Value>
         let id: UUID
     }
 
-    nonisolated(unsafe) private var continuations: OrderedDictionary<UUID, AsyncStream<Value>.Continuation> = [:]
-    private let lock = NSLock()
+    private let continuations = Mutex<OrderedDictionary<UUID, AsyncStream<Value>.Continuation>>([:])
 
     nonisolated init() {}
 
     func notifySubscribers(with value: Value, ignoring: Set<UUID> = []) {
-        lock.withLock {
+        continuations.withLock { continuations in
             for (id, continuation) in continuations where !ignoring.contains(id) {
                 continuation.yield(value)
             }
@@ -30,7 +31,7 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     }
 
     func notifySubscriber(id: UUID, with value: Value) {
-        lock.withLock {
+        continuations.withLock { continuations in
             _ = continuations[id]?.yield(value)
         }
     }
@@ -38,8 +39,8 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     nonisolated private func _newSubscription() -> Registration {
         let id = UUID()
         let stream = AsyncStream { continuation in
-            lock.withLock {
-                self.continuations[id] = continuation
+            continuations.withLock { continuations in
+                continuations[id] = continuation
             }
 
             continuation.onTermination = { [weak self] _ in
@@ -47,8 +48,8 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
                     return
                 }
 
-                self.lock.withLock {
-                    _ = self.continuations.removeValue(forKey: id)
+                self.continuations.withLock { continuations in
+                    _ = continuations.removeValue(forKey: id)
                 }
             }
         }
@@ -87,7 +88,7 @@ final class ChangeSubscriptions<Value: Sendable>: Sendable {
     }
 
     deinit {
-        lock.withLock {
+        continuations.withLock { continuations in
             for continuation in continuations.values {
                 continuation.finish()
             }

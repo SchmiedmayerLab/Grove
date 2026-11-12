@@ -12,6 +12,7 @@ public import GroveBluetoothServices
 /// A measurement retrieved from a Bluetooth device.
 ///
 /// Bluetooth Measurements are represented using standardized measurement characteristics.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum BluetoothHealthMeasurement {
     /// A weight measurement and its context.
     case weight(WeightMeasurement, WeightScaleFeature)
@@ -20,9 +21,11 @@ public enum BluetoothHealthMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothHealthMeasurement: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothHealthMeasurement: Codable {
     enum MeasurementType: String, Codable {
         case weight

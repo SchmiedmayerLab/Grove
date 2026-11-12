@@ -24,6 +24,7 @@ public import struct NIOCore.ByteBuffer
 /// - ``RecordAccessGeneralResponse``
 /// - ``RecordAccessFilterCriteria``
 /// - ``RecordAccessRangeFilterCriteria``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum RecordAccessGenericOperand {
     // REQUEST
 
@@ -48,6 +49,7 @@ public enum RecordAccessGenericOperand {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessGenericOperand: RecordAccessOperand {
     public var generalResponse: RecordAccessGeneralResponse? {
         guard case let .generalResponse(response) = self else {
@@ -107,6 +109,7 @@ extension RecordAccessGenericOperand: RecordAccessOperand {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperationContent where Operand == RecordAccessGenericOperand {
     /// Records that are less than or equal to the specified filter criteria value.
     ///
@@ -134,4 +137,5 @@ extension RecordAccessOperationContent where Operand == RecordAccessGenericOpera
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessGenericOperand: Hashable, Sendable {}

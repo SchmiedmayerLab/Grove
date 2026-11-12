@@ -11,6 +11,7 @@
 ///
 /// This type describes how to discover a device and what services and characteristics
 /// to expect.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DiscoveryDescription {
     /// The criteria by which we identify a discovered device.
     public let discoveryCriteria: DiscoveryCriteria
@@ -31,9 +32,11 @@ public struct DiscoveryDescription {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryDescription: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryDescription: Identifiable {
     public var id: DiscoveryCriteria {
         discoveryCriteria
@@ -41,6 +44,7 @@ extension DiscoveryDescription: Identifiable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryDescription: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(discoveryCriteria)

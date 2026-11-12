@@ -9,11 +9,13 @@
 public import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct MinimumRSSIEnvironmentKey: EnvironmentKey {
     static let defaultValue: Int? = nil
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// The minimum rssi a nearby peripheral must have to be considered nearby.
     public internal(set) var minimumRSSI: Int? {

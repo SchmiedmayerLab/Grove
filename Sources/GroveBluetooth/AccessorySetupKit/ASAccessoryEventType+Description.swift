@@ -10,6 +10,7 @@
 public import AccessorySetupKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ASAccessoryEventType: @retroactive CustomStringConvertible, @retroactive CustomDebugStringConvertible {
     public var description: String {
         switch self {

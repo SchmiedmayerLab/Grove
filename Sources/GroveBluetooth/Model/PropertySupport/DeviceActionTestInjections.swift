@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class DeviceActionTestInjections<ClosureType: Sendable>: Sendable {
     nonisolated(unsafe) private var _injectedClosure: ClosureType?
     private let lock = NSLock() // protects property above

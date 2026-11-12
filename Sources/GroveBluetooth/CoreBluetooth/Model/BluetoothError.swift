@@ -10,6 +10,7 @@ public import Foundation
 
 
 /// Represents errors that can occur during Bluetooth operations.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum BluetoothError: Error, CustomStringConvertible, LocalizedError {
     /// Could not decode the ByteBuffer into the provided ByteDecodable.
     case incompatibleDataFormat

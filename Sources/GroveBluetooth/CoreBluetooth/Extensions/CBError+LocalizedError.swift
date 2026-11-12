@@ -10,10 +10,13 @@ public import CoreBluetooth
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CBError: @retroactive LocalizedError {}
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CBATTError: @retroactive LocalizedError {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CBError {
     /// The error description.
     public var errorDescription: String? {
@@ -27,6 +30,7 @@ extension CBError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CBATTError {
     /// The error description.
     public var errorDescription: String? {

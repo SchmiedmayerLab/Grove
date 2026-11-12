@@ -11,6 +11,7 @@ import GroveFoundation
 
 
 /// A device pairing error.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum DevicePairingError {
     /// Device is currently in an invalid state.
     ///
@@ -31,6 +32,7 @@ public enum DevicePairingError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DevicePairingError: LocalizedError {
     public var errorDescription: String? {
         switch self {

@@ -10,6 +10,7 @@ public import SwiftUI
 
 
 /// Battery Icon with optional label.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BatteryIcon: View {
     private let percentage: Int
     private let isCharging: Bool
@@ -76,26 +77,32 @@ public struct BatteryIcon: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BatteryIcon(percentage: 100)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BatteryIcon(percentage: 85, isCharging: true)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BatteryIcon(percentage: 70)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BatteryIcon(percentage: 50)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BatteryIcon(percentage: 25)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     BatteryIcon(percentage: 10)
 }

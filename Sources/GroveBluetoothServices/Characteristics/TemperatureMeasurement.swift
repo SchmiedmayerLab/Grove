@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// A temperature measurement.
 ///
 /// Refer to GATT Specification Supplement, 3.216 Temperature Measurement.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct TemperatureMeasurement {
     fileprivate struct Flags: OptionSet {
         static let fahrenheitUnit = Flags(rawValue: 1 << 0)
@@ -65,12 +66,15 @@ public struct TemperatureMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureMeasurement.Unit: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureMeasurement: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureMeasurement.Flags: ByteCodable {
     init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {
@@ -84,6 +88,7 @@ extension TemperatureMeasurement.Flags: ByteCodable {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureMeasurement: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let flags = Flags(from: &byteBuffer),
@@ -146,7 +151,9 @@ extension TemperatureMeasurement: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureMeasurement.Unit: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension TemperatureMeasurement: Codable {}

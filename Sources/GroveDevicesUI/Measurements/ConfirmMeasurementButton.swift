@@ -11,6 +11,7 @@ import GroveViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct DiscardButton: View {
     private let discard: () -> Void
 

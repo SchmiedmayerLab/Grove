@@ -19,6 +19,7 @@ public import struct NIOCore.ByteBuffer
 /// The format of a operand is defined by the Service specification using the ``RecordAccessControlPoint`` characteristic.
 ///
 /// Refer to GATT Specification Supplement, 3.178.3 Operand field.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol RecordAccessOperand: ByteEncodable, Sendable {
     /// General Response representation.
     ///
@@ -48,6 +49,7 @@ public protocol RecordAccessOperand: ByteEncodable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperand {
     /// Default implementation returning nil.
     public var generalResponse: RecordAccessGeneralResponse? {

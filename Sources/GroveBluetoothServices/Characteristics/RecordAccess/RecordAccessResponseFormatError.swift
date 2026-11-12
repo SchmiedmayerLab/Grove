@@ -11,6 +11,7 @@
 ///
 /// The value returned from the Record Access Control Point characteristic for a previously sent
 /// request has unexpected format.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessResponseFormatError {
     /// The reason for the format error.
     public enum Reason {
@@ -47,7 +48,9 @@ public struct RecordAccessResponseFormatError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessResponseFormatError.Reason: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessResponseFormatError: Error {}

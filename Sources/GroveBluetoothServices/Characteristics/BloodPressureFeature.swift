@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// Features of a weight scale.
 ///
 /// Refer to GATT Specification Supplement, 3.30 Blood Pressure Feature.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BloodPressureFeature: OptionSet {
     /// Indicate if body movement detection is supported.
     ///
@@ -64,9 +65,11 @@ public struct BloodPressureFeature: OptionSet {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureFeature: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureFeature: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         var components: [String] = []
@@ -106,6 +109,7 @@ extension BloodPressureFeature: CustomStringConvertible, CustomDebugStringConver
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureFeature: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt16(from: &byteBuffer) else {
@@ -120,4 +124,5 @@ extension BloodPressureFeature: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureFeature: Codable {}

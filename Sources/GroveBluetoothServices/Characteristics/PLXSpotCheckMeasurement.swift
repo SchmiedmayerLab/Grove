@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 
 
 /// A PLX Spot-check Measurement, as defined in the [Bluetooth specification](https://www.bluetooth.com/specifications/specs/plxs-html/).
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PLXSpotCheckMeasurement: ByteCodable, Hashable, Sendable, Codable {
     public typealias MeasurementStatus = PLXContinuousMeasurement.MeasurementStatus
     public typealias DeviceAndSensorStatus = PLXContinuousMeasurement.DeviceAndSensorStatus

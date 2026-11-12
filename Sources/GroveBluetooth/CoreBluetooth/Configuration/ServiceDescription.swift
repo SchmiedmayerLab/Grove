@@ -10,6 +10,7 @@
 /// A service description for a certain device.
 ///
 /// Describes what characteristics we expect to be present for a certain service.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ServiceDescription: Sendable {
     /// The service id.
     public let serviceId: BTUUID
@@ -46,4 +47,5 @@ public struct ServiceDescription: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ServiceDescription: Hashable {}

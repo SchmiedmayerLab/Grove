@@ -7,14 +7,17 @@
 //
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct CharacteristicLocator {
     let serviceId: BTUUID
     let characteristicId: BTUUID
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicLocator: Hashable, Sendable {}
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicLocator: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         "\(characteristicId)@\(serviceId)"

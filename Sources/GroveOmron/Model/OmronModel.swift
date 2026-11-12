@@ -8,6 +8,7 @@
 
 
 /// Omron Model.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OmronModel {
     /// The raw model number.
     public let rawValue: String
@@ -20,6 +21,7 @@ public struct OmronModel {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronModel {
     /// The Omron SC150 weight scale.
     public static let sc150 = OmronModel(rawValue: "SC-150")
@@ -32,10 +34,13 @@ extension OmronModel {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronModel: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronModel: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronModel: Codable {}

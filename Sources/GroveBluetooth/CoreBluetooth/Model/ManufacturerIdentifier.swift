@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 /// Bluetooth SIG-assigned Manufacturer Identifier.
 ///
 /// Refer to Assigned Numbers 7. Company Identifiers.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ManufacturerIdentifier {
     /// The raw manufacturer identifier.
     public let rawValue: UInt16
@@ -25,9 +26,11 @@ public struct ManufacturerIdentifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManufacturerIdentifier: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManufacturerIdentifier: RawRepresentable {
     public init(rawValue: UInt16) {
         self.rawValue = rawValue
@@ -35,6 +38,7 @@ extension ManufacturerIdentifier: RawRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManufacturerIdentifier: ExpressibleByIntegerLiteral {
     public init(integerLiteral value: UInt16) {
         self.init(rawValue: value)
@@ -42,6 +46,7 @@ extension ManufacturerIdentifier: ExpressibleByIntegerLiteral {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManufacturerIdentifier: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt16(from: &byteBuffer) else {

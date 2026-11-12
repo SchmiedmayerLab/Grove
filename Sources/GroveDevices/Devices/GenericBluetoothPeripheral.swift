@@ -10,6 +10,7 @@ public import GroveBluetooth
 
 
 /// A generic bluetooth peripheral.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol GenericBluetoothPeripheral {
     /// The user-visible label.
     ///
@@ -33,6 +34,7 @@ public protocol GenericBluetoothPeripheral {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension GenericBluetoothPeripheral {
     /// Default implementation using the devices `label`.
     public var accessibilityLabel: String {

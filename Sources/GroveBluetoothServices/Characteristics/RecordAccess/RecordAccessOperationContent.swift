@@ -20,6 +20,7 @@
 /// - ``allRecords``
 /// - ``firstRecord``
 /// - ``lastRecord``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessOperationContent<Operand: RecordAccessOperand> {
     let `operator`: RecordAccessOperator
     let operand: Operand?
@@ -35,6 +36,7 @@ public struct RecordAccessOperationContent<Operand: RecordAccessOperand> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperationContent {
     /// All records.
     ///

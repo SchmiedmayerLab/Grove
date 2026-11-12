@@ -10,6 +10,7 @@ import GroveViews
 import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ImageReference {
 #if canImport(UIKit)
     func uiImageScaledForAccessorySetupKit() -> UIImage {

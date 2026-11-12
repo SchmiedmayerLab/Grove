@@ -14,6 +14,7 @@ protocol AnyWeakDeviceReference {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct WeakReference<Value: AnyObject> {
     weak var value: Value?
 

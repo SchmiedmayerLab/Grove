@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// A weight measurement.
 ///
 /// Refer to GATT Specification Supplement, 3.252 Weight Measurement.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct WeightMeasurement {
     fileprivate struct Flags: OptionSet {
         static let isImperialUnit = Flags(rawValue: 1 << 0)
@@ -105,6 +106,7 @@ public struct WeightMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement {
     /// The weight value in kg or pounds.
     ///
@@ -131,15 +133,19 @@ extension WeightMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.Unit: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.AdditionalInfo: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.Flags: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {
@@ -154,6 +160,7 @@ extension WeightMeasurement.Flags: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.AdditionalInfo: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let bmi = UInt16(from: &byteBuffer),
@@ -170,6 +177,7 @@ extension WeightMeasurement.AdditionalInfo: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let flags = Flags(from: &byteBuffer),
@@ -242,10 +250,13 @@ extension WeightMeasurement: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.Unit: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement.AdditionalInfo: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement: Codable {}
