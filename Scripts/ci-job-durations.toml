@@ -10,122 +10,122 @@
 # to refresh it.
 
 generated = 2026-11-12
-sampled_runs = 50  # successful first-attempt Tests runs
+sampled_runs = 50  # first-attempt Tests runs that completed, passed or failed
 # Self-hosted minutes per GitHub-hosted minute, over unit jobs recorded on both pools (1.0 without data).
-self_hosted_speed = 1.0
+self_hosted_speed = 0.27
 # GitHub-hosted minutes assumed for a unit job without a recorded duration.
-default_minutes = 11.2
+default_minutes = 11.4
 
 # Minutes after `Detect affected packages` finishes at which each runner typically becomes free for a run.
 [slots]
-github-hosted = [7.6, 12.2, 16.3, 16.7, 18.7]
-self-hosted = [0.1, 1.0, 3.2, 4.4]
+github-hosted = [7.2, 12.1, 16.3, 16.7, 18.7]
+self-hosted = [0.1, 0.1, 4.2, 4.8]
 
 # Median minutes per job and runner pool.
 [minutes]
-"FHIR Output Conformance" = { github-hosted = 16.3 }
-"FHIRModelsExtensions (iOS)" = { github-hosted = 15.1 }
-"FHIRModelsExtensions (macOS)" = { github-hosted = 9.1 }
-"FHIRModelsExtensions (watchOS)" = { github-hosted = 9.6 }
-"Grove (iOS)" = { github-hosted = 16.0 }
-"Grove (macOS)" = { github-hosted = 5.9 }
-"Grove (watchOS)" = { github-hosted = 8.5 }
-"Grove UI (iOS)" = { self-hosted = 17.8 }
-"GroveAccessGuard (iOS)" = { github-hosted = 13.2 }
-"GroveAccessGuard UI (iOS)" = { self-hosted = 10.4 }
-"GroveAccount (iOS)" = { github-hosted = 17.8 }
-"GroveAccount (macOS)" = { github-hosted = 8.8 }
+"FHIR Output Conformance" = { github-hosted = 25.8 }
+"FHIRModelsExtensions (iOS)" = { github-hosted = 15.1, self-hosted = 3.1 }
+"FHIRModelsExtensions (macOS)" = { github-hosted = 9.1, self-hosted = 2.7 }
+"FHIRModelsExtensions (watchOS)" = { github-hosted = 12.1, self-hosted = 3.1 }
+"Grove (iOS)" = { github-hosted = 16.0, self-hosted = 3.6 }
+"Grove (macOS)" = { github-hosted = 6.1, self-hosted = 2.2 }
+"Grove (watchOS)" = { github-hosted = 8.9, self-hosted = 2.4 }
+"Grove UI (iOS)" = { self-hosted = 16.4 }
+"GroveAccessGuard (iOS)" = { github-hosted = 14.7 }
+"GroveAccessGuard UI (iOS)" = { self-hosted = 8.4 }
+"GroveAccount (iOS)" = { github-hosted = 17.5, self-hosted = 3.6 }
+"GroveAccount (macOS)" = { github-hosted = 8.8, self-hosted = 2.6 }
 "GroveAccount UI (iOS)" = { self-hosted = 26.4 }
-"GroveBluetooth (iOS)" = { github-hosted = 17.4 }
-"GroveBluetooth (macOS)" = { github-hosted = 8.4 }
-"GroveBluetooth (watchOS)" = { github-hosted = 11.1 }
+"GroveBluetooth (iOS)" = { github-hosted = 18.1, self-hosted = 3.5 }
+"GroveBluetooth (macOS)" = { github-hosted = 7.6, self-hosted = 3.0 }
+"GroveBluetooth (watchOS)" = { github-hosted = 10.7, self-hosted = 2.9 }
 "GroveBluetooth UI (iOS)" = { self-hosted = 5.9 }
-"GroveChat (iOS)" = { github-hosted = 15.2 }
-"GroveChat (macOS)" = { github-hosted = 7.3 }
+"GroveChat (iOS)" = { github-hosted = 15.5 }
+"GroveChat (macOS)" = { github-hosted = 7.5, self-hosted = 2.5 }
 "GroveChat UI (iOS)" = { self-hosted = 26.8 }
 "GroveConsent (iOS)" = { github-hosted = 16.2 }
-"GroveConsent (macOS)" = { github-hosted = 7.7 }
+"GroveConsent (macOS)" = { github-hosted = 7.7, self-hosted = 2.4 }
 "GroveConsent UI (iOS)" = { self-hosted = 13.4 }
-"GroveContact (iOS)" = { github-hosted = 17.5 }
+"GroveContact (iOS)" = { github-hosted = 16.8, self-hosted = 3.0 }
 "GroveContact UI (iOS)" = { self-hosted = 9.6 }
-"GroveDevices (iOS)" = { github-hosted = 21.2 }
-"GroveDevices (macOS)" = { github-hosted = 8.4 }
+"GroveDevices (iOS)" = { github-hosted = 21.2, self-hosted = 3.7 }
+"GroveDevices (macOS)" = { github-hosted = 8.9, self-hosted = 2.8 }
 "GroveDevices UI (iOS)" = { self-hosted = 10.5 }
-"GroveFHIR (iOS)" = { github-hosted = 20.9 }
-"GroveFHIR (macOS)" = { github-hosted = 8.4 }
+"GroveFHIR (iOS)" = { github-hosted = 20.9, self-hosted = 3.5 }
+"GroveFHIR (macOS)" = { github-hosted = 4.8, self-hosted = 3.0 }
 "GroveFHIR UI (iOS)" = { self-hosted = 9.4 }
-"GroveFileFormats (iOS)" = { github-hosted = 11.6 }
-"GroveFileFormats (macOS)" = { github-hosted = 5.1 }
-"GroveFileFormats (watchOS)" = { github-hosted = 6.6 }
-"GroveFirebase (iOS)" = { github-hosted = 12.4 }
+"GroveFileFormats (iOS)" = { github-hosted = 11.6, self-hosted = 3.0 }
+"GroveFileFormats (macOS)" = { github-hosted = 5.1, self-hosted = 2.1 }
+"GroveFileFormats (watchOS)" = { github-hosted = 6.6, self-hosted = 2.0 }
+"GroveFirebase (iOS)" = { github-hosted = 12.4, self-hosted = 3.3 }
 "GroveFirebase UI (iOS)" = { self-hosted = 21.6 }
-"GroveFoundation (iOS)" = { github-hosted = 15.1 }
-"GroveFoundation (macOS)" = { github-hosted = 8.8 }
-"GroveFoundation (watchOS)" = { github-hosted = 10.4 }
-"GroveFoundation UI (iOS)" = { self-hosted = 7.2 }
+"GroveFoundation (iOS)" = { github-hosted = 15.1, self-hosted = 3.9 }
+"GroveFoundation (macOS)" = { github-hosted = 8.8, self-hosted = 3.5 }
+"GroveFoundation (watchOS)" = { github-hosted = 10.4, self-hosted = 3.0 }
+"GroveFoundation UI (iOS)" = { self-hosted = 6.5 }
 "GroveHealthKit (iOS)" = { github-hosted = 12.4 }
 "GroveHealthKit (macOS)" = { github-hosted = 7.8 }
-"GroveHealthKit (watchOS)" = { github-hosted = 9.7 }
-"GroveHealthKit UI (iOS)" = { self-hosted = 23.6 }
-"GroveHealthKitFHIR (iOS)" = { github-hosted = 22.8 }
-"GroveHealthKitFHIR (macOS)" = { github-hosted = 10.4 }
-"GroveHealthKitFHIR (watchOS)" = { github-hosted = 9.7 }
+"GroveHealthKit (watchOS)" = { github-hosted = 9.7, self-hosted = 3.1 }
+"GroveHealthKit UI (iOS)" = { self-hosted = 23.1 }
+"GroveHealthKitFHIR (iOS)" = { github-hosted = 22.8, self-hosted = 5.0 }
+"GroveHealthKitFHIR (macOS)" = { github-hosted = 10.4, self-hosted = 3.4 }
+"GroveHealthKitFHIR (watchOS)" = { github-hosted = 7.7, self-hosted = 3.6 }
 "GroveHealthKitFHIR UI (iOS)" = { self-hosted = 7.3 }
-"GroveLLM (iOS)" = { github-hosted = 24.1 }
-"GroveLLM (macOS)" = { github-hosted = 12.3 }
-"GroveLLM UI (iOS)" = { self-hosted = 10.9 }
-"GroveLicense (iOS)" = { github-hosted = 15.8 }
-"GroveLicense UI (iOS)" = { self-hosted = 9.6 }
-"GroveLocation (iOS)" = { github-hosted = 15.7 }
-"GroveLocation (watchOS)" = { github-hosted = 8.6 }
-"GroveLocation UI (iOS)" = { self-hosted = 7.6 }
-"GroveNetworking (iOS)" = { github-hosted = 13.4 }
-"GroveNetworking (macOS)" = { github-hosted = 6.8 }
-"GroveNetworking (watchOS)" = { github-hosted = 10.1 }
-"GroveNotifications (iOS)" = { github-hosted = 17.7 }
-"GroveNotifications (macOS)" = { github-hosted = 6.6 }
-"GroveNotifications (watchOS)" = { github-hosted = 9.4 }
+"GroveLLM (iOS)" = { github-hosted = 24.1, self-hosted = 4.5 }
+"GroveLLM (macOS)" = { github-hosted = 12.3, self-hosted = 3.2 }
+"GroveLLM UI (iOS)" = { self-hosted = 8.9 }
+"GroveLicense (iOS)" = { github-hosted = 15.9, self-hosted = 3.0 }
+"GroveLicense UI (iOS)" = { self-hosted = 7.8 }
+"GroveLocation (iOS)" = { github-hosted = 16.7, self-hosted = 3.2 }
+"GroveLocation (watchOS)" = { github-hosted = 8.6, self-hosted = 2.8 }
+"GroveLocation UI (iOS)" = { self-hosted = 5.9 }
+"GroveNetworking (iOS)" = { github-hosted = 13.4, self-hosted = 3.0 }
+"GroveNetworking (macOS)" = { github-hosted = 6.8, self-hosted = 2.5 }
+"GroveNetworking (watchOS)" = { github-hosted = 10.1, self-hosted = 2.5 }
+"GroveNotifications (iOS)" = { github-hosted = 17.1, self-hosted = 3.0 }
+"GroveNotifications (macOS)" = { github-hosted = 6.4, self-hosted = 2.3 }
+"GroveNotifications (watchOS)" = { github-hosted = 9.3, self-hosted = 2.5 }
 "GroveNotifications UI (iOS)" = { self-hosted = 15.0 }
-"GroveOnboarding (iOS)" = { github-hosted = 22.4 }
-"GroveOnboarding (macOS)" = { github-hosted = 7.0 }
+"GroveOnboarding (iOS)" = { github-hosted = 19.4, self-hosted = 2.9 }
+"GroveOnboarding (macOS)" = { github-hosted = 6.9, self-hosted = 2.4 }
 "GroveOnboarding UI (iOS)" = { self-hosted = 9.0 }
-"GroveQuestionnaire (iOS)" = { github-hosted = 12.8 }
-"GroveQuestionnaire (macOS)" = { github-hosted = 11.3 }
-"GroveQuestionnaire UI (iOS)" = { self-hosted = 48.1 }
+"GroveQuestionnaire (iOS)" = { github-hosted = 12.8, self-hosted = 3.9 }
+"GroveQuestionnaire (macOS)" = { github-hosted = 11.3, self-hosted = 3.4 }
+"GroveQuestionnaire UI (iOS)" = { self-hosted = 17.3 }
 "GroveScheduler (iOS)" = { github-hosted = 17.4 }
-"GroveScheduler (macOS)" = { github-hosted = 8.5 }
-"GroveScheduler (watchOS)" = { github-hosted = 12.7 }
-"GroveScheduler UI (iOS)" = { self-hosted = 18.8 }
-"GroveSensorKit (iOS)" = { github-hosted = 12.9 }
+"GroveScheduler (macOS)" = { github-hosted = 8.5, self-hosted = 3.0 }
+"GroveScheduler (watchOS)" = { github-hosted = 12.7, self-hosted = 2.8 }
+"GroveScheduler UI (iOS)" = { self-hosted = 12.6 }
+"GroveSensorKit (iOS)" = { github-hosted = 12.9, self-hosted = 3.5 }
 "GroveSensorKit UI (iOS)" = { self-hosted = 5.2 }
-"GroveSensorKitFHIR (iOS)" = { github-hosted = 17.2 }
-"GroveSensorKitFHIR (macOS)" = { github-hosted = 10.3 }
-"GroveSpeech (iOS)" = { github-hosted = 14.4 }
-"GroveSpeech (macOS)" = { github-hosted = 6.8 }
-"GroveSpeech UI (iOS)" = { self-hosted = 18.0 }
-"GroveStorage (iOS)" = { github-hosted = 14.8 }
-"GroveStorage (macOS)" = { github-hosted = 6.7 }
-"GroveStorage (watchOS)" = { github-hosted = 8.4 }
-"GroveStorage UI (iOS)" = { self-hosted = 9.3 }
-"GroveStudy (iOS)" = { github-hosted = 19.5 }
-"GroveStudy (macOS)" = { github-hosted = 8.4 }
-"GroveStudy (watchOS)" = { github-hosted = 12.2 }
-"GroveStudy UI (iOS)" = { self-hosted = 7.1 }
-"GroveViews (iOS)" = { github-hosted = 17.7 }
-"GroveViews (macOS)" = { github-hosted = 6.9 }
-"GroveViews (watchOS)" = { github-hosted = 9.4 }
+"GroveSensorKitFHIR (iOS)" = { github-hosted = 17.2, self-hosted = 3.4 }
+"GroveSensorKitFHIR (macOS)" = { github-hosted = 8.9, self-hosted = 2.7 }
+"GroveSpeech (iOS)" = { github-hosted = 14.6, self-hosted = 3.2 }
+"GroveSpeech (macOS)" = { github-hosted = 6.6, self-hosted = 2.7 }
+"GroveSpeech UI (iOS)" = { self-hosted = 16.2 }
+"GroveStorage (iOS)" = { github-hosted = 15.4, self-hosted = 2.8 }
+"GroveStorage (macOS)" = { github-hosted = 6.7, self-hosted = 2.2 }
+"GroveStorage (watchOS)" = { github-hosted = 9.0, self-hosted = 2.4 }
+"GroveStorage UI (iOS)" = { self-hosted = 8.2 }
+"GroveStudy (iOS)" = { github-hosted = 19.5, self-hosted = 3.5 }
+"GroveStudy (macOS)" = { github-hosted = 8.4, self-hosted = 3.0 }
+"GroveStudy (watchOS)" = { github-hosted = 12.2, self-hosted = 2.8 }
+"GroveStudy UI (iOS)" = { self-hosted = 5.8 }
+"GroveViews (iOS)" = { github-hosted = 18.6 }
+"GroveViews (macOS)" = { github-hosted = 6.9, self-hosted = 2.4 }
+"GroveViews (watchOS)" = { github-hosted = 9.5, self-hosted = 2.7 }
 "GroveViews UI (iOS)" = { self-hosted = 32.5 }
-"ResearchKitOnFHIR (iOS)" = { github-hosted = 14.6 }
-"ResearchKitOnFHIR UI (iOS)" = { self-hosted = 9.4 }
-"RuntimeAssertions (iOS)" = { self-hosted = 8.9 }
-"RuntimeAssertions (macOS)" = { self-hosted = 4.6 }
-"RuntimeAssertions (watchOS)" = { self-hosted = 3.6 }
-"ThreadLocal (iOS)" = { github-hosted = 12.0 }
-"ThreadLocal (macOS)" = { github-hosted = 6.2 }
-"ThreadLocal (watchOS)" = { github-hosted = 8.3 }
-"XCTHealthKit (iOS)" = { github-hosted = 13.5 }
-"XCTHealthKit UI (iOS)" = { self-hosted = 15.0 }
-"XCTestExtensions (iOS)" = { github-hosted = 13.9 }
-"XCTestExtensions (macOS)" = { github-hosted = 6.0 }
-"XCTestExtensions (watchOS)" = { github-hosted = 7.4 }
-"XCTestExtensions UI (iOS)" = { self-hosted = 16.2 }
+"ResearchKitOnFHIR (iOS)" = { github-hosted = 14.8, self-hosted = 4.6 }
+"ResearchKitOnFHIR UI (iOS)" = { self-hosted = 10.7 }
+"RuntimeAssertions (iOS)" = { self-hosted = 5.8 }
+"RuntimeAssertions (macOS)" = { self-hosted = 3.7 }
+"RuntimeAssertions (watchOS)" = { self-hosted = 2.9 }
+"ThreadLocal (iOS)" = { github-hosted = 12.0, self-hosted = 3.3 }
+"ThreadLocal (macOS)" = { github-hosted = 6.2, self-hosted = 2.2 }
+"ThreadLocal (watchOS)" = { github-hosted = 8.3, self-hosted = 2.5 }
+"XCTHealthKit (iOS)" = { github-hosted = 13.5, self-hosted = 3.0 }
+"XCTHealthKit UI (iOS)" = { self-hosted = 14.0 }
+"XCTestExtensions (iOS)" = { github-hosted = 13.9, self-hosted = 2.8 }
+"XCTestExtensions (macOS)" = { github-hosted = 6.0, self-hosted = 2.1 }
+"XCTestExtensions (watchOS)" = { github-hosted = 7.4, self-hosted = 2.5 }
+"XCTestExtensions UI (iOS)" = { self-hosted = 16.1 }
