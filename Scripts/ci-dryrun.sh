@@ -98,8 +98,8 @@ printf '%s' "$MATRIX" | python3 -c '
 import json,sys
 inc=json.load(sys.stdin)["include"]
 for e in inc:
-    runner = ", self-hosted" if e["selfHosted"] else ""
-    print("  - test (%s / %s%s)  ->  Scripts/run-package-tests.sh %s %s" % (e["package"], e["platform"], runner, e["package"], e["platform"]))
+    runner = "  [self-hosted]" if e["selfHosted"] else ""
+    print("  - test (%s / %s)%s  ->  Scripts/run-package-tests.sh %s %s" % (e["package"], e["platform"], runner, e["package"], e["platform"]))
 print("\n  total jobs scheduled: %d" % len(inc))
 '
 

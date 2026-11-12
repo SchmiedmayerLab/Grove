@@ -209,8 +209,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   test:
-    # The ", self-hosted" marker is part of the name Scripts/refresh-ci-durations.py parses.
-    name: ${{ matrix.package }} (${{ matrix.platform }}${{ matrix.selfHosted && ', self-hosted' || '' }})
+    name: ${{ matrix.package }} (${{ matrix.platform }})
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
     # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff matrix.selfHosted, else

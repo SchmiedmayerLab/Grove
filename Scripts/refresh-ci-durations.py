@@ -29,13 +29,12 @@ The rule
   3. Every other unit job, longest first, goes to the pool whose earliest-free runner would finish
      it sooner. A tie stays GitHub-hosted, which keeps the Macs free for UI tests from other runs.
   The `Compute test matrix` step logs each decision, for example
-  "GroveFHIR (iOS): self-hosted, done ~36 min (vs ~36 on github-hosted)", and unit jobs on the Macs
-  carry ", self-hosted" in their name. Without the durations file, every unpinned unit job runs
-  GitHub-hosted.
+  "GroveFHIR (iOS): self-hosted, done ~36 min (vs ~36 on github-hosted)". Without the durations
+  file, every unpinned unit job runs GitHub-hosted.
 
 The durations file
   [minutes]          Minutes per job and pool: the median of its 5 most recent runs, keyed by the job
-                     name without ", self-hosted".
+                     name.
   [slots]            Minutes after `Detect affected packages` finishes at which each runner typically
                      becomes free for the run.
   self_hosted_speed  Self-hosted minutes per GitHub-hosted minute, for a job recorded on one pool only.
@@ -109,7 +108,8 @@ HEADER = """\
 
 
 def job_key(name):
-    """The job's name without the runner marker the workflow appends to self-hosted unit jobs."""
+    """The job's name without the ", self-hosted" marker that Mac unit jobs carried in Grove#139's own
+    runs, so those runs' samples count for the same job."""
     return re.sub(r", self-hosted\)$", ")", name)
 
 
