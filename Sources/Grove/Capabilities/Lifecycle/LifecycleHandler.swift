@@ -7,7 +7,9 @@
 //
 
 #if canImport(SwiftUI)
+#if os(iOS) || os(visionOS) || os(tvOS)
 public import SwiftUI
+#endif
 
 
 /// Delegate methods are related to the  `UIApplication` and ``Grove/Grove`` lifecycle.

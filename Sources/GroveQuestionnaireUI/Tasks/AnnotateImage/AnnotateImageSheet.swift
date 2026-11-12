@@ -14,7 +14,7 @@ import SwiftUI
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct AnnotateImageSheet: View {
-    private static let editorCoordinateSpace = "AnnotationEditor"
+    nonisolated private static let editorCoordinateSpace = "AnnotationEditor"
     private static let imageMargin = CGFloat(12)
     private static let overlaySpacing = CGFloat(12)
     private static let overlayPadding = CGFloat(8)

@@ -32,34 +32,20 @@ public struct ContactView: View {
     }
 
     private var subtitleText: Text {
-        var text = Text(verbatim: "")
-        if let title = contact.title {
-            text = text + Text(verbatim: title) // swiftlint:disable:this shorthand_operator
-        }
-        if contact.title != nil && contact.organization != nil {
-            text = text + Text(verbatim: " - ") // swiftlint:disable:this shorthand_operator
-        }
-        if let organization = contact.organization {
-            text = text + Text(verbatim: organization) // swiftlint:disable:this shorthand_operator
-        }
-        return text
+        Text(verbatim: [contact.title, contact.organization].compactMap(\.self).joined(separator: " - "))
     }
 
     private var subtitleAccessibilityLabel: Text {
-        var text: Text?
-        if let title = contact.title {
-            text = Text(verbatim: title)
+        switch (contact.title, contact.organization) {
+        case let (title?, organization?):
+            Text(verbatim: title + String(localized: " at \(organization)", bundle: .module, comment: "Accessibility label: ' at <organization>'"))
+        case let (title?, nil):
+            Text(verbatim: title)
+        case let (nil, organization?):
+            Text(verbatim: organization)
+        case (nil, nil):
+            Text(verbatim: "")
         }
-
-        if let organization = contact.organization {
-            if let titleText = text {
-                text = titleText + Text(" at \(organization)", bundle: .module, comment: "Accessibility label: ' at <organization>'")
-            } else {
-                text = Text(verbatim: organization)
-            }
-        }
-
-        return text ?? Text(verbatim: "")
     }
 
     public var body: some View {

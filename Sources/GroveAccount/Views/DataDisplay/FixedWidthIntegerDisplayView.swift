@@ -19,8 +19,7 @@ public struct FixedWidthIntegerDisplayView<Key: AccountKey>: DataDisplayView whe
 
     public var body: some View {
         ListRow(Key.name) {
-            Text(value.description)
-                + unit
+            Text("\(value.description)\(unit)", bundle: .module)
         }
     }
 

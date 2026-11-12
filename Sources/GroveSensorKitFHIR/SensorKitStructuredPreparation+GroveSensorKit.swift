@@ -11,7 +11,7 @@
 
 #if os(iOS)
 public import Foundation
-public import GroveFHIRContract
+import GroveFHIRContract
 public import GroveSensorKit
 public import SensorKit
 

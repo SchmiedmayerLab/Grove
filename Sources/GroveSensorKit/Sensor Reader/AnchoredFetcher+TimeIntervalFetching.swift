@@ -156,9 +156,14 @@ extension AnchoredFetcher {
         ///
         /// This function advances the state as it moves through the fetches.
         private mutating func fetchNextBatch(isolation _: isolated (any Actor)?) async throws(Failure) -> Element? {
-            // SensorKit's device descriptor is immutable. Keep one handle for the complete fetch
-            // loop and confine the unchecked transfer to this SDK boundary.
+            // Keep one handle on SensorKit's device descriptor for the complete fetch loop.
+            #if compiler(>=6.4)
+            let device = device
+            #else
+            // Before the iOS 27 SDK, `SRDevice` isn't `Sendable`. The descriptor is immutable,
+            // so confine the unchecked transfer to this SDK boundary.
             nonisolated(unsafe) let device = device
+            #endif
             // SAFETY:
             // this loop will terminate eventually:
             // - if SensorKit returns at least one sample for the time range we're processing (i.e., the batch is not empty)

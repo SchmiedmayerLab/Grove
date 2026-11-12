@@ -6,10 +6,10 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if !os(macOS) && !os(watchOS)
 import Foundation
 public import SwiftUI
 
-#if !os(macOS) && !os(watchOS)
 private struct _Label: UIViewRepresentable {
     let text: String
     let textStyle: UIFont.TextStyle

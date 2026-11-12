@@ -75,7 +75,7 @@ private final class WindowTapView: UIView, UIGestureRecognizerDelegate {
         true
     }
 
-    deinit {
+    isolated deinit {
         if let recognizer {
             recognizer.view?.removeGestureRecognizer(recognizer)
         }
