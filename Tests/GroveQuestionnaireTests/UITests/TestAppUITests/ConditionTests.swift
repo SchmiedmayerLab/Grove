@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import XCTestExtensions
 import XCTGroveQuestionnaire
 
 
@@ -34,10 +35,10 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
         questionnaire.question("ice-cream").answer(false)
         questionnaire.advance()
         // the middle page has nothing left to ask, so it is passed over rather than shown empty
-        XCTAssert(app.staticTexts["All Done!"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["All Done!"].exists })
 
         questionnaire.goBack()
-        XCTAssert(app.staticTexts["All Done!"].waitForNonExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { !app.staticTexts["All Done!"].exists })
 
         questionnaire.question("ice-cream").answer(true)
         questionnaire.advance()
@@ -46,7 +47,7 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(questionnaire.waitUntilReadiness(.incomplete))
         questionnaire.question("ice-cream-flavor").select("Mango")
         questionnaire.advance()
-        XCTAssert(app.staticTexts["All Done!"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["All Done!"].exists })
     }
 
 
@@ -56,7 +57,7 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
     func testConditionRules() {
         launchAppAndStartExample("Test Condition Lookup Rules", in: .modelValues)
 
-        XCTAssert(app.staticTexts["Section A"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["Section A"].exists })
         XCTAssert(questionnaire.question("t2A").waitUntilAsked())
         XCTAssertFalse(questionnaire.question("t1A").isAsked)
         questionnaire.question("t2A").select("Red")
@@ -67,8 +68,8 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(questionnaire.question("t1A").waitUntilNoLongerAsked(timeout: 2))
 
         questionnaire.advance()
-        XCTAssert(app.staticTexts["Section A"].waitForNonExistence(timeout: 2))
-        XCTAssert(app.staticTexts["Section B"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 2) { !app.staticTexts["Section A"].exists })
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["Section B"].exists })
         XCTAssert(questionnaire.question("t1B").waitUntilAsked())
 
         XCTAssertFalse(questionnaire.question("t2B").isAsked)
@@ -127,14 +128,14 @@ final class ConditionTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(questionnaire.question("t1.1").waitUntilNoLongerAsked())
         questionnaire.advance()
 
-        XCTAssert(app.staticTexts["Section 2"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["Section 2"].exists })
         questionnaire.goBack()
-        XCTAssert(app.staticTexts["Section 2"].waitForNonExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { !app.staticTexts["Section 2"].exists })
         XCTAssert(questionnaire.question("t0").waitUntilAsked())
 
         // "No" disables it, and with nothing left to ask the follow-up page is skipped outright
         questionnaire.question("t0").answer(false)
         questionnaire.advance()
-        XCTAssert(app.staticTexts["Section 2"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["Section 2"].exists })
     }
 }

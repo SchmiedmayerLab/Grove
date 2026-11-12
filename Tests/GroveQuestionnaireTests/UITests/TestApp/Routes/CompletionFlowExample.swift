@@ -46,5 +46,6 @@ struct CompletionFlowExample: View {
         .navigationTitle("Completion Flow")
         .navigationBarTitleDisplayMode(.inline)
         .runsQuestionnaires($running)
+        .startsAtLaunch(variants, in: $running)
     }
 }

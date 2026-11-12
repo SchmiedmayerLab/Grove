@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import XCTestExtensions
 import XCTGroveQuestionnaire
 
 
@@ -137,7 +138,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
         XCTAssertFalse(questionnaire.sectionIntro.exists)
         questionnaire.advance()
 
-        XCTAssert(questionnaire.sectionIntro.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.sectionIntro.exists })
         XCTAssertEqual(questionnaire.sectionIntro.label, "Let's talk about ice cream.")
         XCTAssert(questionnaire.isTitled("Form Example"))
     }
@@ -149,7 +150,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
     func testALongGroupTextHeadsTheContentRatherThanTheBar() {
         launchAppAndStartFHIRExample("Generalized Anxiety Disorder - 7")
 
-        XCTAssert(questionnaire.sectionIntro.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.sectionIntro.exists })
         XCTAssert(questionnaire.sectionIntro.label.hasPrefix("How often have you been bothered"))
         XCTAssertFalse(questionnaire.isTitled(questionnaire.sectionIntro.label))
         XCTAssert(questionnaire.isTitled("Generalized Anxiety Disorder - 7"))
@@ -217,7 +218,7 @@ final class PageLayoutTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(questionnaire.waitUntilProgress(1))
         questionnaire.submit()
         XCTAssert(questionnaire.waitUntilAtCompletionPage())
-        XCTAssert(questionnaire.progressBar.waitForNonExistence(timeout: 3))
+        XCTAssert(waitUntil(timeout: 3) { !questionnaire.progressBar.exists })
     }
 
 

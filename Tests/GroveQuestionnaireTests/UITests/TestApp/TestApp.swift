@@ -13,6 +13,7 @@ import SwiftUI
 struct UITestsApp: App {
     @State private var responsesStore = ResponsesStore()
     @State private var sheetSettings = SheetSettings()
+    @State private var path = LaunchShortcut.page.map { [$0] } ?? []
 
     init() {
         #if os(iOS)
@@ -25,7 +26,7 @@ struct UITestsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
+            NavigationStack(path: $path) {
                 ContentView()
             }
             .environment(responsesStore)

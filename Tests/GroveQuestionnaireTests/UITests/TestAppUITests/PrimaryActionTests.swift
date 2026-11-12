@@ -31,7 +31,7 @@ final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
 
         // answering "No" empties the middle page, so the next one is the last
         questionnaire.advance()
-        XCTAssert(app.staticTexts["All Done!"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["All Done!"].exists })
         XCTAssert(questionnaire.waitUntilOffering(.submit))
         XCTAssert(questionnaire.waitUntilReadiness(.ready))
     }
@@ -59,9 +59,7 @@ final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
     /// A consumer editing a record it can reopen asks for `Done`; the completion page's button always reads that way.
     @MainActor
     func testDoneReplacesSubmitWhenNothingIsHandedOff() {
-        launchApp()
-        open(.completionFlow)
-        startExample("Completion Page, Done", titled: "Reopenable Survey")
+        launchAppAndStartExample("Completion Page, Done", in: .completionFlow, titled: "Reopenable Survey")
 
         XCTAssertEqual(questionnaire.offeredAction, .done)
         XCTAssert(questionnaire.waitUntilReadiness(.incomplete))
@@ -82,9 +80,7 @@ final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
 
     @MainActor
     func testSubmittingWithoutACompletionPage() {
-        launchApp()
-        open(.completionFlow)
-        startExample("No Completion Page", titled: "Reopenable Survey")
+        launchAppAndStartExample("No Completion Page", in: .completionFlow, titled: "Reopenable Survey")
 
         questionnaire.question("flavour").select("Mango")
         XCTAssert(questionnaire.waitUntilReadiness(.ready))
@@ -113,15 +109,15 @@ final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
         XCTAssertFalse(questionnaire.question("q1").option("Not at all").isHittable)
 
         questionnaire.tapPrimaryAction()
-        XCTAssert(questionnaire.question("q1").option("Not at all").wait(for: \.isHittable, toEqual: true, timeout: 10))
-        XCTAssert(questionnaire.question("q1").blockingMark.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.question("q1").option("Not at all").isHittable })
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.question("q1").blockingMark.exists })
         // every question that blocks is marked, not only the one that was scrolled to
         XCTAssert(questionnaire.question("q2").isMarkedAsBlocking)
         XCTAssertFalse(questionnaire.isAtCompletionPage)
 
         // answering clears that question's mark, and leaves the rest of them alone
         questionnaire.question("q1").select("Not at all")
-        XCTAssert(questionnaire.question("q1").blockingMark.waitForNonExistence(timeout: 5))
+        XCTAssert(waitUntil(timeout: 5) { !questionnaire.question("q1").blockingMark.exists })
         XCTAssert(questionnaire.question("q2").isMarkedAsBlocking)
 
         for question in ["q2", "q3", "q4", "q5", "q6", "q7"] {
@@ -140,15 +136,15 @@ final class PrimaryActionTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(questionnaire.question("ice-cream").waitUntilAsked())
 
         questionnaire.tapPrimaryAction()
-        XCTAssert(questionnaire.question("ice-cream").blockingMark.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.question("ice-cream").blockingMark.exists })
         questionnaire.question("ice-cream").answer(true)
-        XCTAssert(questionnaire.question("ice-cream").blockingMark.waitForNonExistence(timeout: 5))
+        XCTAssert(waitUntil(timeout: 5) { !questionnaire.question("ice-cream").blockingMark.exists })
         questionnaire.advance()
 
         XCTAssert(questionnaire.question("ice-cream-flavor").waitUntilAsked())
         XCTAssert(questionnaire.waitUntilReadiness(.incomplete))
         XCTAssertFalse(questionnaire.question("ice-cream-flavor").isMarkedAsBlocking)
         questionnaire.tapPrimaryAction()
-        XCTAssert(questionnaire.question("ice-cream-flavor").blockingMark.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.question("ice-cream-flavor").blockingMark.exists })
     }
 }

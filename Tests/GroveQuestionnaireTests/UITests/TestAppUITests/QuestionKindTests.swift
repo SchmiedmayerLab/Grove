@@ -22,7 +22,7 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         app.buttons["OpenImageAnnotationEditor"].tap()
 
         let canvas = app.descendants(matching: .any)["ImageAnnotationCanvas"].firstMatch
-        XCTAssert(canvas.waitForExistence(timeout: 5))
+        XCTAssert(waitUntil(timeout: 5) { canvas.exists })
         XCTAssert(app.staticTexts["Where do you feel pain or stiffness?"].exists)
         XCTAssertFalse(app.staticTexts["Region"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["Move & Zoom"].exists)
@@ -42,7 +42,10 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         let strokeStart = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.4))
         let strokeEnd = canvas.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.6))
         strokeStart.press(forDuration: 0.1, thenDragTo: strokeEnd)
-        XCTAssert(app.buttons["Done"].waitForExistence(timeout: 2))
+        // the stroke is drawn at once but filed into the history a moment after the pen lifts
+        XCTAssert(waitUntil(timeout: 2) {
+            app.buttons["Done"].exists && app.buttons["Undo"].exists && app.buttons["Undo"].isEnabled
+        })
         XCTAssert(app.buttons["Undo"].exists)
         XCTAssert(app.buttons["Redo"].exists)
         XCTAssert(app.buttons["Undo"].isEnabled)
@@ -51,17 +54,20 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(app.buttons["Redo"].isEnabled)
         XCTAssert(app.buttons["Close"].exists)
         app.buttons["Redo"].tap()
-        XCTAssert(app.buttons["Done"].waitForExistence(timeout: 2))
+        XCTAssert(waitUntil(timeout: 2) { app.buttons["Done"].exists })
 
         eraser.tap()
         XCTAssert(eraser.isSelected)
         XCTAssertFalse(painRegion.isSelected)
         strokeStart.press(forDuration: 0.1, thenDragTo: strokeEnd)
         // the pass along the stroke takes it out entirely, and the erase is one step of the history
-        XCTAssert(app.buttons["Close"].waitForExistence(timeout: 2))
+        XCTAssert(waitUntil(timeout: 2) { app.buttons["Close"].exists })
+        // The history files the erase 150 ms after the pen lifts, and nothing on screen changes when it does:
+        // Undo was already enabled. An Undo before then would take back the Redo instead.
+        sleep(for: .milliseconds(400))
         XCTAssert(app.buttons["Undo"].isEnabled)
         app.buttons["Undo"].tap()
-        XCTAssert(app.buttons["Done"].waitForExistence(timeout: 2))
+        XCTAssert(waitUntil(timeout: 2) { app.buttons["Done"].exists })
         painRegion.tap()
         XCTAssert(painRegion.isSelected)
         XCTAssertFalse(eraser.isSelected)
@@ -81,20 +87,18 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
 
         questionnaire.question("t0").attachFile(from: .photoLibrary)
         let image = app.otherElements["Photos"].scrollViews.otherElements["photos_sectioned_layout"].images.firstMatch
-        XCTAssert(image.waitForExistence(timeout: 30))
+        XCTAssert(waitUntil(timeout: 30) { image.exists })
         image.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         do {
             let task0 = app.otherElements["Task:t0"]
-            XCTAssert(
-                task0.staticTexts.element(
-                    matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilename", "IMG_.*.jpeg"
-                ).waitForExistence(timeout: 30)
+            let filename = task0.staticTexts.element(
+                matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilename", "IMG_.*.jpeg"
             )
-            XCTAssert(
-                task0.staticTexts.element(
-                    matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilesize", ".* MB"
-                ).waitForExistence(timeout: 10)
+            XCTAssert(waitUntil(timeout: 30) { filename.exists })
+            let filesize = task0.staticTexts.element(
+                matching: "identifier = %@ AND label MATCHES %@", "FileAttachmentFilesize", ".* MB"
             )
+            XCTAssert(waitUntil(timeout: 10) { filesize.exists })
         }
         XCTAssertEqual(questionnaire.question("t0").attachedFilenames.count, 1)
         XCTAssert(questionnaire.waitUntilReadiness(.ready))
@@ -127,13 +131,13 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         XCTAssert(questionnaire.question("continent").waitUntilAsked())
 
         questionnaire.tapPrimaryAction()
-        XCTAssert(questionnaire.question("continent").blockingMark.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.question("continent").blockingMark.exists })
 
         questionnaire.question("continent").chooseFromMenu("Europe")
-        XCTAssert(questionnaire.question("continent").blockingMark.waitForNonExistence(timeout: 5))
+        XCTAssert(waitUntil(timeout: 5) { !questionnaire.question("continent").blockingMark.exists })
         // The neighbouring unanswered question keeps its mark. Checking it here avoids
         // dragging the sheet back to a question above the drop-down.
-        XCTAssert(questionnaire.question("agrees").blockingMark.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.question("agrees").blockingMark.exists })
         XCTAssert(questionnaire.waitUntilReadiness(.incomplete))
     }
 
@@ -171,9 +175,9 @@ final class QuestionKindTests: TestAppUITests, @unchecked Sendable {
         let toggle = app.buttons["StopwatchToggle"]
         XCTAssertEqual(toggle.label, "Start")
         toggle.tap()
-        XCTAssert(toggle.wait(for: \.label, toEqual: "Stop", timeout: 5))
+        XCTAssert(waitUntil(timeout: 5) { toggle.exists && toggle.label == "Stop" })
         toggle.tap()
-        XCTAssert(toggle.wait(for: \.label, toEqual: "Start", timeout: 5))
+        XCTAssert(waitUntil(timeout: 5) { toggle.exists && toggle.label == "Start" })
 
         // the elapsed time is only written back when the watch is stopped
         XCTAssert(questionnaire.waitUntilReadiness(.ready))

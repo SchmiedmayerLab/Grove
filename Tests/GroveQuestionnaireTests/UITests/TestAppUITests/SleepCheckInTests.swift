@@ -49,7 +49,11 @@ final class SleepCheckInTests: TestAppUITests, @unchecked Sendable {
         questionnaire.advance()
 
         XCTAssert(questionnaire.question("evening-drink").waitUntilAsked())
-        XCTAssert(questionnaire.sectionIntro.wait(for: \.label, toEqual: "Evening Habits", timeout: 10))
+        // The first page's intro is still in the tree while this one is pushed, and reading the label of an
+        // identifier two elements share fails the test; so wait for the push to leave one, then read it.
+        let intros = app.staticTexts.matching(identifier: "SectionIntro")
+        XCTAssert(waitUntil(timeout: 10) { intros.count == 1 && intros.firstMatch.label == "Evening Habits" })
+        XCTAssertEqual(questionnaire.sectionIntro.label, "Evening Habits")
         XCTAssertFalse(questionnaire.question("drink-details").isAsked)
 
         questionnaire.question("evening-drink").select("Something caffeinated")

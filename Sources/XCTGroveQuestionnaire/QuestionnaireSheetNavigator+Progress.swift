@@ -7,6 +7,7 @@
 //
 
 public import XCTest
+private import XCTestExtensions
 
 
 extension QuestionnaireSheetNavigator {
@@ -25,13 +26,8 @@ extension QuestionnaireSheetNavigator {
 
     /// Whether the bar fills to `fraction` within the timeout; the bar rounds to whole percent.
     public func waitUntilProgress(_ fraction: Double, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        repeat {
-            if let progress, abs(progress - fraction) <= 0.01 {
-                return true
-            }
-            usleep(200_000)
-        } while Date() < deadline
-        return false
+        waitUntil(timeout: timeout) {
+            progress.map { abs($0 - fraction) <= 0.01 } ?? false
+        }
     }
 }

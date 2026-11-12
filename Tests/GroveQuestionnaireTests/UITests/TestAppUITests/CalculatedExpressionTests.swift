@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import XCTestExtensions
 import XCTGroveQuestionnaire
 
 
@@ -29,13 +30,13 @@ final class CalculatedExpressionTests: TestAppUITests, @unchecked Sendable {
 
         assertResponseWasCollected(from: "Unit Conversion Example")
         tap(app.buttons["Response:Unit Conversion Example"])
-        XCTAssert(app.navigationBars["Questionnaire Response"].waitForExistence(timeout: 10))
-        XCTAssert(app.descendants(matching: .any).matching(identifier: "ResponseItem:glucose-mg-dl").firstMatch.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.navigationBars["Questionnaire Response"].exists })
+        XCTAssert(waitUntil(timeout: 10) { app.descendants(matching: .any).matching(identifier: "ResponseItem:glucose-mg-dl").firstMatch.exists })
         // 5.5 mmol/L × 18.0156 = 99.0858 mg/dL; the prefix leaves room for how the decimal is printed.
         let converted = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "99.08", "mg/dL"))
             .firstMatch
-        XCTAssert(converted.waitForExistence(timeout: 10), "the response must carry the calculated mg/dL value")
+        XCTAssert(waitUntil(timeout: 10) { converted.exists }, "the response must carry the calculated mg/dL value")
         let entered = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "5.5", "mmol/L"))
             .firstMatch

@@ -6,8 +6,11 @@
 // SPDX-License-Identifier: MIT
 //
 
+// swiftlint:disable file_length
+
 public import Foundation
 public import XCTest
+private import XCTestExtensions
 
 
 /// Answers a `QuestionnaireSheet` from a UI test.
@@ -164,16 +167,19 @@ extension QuestionnaireSheetNavigator {
         questionnaireRoot.exists
     }
 
-    /// Waits until the questionnaire is on screen.
+    /// Waits until the questionnaire is on screen and the sheet has come to rest.
+    ///
+    /// A sheet an app presents on its own — from a task, or at launch — is still sliding up when it first
+    /// appears, and nothing waits for it the way XCTest waits after a tap.
     @discardableResult
     public func waitUntilPresented(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        questionnaireRoot.waitForExistence(timeout: timeout)
+        waitUntil(timeout: timeout) { isPresented } && questionnaireRoot.waitUntilSettled(timeout: timeout)
     }
 
     /// Waits until the questionnaire has gone, which is what a handed-off or discarded run looks like.
     @discardableResult
     public func waitUntilDismissed(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        questionnaireRoot.waitForNonExistence(timeout: timeout)
+        waitUntil(timeout: timeout) { !isPresented }
     }
 }
 
@@ -214,7 +220,7 @@ extension QuestionnaireSheetNavigator {
     /// Choice options are buttons rather than text, so they are not in here; ask the question
     /// they belong to about those.
     public var visibleText: [String] {
-        scrollablePage.staticTexts.allElementsBoundByIndex.map(\.label)
+        pageLines.map(\.label)
     }
 
     /// Whether `text` appears anywhere on the page, above or below the fold.
@@ -246,14 +252,7 @@ extension QuestionnaireSheetNavigator {
     /// which is not there yet when the wait begins.
     @discardableResult
     public func waitUntilTitled(_ title: String, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        repeat {
-            if isTitled(title) {
-                return true
-            }
-            usleep(200_000)
-        } while Date() < deadline
-        return false
+        waitUntil(timeout: timeout) { isTitled(title) }
     }
 
     /// Scrolls the page down by roughly one screen.
@@ -309,16 +308,24 @@ extension QuestionnaireSheetNavigator {
         readiness == .ready
     }
 
+    /// The primary action read in one go, or `nil` while there is none.
+    ///
+    /// A wait looks before the button is there and while a page is leaving; reading a missing button's
+    /// label or value would fail the test rather than keep waiting.
+    private var primaryActionAsItStands: (any XCUIElementSnapshot)? {
+        try? primaryAction.snapshot()
+    }
+
     /// Waits until the page reports `readiness`.
     @discardableResult
     public func waitUntilReadiness(_ readiness: Readiness, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        primaryAction.wait(forValue: readiness.rawValue, timeout: timeout)
+        waitUntil(timeout: timeout) { (primaryActionAsItStands?.value as? String) == readiness.rawValue }
     }
 
     /// Waits until the primary action offers `action`.
     @discardableResult
     public func waitUntilOffering(_ action: Action, timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        primaryAction.wait(for: \.label, toEqual: action.rawValue, timeout: timeout)
+        waitUntil(timeout: timeout) { primaryActionAsItStands?.label == action.rawValue }
     }
 }
 
@@ -359,8 +366,16 @@ extension QuestionnaireSheetNavigator {
     ///
     /// Tapping an unfinished page is how a test reaches the marks: the renderer answers the tap
     /// by marking every question that blocks the page and bringing the first of them into view.
+    /// On an unfinished page this returns once the page has come to rest there.
     public func tapPrimaryAction() {
+        let isUnfinished = readiness == .incomplete
         primaryAction.tap()
+        guard isUnfinished else {
+            return
+        }
+        // The renderer lets the marks grow in for 350 ms before it scrolls, and XCTest does not wait for that.
+        Thread.sleep(forTimeInterval: 0.4)
+        waitUntilPageIsAtRest()
     }
 
     /// Returns to the previous page.
@@ -372,9 +387,13 @@ extension QuestionnaireSheetNavigator {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        // The app's own bars behind the sheet carry back buttons too, out of reach; only a hittable one will do.
         let backButtons = app.navigationBars.buttons.matching(identifier: "BackButton")
-        _ = backButtons.firstMatch.waitForExistence(timeout: timeout)
-        let backButton = backButtons.allElementsBoundByIndex.last { $0.isHittable }
+        var backButton: XCUIElement?
+        waitUntil(timeout: timeout) {
+            backButton = backButtons.allElementsBoundByIndex.last { $0.isHittable }
+            return backButton != nil
+        }
         guard let backButton else {
             XCTFail("The questionnaire offers no way back from this page.", file: file, line: line)
             return
@@ -400,7 +419,7 @@ extension QuestionnaireSheetNavigator {
     /// Waits until the completion page is on screen.
     @discardableResult
     public func waitUntilAtCompletionPage(timeout: TimeInterval = Self.defaultTimeout) -> Bool {
-        completionPage.waitForExistence(timeout: timeout)
+        waitUntil(timeout: timeout) { isAtCompletionPage }
     }
 
     /// Taps `Done` on the completion page, which is what finally hands the answers over.
@@ -446,19 +465,22 @@ extension QuestionnaireSheetNavigator {
     /// Dismisses the exit confirmation, leaving the answers as they are.
     public func keepAnswering(timeout: TimeInterval = 2) {
         let option = exitOption(.keepAnswering)
-        if option.waitForExistence(timeout: timeout) {
+        // The confirmation's buttons arrive together, so one that is up without this button is a popover.
+        waitUntil(timeout: timeout) { option.exists || isShowingExitConfirmation }
+        if option.exists {
             option.tap()
         } else {
             // A popover has no cancel button; tapping away from it is the way back.
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)).tap()
         }
-        _ = exitOption(.discardAnswers).waitForNonExistence(timeout: timeout)
+        waitUntil(timeout: timeout) { !isShowingExitConfirmation }
     }
 
     /// Closes a questionnaire that has nothing to lose, which leaves without asking anything.
     public func close(timeout: TimeInterval = 2, file: StaticString = #filePath, line: UInt = #line) {
-        closeButton.tap()
-        if exitOption(.keepAnswering).waitForExistence(timeout: timeout) {
+        let isAsking = { isShowingExitConfirmation || exitOption(.keepAnswering).exists }
+        closeAndWait(timeout: timeout, until: isAsking)
+        if isAsking() {
             XCTFail("The questionnaire asked before closing; use close(choosing:) to answer it.", file: file, line: line)
         }
     }
@@ -472,7 +494,7 @@ extension QuestionnaireSheetNavigator {
     ) {
         closeButton.tap()
         let option = exitOption(choice)
-        guard option.waitForExistence(timeout: timeout) else {
+        guard waitUntil(timeout: timeout, { option.exists }) else {
             XCTFail("The exit confirmation does not offer '\(choice.rawValue)'.", file: file, line: line)
             return
         }
@@ -487,10 +509,21 @@ extension QuestionnaireSheetNavigator {
     ///
     /// - parameter timeout: How long to give the confirmation to appear before deciding there is none.
     public func closeDiscardingAnswers(timeout: TimeInterval = 2) {
-        closeButton.tap()
         let discard = exitOption(.discardAnswers)
-        if discard.waitForExistence(timeout: timeout) {
+        closeAndWait(timeout: timeout) { discard.exists }
+        if discard.exists {
             discard.tap()
         }
+    }
+
+    /// Taps Close, and waits until either the sheet it closes has gone or `isAsking` holds.
+    ///
+    /// Waiting for a confirmation that never comes would take the whole timeout; a sheet that has
+    /// gone is the sign that none will.
+    private func closeAndWait(timeout: TimeInterval, until isAsking: () -> Bool) {
+        let sheets = app.descendants(matching: .any).matching(identifier: "GroveQuestionnaireNavStack")
+        let sheetsBefore = sheets.count
+        closeButton.tap()
+        waitUntil(timeout: timeout) { isAsking() || sheets.count < sheetsBefore }
     }
 }

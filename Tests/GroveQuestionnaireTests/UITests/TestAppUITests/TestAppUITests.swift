@@ -12,6 +12,9 @@ import XCTGroveQuestionnaire
 
 
 /// Getting around the catalog app. Everything inside a questionnaire belongs to ``questionnaire``.
+///
+/// Waits go through `waitUntil(timeout:_:)`: XCTest's own waits first look about a second in, even at
+/// something already on screen, and a test here waits at nearly every step.
 class TestAppUITests: XCTestCase, @unchecked Sendable {
     /// One of the three authoring routes listed on the catalog's front page.
     enum Route: String {
@@ -60,6 +63,9 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
         }
     }
 
+    /// How long a launch gets to come up, questionnaire included: a cold simulator can take its time.
+    private static let launchTimeout: TimeInterval = 30
+
     @MainActor private(set) var app: XCUIApplication!
 
     /// The questionnaire the app currently has on screen.
@@ -88,30 +94,47 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
         super.tearDown()
     }
 
+    /// Launches onto the front page.
     @MainActor
     func launchApp(_ conditions: LaunchCondition...) {
-        launchApp(under: conditions)
+        XCTAssert(launch(under: conditions, waitingFor: app.buttons["Route:\(Route.swiftDSL.rawValue)"]))
     }
 
+    /// Launches the app, at `shortcut` when it names a place to start.
+    ///
+    /// `--start <page> [<example>]` has the app open the front-page entry titled `<page>` and start its
+    /// example titled `<example>`: where tapping through would arrive, with nothing tapped. A test that is
+    /// about a questionnaire spends its time on the questionnaire; ``BasicTests`` taps through by hand — a
+    /// FHIR row and its resource, a catalog row, a renderer page — which keeps the taps working.
     @MainActor
-    private func launchApp(under conditions: [LaunchCondition]) {
+    private func launch(
+        under conditions: [LaunchCondition] = [],
+        at shortcut: [String] = [],
+        waitingFor element: XCUIElement? = nil
+    ) -> Bool {
+        if !shortcut.isEmpty {
+            app.launchArguments += ["--start"] + shortcut
+        }
         app.launchArguments += conditions.flatMap(\.launchArguments)
         conditions.forEach { $0.applyToDevice() }
-        XCTAssert(app.launchAndWait(for: app.buttons["Route:\(Route.swiftDSL.rawValue)"]))
+        app.launch()
+        return waitUntil(timeout: Self.launchTimeout) {
+            app.state == .runningForeground && (element?.isHittable ?? true)
+        }
     }
 
     /// Opens one of the authoring routes from the front page.
     @MainActor
     func open(_ route: Route) {
         tap(app.buttons["Route:\(route.rawValue)"])
-        XCTAssert(app.navigationBars[route.rawValue].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.navigationBars[route.rawValue].exists })
     }
 
     /// Opens one of the renderer's own option pages from the front page.
     @MainActor
     func open(_ option: RendererOption) {
         tap(app.buttons["Renderer:\(option.rawValue)"])
-        XCTAssert(app.navigationBars[option.rawValue].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.navigationBars[option.rawValue].exists })
     }
 
     /// Opens a catalog row, which presents its questionnaire straight away.
@@ -127,7 +150,7 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     @MainActor
     func openFHIRExample(_ title: String) {
         tap(app.buttons["Example:\(title)"])
-        XCTAssert(app.buttons["StartQuestionnaire"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.buttons["StartQuestionnaire"].exists })
     }
 
     /// Opens a FHIR row and starts the questionnaire from the resource's detail page.
@@ -138,18 +161,27 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
         waitForQuestionnaire(titled: pageTitle ?? title)
     }
 
+    /// Launches straight into an example of one of the authoring routes.
+    ///
+    /// - parameter pageTitle: The title the first page carries, when it differs from the row's.
     @MainActor
     func launchAppAndStartExample(_ title: String, in route: Route, titled pageTitle: String? = nil) {
-        launchApp()
-        open(route)
-        startExample(title, titled: pageTitle)
+        XCTAssert(launch(at: [route.rawValue, title]))
+        waitForQuestionnaire(titled: pageTitle ?? title, timeout: Self.launchTimeout)
     }
 
+    /// Launches straight into an example of one of the renderer's option pages.
+    @MainActor
+    func launchAppAndStartExample(_ title: String, in option: RendererOption, titled pageTitle: String? = nil) {
+        XCTAssert(launch(at: [option.rawValue, title]))
+        waitForQuestionnaire(titled: pageTitle ?? title, timeout: Self.launchTimeout)
+    }
+
+    /// Launches straight into a FHIR example, by way of the resource's detail page.
     @MainActor
     func launchAppAndStartFHIRExample(_ title: String, titled pageTitle: String? = nil, under conditions: [LaunchCondition] = []) {
-        launchApp(under: conditions)
-        open(.fhir)
-        startFHIRExample(title, titled: pageTitle)
+        XCTAssert(launch(under: conditions, at: [Route.fhir.rawValue, title]))
+        waitForQuestionnaire(titled: pageTitle ?? title, timeout: Self.launchTimeout)
     }
 
     /// Scrolls the enclosing list until the element can be tapped, then taps it.
@@ -158,10 +190,15 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     /// several times its usual length, and eight swipes stopped short of the foot of one.
     @MainActor
     func tap(_ element: XCUIElement, scrollAttempts: Int = 20) {
-        for _ in 0..<scrollAttempts where !element.isHittable {
+        for _ in 0..<scrollAttempts {
+            guard !element.isHittable else {
+                break
+            }
             app.swipeUp()
         }
-        XCTAssert(element.wait(for: \.isHittable, toEqual: true, timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { element.isHittable })
+        // An answer moves the page on a moment after its tap, and XCTest does not wait for that.
+        element.waitUntilSettled(timeout: 2)
         element.tap()
     }
 
@@ -169,28 +206,28 @@ class TestAppUITests: XCTestCase, @unchecked Sendable {
     @MainActor
     func returnToRootPage() {
         let rootBar = app.navigationBars["Grove Questionnaire"]
-        for _ in 0..<3 where !rootBar.exists {
+        for _ in 0..<3 {
             let backButton = app.navigationBars.buttons.matching(identifier: "BackButton").firstMatch
-            guard backButton.wait(for: \.isHittable, toEqual: true, timeout: 5) else {
+            guard !rootBar.exists, waitUntil(timeout: 5, { backButton.isHittable }) else {
                 break
             }
             backButton.tap()
-            _ = rootBar.waitForExistence(timeout: 2)
+            waitUntil(timeout: 2) { rootBar.exists }
         }
-        XCTAssert(rootBar.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { rootBar.exists })
     }
 
     /// Walks back to the front page and checks that `title` filed exactly one response there.
     @MainActor
     func assertResponseWasCollected(from title: String, count: Int = 1) {
         returnToRootPage()
-        XCTAssert(app.staticTexts["Completed, \(count)"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["Completed, \(count)"].exists })
         XCTAssert(app.buttons["Response:\(title)"].exists)
     }
 
     @MainActor
-    private func waitForQuestionnaire(titled title: String) {
-        XCTAssert(questionnaire.waitUntilPresented())
+    private func waitForQuestionnaire(titled title: String, timeout: TimeInterval = QuestionnaireSheetNavigator.defaultTimeout) {
+        XCTAssert(questionnaire.waitUntilPresented(timeout: timeout))
         XCTAssert(questionnaire.waitUntilTitled(title))
     }
 }

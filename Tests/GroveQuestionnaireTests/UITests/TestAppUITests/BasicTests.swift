@@ -29,7 +29,7 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
         // ignores its own children so that VoiceOver reads "Confused, Not Selected" and not
         // the checkmark beside it.
         tap(app.otherElements["Task:1.1"].buttons["Option: Confused, Not Selected"])
-        XCTAssert(app.otherElements["Task:1.1"].buttons["Option: Confused, Selected"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.otherElements["Task:1.1"].buttons["Option: Confused, Selected"].exists })
         tap(app.otherElements["Task:1.2"].buttons["Option: Obeys commands, Not Selected"])
         tap(app.otherElements["Task:1.3"].buttons["Option: Eye opening to verbal command, Not Selected"])
 
@@ -98,7 +98,10 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
 
     @MainActor
     func testSimpleNumberEntry() throws {
-        launchAppAndStartExample("Simple Number Entry", in: .modelValues)
+        // tapped through by hand, so a catalog row is still reached the way a person reaches it
+        launchApp()
+        open(.modelValues)
+        startExample("Simple Number Entry")
         XCTAssert(questionnaire.waitUntilReadiness(.incomplete))
 
         try questionnaire.question("t0").enterNumber(5)
@@ -113,12 +116,13 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
     /// The sheet does not have to own its responses: answered once, the same object reopens with the answer in place.
     @MainActor
     func testExistingResponsesObject() {
+        // tapped through by hand, so a renderer page is still reached the way a person reaches it
         launchApp()
         open(.existingResponses)
 
         let answerButton = app.buttons["AnswerQuestionnaire"]
         let reopenButton = app.buttons["ReopenQuestionnaire"]
-        XCTAssert(answerButton.wait(for: \.isHittable, toEqual: true, timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { answerButton.isHittable })
         XCTAssert(answerButton.isEnabled)
         XCTAssert(reopenButton.exists)
         XCTAssertFalse(reopenButton.isEnabled)
@@ -140,12 +144,12 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
         XCTAssertFalse(questionnaire.isAtCompletionPage)
 
         // the answers outlived the sheet, so the page can show them and hand them back to a second one
-        XCTAssert(app.staticTexts["Held Answers"].waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { app.staticTexts["Held Answers"].exists })
         // a labelled row reads as one element, so the answer is part of what it says rather than a text of its own
         let heldFlavour = app.descendants(matching: .any).matching(identifier: "HeldAnswer:flavour").firstMatch
         XCTAssert(heldFlavour.exists)
         XCTAssert(heldFlavour.label.contains("Mango"))
-        XCTAssert(reopenButton.wait(for: \.isEnabled, toEqual: true, timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { reopenButton.exists && reopenButton.isEnabled })
         XCTAssert(answerButton.isEnabled)
         reopenButton.tap()
 
@@ -161,9 +165,9 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
     func testATapBesideTheFieldsDismissesTheKeyboard() throws {
         launchAppAndStartExample("Simple Number Entry", in: .modelValues)
         let first = questionnaire.question("t0").element.textFields.firstMatch
-        XCTAssert(first.waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { first.exists })
         first.tap()
-        guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else {
+        guard waitUntil(timeout: 3, { app.keyboards.firstMatch.exists }) else {
             throw XCTSkip("A hardware keyboard is attached; there is no keyboard to dismiss.")
         }
 
@@ -172,6 +176,6 @@ final class BasicTests: TestAppUITests, @unchecked Sendable {
 
         // The form's margin beside the first card: above the keyboard, and on no field.
         questionnaire.section.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.25)).tap()
-        XCTAssert(app.keyboards.firstMatch.waitForNonExistence(timeout: 3), "a tap beside the fields lets it go")
+        XCTAssert(waitUntil(timeout: 3) { !app.keyboards.firstMatch.exists }, "a tap beside the fields lets it go")
     }
 }

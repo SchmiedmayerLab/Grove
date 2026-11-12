@@ -30,10 +30,33 @@ extension QuestionnaireSheetNavigator {
         return snapshot
     }
 
-    /// A page that is gone has no first line; asking a missing element for its frame would fail the test.
+    /// Every text on the page, in the order a query over its static texts finds them.
+    ///
+    /// Read off one snapshot of the page rather than element by element: a bound element resolves
+    /// itself afresh for every attribute it is asked for, so reading a page of twenty lines that way
+    /// took twenty round trips to the app, and a scan reads the page after every swipe.
+    var pageLines: [any XCUIElementSnapshot] {
+        guard let page = try? scrollablePage.snapshot() else {
+            return []
+        }
+        return page.children.flatMap(\.staticTextsWithin)
+    }
+
+    /// The page's text and where its first line sits, read off one snapshot of the page.
+    ///
+    /// A page that is gone reads as empty, with no first line; asking a missing element for its frame
+    /// would fail the test.
     private var pageSnapshot: (texts: [String], firstLine: CGRect) {
-        let firstLine = scrollablePage.staticTexts.firstMatch
-        return (visibleText, firstLine.exists ? firstLine.frame : .zero)
+        let lines = pageLines
+        return (lines.map(\.label), lines.first?.frame ?? .zero)
+    }
+
+    /// Waits for the page to stop moving, as a participant would before touching it.
+    ///
+    /// An answer moves the page on to the next question a moment after the tap that gave it, and XCTest does
+    /// not wait for that; a control found straight after an answer can still be on its way.
+    func waitUntilPageIsAtRest() {
+        _ = pageAtRest
     }
 
     /// Scrolls the page looking for something, and stops the moment it is there.
