@@ -167,11 +167,7 @@ jobs:
           if [ "${{ inputs.fhir_only }}" = "true" ] || [ "${{ inputs.verify_release_packages }}" = "true" ]; then
             ARGS+=(--fhir-only)
           fi
-          # TEMPORARY (drop before merge): run every scheduled Apple job on the self-hosted runners,
-          # to time them there and check they pass.
-          python3 Scripts/affected-test-matrix.py "${ARGS[@]}" \
-            | sed -E 's/("platform": "(iOS|macOS|watchOS)", "selfHosted": )false/\1true/g' \
-            >> "$GITHUB_OUTPUT"
+          python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}

@@ -32,7 +32,7 @@ permissions:
 jobs:
   build-floor:
     name: ${{matrix.name}}
-    runs-on: [self-hosted, macOS]  # TEMPORARY (drop before merge): macos-latest
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
