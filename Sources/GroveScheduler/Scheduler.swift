@@ -179,6 +179,11 @@ public final class Scheduler: Module, EnvironmentAccessible, DefaultInitializabl
         }
     }
 
+    /// Whether the store outlives the process, so that work owed to it has to survive a kill as well.
+    var storeOutlivesProcess: Bool {
+        if case .onDisk = persistence { true } else { false }
+    }
+
 
     /// A task that slightly delays saving tasks.
     private var saveTask: SaveTask?
@@ -874,12 +879,15 @@ extension Scheduler {
 extension Scheduler {
     func hasTasksWithNotifications(for range: PartialRangeFrom<Date>) throws -> Bool {
         let rangePredicate = Task.inPartialRangeFromPredicate(for: range)
-        let descriptor = FetchDescriptor<Task>(
+        var descriptor = FetchDescriptor<Task>(
             predicate: #Predicate { task in
                 rangePredicate.evaluate(task) && task.scheduleNotifications
             }
         )
-        return try context.fetchCount(descriptor) > 0
+        descriptor.fetchLimit = 1
+        // Not `fetchCount`: when the store can't be read, it returns `NSNotFound` rather than throwing,
+        // which would read as "has tasks". A fetch throws the underlying error.
+        return try !context.fetchIdentifiers(descriptor).isEmpty
     }
 
     private func queryTasks(

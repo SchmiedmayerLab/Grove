@@ -15,6 +15,10 @@ extension SchedulerNotifications {
     // swiftlint:disable:previous identifier_name
     /// Set when a notification refresh is queued, cleared when the rebuild completes. A leftover
     /// value at launch means a refresh was lost to a kill and must run again.
+    ///
+    /// Only a scheduler whose store outlives the process (`Scheduler.storeOutlivesProcess`) reads or
+    /// writes it. The value is shared by every scheduler in the process: a refresh owed to an in-memory
+    /// store dies with that store, and recording it would only hand it to the next scheduler that starts.
     nonisolated static let pendingNotificationRefreshStorageKey = "Scheduler.pendingNotificationRefresh"
 
     /// Access the task id from the `userInfo` of a notification.
