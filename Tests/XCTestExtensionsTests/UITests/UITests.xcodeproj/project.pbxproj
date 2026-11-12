@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		586962D4D1470AA3774B9D5C /* XCTestApp in Frameworks */ = {isa = PBXBuildFile; productRef = 86F39FDAEDFBEC2F90B4ED94 /* XCTestApp */; };
+		80FB81E736A2CC74762BBA7C /* XCTHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = 36CECEB8C7F07961AD3EAA8A /* XCTHealthKit */; };
 		EEAD26C9D3C9F0A2C0727027 /* XCTestExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = BC5BC29D0D891601A1D36B57 /* XCTestExtensions */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +63,7 @@
 		656490933002CEA900F1D55F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				80FB81E736A2CC74762BBA7C /* XCTHealthKit in Frameworks */,
 				EEAD26C9D3C9F0A2C0727027 /* XCTestExtensions in Frameworks */,
 			);
 		};
@@ -136,6 +138,7 @@
 			);
 			name = TestAppUITests;
 			packageProductDependencies = (
+				36CECEB8C7F07961AD3EAA8A /* XCTHealthKit */,
 				BC5BC29D0D891601A1D36B57 /* XCTestExtensions */,
 			);
 			productName = TestAppUITests;
@@ -514,6 +517,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 654293E43002D0F400AF6915 /* package */;
 			productName = XCTestApp;
+		};
+		36CECEB8C7F07961AD3EAA8A /* XCTHealthKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 654293E43002D0F400AF6915 /* package */;
+			productName = XCTHealthKit;
 		};
 		BC5BC29D0D891601A1D36B57 /* XCTestExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
