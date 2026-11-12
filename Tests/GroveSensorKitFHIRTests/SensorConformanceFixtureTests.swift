@@ -174,11 +174,9 @@ struct SensorConformanceFixtureTests {
             ("accelerometer-summary-hybrid", .accelerometer(accelerometer)),
             ("ppg-summary-hybrid", .ppg(ppg))
         ]
-        // Each record is its own event, numbered 1 through 12 in this order through a fresh ledger.
         var fixtures: [String: ModelsR4.Bundle] = [:]
-        for (index, entry) in records.enumerated() {
+        for entry in records {
             let producer = try SensorKitExporterFixtures.producer(
-                sequence: UInt64(index + 1),
                 application: ApplicationDevice.test(
                     name: "Sensor Conformance Fixture",
                     bundleIdentifier: "org.grovealliance.sensor-conformance",
@@ -189,10 +187,10 @@ struct SensorConformanceFixtureTests {
                 SensorKitExporterFixtures.exporter(producer),
                 [entry.record],
                 timeZone: SensorKitExporterFixtures.timeZone,
-                recordingDevice: RecordingDevice.test(stableUnitToken: "sensor-fixture-device", name: "Sensor Fixture Device"),
+                recordingDevice: RecordingDevice.test(name: "Sensor Fixture Device"),
                 at: timestamp.addingTimeInterval(20)
-            ).exports
-            fixtures[entry.name] = try #require(exports.first?.graph).bundle
+            )
+            fixtures[entry.name] = try #require(exports.first?.record).graph.bundle
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
@@ -202,5 +200,48 @@ struct SensorConformanceFixtureTests {
             try encoder.encode(bundle).write(to: Self.fixtureDirectory.appendingPathComponent("\(name).json"))
         }
         #expect(fixtures.count == 12)
+
+        try await writePackedBundle(of: records.map(\.record), at: timestamp.addingTimeInterval(20))
+    }
+
+    /// Writes `records` as one Bundle, as an upload packs them, under the published test key: the grove-fhir producer kit
+    /// recomputes every key of it rather than checking its shape.
+    private func writePackedBundle(of records: [SensorKitRecord], at instant: Date) async throws {
+        let epoch = KeyEpoch(1)
+        let identityScope = try OpaqueIdentityScope.conformanceTesting(
+            systems: DeploymentIdentifierSystems.derived(
+                root: "https://grovealliance.org/fhir/testing/identifiers/sensorkit",
+                keyID: "test-key",
+                epoch: epoch
+            ),
+            keyID: "test-key",
+            epoch: epoch
+        )
+        let producer = try ExchangeProducer(
+            identityScope: identityScope,
+            subject: SensorFHIRIdentityTestSupport.subject,
+            application: SensorKitExporterFixtures.application,
+            host: SensorFHIRIdentityTestSupport.converterHost,
+            studies: [.test("study-a"), .test("study-b")]
+        )
+        let exporter = try SensorKitFHIRExporter(
+            producer: producer,
+            repositoryScope: SensorFHIRIdentityTestSupport.repositoryScope,
+            visitLocationIdentifierSystem: SensorFHIRIdentityTestSupport.visitLocationIdentifierSystem
+        )
+        let exports = try await SensorKitExporterFixtures.collect(
+            exporter,
+            records,
+            timeZone: SensorKitExporterFixtures.timeZone,
+            recordingDevice: RecordingDevice.test(name: "Sensor Fixture Device"),
+            sourceDevices: [.testPeripheral()],
+            at: instant
+        )
+        var packer = ExchangeBundlePacker(kind: .active)
+        for export in exports {
+            #expect(try packer.insert(try #require(export.record)) == .inserted)
+        }
+        #expect(packer.recordCount == records.count)
+        try packer.bundle(packedAt: instant).json.write(to: Self.fixtureDirectory.appendingPathComponent("packed-exchange-bundle.json"))
     }
 }

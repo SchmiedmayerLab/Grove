@@ -9,116 +9,130 @@
 #if canImport(HealthKit)
 
 import Foundation
-import GroveFHIRContract
+@testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
 import Testing
 
 
-/// The exporter numbers events and applies its policies around the conversion the goldens pin: a graph it delivers
-/// within a call is byte-identical to the one it delivers for the same record alone under the same event.
-@Suite(.serialized)
+/// The exporter applies its policies around the conversion the goldens pin: a record it delivers within a call is
+/// byte-identical to the one it delivers for the same input alone.
+@Suite
 struct HealthKitFHIRExporterTests {
-    private static let base = TestEvent.test()
+    private static let base = TestDeployment.test()
 
-    private static func exporter(
-        _ configure: (inout HealthKitFHIRExporter.Options) -> Void = { _ in },
-        storage: any ExchangeProducer.Storage = ExchangeProducer.InMemoryStorage()
-    ) throws -> HealthKitFHIRExporter {
-        let producer = try ExchangeProducer(
-            identityScope: base.identityScope,
-            subject: base.subject,
-            application: base.application,
-            host: base.host,
-            storage: storage
-        )
-        var options = HealthKitFHIRExporter.Options()
-        configure(&options)
-        return try HealthKitFHIRExporter(producer: producer, repositoryScope: base.repositoryScope, options: options)
+    private static func exporter(_ configure: (inout HealthKitFHIRExporter.Options) -> Void = { _ in }) throws -> HealthKitFHIRExporter {
+        try ExporterFixtures.exporter(configure)
     }
 
     private static func collect(
         _ exporter: HealthKitFHIRExporter,
         _ samples: [HKSample],
         at instant: Date = GoldenFixtures.conversionInstant
-    ) async throws -> (exports: [HealthKitFHIRExporter.Export], receipt: ExchangeProducer.Receipt) {
-        var exports: [HealthKitFHIRExporter.Export] = []
-        let receipt = try await exporter.export(samples, at: instant) { exports.append($0) }
-        return (exports, receipt)
+    ) async throws -> [HealthKitFHIRExporter.Export] {
+        try await ExporterFixtures.collect(exporter, samples: samples, at: instant)
     }
 
-    /// The sequences a call minted, in the order the exports name them.
-    private static func sequences(_ exports: [HealthKitFHIRExporter.Export]) -> [String] {
-        exports.compactMap(\.sequence)
-    }
-
-    @Test("Graphs equal the ones each record exports to alone under the same event, with the same warnings")
-    func graphsEqualReference() async throws {
+    @Test("Records equal the ones each input exports to alone, with the same warnings")
+    func recordsEqualReference() async throws {
         let exporter = try Self.exporter()
         let withDevice = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(1), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
         let withoutToken = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(2), device: GoldenFixtures.watchWithoutUnitToken)
-        let (exports, _) = try await Self.collect(exporter, [withDevice, withoutToken])
+        let exports = try await Self.collect(exporter, [withDevice, withoutToken])
         try #require(exports.count == 2)
-        let first = try await ExporterFixtures.standalone(.sample(withDevice), as: exports[0].event)
-        let second = try await ExporterFixtures.standalone(.sample(withoutToken), as: exports[1].event)
-        #expect(exports[0].graph?.json == first.graph.json)
-        #expect(exports[1].graph?.json == second.graph.json)
+        let first = try await ExporterFixtures.export(.sample(withDevice))
+        let second = try await ExporterFixtures.export(.sample(withoutToken))
+        #expect(exports[0].record == first.record)
+        #expect(exports[1].record == second.record)
         #expect(exports[0].source == HealthKitFHIRExporter.Export.Source(uuid: GoldenFixtures.uuid(1), typeIdentifier: HKQuantityTypeIdentifier.heartRate.rawValue))
         #expect(exports[0].source.sourceType == .heartRate)
         #expect(exports[0].warnings.isEmpty)
         #expect(exports[1].warnings == second.warnings)
-        #expect(exports[1].warnings == [ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic])
-        // New events number consecutively in the sorted order of their requests, under one producer instance.
-        #expect(Set(Self.sequences(exports)) == ["1", "2"])
-        #expect(exports[0].event?.producerInstance == exports[1].event?.producerInstance)
+        #expect(exports[1].warnings.isEmpty, "a recording Device needs no unit token, so nothing is lost")
     }
 
-    @Test("A redelivery before release reproduces the same bytes; after release it is a new event")
-    func redeliveryReproducesEvents() async throws {
+    @Test("A redelivery at the same instant is an exact retry; a later conversion is a new version of the same source record")
+    func redeliveryKeepsTheRecordVersion() async throws {
         let exporter = try Self.exporter()
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(3))
-        let (first, receipt) = try await Self.collect(exporter, [sample])
-        let (again, _) = try await Self.collect(exporter, [sample], at: GoldenFixtures.conversionInstant.addingTimeInterval(3_600))
-        #expect(first[0].graph?.json == again[0].graph?.json)
-        receipt.release()
-        let (afterRelease, _) = try await Self.collect(exporter, [sample])
-        #expect(afterRelease[0].sequence == "2")
-        #expect(afterRelease[0].graph?.json != first[0].graph?.json)
+        let first = try #require(try await Self.collect(exporter, [sample]).first?.record)
+        let again = try #require(try await Self.collect(exporter, [sample]).first?.record)
+        #expect(first == again)
+        let nextHour = GoldenFixtures.conversionInstant.addingTimeInterval(3_600)
+        let later = try #require(try await Self.collect(exporter, [sample], at: nextHour).first?.record)
+        #expect(later.sourceRecord == first.sourceRecord)
+        #expect(later.outputFullURLs == first.outputFullURLs)
+        #expect(later.version != first.version, "`Provenance.recorded` is part of the record's content")
     }
 
-    @Test("An unconvertible record is refused in place, holds its reservation until the receipt is released, and the export continues")
+    @Test("Records pack into one Bundle: shared nodes are stated once, and every record keeps its version")
+    func recordsPackIntoOneBundle() async throws {
+        let samples = try [0x41, 0x42, 0x43].map { try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid($0), device: GoldenFixtures.watch) }
+        let records = try await Self.collect(Self.exporter(), samples).compactMap(\.record)
+        try #require(records.count == 3)
+        #expect(Set(records.map(\.sharedNodeFullURLs)).count == 1, "equal content is one snapshot in every record")
+
+        var packer = ExchangeBundlePacker(kind: .active)
+        for record in records {
+            #expect(try packer.insert(record) == .inserted)
+        }
+        let graph = try packer.bundle(packedAt: GoldenFixtures.conversionInstant)
+        let entries = try #require(graph.bundle.entry)
+        #expect(entries.compactMap { $0.resource?.get(if: Observation.self) }.count == 3)
+        #expect(entries.compactMap { $0.resource?.get(if: Provenance.self) }.count == 3)
+        #expect(entries.compactMap { $0.resource?.get(if: Device.self) }.count == records[0].sharedNodeFullURLs.count)
+        #expect(try graph.records().map(\.version) == records.map(\.version))
+        for record in records {
+            try record.verifyVersion(in: Self.base.identityScope)
+        }
+    }
+
+    @Test("A packed Bundle reads back the samples its records read back")
+    func packedBundleReadsBackItsRecordsSamples() async throws {
+        let samples = try [0x44, 0x45].map { try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid($0)) }
+        let records = try await Self.collect(Self.exporter(), samples).compactMap(\.record)
+        var packer = ExchangeBundlePacker(kind: .active)
+        for record in records {
+            _ = try packer.insert(record)
+        }
+        let packed = try packer.bundle(packedAt: GoldenFixtures.conversionInstant).healthKitSamples()
+        let separate = records.map { $0.healthKitSamples() }
+        #expect(packed.failures.isEmpty && separate.allSatisfy(\.failures.isEmpty))
+        #expect(packed.conversions.count == 2)
+        func syncIdentifiers(_ samples: [HKSample]) -> [String?] {
+            samples.map { $0.metadata?[HKMetadataKeySyncIdentifier] as? String }
+        }
+        #expect(syncIdentifiers(packed.conversions) == syncIdentifiers(separate.flatMap(\.conversions)))
+    }
+
+    @Test("Provenance.recorded is the call's instant, on every record of the call")
+    func provenanceRecordedIsTheCallsInstant() async throws {
+        let instant = GoldenFixtures.conversionInstant.addingTimeInterval(0.25)
+        let samples = try [GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x31)), GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x32))]
+        let exports = try await Self.collect(Self.exporter(), samples, at: instant)
+        let provenances = exports.compactMap { $0.record?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first }
+        let recorded = provenances.map { $0.recorded.value?.description }
+        #expect(recorded == ["2026-08-17T23:30:00.25Z", "2026-08-17T23:30:00.25Z"])
+    }
+
+    @Test("An unconvertible record is refused in place, and the export continues")
     func refusalsDoNotEndTheExport() async throws {
-        let storage = LedgerCountingStorage()
-        let exporter = try Self.exporter(storage: storage)
         let ecg = try StoredSampleFixtures.seriesSample(
             HKElectrocardiogram.self,
             sampleType: HKObjectType.electrocardiogramType(),
             facts: GoldenCase.seriesFacts(uuid: 4, duration: 30)
         )
         let heartRate = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(5))
-        let (exports, receipt) = try await Self.collect(exporter, [ecg, heartRate])
+        let exports = try await Self.collect(Self.exporter(), [ecg, heartRate])
         try #require(exports.count == 2)
         guard case .refused(let reason) = exports[0].outcome else {
             Issue.record("expected a refusal, got \(exports[0].outcome)")
             return
         }
         #expect(reason == .ecgEvidence(.evidenceRequired))
-        #expect(exports[0].graph == nil)
-        #expect(["1", "2"].contains(exports[1].sequence ?? ""))
-        // Nothing is released mid-call: the refused ECG keeps its reservation until the receipt is released.
-        let ecgKey = try #require(ExchangeEventKey.active(ecg))
-        #expect(try storage.holdsReservation(for: ecgKey))
-        let (retry, retryReceipt) = try await Self.collect(exporter, [ecg])
-        guard case .refused = retry[0].outcome else {
-            Issue.record("expected a refusal")
-            return
-        }
-        let (next, _) = try await Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(6))])
-        #expect(next[0].sequence == "3", "the refused ECG's redelivery reused its reservation")
-        receipt.release()
-        retryReceipt.release()
-        #expect(try !storage.holdsReservation(for: ecgKey))
+        #expect(exports[0].record == nil)
+        #expect(exports[1].record != nil)
     }
 
     @Test("A refusal reports the registry's most specific reason, and the export continues")
@@ -159,7 +173,7 @@ struct HealthKitFHIRExporterTests {
             (.notYetConvertible(.visionPrescription), notYetConvertible)
         ]
         let samples: [HKSample] = [fractionalSteps, food, audiogram, prescription, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))]
-        let (exports, _) = try await Self.collect(try Self.exporter(), samples)
+        let exports = try await Self.collect(Self.exporter(), samples)
         try #require(exports.count == expected.count + 1)
         for (export, (error, diagnostic)) in zip(exports, expected) {
             guard case .refused(let reason) = export.outcome else {
@@ -169,50 +183,28 @@ struct HealthKitFHIRExporterTests {
             #expect(reason == error)
             #expect(reason.diagnostic == diagnostic)
         }
-        #expect(exports.last?.graph != nil)
+        #expect(exports.last?.record != nil)
     }
 
-    @Test("The omit policies state nothing and never warn; the legacy Bundle.id keeps the HealthKit UUID")
+    @Test("The policies state what they name and never warn, and a record carries no Bundle.id or Bundle.identifier")
     func policiesApply() async throws {
         let exporter = try Self.exporter { options in
-            options.recordingDevice = .omit
+            options.unitToken = .none
             options.writer = .omit
-            options.legacyBundleID = .healthKitUUID
             options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
-            options.udi = .authorized
             options.role = .gatewayForOwnWrites
         }
-        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(9), device: GoldenFixtures.watchWithoutUnitToken, writer: GoldenFixtures.foreignWriter)
-        let (exports, _) = try await Self.collect(exporter, [sample])
-        let bundle = try #require(exports[0].graph?.bundle)
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(9), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)
+        let exports = try await Self.collect(exporter, [sample])
+        let bundle = try #require(exports[0].record?.bundle)
         #expect(exports[0].warnings.isEmpty)
-        #expect(bundle.id?.value?.string == GoldenFixtures.uuid(9).uuidString)
+        #expect(bundle.id == nil)
+        #expect(bundle.identifier == nil)
         let devices = bundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
-        #expect(devices.allSatisfy { $0.meta?.profile?.contains(Profile.groveRecordingDevice) == false })
+        #expect(devices.contains { $0.meta?.profile?.contains(Profile.groveRecordingDevice) == true })
         #expect(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.agent == nil)
         let observation = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
         #expect(observation.identifier?.contains { $0.system?.value?.url.absoluteString == GoldenFixtures.nativeIdentifierSystem.rawValue } == true)
-        var referenceInputs = ExportInputs()
-        referenceInputs.options.udi = .authorized
-        referenceInputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
-        referenceInputs.options.role = .gatewayForOwnWrites
-        let reference = try await ExporterFixtures.standalone(.sample(sample), as: exports[0].event, referenceInputs)
-        // Only `Bundle.id` differs from the graph under the default device, writer and Bundle.id policies.
-        var expected = reference.graph.bundle
-        expected.id = GoldenFixtures.uuid(9).uuidString.asFHIRStringPrimitive()
-        #expect(bundle == expected)
-    }
-
-    @Test("The UDI an HKDevice supplies reaches its recording Device only under Options.udi .authorized")
-    func udiFollowsItsOption() async throws {
-        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13), device: GoldenFixtures.watch)
-        func carriedUDIs(_ udi: HealthKitFHIRExporter.Disclosure) async throws -> [String] {
-            let (exports, _) = try await Self.collect(Self.exporter { $0.udi = udi }, [sample])
-            let devices = exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
-            return devices.flatMap { $0.udiCarrier ?? [] }.compactMap { $0.deviceIdentifier?.value?.string }
-        }
-        await #expect(try carriedUDIs(.authorized) == ["(01)00844588003288"])
-        await #expect(try carriedUDIs(.omit).isEmpty)
     }
 
     @Test("Both bounds of an effective Period keep their milliseconds in the source's offset")
@@ -226,8 +218,8 @@ struct HealthKitFHIRExporterTests {
             metadata: GoldenFixtures.timeZoneMetadata
         )
         let sample = try StoredSampleFixtures.stored(steps, uuid: GoldenFixtures.uuid(14))
-        let (exports, _) = try await Self.collect(Self.exporter(), [sample])
-        let observation = try #require(exports.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
+        let exports = try await Self.collect(Self.exporter(), [sample])
+        let observation = try #require(exports.first?.record?.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
         guard case .period(let period)? = observation.effective else {
             Issue.record("A step count is effective over a Period")
             return
@@ -244,7 +236,7 @@ struct HealthKitFHIRExporterTests {
         }
     }
 
-    @Test("Retractions take their own events and recompute the targets a retraction of each deletion alone computes")
+    @Test("Retractions arrive in input order and equal what each deletion retracts alone")
     func retractionsMatchReference() async throws {
         let exporter = try Self.exporter()
         let detectedAt = GoldenFixtures.conversionInstant
@@ -253,8 +245,7 @@ struct HealthKitFHIRExporterTests {
             HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(11), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt),
             HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(12), sourceType: .bloodPressure, deletedAfter: nil, detectedAt: detectedAt)
         ]
-        var retractions: [HealthKitFHIRExporter.Retraction] = []
-        let receipt = try await exporter.retract(deletions, at: detectedAt) { retractions.append($0) }
+        let retractions = try await ExporterFixtures.retract(exporter, deletions, at: detectedAt)
         try #require(retractions.count == 3)
         // Outcomes arrive in input order; the systolic component never emitted outputs.
         guard case .nothingToRetract = retractions[1].outcome else {
@@ -262,35 +253,22 @@ struct HealthKitFHIRExporterTests {
             return
         }
         #expect(retractions.map(\.deletion) == deletions)
-        #expect(Set(retractions.compactMap(\.sequence)) == ["1", "2"])
         for (retraction, deletion) in [(retractions[0], deletions[0]), (retractions[2], deletions[2])] {
-            let reference = try await ExporterFixtures.standalone(deletion, as: retraction.event)
-            #expect(retraction.graph?.json == reference?.json)
+            let reference = try await ExporterFixtures.retract(exporter, [deletion], at: detectedAt)
+            #expect(retraction.record == reference.first?.record)
         }
-        receipt.release()
-        let (afterRelease, _) = try await Self.collect(exporter, [try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(13))])
-        #expect(afterRelease[0].sequence == "3")
     }
 
-    @Test("Deletions of types without outputs touch no ledger; a skewed lower bound is dropped, Bundle.id follows the legacy policy")
-    func retractionBoundsAndLedger() async throws {
-        let storage = LedgerCountingStorage()
-        let exporter = try Self.exporter({ $0.legacyBundleID = .healthKitUUID }, storage: storage)
+    @Test("A skewed lower bound is dropped, and a retraction carries no Bundle.id")
+    func retractionBounds() async throws {
         let detectedAt = GoldenFixtures.conversionInstant
-        var retractions: [HealthKitFHIRExporter.Retraction] = []
-        _ = try await exporter.retract(
-            [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(20), sourceType: .bloodPressureSystolic, deletedAfter: nil, detectedAt: detectedAt)],
-            at: detectedAt
-        ) { retractions.append($0) }
-        #expect(storage.take().transactions == 0)
-        _ = try await exporter.export([HKSample](), at: detectedAt) { _ in }
-        #expect(storage.take().transactions == 0)
-        _ = try await exporter.retract(
+        let retractions = try await ExporterFixtures.retract(
+            Self.exporter(),
             [HealthKitFHIRExporter.Deletion(uuid: GoldenFixtures.uuid(21), sourceType: .heartRate, deletedAfter: detectedAt + 60, detectedAt: detectedAt)],
             at: detectedAt
-        ) { retractions.append($0) }
-        let bundle = try #require(retractions.last?.graph?.bundle)
-        #expect(bundle.id?.value?.string == GoldenFixtures.uuid(21).uuidString)
+        )
+        let bundle = try #require(retractions.last?.record?.bundle)
+        #expect(bundle.id == nil)
         let provenance = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         guard case .period(let period)? = provenance.occurred else {
             Issue.record("expected a period")
@@ -304,8 +282,8 @@ struct HealthKitFHIRExporterTests {
     func workoutExportAndRetraction() async throws {
         let exporter = try Self.exporter()
         let workout = try StoredSampleFixtures.stored(GoldenFixtures.workout(withEvents: true), uuid: GoldenFixtures.uuid(0xA3))
-        let (exports, _) = try await Self.collect(exporter, [workout])
-        let entries = try #require(exports.first?.graph?.bundle.entry)
+        let exports = try await Self.collect(exporter, [workout])
+        let entries = try #require(exports.first?.record?.bundle.entry)
         let observationEntries = entries.filter { $0.resource?.get(if: Observation.self) != nil }
         let observations = observationEntries.compactMap { $0.resource?.get(if: Observation.self) }
         let segments = (workout.workoutEvents ?? []).count + workout.workoutActivities.count
@@ -315,10 +293,9 @@ struct HealthKitFHIRExporterTests {
             == observationEntries.dropFirst().compactMap { $0.fullUrl?.value?.url.absoluteString })
         let source = try #require(entries.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.what.identifier)
         #expect(try RoledIdentifier(source).role == .sourceRecord)
-        var retractions: [HealthKitFHIRExporter.Retraction] = []
         let deletion = HealthKitFHIRExporter.Deletion(uuid: workout.uuid, sourceType: .workout, deletedAfter: nil, detectedAt: GoldenFixtures.conversionInstant)
-        _ = try await exporter.retract([deletion], at: GoldenFixtures.conversionInstant) { retractions.append($0) }
-        let provenance = try #require(retractions.first?.graph?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let retractions = try await ExporterFixtures.retract(exporter, [deletion])
+        let provenance = try #require(retractions.first?.record?.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         try #require(provenance.target.count == 1)
         let target = try #require(provenance.target.first)
         #expect(target.identifier == source)
@@ -340,7 +317,7 @@ struct HealthKitFHIRExporterTests {
             try heartRate(0xD1, [HKMetadataKeyHeartRateMotionContext: 99, HKMetadataKeySyncIdentifier: "half"]),
             try heartRate(0xD2, [HKMetadataKeySyncIdentifier: "half"])
         ]
-        let (exports, _) = try await Self.collect(exporter, samples)
+        let exports = try await Self.collect(exporter, samples)
         let reasons = exports.map { export -> HealthKitConversionError? in
             guard case .refused(let reason) = export.outcome else {
                 return nil
@@ -350,7 +327,7 @@ struct HealthKitFHIRExporterTests {
         #expect(reasons == [.invalidValue(.heartRate, .unsupportedMetadataValue(.heartRateMotionContext)), .sourceApplicationInvalid])
     }
 
-    @Test("An export shares one receipt; an error in the receiver ends the call with the reservations kept")
+    @Test("An error in the receiver ends the call")
     func receiverErrorsPropagate() async throws {
         struct Stop: Error {}
         let exporter = try Self.exporter()
@@ -358,8 +335,8 @@ struct HealthKitFHIRExporterTests {
         await #expect(throws: Stop.self) {
             try await exporter.export([sample]) { _ in throw Stop() }
         }
-        let (again, _) = try await Self.collect(exporter, [sample])
-        #expect(again[0].sequence == "1")
+        let again = try await Self.collect(exporter, [sample])
+        #expect(again[0].record != nil)
     }
 }
 

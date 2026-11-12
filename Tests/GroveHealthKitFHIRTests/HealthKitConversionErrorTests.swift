@@ -27,7 +27,7 @@ struct HealthKitConversionErrorTests {
             HealthKitConversionError(conversionFailure: error, source: source)
         }
         let valueFailure = HealthKitConversionError.ValueFailure.outsideDomain
-        #expect(narrowed(HealthKitConversionError.conflictingDuplicate) == .conflictingDuplicate)
+        #expect(narrowed(HealthKitConversionError.sourceApplicationInvalid) == .sourceApplicationInvalid)
         #expect(narrowed(valueFailure) == .invalidValue(.heartRate, .outsideDomain))
         #expect(narrowed(valueFailure, source: nil) == .dependency(String(reflecting: HealthKitConversionError.ValueFailure.self)))
         #expect(narrowed(ExchangeIdentityError.invalidInstant) == .exchangeIdentity(.invalidInstant))
@@ -39,7 +39,7 @@ struct HealthKitConversionErrorTests {
     @Test("A deletion bound no FHIR dateTime can state is refused as a dependency naming the failure's type alone")
     func unstatableDeletionBoundIsADependencyRefusal() async throws {
         let afterYear9999 = Date(timeIntervalSince1970: 253_402_300_800)
-        let (retractions, _) = try await ExporterFixtures.retract(
+        let retractions = try await ExporterFixtures.retract(
             try ExporterFixtures.exporter(),
             [ExporterFixtures.deletion(0xC9, detectedAt: afterYear9999)]
         )
@@ -47,7 +47,7 @@ struct HealthKitConversionErrorTests {
             Issue.record("expected a refusal, got \(String(describing: retractions.first?.outcome))")
             return
         }
-        #expect(refusal == .dependency("GroveFHIRContract.RetractionEvent.ValidationError"))
+        #expect(refusal == .dependency("GroveFHIRContract.RetractionRecord.ValidationError"))
         #expect(refusal.diagnostic.code == ExchangeGraphRule.mobileInputUnclassified.rawValue)
     }
 }

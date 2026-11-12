@@ -8,6 +8,7 @@
 
 #if os(iOS)
 import Foundation
+import GroveFHIRContract
 import GroveSensorKit
 import GroveSensorKitFHIR
 import SensorKit
@@ -22,6 +23,32 @@ struct GroveSensorKitBridgeTests {
                 UUID(uuidString: "879d9ea2-21cb-4527-b59b-2831dc4c84ab")
             ))
         }
+    }
+
+    @Test("An SRDevice's recording Device states every fact the device exposes and no unit token")
+    @available(iOS 18, *)
+    func recordingDeviceOfAnSRDevice() {
+        let info = SensorKit.DeviceInfo(SRDevice.current)
+        var expected = RecordingDevice()
+        expected.name = info.name
+        expected.model = info.model
+        expected.systemName = info.systemName
+        expected.systemVersion = info.systemVersion
+        expected.productType = info.productType
+        #expect(RecordingDevice(info) == expected)
+    }
+
+    @Test("A peripheral's recording Device states every fact SRSourceDevice exposes and no unit token")
+    @available(iOS 18, *)
+    func recordingDeviceOfAPeripheral() {
+        let info = SensorKit.SourceDeviceInfo(
+            localIdentifier: "peripheral-7",
+            manufacturer: "Example Audio",
+            model: "Ear One",
+            hardwareVersion: "2",
+            firmwareVersion: "5.1"
+        )
+        #expect(RecordingDevice(info) == .testPeripheral())
     }
 
     @Test("Every sensor the catalog lists resolves to its own entry")

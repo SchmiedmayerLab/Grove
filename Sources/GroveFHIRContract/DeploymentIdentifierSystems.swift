@@ -9,7 +9,8 @@
 import Foundation
 
 
-/// All twelve identifier systems a deployment owns: one per opaque identity kind, the event's and the entry node's.
+/// All thirteen identifier systems a deployment owns for its opaque identities, one per kind, and the one its clear
+/// device identifiers travel under.
 ///
 /// ``derived(root:keyID:epoch:)`` forms them as the exchange protocol recommends; ``OpaqueIdentityScope`` holds them
 /// with the key.
@@ -24,17 +25,22 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
     public let sourceContext: IdentifierSystem
     public let recordingDevice: IdentifierSystem
     public let deviceSnapshot: IdentifierSystem
-    public let event: IdentifierSystem
-    public let entryNode: IdentifierSystem
+    public let contextSnapshot: IdentifierSystem
+    public let recordVersion: IdentifierSystem
+    public let recordRetraction: IdentifierSystem
+    /// The system of the clear identifier a source states for a recording Device.
+    ///
+    /// Its values are the source's own, not keyed, so it names no key id or epoch.
+    public let deviceLocalIdentifier: IdentifierSystem
 
     /// Every system the deployment reserves for its graph identities: each opaque kind's, derived from the closed kind
-    /// list so a new kind cannot slip past a privacy check, then the event's and the entry node's.
+    /// list so a new kind cannot slip past a privacy check.
     package var all: [IdentifierSystem] {
-        OpaqueIdentityKind.allCases.map { self[$0] } + [event, entryNode]
+        OpaqueIdentityKind.allCases.map { self[$0] }
     }
 
-    /// Twelve systems as stated. ``derived(root:keyID:epoch:)``, the only public way to form them, yields twelve
-    /// distinct systems by construction; a test that states its own keeps them distinct.
+    /// The systems as stated. ``derived(root:keyID:epoch:)``, the only public way to form them, yields distinct systems
+    /// by construction; a test that states its own keeps them distinct.
     package init(
         sourceRecord: IdentifierSystem,
         sourceOutput: IdentifierSystem,
@@ -46,8 +52,10 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         sourceContext: IdentifierSystem,
         recordingDevice: IdentifierSystem,
         deviceSnapshot: IdentifierSystem,
-        event: IdentifierSystem,
-        entryNode: IdentifierSystem
+        contextSnapshot: IdentifierSystem,
+        recordVersion: IdentifierSystem,
+        recordRetraction: IdentifierSystem,
+        deviceLocalIdentifier: IdentifierSystem
     ) {
         self.sourceRecord = sourceRecord
         self.sourceOutput = sourceOutput
@@ -59,46 +67,48 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         self.sourceContext = sourceContext
         self.recordingDevice = recordingDevice
         self.deviceSnapshot = deviceSnapshot
-        self.event = event
-        self.entryNode = entryNode
+        self.contextSnapshot = contextSnapshot
+        self.recordVersion = recordVersion
+        self.recordRetraction = recordRetraction
+        self.deviceLocalIdentifier = deviceLocalIdentifier
     }
 
-    /// The systems in the exchange protocol's recommended form under one deployment root: twelve distinct forms, so
-    /// twelve distinct systems.
+    /// The systems in the exchange protocol's recommended form under one deployment root: distinct forms, so distinct
+    /// systems.
     ///
-    /// A rotated key uses a new key id or epoch, and with them new opaque systems; the event and
-    /// entry-node systems stay with the root.
+    /// A rotated key uses a new key id or epoch, and with them new opaque systems.
     public static func derived(
         root: IdentifierSystem,
         keyID: String,
-        epoch: EventSequence
+        epoch: KeyEpoch
     ) throws(ExchangeIdentityError) -> Self {
         guard OpaqueIdentityScope.isValidKeyID(keyID) else {
             throw .invalidKeyID(keyID)
         }
         let deploymentRoot = root.rawValue.hasSuffix("/") ? String(root.rawValue.dropLast()) : root.rawValue
-        func system(_ form: String, kind: OpaqueIdentityKind? = nil) throws(ExchangeIdentityError) -> IdentifierSystem {
-            let text = form
+        func system(_ kind: OpaqueIdentityKind) throws(ExchangeIdentityError) -> IdentifierSystem {
+            let text = ExchangeContract.opaqueIdentitySystemForm
                 .replacingOccurrences(of: "<deployment-root>", with: deploymentRoot)
-                .replacingOccurrences(of: "<identity-kind>", with: kind?.rawValue ?? "")
+                .replacingOccurrences(of: "<identity-kind>", with: kind.rawValue)
                 .replacingOccurrences(of: "<key-id>", with: keyID)
                 .replacingOccurrences(of: "<epoch>", with: epoch.rawValue)
             return try IdentifierSystem(text)
         }
-        let form = ExchangeContract.opaqueIdentitySystemForm
         return Self(
-            sourceRecord: try system(form, kind: .sourceRecord),
-            sourceOutput: try system(form, kind: .sourceOutput),
-            writerRecord: try system(form, kind: .writerRecord),
-            providerRecord: try system(form, kind: .providerRecord),
-            providerOutput: try system(form, kind: .providerOutput),
-            sourceArtifact: try system(form, kind: .sourceArtifact),
-            providerArtifact: try system(form, kind: .providerArtifact),
-            sourceContext: try system(form, kind: .sourceContext),
-            recordingDevice: try system(form, kind: .recordingDevice),
-            deviceSnapshot: try system(form, kind: .deviceSnapshot),
-            event: try system(ExchangeContract.eventIdentifierSystemForm),
-            entryNode: try system(ExchangeContract.entryNodeIdentifierSystemForm)
+            sourceRecord: try system(.sourceRecord),
+            sourceOutput: try system(.sourceOutput),
+            writerRecord: try system(.writerRecord),
+            providerRecord: try system(.providerRecord),
+            providerOutput: try system(.providerOutput),
+            sourceArtifact: try system(.sourceArtifact),
+            providerArtifact: try system(.providerArtifact),
+            sourceContext: try system(.sourceContext),
+            recordingDevice: try system(.recordingDevice),
+            deviceSnapshot: try system(.deviceSnapshot),
+            contextSnapshot: try system(.contextSnapshot),
+            recordVersion: try system(.recordVersion),
+            recordRetraction: try system(.recordRetraction),
+            deviceLocalIdentifier: try IdentifierSystem("\(deploymentRoot)/NamingSystem/grove-device-local-identifier")
         )
     }
 
@@ -115,6 +125,9 @@ public struct DeploymentIdentifierSystems: Hashable, Sendable {
         case .sourceContext: sourceContext
         case .recordingDevice: recordingDevice
         case .deviceSnapshot: deviceSnapshot
+        case .contextSnapshot: contextSnapshot
+        case .recordVersion: recordVersion
+        case .recordRetraction: recordRetraction
         }
     }
 }

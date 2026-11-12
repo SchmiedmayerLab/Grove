@@ -34,10 +34,6 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
     case clinicalRecord(ClinicalRecordFailure)
     /// A source revision classified as an application carries no valid Apple bundle identifier.
     case sourceApplicationInvalid
-    /// The export call named the record, or an ECG's symptom, earlier with other content: other companion data, or
-    /// other answers from a policy closure. The first input keeps the record's event; each later one that differs is
-    /// refused, so an exact retry of the call reproduces every event.
-    case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
     case exchangeGraph(ExchangeGraphError)
     /// A failure raised by something this domain does not model, named by its type alone: a failing FHIR date
@@ -68,7 +64,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .ecgEvidence: .healthkitInputEcgEvidence
         case .clinicalRecord(let failure): failure.rule
         case .sourceApplicationInvalid: .healthkitInputSourceApplicationInvalid
-        case .conflictingDuplicate, .exchangeIdentity, .dependency:
+        case .exchangeIdentity, .dependency:
             .mobileInputUnclassified
         case .exchangeGraph(let error): ExchangeGraphRule(rawValue: error.diagnostic.code) ?? .mobileExchangeUnclassified
         }
@@ -83,7 +79,6 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
         case .ecgEvidence: "HKElectrocardiogram"
         case .clinicalRecord: "HKClinicalRecord.fhirResource"
         case .sourceApplicationInvalid: "HKSourceRevision.source.bundleIdentifier"
-        case .conflictingDuplicate: "HKSample"
         case .exchangeIdentity, .exchangeGraph, .dependency: "Bundle"
         }
     }
@@ -259,10 +254,10 @@ extension HealthKitConversionError {
         }
     }
 
-    /// Narrows a failure to build a deleted record's retraction event to this published domain; the event's own checks,
+    /// Narrows a failure to build a deleted record's retraction to this published domain; the retraction's own checks,
     /// such as a deletion bound no FHIR dateTime can state, are refused as a dependency. (The exporter already refuses a
     /// reserved native identifier system when it is configured.)
-    init(_ error: RetractionEvent.ValidationError) {
+    init(_ error: RetractionRecord.ValidationError) {
         self = switch error {
         case .exchangeIdentity(let error): .exchangeIdentity(error)
         case .exchangeGraph(let error): .exchangeGraph(error)

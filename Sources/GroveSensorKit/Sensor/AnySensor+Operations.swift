@@ -93,6 +93,14 @@ extension AnySensor {
     /// - parameter timeRange: The time range for which data should be queried. Note that if this overlaps with the sensor's quarantine period, it may get clamped.
     /// - returns: The sensor's samples, processed into their ``SensorKitSampleSafeRepresentation``s.
     public func fetch(from device: SRDevice, timeRange: Range<Date>) async throws -> [Sample.SafeRepresentation] {
+        try await fetchNamingSourceDevices(from: device, timeRange: timeRange).samples
+    }
+
+    /// ``fetch(from:timeRange:)``, keeping the peripherals SensorKit named for the samples.
+    func fetchNamingSourceDevices(
+        from device: SRDevice,
+        timeRange: Range<Date>
+    ) async throws -> SensorKit.FetchedSamples<Sample.SafeRepresentation> {
         let reader = SRSensorReader(self)
         let delegate = SamplesFetcherDelegate(self)
         // see `startRecording()` re delegate/reader lifetimes.
@@ -194,7 +202,7 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
 
     private let logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "SamplesFetcherDelegate")
     private let sensor: Sensor<Sample>
-    var continuation: CheckedContinuation<[Sample.SafeRepresentation], any Error>?
+    var continuation: CheckedContinuation<SensorKit.FetchedSamples<Sample.SafeRepresentation>, any Error>?
     private var results: [SensorKit.FetchResult<Sample>] = []
     
     init(_ sensor: some AnySensor<Sample>) {
@@ -212,9 +220,9 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
         }
     }
 
-    func process(sample object: AnyObject, timestamp: SRAbsoluteTime) -> Bool {
+    func process(sample object: AnyObject, timestamp: SRAbsoluteTime, sourceDevice: SensorKit.SourceDeviceInfo? = nil) -> Bool {
         process {
-            try SensorKit.FetchResult(sample: object, timestamp: timestamp, for: sensor)
+            try SensorKit.FetchResult(sample: object, timestamp: timestamp, sourceDevice: sourceDevice, for: sensor)
         }
     }
 
@@ -244,6 +252,11 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
     }
     
     func sensorReader(_ reader: SRSensorReader, didCompleteFetch fetchRequest: SRFetchRequest) {
+        completeFetch()
+    }
+
+    /// Resumes the fetch with every result processed so far.
+    func completeFetch() {
         guard let continuation else {
             self.results = []
             return
@@ -255,12 +268,33 @@ final class SamplesFetcherDelegate<Sample: SensorKitSampleProtocol>: NSObject, S
             }
             do {
                 let processedResults: [Sample.SafeRepresentation] = try Sample.processIntoSafeRepresentation(samples)
-                continuation.resume(returning: processedResults)
+                continuation.resume(returning: SensorKit.FetchedSamples(
+                    samples: processedResults,
+                    sourceDevices: sourceDevices(of: results),
+                    sourceDevicesSuppliedEverySample: sourceDevicesSuppliedEverySample(of: results)
+                ))
             } catch {
                 continuation.resume(throwing: error)
             }
             self.results = []
             self.continuation = nil
         }
+    }
+
+    /// The distinct peripherals `results` name for their samples, in the order they first appear.
+    private func sourceDevices(of results: [SensorKit.FetchResult<Sample>]) -> [SensorKit.SourceDeviceInfo] {
+        var sourceDevices: [SensorKit.SourceDeviceInfo] = []
+        for result in results where !result.isEmpty {
+            if let sourceDevice = result.sourceDevice, !sourceDevices.contains(sourceDevice) {
+                sourceDevices.append(sourceDevice)
+            }
+        }
+        return sourceDevices
+    }
+
+    /// Whether `results` name a peripheral for every one of them that holds samples.
+    private func sourceDevicesSuppliedEverySample(of results: [SensorKit.FetchResult<Sample>]) -> Bool {
+        let withSamples = results.filter { !$0.isEmpty }
+        return !withSamples.isEmpty && withSamples.allSatisfy { $0.sourceDevice != nil }
     }
 }

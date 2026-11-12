@@ -571,11 +571,31 @@ extension Observation {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension ExchangeGraph {
-    /// Every Observation of the graph as the sample it describes, with a typed failure for each that refuses.
+    /// Every Observation of the packed Bundle as the sample it describes, with a typed failure for each that refuses.
     public func healthKitSamples() -> ConversionBatch<HKSample, HealthKitSampleProjectionFailure> {
+        HealthKitSampleProjection.samples(of: bundle.entry ?? [])
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension ExchangeRecord {
+    /// The record's Observation outputs as the samples they describe, decoded from `json` on each call,
+    /// with a typed failure for each that refuses. Shared nodes are never Observations.
+    public func healthKitSamples() -> ConversionBatch<HKSample, HealthKitSampleProjectionFailure> {
+        let bundle = try? JSONDecoder().decode(ModelsR4.Bundle.self, from: json)
+        return HealthKitSampleProjection.samples(of: bundle?.entry ?? [])
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitSampleProjection {
+    /// Every Observation of `entries` as the sample it describes, with a typed failure for each that refuses.
+    fileprivate static func samples(of entries: [BundleEntry]) -> ConversionBatch<HKSample, HealthKitSampleProjectionFailure> {
         var samples: [HKSample] = []
         var failures: [HealthKitSampleProjectionFailure] = []
-        for entry in bundle.entry ?? [] {
+        for entry in entries {
             guard case .observation(let observation)? = entry.resource, let fullURL = entry.fullUrl else {
                 continue
             }

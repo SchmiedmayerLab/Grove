@@ -14,9 +14,6 @@ public enum SensorKitConversionError: Error, Equatable, Sendable {
     case invalidRecord(SensorKitRecordError)
     case invalidIdentity(String)
     case payloadTooLarge(byteCount: Int)
-    /// The export call named the record earlier with other content. The first input keeps the record's event;
-    /// each later one that differs is refused, so an exact retry of the call reproduces every event.
-    case conflictingDuplicate
     case exchangeIdentity(ExchangeIdentityError)
     case exchangeGraph(ExchangeGraphError)
     /// A dependency raised a failure this domain does not model, named by type.
@@ -35,7 +32,7 @@ public enum SensorKitConversionError: Error, Equatable, Sendable {
             return error.diagnostic
         case .payloadTooLarge:
             return ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.diagnostic
-        case .invalidIdentity, .conflictingDuplicate, .unexpectedConversionFailure:
+        case .invalidIdentity, .unexpectedConversionFailure:
             return ExchangeGraphRule.mobileInputUnclassified.diagnostic
         }
     }

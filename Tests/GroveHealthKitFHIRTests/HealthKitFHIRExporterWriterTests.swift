@@ -125,11 +125,11 @@ struct HealthKitFHIRExporterWriterTests {
         _ exporter: HealthKitFHIRExporter,
         _ samples: [HKSample]
     ) async throws -> [UUID: HealthKitFHIRExporter.Export] {
-        let (exports, _) = try await Fixtures.collect(exporter, samples: samples)
+        let exports = try await Fixtures.collect(exporter, samples: samples)
         return Dictionary(uniqueKeysWithValues: exports.map { ($0.source.uuid, $0) })
     }
 
-    @Test("W1: by default an Apple per-device source states no writer, no author and no recording Device of its own")
+    @Test("W1: by default an Apple per-device source states no writer and no author, only its source revision")
     func exporterDefaultStatesNoWriter() async throws {
         let exporter = try Fixtures.exporter()
         guard case .omit = exporter.options.writer else {
@@ -137,10 +137,14 @@ struct HealthKitFHIRExporterWriterTests {
             return
         }
         let bare = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x31), writer: Self.watchSource)
-        let declined = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x32), device: GoldenFixtures.watchWithoutUnitToken, writer: Self.watchSource)
-        let resolved = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x33), device: GoldenFixtures.watch, writer: Self.watchSource)
-        let exports = try await Self.exports(exporter, [bare, declined, resolved])
-        let bundles = try [bare, declined, resolved].map { try #require(exports[$0.uuid]?.graph?.bundle) }
+        let unnamed = try GoldenFixtures.heartRate(
+            uuid: GoldenFixtures.uuid(0x32),
+            device: GoldenFixtures.watchWithoutUnitToken,
+            writer: Self.watchSource
+        )
+        let named = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x33), device: GoldenFixtures.watch, writer: Self.watchSource)
+        let exports = try await Self.exports(exporter, [bare, unnamed, named])
+        let bundles = try [bare, unnamed, named].map { try #require(exports[$0.uuid]?.record?.bundle) }
         for bundle in bundles {
             Self.statesNoWriter(bundle, source: Self.watchSource)
             let entity = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first)
@@ -148,35 +152,49 @@ struct HealthKitFHIRExporterWriterTests {
             #expect(extensions.count == 1)
             let revision = try #require(extensions.first)
             #expect(revision.url.value?.url.absoluteString == "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-revision")
-            #expect(revision.extension?.map { $0.url.value?.url.absoluteString } == ["version", "productType", "operatingSystemVersion"])
+            #expect(revision.extension?.map { $0.url.value?.url.absoluteString } == [
+                "sourceName", "sourceBundleIdentifier", "version", "productType", "operatingSystemVersion"
+            ])
             #expect(revision.extension?.map(\.value) == [
-                .string("26.1"), .string("Watch7,12"), .string("26.1.0")
+                .string(Self.watchSource.name.asFHIRStringPrimitive()),
+                .string(Self.watchSource.bundleIdentifier.asFHIRStringPrimitive()),
+                .string("26.1"),
+                .string("Watch7,12"),
+                .string("26.1.0")
             ])
         }
         // No `HKDevice`: no recording Device and nothing to report.
         #expect(Self.recordingDevices(bundles[0]).isEmpty)
         #expect(exports[bare.uuid]?.warnings.isEmpty == true)
-        // An `HKDevice` the policy declined: no recording Device, and the omission is reported.
-        #expect(Self.recordingDevices(bundles[1]).isEmpty)
-        #expect(exports[declined.uuid]?.warnings == [ExchangeGraphRule.mobileOmissionRecordingDevice.diagnostic])
-        // An `HKDevice` the policy resolved: its recording Device, named by the `HKDevice`, and no warning.
-        #expect(Self.recordingDevices(bundles[2]).map { $0.deviceName?.first?.name.value?.string } == ["Apple Watch"])
-        #expect(exports[resolved.uuid]?.warnings.isEmpty == true)
+        // An `HKDevice` names its recording Device, with or without a unit, and nothing is lost.
+        for (bundle, sample) in [(bundles[1], unnamed), (bundles[2], named)] {
+            #expect(Self.recordingDevices(bundle).map { $0.deviceName?.first?.name.value?.string } == ["Apple Watch"])
+            #expect(exports[sample.uuid]?.warnings.isEmpty == true)
+        }
     }
 
-    @Test("Source revision names require authorization, and all revision facts may be withheld")
-    func sourceRevisionDisclosure() async throws {
-        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x34), writer: Self.watchSource)
-        let hidden = try Fixtures.exporter { $0.sourceRevision = [] }
-        let hiddenBundle = try await #require(Self.exports(hidden, [sample])[sample.uuid]?.graph?.bundle)
-        #expect(hiddenBundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first?.extension == nil)
-        let named = try Fixtures.exporter { $0.sourceRevision = [.sourceName, .sourceBundleIdentifier] }
-        let namedBundle = try await #require(Self.exports(named, [sample])[sample.uuid]?.graph?.bundle)
-        let entity = try #require(namedBundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first)
+    @Test("A member whose string fact HealthKit supplies empty is left out; the operating-system version always travels")
+    func sourceRevisionLeavesOutEmptyFacts() async throws {
+        var writer = Self.watchSource
+        writer.version = nil
+        writer.productType = ""
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x34), writer: writer)
+        let bundle = try await #require(Self.exports(Fixtures.exporter(), [sample])[sample.uuid]?.record?.bundle)
+        let entity = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first)
         #expect(entity.agent == nil)
-        #expect(entity.extension?.first?.extension?.map(\.value) == [
-            .string(Self.watchSource.name.asFHIRStringPrimitive()), .string(Self.watchSource.bundleIdentifier.asFHIRStringPrimitive())
+        #expect(entity.extension?.first?.extension?.map { $0.url.value?.url.absoluteString } == [
+            "sourceName", "sourceBundleIdentifier", "operatingSystemVersion"
         ])
+    }
+
+    /// HealthKit declares `sourceRevision` nonnull, but a sample the store never held has none, so its operating-system
+    /// version would be whatever the stack holds, and a retry another record version.
+    @Test("A sample whose revision names no source states no source revision", arguments: [nil, StoredSampleFixtures.Writer.unattributed])
+    func unnamedSourceStatesNoRevision(writer: StoredSampleFixtures.Writer?) async throws {
+        let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x35), writer: writer)
+        let bundle = try await #require(Self.exports(Fixtures.exporter(), [sample])[sample.uuid]?.record?.bundle)
+        let entity = try #require(bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first?.entity?.first)
+        #expect(entity.extension == nil)
     }
 
     @Test("W2: a listed bundle identifier states its application writer from the sample's own source revision; others state none")
@@ -187,12 +205,12 @@ struct HealthKitFHIRExporterWriterTests {
         let watch = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x43), device: GoldenFixtures.watch, writer: Self.watchSource)
         let exports = try await Self.exports(exporter, [listed, unlisted, watch])
         let listedExport = try #require(exports[listed.uuid])
-        #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(listedExport.graph?.bundle)))
-        Self.statesNoWriter(try #require(exports[unlisted.uuid]?.graph?.bundle), source: Self.otherApplication)
-        Self.statesNoWriter(try #require(exports[watch.uuid]?.graph?.bundle), source: Self.watchSource)
+        #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(listedExport.record?.bundle)))
+        Self.statesNoWriter(try #require(exports[unlisted.uuid]?.record?.bundle), source: Self.otherApplication)
+        Self.statesNoWriter(try #require(exports[watch.uuid]?.record?.bundle), source: Self.watchSource)
         // The listed source exports exactly as it does with every source classified as an application.
-        let reference = try await Fixtures.standalone(.sample(listed), as: listedExport.event, .applicationWriter)
-        #expect(listedExport.graph?.json == reference.graph.json)
+        let reference = try await Fixtures.export(.sample(listed), .applicationWriter)
+        #expect(listedExport.record == reference.record)
     }
 
     @Test("W3: a classifying closure is asked per source; an application states the revision's values, an omission nothing")
@@ -208,8 +226,8 @@ struct HealthKitFHIRExporterWriterTests {
         let omitted = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x52), writer: Self.otherApplication)
         let exports = try await Self.exports(exporter, [classified, omitted])
         #expect(asked.bundleIdentifiers.sorted() == [Self.otherApplication.bundleIdentifier, GoldenFixtures.foreignWriter.bundleIdentifier].sorted())
-        #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(exports[classified.uuid]?.graph?.bundle)))
-        Self.statesNoWriter(try #require(exports[omitted.uuid]?.graph?.bundle), source: Self.otherApplication)
+        #expect(try Self.statesWriter(GoldenFixtures.foreignWriter, in: try #require(exports[classified.uuid]?.record?.bundle)))
+        Self.statesNoWriter(try #require(exports[omitted.uuid]?.record?.bundle), source: Self.otherApplication)
     }
 
     @Test("A sample's writer-record identity and version travel whatever the writer policy says about its source")
@@ -217,6 +235,7 @@ struct HealthKitFHIRExporterWriterTests {
         let sample = try GoldenCase.attributedHeartRate(uuid: 0x61, writer: GoldenFixtures.foreignWriter, metadata: GoldenCase.syncMetadata)
         // The writing application's bundle identifier scopes the sync identifier, whether or not the caller classified it.
         let expected = try Fixtures.base.identityScope.writerRecord(
+            subject: Fixtures.base.subject.identifier,
             writerApplication: BusinessIdentifier(
                 system: IdentifierSystem(Canonicals.appleBundleIdentifierSystem),
                 value: GoldenFixtures.foreignWriter.bundleIdentifier
@@ -233,7 +252,7 @@ struct HealthKitFHIRExporterWriterTests {
             ("classified as an application", Fixtures.exporter { $0.writer = .classify { _ in .application } })
         ]
         for (policy, exporter) in exporters {
-            let bundle = try await #require(try Self.exports(exporter, [sample])[sample.uuid]?.graph?.bundle)
+            let bundle = try await #require(try Self.exports(exporter, [sample])[sample.uuid]?.record?.bundle)
             let observation = try #require(bundle.entry?.compactMap { $0.resource?.get(if: ModelsR4.Observation.self) }.first)
             let writerRecords = (observation.identifier ?? []).filter { (try? RoledIdentifier($0).role) == .writerRecord }
             #expect(writerRecords.map { $0.value?.value?.string } == [expected.value], "under \(policy)")

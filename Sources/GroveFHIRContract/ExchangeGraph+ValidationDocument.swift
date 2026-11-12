@@ -230,13 +230,13 @@ extension ExchangeGraph {
             return try result.get()
         }
 
-        /// The entry's key: its one `entry-node-key` extension's Grove-typed identifier, or `nil` when the entry
+        /// The entry's key: its one `grove-exchange-entry-key` extension's Grove-typed identifier, or `nil` when the entry
         /// states none, several, or one that is not a well-formed Grove-typed identifier.
         func entryKey(at index: Int) -> RoledIdentifier? {
             if let cached = entryKeyCache[index] {
                 return cached
             }
-            let extensions = entries[index].extension?.filter { $0.url == Canonicals.entryNodeKey } ?? []
+            let extensions = entries[index].extension?.filter { $0.url == Canonicals.entryKey } ?? []
             var key: RoledIdentifier?
             if extensions.count == 1, case .identifier(let identifier)? = extensions.first?.value {
                 key = try? RoledIdentifier(identifier)

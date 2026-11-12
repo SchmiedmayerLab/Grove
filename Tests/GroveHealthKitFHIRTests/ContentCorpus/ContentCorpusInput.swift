@@ -160,8 +160,8 @@ struct ContentCorpusElectrocardiogram: Codable, Sendable {
         var millivolts: Double?
     }
 
-    /// One correlated symptom sample: a category type, its raw value, and the last byte of its UUID. It converts
-    /// under the event after the ECG's and those of the symptoms before it.
+    /// One correlated symptom sample: a category type, its raw value, and the last byte of its UUID. It converts to a
+    /// record of its own.
     struct Symptom: Codable, Sendable {
         /// The symptom's category type identifier.
         var type: String
@@ -269,7 +269,7 @@ struct ContentCorpusSource: Codable, Sendable {
         case foreign
     }
 
-    /// The event context the record converts under.
+    /// The context the record converts under.
     enum Context: String, Codable, Sendable {
         /// The suite's default context.
         case plain
@@ -289,7 +289,7 @@ struct ContentCorpusSource: Codable, Sendable {
     var device: Device?
     /// The writer the sample is attributed to.
     var writer: Writer
-    /// The event context the record converts under.
+    /// The context the record converts under.
     var context: Context
 }
 

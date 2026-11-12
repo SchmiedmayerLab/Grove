@@ -88,3 +88,11 @@ extension StringProtocol {
         }
     }
 }
+
+
+extension String {
+    /// The string, or `nil` when it is empty or holds nothing but whitespace.
+    package var nonBlank: String? {
+        isBlank ? nil : self
+    }
+}

@@ -13,8 +13,8 @@ import ModelsR4
 import Testing
 
 
-/// A projected response's outputs are withdrawn through the retraction path against their own source-output identifiers
-/// (questionnaire guide `responses.md`, lifecycle and participation metadata).
+/// A projected response is withdrawn through the retraction path, which takes back its whole source record (questionnaire
+/// guide `responses.md`, lifecycle and participation metadata).
 @Suite("Questionnaire Retraction")
 struct QuestionnaireFHIRExporterRetractionTests {
     private typealias Fixtures = QuestionnaireExportFixtures
@@ -25,29 +25,41 @@ struct QuestionnaireFHIRExporterRetractionTests {
         _ exporter: QuestionnaireFHIRExporter,
         _ withdrawals: [QuestionnaireFHIRExporter.Withdrawal],
         at instant: Date = withdrawnAt
-    ) async throws -> (retractions: [QuestionnaireFHIRExporter.Retraction], receipt: ExchangeProducer.Receipt) {
+    ) async throws -> [QuestionnaireFHIRExporter.Retraction] {
         var retractions: [QuestionnaireFHIRExporter.Retraction] = []
-        let receipt = try await exporter.retract(withdrawals, at: instant) { retractions.append($0) }
-        return (retractions, receipt)
+        try await exporter.retract(withdrawals, at: instant) { retractions.append($0) }
+        return retractions
+    }
+
+    /// The retraction of `record`, withdrawn at `withdrawnAt` and recorded at `instant`.
+    private static func retraction(
+        of record: QuestionnaireFHIRExporter.Record,
+        withdrawnAt: Date = withdrawnAt,
+        at instant: Date = withdrawnAt
+    ) async throws -> ExchangeRecord {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        return try #require(try await retract(exporter, [.init(record: record, withdrawnAt: withdrawnAt)], at: instant).first?.record)
     }
 
     private static func identifier(_ observation: Observation, _ role: GroveIdentifierRole) -> Identifier? {
         observation.identifier?.first { (try? RoledIdentifier($0))?.role == role }
     }
 
-    @Test("A retraction targets exactly the Observations the export emitted, under their source-output identities")
+    @Test("A retraction lists exactly the Observations the export emitted, under their source-output identities")
     func targetsTheExportedObservations() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let record = try Fixtures.guideRecord()
-        let exported = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
-        let (retractions, _) = try await Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)])
+        let exported = try await #require(try Fixtures.collect(exporter, [record]).first?.record)
+        let retractions = try await Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)])
         #expect(retractions.map(\.responseIdentifier) == ["home-vitals-2026-08-28"])
-        let graph = try #require(retractions.first?.graph)
-        #expect(graph.kind == .retraction)
-        let provenance = try #require(graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
+        let retraction = try #require(retractions.first?.record)
+        #expect(retraction.kind == .retraction)
+        #expect(retraction.outputFullURLs.isEmpty)
+        let provenance = try retraction.provenance
 
-        let outputs = exported.observations.compactMap { Self.identifier($0, .sourceOutput) }
-        #expect(outputs.count == exported.observations.count && !outputs.isEmpty)
+        let observations = try exported.observations
+        let outputs = observations.compactMap { Self.identifier($0, .sourceOutput) }
+        #expect(outputs.count == observations.count && !outputs.isEmpty)
         #expect(provenance.target.compactMap(\.identifier) == outputs)
         for target in provenance.target {
             #expect(target.type?.value?.url.absoluteString == "Observation")
@@ -56,49 +68,88 @@ struct QuestionnaireFHIRExporterRetractionTests {
             }
             #expect(roles == ["primary-output"])
         }
-        let sourceRecord = try #require(exported.observations.first.flatMap { Self.identifier($0, .sourceRecord) })
+        let sourceRecord = try #require(observations.first.flatMap { Self.identifier($0, .sourceRecord) })
         #expect(provenance.entity?.map(\.what.identifier) == [sourceRecord])
+        #expect(retraction.sourceRecord == exported.sourceRecord)
         #expect(provenance.occurred == .dateTime(FHIRPrimitive(try ExchangeInstant.fhirDateTime(Self.withdrawnAt))))
     }
 
-    @Test("An exact retry before release restates the retraction; another instant or a release mints a new event")
-    func retryBeforeReleaseRestatesTheEvent() async throws {
-        let exporter = try Fixtures.exporter(Fixtures.producer())
-        let withdrawal = QuestionnaireFHIRExporter.Withdrawal(record: try Fixtures.guideRecord(), withdrawnAt: Self.withdrawnAt)
-        let (first, receipt) = try await Self.retract(exporter, [withdrawal])
-        let event = try #require(first.first?.graph?.eventIdentifier)
-        let (again, againReceipt) = try await Self.retract(exporter, [withdrawal], at: Self.withdrawnAt.addingTimeInterval(60))
-        #expect(again.map(\.graph?.json) == first.map(\.graph?.json))
-
-        let reported = QuestionnaireFHIRExporter.Withdrawal(record: withdrawal.record, withdrawnAt: Self.withdrawnAt.addingTimeInterval(1))
-        let later = try await Self.retract(exporter, [reported]).retractions
-        #expect(later.first?.graph.map(\.eventIdentifier) != event)
-
-        receipt.release()
-        againReceipt.release()
-        let next = try await Self.retract(exporter, [withdrawal]).retractions
-        #expect(next.first?.graph.map(\.eventIdentifier) != event)
+    @Test("A retraction is keyed by its source record and carries no record version")
+    func keyFollowsTheSourceRecord() async throws {
+        let retraction = try await Self.retraction(of: Fixtures.guideRecord())
+        #expect(retraction.version.identifier.role == .recordRetraction)
+        #expect(try retraction.provenance.extension == nil)
+        try retraction.verifyVersion(in: Fixtures.identityScope)
+        #expect(try ExchangeRecord(validating: retraction.json).version == retraction.version)
     }
 
-    @Test("Releasing a retraction forgets the active reservation an unreleased export left behind")
-    func releaseForgetsTheActiveReservation() async throws {
-        let exporter = try Fixtures.exporter(Fixtures.producer())
-        let record = try Fixtures.guideRecord()
-        // Each export's receipt lapses unreleased, as a call that threw does, and leaves its event for the redelivery.
-        let exported = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
-        let redelivered = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
-        #expect(redelivered.eventIdentifier == exported.eventIdentifier)
-
-        try await Self.retract(exporter, [.init(record: record, withdrawnAt: Self.withdrawnAt)]).receipt.release()
-        let after = try await #require(try Fixtures.collect(exporter, [record]).exports.first?.graph)
-        #expect(after.eventIdentifier != exported.eventIdentifier, "the released retraction forgot the export's event")
+    @Test("A retraction's application Device states its Apple bundle identifier, as every adapter's does")
+    func applicationDeviceStatesItsBundleIdentifier() async throws {
+        let retraction = try await Self.retraction(of: Fixtures.guideRecord())
+        let application = try #require(try retraction.devices.first { $0.parent != nil })
+        let stated = (application.identifier ?? []).filter { $0.system == HealthKitContract.appleBundleIdentifierSystem }
+        #expect(stated.map { $0.value?.value?.string } == ["org.grovealliance.example.app"])
     }
 
-    @Test("A pair the export refuses is refused alike, reserves nothing, and the call goes on")
-    func refusedPairReservesNothing() async throws {
+    /// The first accepted retraction of a source record wins, and every later report repeats its key.
+    @Test("A retraction reported again repeats its key, whatever its instants")
+    func reportedAgainRepeatsTheKey() async throws {
+        let first = try await Self.retraction(of: Fixtures.guideRecord())
+        let again = try await Self.retraction(of: Fixtures.guideRecord())
+        #expect(again == first)
+        let later = try await Self.retraction(
+            of: Fixtures.guideRecord(),
+            withdrawnAt: Self.withdrawnAt.addingTimeInterval(1),
+            at: Self.withdrawnAt.addingTimeInterval(60)
+        )
+        #expect(later.json != first.json)
+        #expect(later.version == first.version)
+    }
+
+    /// Only the source record addresses a retraction: it withdraws the whole response, whichever revision names it.
+    @Test("A retraction of another revision of the pair takes back the same source record under the same key")
+    func anotherRevisionHasTheSameKey() async throws {
+        let guide = try await Self.retraction(of: Fixtures.guideRecord())
+        let partial = try await Self.retraction(of: Fixtures.guideRecord { response in
+            response.item = response.item?.filter { $0.linkId.value?.string != "blood-pressure" }
+        })
+        #expect(try partial.provenance.target.count == guide.provenance.target.count - 1)
+        #expect(partial.sourceRecord == guide.sourceRecord)
+        #expect(partial.version == guide.version)
+    }
+
+    @Test("The producer's application states the retraction, whichever writer the response names")
+    func theProducerStatesTheRetraction() async throws {
+        let retraction = try await Self.retraction(of: Fixtures.guideRecord())
+        let names = try retraction.devices.compactMap { $0.deviceName?.first?.name.value?.string }
+        #expect(names == ["Grove Example App"])
+    }
+
+    @Test("Retractions pack into a Bundle of their own, once per source record")
+    func retractionsPackAlone() async throws {
+        let other = try Fixtures.guideRecord { response in
+            response.identifier = Identifier(system: response.identifier?.system, value: "home-vitals-2026-08-29")
+        }
+        let first = try await Self.retraction(of: Fixtures.guideRecord())
+        let second = try await Self.retraction(of: other)
+        var packer = ExchangeBundlePacker(kind: .retraction)
+        #expect(try packer.insert(first) == .inserted)
+        #expect(try packer.insert(second) == .inserted)
+        #expect(try packer.insert(first) == .duplicate)
+        let active = try await Fixtures.exported(Fixtures.guideRecord())
+        #expect(throws: ExchangeBundlePacker.Failure.mixedKinds) {
+            try packer.insert(active)
+        }
+        let bundle = try packer.bundle(packedAt: Self.withdrawnAt)
+        #expect(bundle.kind == .retraction)
+        #expect(try bundle.records().map(\.version) == [first.version, second.version])
+    }
+
+    @Test("A pair the export refuses is refused alike, and the call goes on")
+    func refusedPairEmitsNothing() async throws {
         let exporter = try Fixtures.exporter(Fixtures.producer())
         let inProgress = try Fixtures.guideRecord { $0.status = FHIRPrimitive(.inProgress) }
-        let (retractions, _) = try await Self.retract(exporter, [
+        let retractions = try await Self.retract(exporter, [
             .init(record: inProgress, withdrawnAt: Self.withdrawnAt),
             .init(record: try Fixtures.guideRecord(), withdrawnAt: Self.withdrawnAt)
         ])
@@ -107,6 +158,21 @@ struct QuestionnaireFHIRExporterRetractionTests {
             return
         }
         #expect(refusal == .responseNotCompleted(status: "in-progress"))
-        #expect(retractions.map { $0.graph?.eventIdentifier.sequence.rawValue } == [nil, "1"])
+        #expect(retractions.map { $0.record != nil } == [false, true])
+    }
+
+    @Test("A withdrawal instant no FHIR dateTime can state is refused, and a recorded instant none can state ends the call")
+    func unstatableInstants() async throws {
+        let exporter = try Fixtures.exporter(Fixtures.producer())
+        let farFuture = Date(timeIntervalSince1970: 1e12)
+        let retractions = try await Self.retract(exporter, [.init(record: try Fixtures.guideRecord(), withdrawnAt: farFuture)])
+        guard case .refused(.exchangeIdentity(.invalidInstant))? = retractions.first?.outcome else {
+            Issue.record("the withdrawal instant was not refused: \(String(describing: retractions.first?.outcome))")
+            return
+        }
+        let withdrawal = QuestionnaireFHIRExporter.Withdrawal(record: try Fixtures.guideRecord(), withdrawnAt: Self.withdrawnAt)
+        await #expect(throws: ExchangeIdentityError.invalidInstant) {
+            try await exporter.retract([withdrawal], at: farFuture) { _ in }
+        }
     }
 }

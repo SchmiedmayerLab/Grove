@@ -10,8 +10,7 @@ import Foundation
 package import ModelsR4
 
 
-/// The bundled study context of one event: entries keyed by entry-node role, and the references
-/// outputs make to them.
+/// The bundled study context of one record: content-keyed entries, and the references outputs make to them.
 package struct StudyContext: Sendable {
     /// The Patient entry when the subject is bundled, first among the context entries.
     package let patient: BundleEntry?
@@ -32,12 +31,11 @@ extension StudyContext {
     private static let patientType = FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.patient.rawValue))
     private static let researchStudyType = FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.researchStudy.rawValue))
 
-    /// The entry-node keyed study context the catalog recommends for the subject and known enrollments of one event,
-    /// each node keyed in `identityScope`'s entry-node system.
+    /// The study context the catalog recommends for the subject and known enrollments of one record, each node keyed by
+    /// its content.
     package init(
         subject: Subject,
         studies: [StudyEnrollment],
-        event: ExchangeEventIdentifier,
         identityScope: OpaqueIdentityScope
     ) throws(ExchangeIdentityError) {
         var patientEntry: BundleEntry?
@@ -46,74 +44,93 @@ extension StudyContext {
         case .logical(let identifier):
             subjectReference = identifier.reference(to: .patient)
         case .bundled:
-            let key = try EntryNodeKey(
-                system: identityScope.systems.entryNode,
-                event: event,
-                nodeRole: StudyContextEntryNodeRole.patient.rawValue,
-                ordinal: 0
-            )
-            let patientURL = try key.identifier.fullURLString
-            patientEntry = BundleEntry(identifier: key.identifier, fullURL: patientURL, resource: ResourceProxy(with: subject.bundledPatient))
-            subjectReference = Reference(reference: patientURL.asFHIRStringPrimitive(), type: Self.patientType)
+            let entry = try Self.patientEntry(subject.bundledPatient, subject: subject.identifier, identityScope: identityScope)
+            patientEntry = entry
+            subjectReference = Reference(reference: entry.fullUrl?.value?.url.absoluteString.asFHIRStringPrimitive(), type: Self.patientType)
         }
-        let enrolled = try StudyContext(studies: studies, subjectReference: subjectReference, event: event, identityScope: identityScope)
+        let enrolled = try StudyContext(
+            studies: studies,
+            subject: subject.identifier,
+            subjectReference: subjectReference,
+            identityScope: identityScope
+        )
         self.init(patient: patientEntry, entries: enrolled.entries, subjectReference: subjectReference, studyReferences: enrolled.studyReferences)
     }
 
-    /// The study context of a graph that bundles and references its subject itself, as Questionnaire's bundles its own
+    /// The study context of a record that bundles and references its subject itself, as Questionnaire's bundles its own
     /// Patient: no Patient entry, and every ResearchSubject names `subjectReference`.
     package init(
         studies: [StudyEnrollment],
+        subject: BusinessIdentifier,
         subjectReference: Reference,
-        event: ExchangeEventIdentifier,
         identityScope: OpaqueIdentityScope
     ) throws(ExchangeIdentityError) {
         var entries: [BundleEntry] = []
         var studyReferences: [Reference] = []
-        for (ordinal, enrollment) in studies.enumerated() {
-            let study = try Self.studyEntries(for: enrollment, subjectReference: subjectReference) { role throws(ExchangeIdentityError) in
-                try EntryNodeKey(system: identityScope.systems.entryNode, event: event, nodeRole: role.rawValue, ordinal: UInt64(ordinal))
-            }
-            entries.append(contentsOf: study.entries)
+        var stated: Set<String> = []
+        for enrollment in studies {
+            let study = try Self.studyEntries(for: enrollment, subject: subject, subjectReference: subjectReference, identityScope: identityScope)
+            // Two enrollments under one protocol revision share its one PlanDefinition snapshot.
+            entries += study.entries.filter { stated.insert($0.fullUrl?.value?.url.absoluteString ?? "").inserted }
             studyReferences.append(study.reference)
         }
         self.init(patient: nil, entries: entries, subjectReference: subjectReference, studyReferences: studyReferences)
     }
 
-    /// One enrollment's ResearchStudy, PlanDefinition and ResearchSubject entries, each under the key `nodeKey` mints
-    /// for its role, and the study reference outputs carry.
+    /// The Patient entry of `patient`, keyed by its content, which it repeats as a `context-snapshot` identifier.
+    package static func patientEntry(
+        _ patient: Patient,
+        subject: BusinessIdentifier,
+        identityScope: OpaqueIdentityScope
+    ) throws(ExchangeIdentityError) -> BundleEntry {
+        let key = try identityScope.contentSnapshot(of: patient, subject: subject, role: .context(.patient))
+        var keyed = patient
+        keyed.identifier = (patient.identifier ?? []) + [key.fhirIdentifier]
+        return try BundleEntry(identifier: key, resource: ResourceProxy(with: keyed))
+    }
+
+    /// One enrollment's ResearchStudy, PlanDefinition and ResearchSubject entries and the study reference outputs carry.
+    ///
+    /// Each node is keyed after the nodes it references: the plan, the study that names it, the subject that names the
+    /// study. Each repeats its key as a `context-snapshot` identifier beside any business identifier it has.
     private static func studyEntries(
         for enrollment: StudyEnrollment,
+        subject: BusinessIdentifier,
         subjectReference: Reference,
-        nodeKey: (StudyContextEntryNodeRole) throws(ExchangeIdentityError) -> EntryNodeKey
+        identityScope: OpaqueIdentityScope
     ) throws(ExchangeIdentityError) -> (entries: [BundleEntry], reference: Reference) {
-        let studyKey = try nodeKey(.researchStudy)
-        let planKey = try nodeKey(.planDefinition)
-        let subjectKey = try nodeKey(.researchSubject)
-        let studyURL = try studyKey.identifier.identifier.fullURLString
-        let planURL = try planKey.identifier.identifier.fullURLString
-        let study = ResearchStudy(
-            identifier: [enrollment.study.fhirIdentifier],
-            protocol: [Reference(reference: planURL.asFHIRStringPrimitive())],
-            status: FHIRPrimitive(.active)
-        )
-        let plan = PlanDefinition(
+        var plan = PlanDefinition(
             status: FHIRPrimitive(.active),
             url: FHIRPrimitive(FHIRURI(stringLiteral: enrollment.protocolURL.value?.url.absoluteString ?? "")),
             version: enrollment.protocolVersion.asFHIRStringPrimitive()
         )
-        let researchSubject = ResearchSubject(
+        let planKey = try identityScope.contentSnapshot(of: plan, subject: subject, role: .context(.planDefinition))
+        plan.identifier = [planKey.fhirIdentifier]
+        let planURL = try planKey.fullURLString
+
+        var study = ResearchStudy(
+            identifier: [enrollment.study.fhirIdentifier],
+            protocol: [Reference(reference: planURL.asFHIRStringPrimitive())],
+            status: FHIRPrimitive(.active)
+        )
+        let studyKey = try identityScope.contentSnapshot(of: study, subject: subject, role: .context(.researchStudy))
+        study.identifier = [enrollment.study.fhirIdentifier, studyKey.fhirIdentifier]
+        let studyURL = try studyKey.fullURLString
+
+        var researchSubject = ResearchSubject(
             identifier: [enrollment.enrollment.fhirIdentifier],
             individual: subjectReference,
             status: FHIRPrimitive(.onStudy),
             study: Reference(reference: studyURL.asFHIRStringPrimitive())
         )
+        let subjectKey = try identityScope.contentSnapshot(of: researchSubject, subject: subject, role: .context(.researchSubject))
+        researchSubject.identifier = [enrollment.enrollment.fhirIdentifier, subjectKey.fhirIdentifier]
+
         let entries = [
-            BundleEntry(identifier: studyKey.identifier, fullURL: studyURL, resource: ResourceProxy(with: study)),
-            BundleEntry(identifier: planKey.identifier, fullURL: planURL, resource: ResourceProxy(with: plan)),
-            try BundleEntry(identifier: subjectKey.identifier, resource: ResourceProxy(with: researchSubject))
+            BundleEntry(identifier: studyKey, fullURL: studyURL, resource: ResourceProxy(with: study)),
+            BundleEntry(identifier: planKey, fullURL: planURL, resource: ResourceProxy(with: plan)),
+            try BundleEntry(identifier: subjectKey, resource: ResourceProxy(with: researchSubject))
         ]
-        let reference = Reference(reference: studyURL.asFHIRStringPrimitive(), type: Self.researchStudyType)
-        return (entries, reference)
+        return (entries, Reference(reference: studyURL.asFHIRStringPrimitive(), type: Self.researchStudyType))
     }
 }

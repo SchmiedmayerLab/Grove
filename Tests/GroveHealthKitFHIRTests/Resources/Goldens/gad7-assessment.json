@@ -3,7 +3,7 @@
     {
       "extension" : [
         {
-          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-key",
           "valueIdentifier" : {
             "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1",
             "type" : {
@@ -95,7 +95,7 @@
     {
       "extension" : [
         {
-          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-key",
           "valueIdentifier" : {
             "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
             "type" : {
@@ -106,11 +106,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:ofbnkJcqk6YeV6vgDeOfnMvel2ywJn1Xthh-13KZcOc"
+            "value" : "v0:test:1:EtS_H7lbXColnb2cn4p55V4xPSYdwekyIKN1ZxhR1Sc"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:aa662c8b-8157-53a8-b48d-0b44316b88d0",
+      "fullUrl" : "urn:uuid:eecd7aa5-3f56-57dc-85e3-75fb1d7747d6",
       "resource" : {
         "deviceName" : [
           {
@@ -129,7 +129,7 @@
                 }
               ]
             },
-            "value" : "v0:test:1:ofbnkJcqk6YeV6vgDeOfnMvel2ywJn1Xthh-13KZcOc"
+            "value" : "v0:test:1:EtS_H7lbXColnb2cn4p55V4xPSYdwekyIKN1ZxhR1Sc"
           }
         ],
         "manufacturer" : "Example Device Company",
@@ -160,7 +160,7 @@
     {
       "extension" : [
         {
-          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-key",
           "valueIdentifier" : {
             "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1",
             "type" : {
@@ -171,11 +171,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:da2BrCNkBpArVSLDFGJ7V7DBhM2WsHvNVw-rIsldIcI"
+            "value" : "v0:test:1:aKPfjyYL_z9J-MBwJV2E4tguLthTq_nov6F3vgSwnJY"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:ed5c7ca9-d14f-5ddf-870d-b02d155af5b0",
+      "fullUrl" : "urn:uuid:12f291db-9efc-59f1-95f2-fc43d390ef2b",
       "resource" : {
         "deviceName" : [
           {
@@ -194,7 +194,7 @@
                 }
               ]
             },
-            "value" : "v0:test:1:da2BrCNkBpArVSLDFGJ7V7DBhM2WsHvNVw-rIsldIcI"
+            "value" : "v0:test:1:aKPfjyYL_z9J-MBwJV2E4tguLthTq_nov6F3vgSwnJY"
           },
           {
             "system" : "https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id",
@@ -215,7 +215,7 @@
           ]
         },
         "parent" : {
-          "reference" : "urn:uuid:aa662c8b-8157-53a8-b48d-0b44316b88d0"
+          "reference" : "urn:uuid:eecd7aa5-3f56-57dc-85e3-75fb1d7747d6"
         },
         "resourceType" : "Device",
         "status" : "active",
@@ -238,22 +238,22 @@
     {
       "extension" : [
         {
-          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-node-key",
+          "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-exchange-entry-key",
           "valueIdentifier" : {
-            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/entry-node",
+            "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/record-version/test/1",
             "type" : {
               "coding" : [
                 {
-                  "code" : "entry-node",
+                  "code" : "record-version",
                   "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
                 }
               ]
             },
-            "value" : "n0:conversion-provenance:0:QRpjFT0HLp5v8iuv278MFZ8agRpdgc4FZ91tPMeThGo"
+            "value" : "v0:test:1:cBtaI78Z0XERE0hUvGnsf0O-fObiYytutDtYtDuqF4w"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:e0f85170-2536-55ac-9129-d7cbb435e9d2",
+      "fullUrl" : "urn:uuid:246d9466-9072-594e-afa4-eb9d582147b2",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -276,23 +276,12 @@
               ]
             },
             "who" : {
-              "reference" : "urn:uuid:ed5c7ca9-d14f-5ddf-870d-b02d155af5b0"
+              "reference" : "urn:uuid:12f291db-9efc-59f1-95f2-fc43d390ef2b"
             }
           }
         ],
         "entity" : [
           {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "operatingSystemVersion",
-                    "valueString" : "0.0.0"
-                  }
-                ],
-                "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-revision"
-              }
-            ],
             "role" : "source",
             "what" : {
               "identifier" : {
@@ -307,6 +296,23 @@
                 },
                 "value" : "v0:test:1:h_uR84DR74tNFvCv4-gZlenKozqpGIwtZGLcyTdGunU"
               }
+            }
+          }
+        ],
+        "extension" : [
+          {
+            "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version",
+            "valueIdentifier" : {
+              "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/record-version/test/1",
+              "type" : {
+                "coding" : [
+                  {
+                    "code" : "record-version",
+                    "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
+                  }
+                ]
+              },
+              "value" : "v0:test:1:cBtaI78Z0XERE0hUvGnsf0O-fObiYytutDtYtDuqF4w"
             }
           }
         ],
@@ -326,18 +332,6 @@
       }
     }
   ],
-  "identifier" : {
-    "system" : "https://grovealliance.org/fhir/testing/identifiers/healthkit/event",
-    "type" : {
-      "coding" : [
-        {
-          "code" : "event",
-          "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
-        }
-      ]
-    },
-    "value" : "e0:1f5c58aa-6ec6-4e79-a682-829a9debd3f5:15"
-  },
   "meta" : {
     "profile" : [
       "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-mobile-exchange-bundle"

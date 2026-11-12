@@ -447,16 +447,16 @@ struct HealthKitECGContentTests {
         #expect(set.warnings == symptomWarnings)
     }
 
-    /// Each symptom is a source record of its own, so it converts under an event of its own beside the ECG's.
-    @Test("Each correlated symptom converts under its own event")
-    func symptomEventsAreTheirOwn() async throws {
+    /// Each symptom is a source record of its own, so it converts to a record of its own beside the ECG's.
+    @Test("Each correlated symptom converts to its own record")
+    func symptomRecordsAreTheirOwn() async throws {
         let chest = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD1))
         let fatigue = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD2), type: .fatigue)
         let pair = try GoldenCase.electrocardiogramRecord(uuid: 0xD0, symptoms: [chest, fatigue])
         let set = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(pair, symptoms: [chest, fatigue]))
         #expect(set.companions.count == 2)
-        let events = set.all.map(\.identifiers.event)
-        #expect(Set(events).count == events.count)
+        let records = set.all.map(\.record.sourceRecord)
+        #expect(Set(records).count == records.count)
     }
 
     private func symptom(_ type: HKCategoryTypeIdentifier) -> HKCategorySample {

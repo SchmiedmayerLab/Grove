@@ -10,7 +10,7 @@
 #
 -->
 
-Let the instrument declare its measurements, then export the pair as an exchange bundle.
+Let the instrument declare its measurements, then export the pair as an exchange record.
 
 ## Overview
 
@@ -46,50 +46,50 @@ Nothing is inferred from answer shapes alone, so adding extraction to an instrum
 
 ## Exporting the pair
 
-``QuestionnaireFHIRExporter`` exports each response with the instrument it answers as one exchange graph: deterministic pseudonymous identities for the source record and every output, the Patient and carried response as resolvable entries, the study context when the producer knows the participant's enrollments, the writer's application and host device snapshots, and the transform Provenance.
+``QuestionnaireFHIRExporter`` exports each response with the instrument it answers as one exchange record: deterministic pseudonymous identities for the source record and every output, the Patient and carried response as content-addressed shared nodes, the study context when the producer knows the participant's enrollments, the writer's application and host device snapshots, and the conversion Provenance.
+The carried response keeps the submission's business identifier as its only `identifier`, so it repeats its content key in a `grove-context-snapshot` extension.
 Every extracted Observation takes the response's exact authored instant as both its effective and issued time, and states the manual-entry recording method.
 The writer facts come from the writer-context extension the response carries, which an app states with `QuestionnaireResponse.apply(writerContext:)` when the response is authored; a response without one refuses.
 
 ```swift
 let exporter = QuestionnaireFHIRExporter(producer: producer, repositoryScope: repositoryScope)
-let receipt = try exporter.export([.init(questionnaire: questionnaire, response: response)]) { export in
+try await exporter.export([.init(questionnaire: questionnaire, response: response)]) { export in
     switch export.outcome {
-    case .graph(let graph):
-        staged.append(graph)
+    case .record(let record):
+        staged.append(record.json)
     case .refused(let refusal):
         log(refusal)
     }
 }
-// ... store the graphs ...
-receipt.release()
 ```
 
-The producer's ledger numbers the events: until the receipt is released, an exact redelivery restates each graph byte for byte, and another response under the same identifier, such as an amendment, is a new event.
+A record's version is a digest of its outputs and its conversion Provenance, which states the export's `at` instant: the same pair at the same instant restates the record byte for byte, and another instant, or another response under the same identifier, such as an amendment, is a new version of the same source record.
+Stage `ExchangeRecord.json` verbatim; `ExchangeBundlePacker` packs records into the Bundle that travels and deduplicates their shared nodes.
 
 ## Withdrawing a response
 
-When a projected response is withdrawn, its Observations are taken back through the guide's retraction path, against their own source-output identities; the response's `entered-in-error` status is a different statement and retracts nothing.
-``QuestionnaireFHIRExporter/retract(_:at:receive:)`` takes each ``QuestionnaireFHIRExporter/Withdrawal``: the pair exactly as it was exported, and when it was withdrawn.
-It extracts the pair again to name the outputs, so keep the pair, not the graph; a pair the export refused is refused here too.
+When a projected response is withdrawn, it is taken back through the guide's retraction path, which suppresses every output of every version of the response's source record; the response's `entered-in-error` status is a different statement and retracts nothing.
+``QuestionnaireFHIRExporter/retract(_:at:receive:)`` takes each ``QuestionnaireFHIRExporter/Withdrawal``: the pair, and when it was withdrawn.
+It extracts the pair again to list the outputs it emits, so keep the pair, not the record; a pair the export refused is refused here too.
+Those targets are informative: only the source record addresses the retraction, so the pair need not be the revision that was exported.
 
 ```swift
 let withdrawal = QuestionnaireFHIRExporter.Withdrawal(record: record, withdrawnAt: withdrawnAt)
-let receipt = try exporter.retract([withdrawal]) { retraction in
-    if let graph = retraction.graph {
-        staged.append(graph)
+try await exporter.retract([withdrawal]) { retraction in
+    if let record = retraction.record {
+        staged.append(record.json)
     }
 }
-// ... store the graphs ...
-receipt.release()
 ```
 
-Persist `withdrawnAt` with the withdrawal: it keys the retraction event, so a retry restates the event only with the same instant, and another instant is another event.
+A retraction is keyed by its source record alone, so reporting it again repeats its key whatever its instants state, and the first one accepted wins.
+Retraction records travel in a Bundle of their own: an `ExchangeBundlePacker` holds one kind.
 
-## Consuming the bundle
+## Consuming the record
 
-The graph is the exchange artifact: upload it, dedup on its identities, and take it back by them through a retraction.
-A consumer can also read it back locally — `GroveHealthKitFHIR`'s sample projection turns each of the bundle's quantity Observations into the HealthKit sample it describes, using the minted source-output identity as the HealthKit sync identifier, so HealthKit dedup and exchange dedup ride the same identity.
-An app that only wants that local readback still exports the full graph, releases the receipt and discards the bundle afterwards; the identities it minted stay deterministic, so nothing is lost by not keeping it.
+The record is the exchange artifact: pack it, upload the Bundle, dedup on its identities, and take it back through a retraction of its source record.
+A consumer can also read it back locally — `GroveHealthKitFHIR`'s sample projection turns each of the record's quantity Observations into the HealthKit sample it describes, using the minted source-output identity as the HealthKit sync identifier, so HealthKit dedup and exchange dedup ride the same identity.
+An app that only wants that local readback still exports the full record and discards it afterwards; the identities it minted stay deterministic, so nothing is lost by not keeping it.
 
 Extraction refuses loudly — ``ObservationExtractionError`` names the item and the contradiction — so an instrument is validated by exporting it, the same way the conformance gates do.
-A response refused for an identity or graph failure is reported the same way, and never ends the export of the others.
+A response refused for an identity or record failure is reported the same way, and never ends the export of the others.

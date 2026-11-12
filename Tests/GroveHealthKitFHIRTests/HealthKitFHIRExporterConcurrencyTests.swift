@@ -27,19 +27,16 @@ struct HealthKitFHIRExporterConcurrencyTests {
 
     @Test("Building on one task or on several hands over the same exports, in input order")
     func concurrencyChangesNoExport() async throws {
-        let storage = ExchangeProducer.InMemoryStorage()
         let samples = try Self.samples()
-        let serial = try ExporterFixtures.exporter(storage: storage) { $0.maximumConcurrency = 1 }
-        let (serialExports, receipt) = try await ExporterFixtures.collect(serial, samples: samples)
-        // The exact retry before the release reproduces every event, so equal bytes show the width changes nothing.
-        let concurrent = try ExporterFixtures.exporter(storage: storage) { $0.maximumConcurrency = 8 }
-        let (concurrentExports, _) = try await ExporterFixtures.collect(concurrent, samples: samples)
+        let serial = try ExporterFixtures.exporter { $0.maximumConcurrency = 1 }
+        let serialExports = try await ExporterFixtures.collect(serial, samples: samples)
+        let concurrent = try ExporterFixtures.exporter { $0.maximumConcurrency = 8 }
+        let concurrentExports = try await ExporterFixtures.collect(concurrent, samples: samples)
 
         #expect(serialExports.map(\.source.uuid) == samples.map(\.uuid))
-        #expect(serialExports.allSatisfy { $0.graph != nil })
+        #expect(serialExports.allSatisfy { $0.record != nil })
         #expect(concurrentExports.map(\.source.uuid) == samples.map(\.uuid))
-        #expect(concurrentExports.map(\.graph?.json) == serialExports.map(\.graph?.json))
-        receipt.release()
+        #expect(concurrentExports.map(\.record) == serialExports.map(\.record))
     }
 
     @Test("A cancelled export throws CancellationError and hands nothing over")

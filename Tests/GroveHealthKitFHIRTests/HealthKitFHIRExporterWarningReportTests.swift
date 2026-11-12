@@ -23,11 +23,12 @@ struct HealthKitFHIRExporterWarningReportTests {
     static let unmodeledKey: [String: any Sendable] = ["com.example.note": "x"]
 
     /// The exports of one call covering every warning the adapter raises, a clean sample and a refusal:
-    /// - two heart rates without a time zone, one on a device without a per-unit token;
+    /// - two heart rates without a time zone;
     /// - a step count over a minute without a time zone, which states both ends of its Period in UTC, carrying a key
     ///   its graph does not represent;
-    /// - a heart rate with a time zone carrying that key, and one with a time zone on a device without a token;
-    /// - a heart rate with a time zone on a device with a token, which raises nothing;
+    /// - a heart rate with a time zone carrying that key;
+    /// - a heart rate with a time zone on a device without a token and one on a device with a token, neither of which raises
+    ///   anything;
     /// - a bare ECG, refused for want of its voltages.
     static func exports() async throws -> [HealthKitFHIRExporter.Export] {
         let zoned = GoldenFixtures.timeZoneMetadata
@@ -58,7 +59,7 @@ struct HealthKitFHIRExporterWarningReportTests {
             try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x56), device: GoldenFixtures.watch),
             ecg
         ]
-        let (exports, _) = try await ExporterFixtures.collect(ExporterFixtures.exporter(), samples: samples)
+        let exports = try await ExporterFixtures.collect(ExporterFixtures.exporter(), samples: samples)
         return exports
     }
 
@@ -80,27 +81,25 @@ struct HealthKitFHIRExporterWarningReportTests {
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.start"),
             ExchangeGraphRule.mobileOmissionSourceOffset.diagnostic(at: "Observation.effectivePeriod.end")
         ], "the step count raises the offset at both ends of its Period")
+        #expect(exports[4].warnings.isEmpty)
         #expect(exports[5].warnings.isEmpty)
-        #expect(exports[6].graph == nil && exports[6].warnings.isEmpty)
+        #expect(exports[6].record == nil && exports[6].warnings.isEmpty)
         let heartRate = HKQuantityTypeIdentifier.heartRate.rawValue
         let stepCount = HKQuantityTypeIdentifier.stepCount.rawValue
         let kinds = Self.report(exports).kinds
         #expect(kinds.map(\.code) == [
             ExchangeGraphRule.mobileOmissionSourceOffset,
-            .mobileOmissionRecordingDevice,
             .mobileOmissionUnmodeledMetadata
         ].map(\.rawValue), "the most samples first, then by code")
-        try #require(kinds.count == 3)
-        #expect(kinds.map(\.sampleCount) == [3, 2, 2], "the step count's two offset warnings count it once")
-        #expect(kinds.map(\.sampleCountByType) == [[heartRate: 2, stepCount: 1], [heartRate: 2], [heartRate: 1, stepCount: 1]])
+        try #require(kinds.count == 2)
+        #expect(kinds.map(\.sampleCount) == [3, 2], "the step count's two offset warnings count it once")
+        #expect(kinds.map(\.sampleCountByType) == [[heartRate: 2, stepCount: 1], [heartRate: 1, stepCount: 1]])
         #expect(kinds.map(\.locations) == [
             ["Observation.effectiveDateTime", "Observation.effectivePeriod.start", "Observation.effectivePeriod.end"],
-            ["Observation.device"],
             ["HKSample.metadata"]
         ])
         #expect(kinds.map(\.reason) == [
             ExchangeGraphRule.mobileOmissionSourceOffset,
-            .mobileOmissionRecordingDevice,
             .mobileOmissionUnmodeledMetadata
         ].map(\.reason))
     }
@@ -112,9 +111,6 @@ struct HealthKitFHIRExporterWarningReportTests {
                 + "Observation.effectivePeriod.start",
             "  Effective time written in UTC: the sample names no HKMetadataKeyTimeZone (nor, for blood pressure, do its members "
                 + "agree on one) — 3 samples: HKQuantityTypeIdentifierHeartRate 2, HKQuantityTypeIdentifierStepCount 1",
-            "mobile-omission.recording-device at Observation.device",
-            "  No recording Device: the recording-device policy resolved the sample's HKDevice to no physical unit (by default, "
-                + "the device has no localIdentifier) — 2 samples: HKQuantityTypeIdentifierHeartRate 2",
             "mobile-omission.unmodeled-metadata at HKSample.metadata",
             "  Metadata withheld: the sample, or a correlation member, workout event or workout activity it contains, carries "
                 + "metadata keys its graph does not represent — 2 samples: HKQuantityTypeIdentifierHeartRate 1, "

@@ -176,7 +176,7 @@ struct HealthKitRecordingDocumentTests {
         #expect(content.attachment.hash?.value?.dataString == "eQkKWi5ACtHFVRcy+yqDrwwrQs0=")
     }
 
-    @Test("The document states its HealthKit source type and its conversion event")
+    @Test("The document states its HealthKit source type and its conversion")
     func documentGraphStatesItsSourceAndProvenance() async throws {
         let conversion = try await ExporterFixtures.export(try Self.heartbeatSeries(), inputs())
 
@@ -295,10 +295,13 @@ extension HealthKitRecordingDocumentTests {
         let conversion = try await ExporterFixtures.export(record, inputs(studies: studies))
         #expect(conversion.document.context?.related?.count ?? 0 == studyCount)
         #expect(conversion.document.extension?.contains { $0.url == Canonicals.instantiatesCanonical } != true)
-        #expect(conversion.identifiers == baseline.identifiers)
+        #expect(conversion.identifiers.sourceRecord == baseline.identifiers.sourceRecord)
+        #expect(conversion.identifiers.primaryOutput == baseline.identifiers.primaryOutput)
+        #expect(conversion.identifiers.sourceArtifact == baseline.identifiers.sourceArtifact)
         #expect(conversion.document.content == baseline.document.content)
-        #expect(conversion.provenance == baseline.provenance)
-        #expect(conversion.bundle.identifier == baseline.bundle.identifier)
+        #expect(conversion.provenance.entity == baseline.provenance.entity)
+        #expect(conversion.provenance.target == baseline.provenance.target)
+        #expect((conversion.record.version == baseline.record.version) == (studyCount == 0))
         _ = try ExchangeGraph(validating: JSONEncoder().encode(conversion.bundle), kind: .active)
     }
 }

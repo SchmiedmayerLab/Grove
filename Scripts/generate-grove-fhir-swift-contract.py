@@ -74,7 +74,9 @@ import ModelsR4
 
 SOURCE_TYPE_IDENTIFIER = re.compile(r"^HK([A-Za-z]+?)Type(?:Identifier)?([A-Za-z0-9]*)$")
 LEADING_ACRONYM = re.compile(r"^([A-Z]+)(?=[A-Z][a-z]|[0-9]|$)")
-EQUALITY_VECTORS = re.compile(r"^(?P<corpus>\S+): (?P<formatting>[a-z0-9-]+) and (?P<lexeme>[a-z0-9-]+)$")
+EQUALITY_VECTORS = re.compile(
+    r"^(?P<corpus>\S+): (?P<formatting>[a-z0-9-]+), (?P<lexeme>[a-z0-9-]+), and (?P<altered>[a-z0-9-]+);"
+)
 SWIFT_CASE_NAME = re.compile(r"[a-z][A-Za-z0-9]*")
 SOURCE_LEAD = re.compile(r"HKElectrocardiogram\.Lead\.(?P<case>[a-z][A-Za-z0-9]*)")
 CANONICAL_INTEGER = re.compile(r"0|[1-9][0-9]*")
@@ -189,13 +191,13 @@ def producer_rule_lines(exchange_protocol: dict) -> list[str]:
     return lines
 
 
-def study_context_lines(exchange_protocol: dict) -> list[str]:
-    roles = exchange_protocol["lifecycle"]["active"]["studyContext"]["entryNodeRoles"]
+def context_snapshot_role_lines(exchange_protocol: dict) -> list[str]:
+    roles = exchange_protocol["entryIdentity"]["contextSnapshotRoles"]
     if len(roles) != len(set(roles)) or not roles:
-        raise ValueError("study context entry-node roles must be a nonempty unique list")
+        raise ValueError("context-snapshot roles must be a nonempty unique list")
     lines = [
-        "/// The entry-node roles of a bundled study context, generated from exchange-protocol.json.",
-        "package enum StudyContextEntryNodeRole: String, CaseIterable, Sendable {",
+        "/// The node roles of a context-snapshot key, generated from exchange-protocol.json.",
+        "package enum ContextSnapshotRole: String, CaseIterable, Sendable {",
     ]
     for role in roles:
         lines.append(f"    case {swift_name(role)} = {swift_string(role)}")
@@ -210,6 +212,9 @@ def opaque_identity_lines(exchange_protocol: dict) -> list[str]:
     unsigned_decimal = opaque_identity["componentRequirements"]["unsignedDecimal"]
     if not set(unsigned_decimal) <= names:
         raise ValueError(f"unsigned-decimal components {unsigned_decimal!r} are not identity components")
+    digests = opaque_identity["componentRequirements"]["digestComponents"]
+    if not set(digests) <= names:
+        raise ValueError(f"digest components {digests!r} are not identity components")
     lines = [
         "/// The catalog's component rules for each opaque identity kind, generated from exchange-protocol.json.",
         "extension OpaqueIdentityKind {",
@@ -238,6 +243,9 @@ def opaque_identity_lines(exchange_protocol: dict) -> list[str]:
         "",
         "    /// Components whose value is a canonical unsigned decimal.",
         f"    static let unsignedDecimalComponents: Set<String> = [{', '.join(swift_string(name) for name in unsigned_decimal)}]",
+        "",
+        "    /// Components whose value is a SHA-256 digest in base64url without padding.",
+        f"    static let digestComponents: Set<String> = [{', '.join(swift_string(name) for name in digests)}]",
         "}",
         "",
         "",
@@ -245,29 +253,25 @@ def opaque_identity_lines(exchange_protocol: dict) -> list[str]:
     return lines
 
 
-def identifier_system_forms(exchange_protocol: dict) -> dict[str, str]:
-    forms = {
-        "opaqueIdentitySystemForm": exchange_protocol["opaqueIdentity"]["recommendedSystemForm"],
-        "eventIdentifierSystemForm": exchange_protocol["event"]["bundleIdentifier"]["recommendedSystemForm"],
-        "entryNodeIdentifierSystemForm": exchange_protocol["entryIdentity"]["entryNode"]["recommendedSystemForm"],
-    }
-    for name, form in forms.items():
-        if not form.startswith("<deployment-root>/"):
-            raise ValueError(f"{name} must start with the deployment root placeholder: {form!r}")
+def opaque_identity_system_form(exchange_protocol: dict) -> str:
+    form = exchange_protocol["opaqueIdentity"]["recommendedSystemForm"]
+    if not form.startswith("<deployment-root>/"):
+        raise ValueError(f"opaque identity system form must start with the deployment root placeholder: {form!r}")
     for placeholder in ("<identity-kind>", "<key-id>", "<epoch>"):
-        if placeholder not in forms["opaqueIdentitySystemForm"]:
+        if placeholder not in form:
             raise ValueError(f"opaque identity system form lacks {placeholder}")
-    return forms
+    return form
 
 
 def equality_vectors(exchange_protocol: dict) -> dict[str, str]:
     match = EQUALITY_VECTORS.match(exchange_protocol["payload"]["equality"]["vectors"])
     if match is None:
-        raise ValueError("payload.equality.vectors must name its corpus and two events")
+        raise ValueError("payload.equality.vectors must name its corpus and three retries")
     return {
         "equalityVectorCorpus": match.group("corpus"),
         "equalityFormattingVector": match.group("formatting"),
         "equalityDecimalLexemeVector": match.group("lexeme"),
+        "equalityAlteredRetryVector": match.group("altered"),
     }
 
 
@@ -1276,6 +1280,7 @@ def generate(catalog_directory: Path) -> str:
         "package struct DirectProfileClaim: Sendable {",
         "    package let profiles: [FHIRPrimitive<Canonical>]",
         "    package let requiredIdentifierRoles: [String]",
+        "    package let optionalIdentifierRoles: [String]",
         "}",
         "",
         "",
@@ -1363,7 +1368,11 @@ def generate(catalog_directory: Path) -> str:
         roles = ", ".join(
             swift_string(role) for role in claim.get("requiredIdentifierRoles", [])
         )
-        lines.append(f"            requiredIdentifierRoles: [{roles}]")
+        optional_roles = ", ".join(
+            swift_string(role) for role in claim.get("optionalIdentifierRoles", [])
+        )
+        lines.append(f"            requiredIdentifierRoles: [{roles}],")
+        lines.append(f"            optionalIdentifierRoles: [{optional_roles}]")
         lines.append("        ),")
     lines.extend([
         "    ]",
@@ -1380,7 +1389,11 @@ def generate(catalog_directory: Path) -> str:
         roles = ", ".join(
             swift_string(role) for role in claim.get("requiredIdentifierRoles", [])
         )
-        lines.append(f"            requiredIdentifierRoles: [{roles}]")
+        optional_roles = ", ".join(
+            swift_string(role) for role in claim.get("optionalIdentifierRoles", [])
+        )
+        lines.append(f"            requiredIdentifierRoles: [{roles}],")
+        lines.append(f"            optionalIdentifierRoles: [{optional_roles}]")
         lines.append("        ),")
     lines.extend([
         "    ]",
@@ -1394,7 +1407,8 @@ def generate(catalog_directory: Path) -> str:
         lines.append(f"                {profile_reference(profile)},")
     lines.extend([
         "            ],",
-        "            requiredIdentifierRoles: []",
+        "            requiredIdentifierRoles: [],",
+        "            optionalIdentifierRoles: []",
         "        ),",
         "    ]",
         "",
@@ -1449,16 +1463,16 @@ def generate(catalog_directory: Path) -> str:
         "",
     ])
     lines.extend(producer_rule_lines(exchange_protocol))
-    lines.extend(study_context_lines(exchange_protocol))
+    lines.extend(context_snapshot_role_lines(exchange_protocol))
     lines.extend(opaque_identity_lines(exchange_protocol))
-    system_forms = identifier_system_forms(exchange_protocol)
     vectors = equality_vectors(exchange_protocol)
     lines.extend([
         "/// Frozen exchange-graph values generated from exchange-protocol.json.",
         "package enum ExchangeContract {",
         f"    package static let fullURLNamespace = {swift_string(exchange_protocol['entryIdentity']['fullUrl']['namespace'])}",
+        f"    package static let opaqueIdentitySystemForm = {swift_string(opaque_identity_system_form(exchange_protocol))}",
     ])
-    for name, value in {**system_forms, **vectors}.items():
+    for name, value in vectors.items():
         lines.append(f"    package static let {name} = {swift_string(value)}")
     lines.extend([
         "    package static let activeOutputResourceTypes: Set<String> = [",

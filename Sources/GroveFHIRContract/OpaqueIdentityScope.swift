@@ -26,6 +26,9 @@ package enum OpaqueIdentityKind: String, CaseIterable, Hashable, Sendable {
     case sourceContext = "source-context"
     case recordingDevice = "recording-device"
     case deviceSnapshot = "device-snapshot"
+    case contextSnapshot = "context-snapshot"
+    case recordVersion = "record-version"
+    case recordRetraction = "record-retraction"
 
     /// The frozen number of typed fields in this identity kind's protocol preimage.
     package var componentCount: Int {
@@ -46,27 +49,11 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
 
     public let systems: DeploymentIdentifierSystems
     public let keyID: String
-    public let epoch: EventSequence
+    public let epoch: KeyEpoch
     private let key: SymmetricKey
 
     public var debugDescription: String {
         "OpaqueIdentityScope(keyID: \(keyID), epoch: \(epoch.rawValue))"
-    }
-
-    /// Distinguishes the identity scopes one exchange ledger may serve, without revealing the key.
-    ///
-    /// HMAC-SHA-256 under the scope's key, base64url without padding, over the length-framed label
-    /// `org.grovealliance.grove.ledger-context.v0`, the key id, the epoch and every derived system, in
-    /// their fixed order. A different key, key id, epoch or system yields a different value.
-    package var ledgerFingerprint: String {
-        let parts = ["org.grovealliance.grove.ledger-context.v0", keyID, epoch.rawValue] + systems.all.map(\.rawValue)
-        let framed: Data
-        do {
-            framed = try Data(lengthFramedUTF8: parts)
-        } catch {
-            preconditionFailure("A validated identity-scope part exceeds the framing limit: \(error)")
-        }
-        return Data(HMAC<SHA256>.authenticationCode(for: framed, using: key)).base64URLEncodedStringWithoutPadding
     }
 
     /// Creates one identity scope.
@@ -76,7 +63,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     public init(
         systems: DeploymentIdentifierSystems,
         keyID: String,
-        epoch: EventSequence,
+        epoch: KeyEpoch,
         key: SymmetricKey
     ) throws(ExchangeIdentityError) {
         try self.init(
@@ -88,7 +75,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
         )
     }
 
-    /// Creates the identity scope of one deployment root, with its twelve systems in the exchange
+    /// Creates the identity scope of one deployment root, with its thirteen systems in the exchange
     /// protocol's recommended form: ``DeploymentIdentifierSystems/derived(root:keyID:epoch:)``
     /// followed by ``init(systems:keyID:epoch:key:)``.
     ///
@@ -97,7 +84,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     public init(
         root: IdentifierSystem,
         keyID: String,
-        epoch: EventSequence,
+        epoch: KeyEpoch,
         key: SymmetricKey
     ) throws(ExchangeIdentityError) {
         guard Self.isValidKeyID(keyID) else {
@@ -115,7 +102,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     private init(
         systems: DeploymentIdentifierSystems,
         keyID: String,
-        epoch: EventSequence,
+        epoch: KeyEpoch,
         key: SymmetricKey,
         permitsPublishedConformanceKey: Bool
     ) throws(ExchangeIdentityError) {
@@ -139,7 +126,7 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
     package static func conformanceTesting(
         systems: DeploymentIdentifierSystems,
         keyID: String,
-        epoch: EventSequence
+        epoch: KeyEpoch
     ) throws(ExchangeIdentityError) -> Self {
         try Self(
             systems: systems,
@@ -148,6 +135,38 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
             key: publishedConformanceKey,
             permitsPublishedConformanceKey: true
         )
+    }
+
+    /// The per-subject fingerprint of `key`: HMAC-SHA-256 under it, base64url without padding, over the length-framed
+    /// label `org.grovealliance.fhir.key-fingerprint.v0`, the subject's system and its value.
+    ///
+    /// It is per subject, so a key several subjects share never puts one key id into the identifiers of all of them.
+    public static func keyFingerprint(of key: SymmetricKey, subject: BusinessIdentifier) throws(ExchangeIdentityError) -> String {
+        guard key.bitCount >= 256 else {
+            throw .keyTooShort(actualBytes: key.bitCount / 8)
+        }
+        let input = try Data(lengthFramedUTF8: [
+            "org.grovealliance.fhir.key-fingerprint.v0",
+            subject.system.rawValue,
+            subject.value
+        ])
+        return Data(HMAC<SHA256>.authenticationCode(for: input, using: key)).base64URLEncodedStringWithoutPadding
+    }
+
+    /// The exchange protocol's recommended key id: `prefix`, then the first 8 characters of
+    /// ``keyFingerprint(of:subject:)``.
+    ///
+    /// A key id names one key for the deployment's lifetime, so a re-minted key gets a new one.
+    public static func recommendedKeyID(
+        prefix: String,
+        key: SymmetricKey,
+        subject: BusinessIdentifier
+    ) throws(ExchangeIdentityError) -> String {
+        let keyID = try prefix + keyFingerprint(of: key, subject: subject).prefix(8)
+        guard isValidKeyID(keyID) else {
+            throw .invalidKeyID(keyID)
+        }
+        return keyID
     }
 
     static func isValidKeyID(_ keyID: some StringProtocol) -> Bool {
@@ -171,6 +190,12 @@ public struct OpaqueIdentityScope: Sendable, CustomDebugStringConvertible {
             }
             guard !OpaqueIdentityKind.unsignedDecimalComponents.contains(name) || CanonicalNonnegativeDecimal.isCanonical(component) else {
                 throw .nonCanonicalPartIndex("\(kind.rawValue).\(name)")
+            }
+            guard !OpaqueIdentityKind.digestComponents.contains(name) || ExchangeIdentity.isUnpaddedBase64URLDigest(component) else {
+                throw .nonCanonicalDigest("\(kind.rawValue).\(name)")
+            }
+            guard name != "node-role" || NodeRole(kind: kind, rawValue: component) != nil else {
+                throw .invalidNodeRole("\(kind.rawValue).\(name)")
             }
         }
         if [.sourceRecord, .sourceOutput, .sourceArtifact].contains(kind), let adapterID = components.first {
@@ -214,10 +239,46 @@ extension OpaqueIdentityScope {
         case withings
     }
 
-    /// The closed resource-kind role used by an immutable event-time Device snapshot.
-    package enum DeviceRole: String, CaseIterable, Hashable, Sendable {
+    /// The `node-role` component of a content snapshot, which also selects the identity kind that keys it.
+    package enum NodeRole: Hashable, Sendable {
         case application
         case host
-        case recordingDevice = "recording-device"
+        case recordingDevice
+        case context(ContextSnapshotRole)
+
+        var kind: OpaqueIdentityKind {
+            switch self {
+            case .application, .host, .recordingDevice: .deviceSnapshot
+            case .context: .contextSnapshot
+            }
+        }
+
+        package var rawValue: String {
+            switch self {
+            case .application: "application"
+            case .host: "host"
+            case .recordingDevice: "recording-device"
+            case .context(let role): role.rawValue
+            }
+        }
+
+        /// The role a `kind` component states, or `nil` for a value that is none of that kind's roles.
+        package init?(kind: OpaqueIdentityKind, rawValue: String) {
+            switch (kind, rawValue) {
+            case (.deviceSnapshot, "application"):
+                self = .application
+            case (.deviceSnapshot, "host"):
+                self = .host
+            case (.deviceSnapshot, "recording-device"):
+                self = .recordingDevice
+            case (.contextSnapshot, _):
+                guard let role = ContextSnapshotRole(rawValue: rawValue) else {
+                    return nil
+                }
+                self = .context(role)
+            default:
+                return nil
+            }
+        }
     }
 }

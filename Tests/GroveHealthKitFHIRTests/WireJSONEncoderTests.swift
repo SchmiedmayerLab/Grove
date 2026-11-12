@@ -58,15 +58,16 @@ struct WireJSONEncoderTests {
         return text + "\"\\/\u{7F}\u{80}\u{2028}\u{FEFF}😀e\u{0301}é"
     }
 
-    @Test("Every golden graph's bytes are JSONEncoder's bytes, and its identifiers decode to the model's")
+    @Test("Every golden Bundle's wire bytes are JSONEncoder's bytes, and its identifiers decode to the model's")
     func goldenGraphsMatchJSONEncoder() async throws {
         for goldenCase in GoldenCase.all {
-            let graph = try await goldenCase.output().graph
-            #expect(graph.json == (try Self.reference.encode(graph.bundle)), "\(goldenCase.name)")
+            let bundle = try await goldenCase.output().record.bundle
+            let (wire, _) = try #require(try WireJSONEncoder.encodeKeepingTree(bundle))
+            #expect(wire == (try Self.reference.encode(bundle)), "\(goldenCase.name)")
             let entries = try #require(
-                (try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])?["entry"] as? [[String: Any]]
+                (try JSONSerialization.jsonObject(with: wire) as? [String: Any])?["entry"] as? [[String: Any]]
             )
-            for (entry, json) in zip(graph.bundle.entry ?? [], entries) {
+            for (entry, json) in zip(bundle.entry ?? [], entries) {
                 guard let resource = entry.resource,
                       let modelIdentifiers = ExchangeGraph.ValidationDocument.identifiers(of: resource) else {
                     continue
@@ -111,8 +112,8 @@ struct WireJSONEncoderTests {
 
     @Test("The tree states what the bytes parse to")
     func treeMatchesTheBytes() async throws {
-        let graph = try await #require(GoldenCase.all.first).output().graph
-        let (json, tree) = try #require(try WireJSONEncoder.encodeKeepingTree(graph.bundle))
+        let bundle = try await #require(GoldenCase.all.first).output().record.bundle
+        let (json, tree) = try #require(try WireJSONEncoder.encodeKeepingTree(bundle))
         let parsed = try JSONSerialization.jsonObject(with: json)
         #expect((tree as? NSObject)?.isEqual(parsed) == true)
     }
