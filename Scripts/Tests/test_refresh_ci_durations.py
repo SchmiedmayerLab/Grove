@@ -8,9 +8,11 @@
 
 import datetime
 import importlib.util
+import json
 import pathlib
 import tomllib
 import unittest
+from unittest import mock
 
 
 SCRIPT = pathlib.Path(__file__).parents[1] / "refresh-ci-durations.py"
@@ -86,11 +88,11 @@ class RefreshCIDurationsTests(unittest.TestCase):
 
         self.assertEqual(minutes["App UI (iOS)"], {"self-hosted": 16.0})
 
-    def test_previous_entries_survive_only_while_their_package_exists(self):
+    def test_previous_values_survive_per_pool_while_their_package_exists(self):
         merged = MODULE.merge_previous(
-            {"App (iOS)": {"github-hosted": 2.0}},
+            {"App (iOS)": {"self-hosted": 2.0}},
             {
-                "App (iOS)": {"github-hosted": 9.0},
+                "App (iOS)": {"github-hosted": 9.0, "self-hosted": 7.0},
                 "App (macOS)": {"github-hosted": 3.0},
                 "Gone (iOS)": {"github-hosted": 4.0},
                 MODULE.FHIR_CONFORMANCE_JOB: {"github-hosted": 17.0},
@@ -98,11 +100,25 @@ class RefreshCIDurationsTests(unittest.TestCase):
             {"App": {}},
         )
 
+        # A job now timed only on the Macs keeps its older GitHub-hosted time; fresh values win.
         self.assertEqual(merged, {
-            "App (iOS)": {"github-hosted": 2.0},
+            "App (iOS)": {"self-hosted": 2.0, "github-hosted": 9.0},
             "App (macOS)": {"github-hosted": 3.0},
             MODULE.FHIR_CONFORMANCE_JOB: {"github-hosted": 17.0},
         })
+
+    def test_failed_first_attempts_are_sampled_but_cancelled_runs_and_re_runs_are_not(self):
+        page = {"workflow_runs": [
+            {"id": 1, "run_attempt": 1, "conclusion": "failure", "created_at": "2026-11-12T10:00:00Z"},
+            {"id": 2, "run_attempt": 1, "conclusion": "cancelled", "created_at": "2026-11-12T09:00:00Z"},
+            {"id": 3, "run_attempt": 2, "conclusion": "success", "created_at": "2026-11-12T08:00:00Z"},
+            {"id": 4, "run_attempt": 1, "conclusion": "success", "created_at": "2026-11-12T11:00:00Z"},
+        ]}
+        pages = iter([json.dumps(page), json.dumps({"workflow_runs": []})])
+        with mock.patch.object(MODULE, "gh_api", side_effect=lambda *arguments, **options: next(pages)):
+            runs = MODULE.recent_runs(10)
+
+        self.assertEqual([run["id"] for run in runs], [4, 1])
 
     def test_rendered_file_parses_back(self):
         minutes = {

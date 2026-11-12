@@ -44,10 +44,13 @@ The durations file
 
 Refreshing
   Run this script and commit the regenerated file. It needs an authenticated `gh` with read access
-  to the repository's Actions runs and reads the last 50 Tests runs that passed on their first
-  attempt (--runs changes the count). A job's duration is the median of its 5 most recent runs among
-  them, so a speed-up shows after 3 runs while a single slow run barely moves it. A job those runs did
-  not schedule keeps its older entry; the runner slots use every sampled run.
+  to the repository's Actions runs and reads the last 50 Tests runs that completed on their first
+  attempt, passed or failed (--runs changes the count). A failed run still ran every job to the end,
+  so its timeline is complete; only jobs that succeeded give durations. Cancelled runs and re-run
+  attempts are skipped, as their timelines are cut short or split. A job's duration on each runner
+  pool is the median of its 5 most recent successful runs there, so a speed-up shows after 3 runs
+  while a single slow run barely moves it. A job or pool those runs did not time keeps its older
+  value; the runner slots use every sampled run.
   Refresh when:
   - the Tests run's summary shows a "Runner assignment" warning: the durations are older than 60
     days, or a scheduled unit job has no recorded duration (a new package or platform);
@@ -87,6 +90,8 @@ FHIR_CONFORMANCE_JOB = "FHIR Output Conformance"
 MIN_RUNS_PER_SLOT = 3
 # A job's duration is the median of its most recent runs, so a sped-up suite is routed by its new time.
 SAMPLES_PER_JOB = 5
+# Run conclusions whose timelines are complete: a failed run still ran every job to the end.
+SAMPLED_CONCLUSIONS = {"success", "failure"}
 FALLBACK_DEFAULT_MINUTES = 12.0
 
 HEADER = """\
@@ -182,11 +187,13 @@ def is_unit_job(name):
 
 
 def merge_previous(minutes, previous, packages):
-    """Keeps a previously recorded job the sampled runs did not schedule, while its package exists."""
-    merged = dict(minutes)
+    """Keeps each previously recorded job and pool the sampled runs did not time, while its package
+    exists, so a job that now always runs on one pool still has a measured time for the other."""
+    merged = {name: dict(pools) for name, pools in minutes.items()}
     for name, pools in previous.items():
-        if name not in merged and (name == FHIR_CONFORMANCE_JOB or name.split(" ", 1)[0] in packages):
-            merged[name] = dict(pools)
+        if name == FHIR_CONFORMANCE_JOB or name.split(" ", 1)[0] in packages:
+            for pool, value in pools.items():
+                merged.setdefault(name, {}).setdefault(pool, value)
     return merged
 
 
@@ -212,7 +219,7 @@ def render(minutes, slots, sampled_runs, generated):
     lines = [
         HEADER,
         f"generated = {generated.isoformat()}",
-        f"sampled_runs = {sampled_runs}  # successful first-attempt Tests runs",
+        f"sampled_runs = {sampled_runs}  # first-attempt Tests runs that completed, passed or failed",
         "# Self-hosted minutes per GitHub-hosted minute, over unit jobs recorded on both pools (1.0 without data).",
         f"self_hosted_speed = {self_hosted_speed(minutes)}",
         "# GitHub-hosted minutes assumed for a unit job without a recorded duration.",
@@ -247,10 +254,11 @@ def recent_runs(count):
     runs = []
     for page in itertools.count(1):
         batch = json.loads(gh_api(
-            f"repos/{{owner}}/{{repo}}/actions/workflows/tests.yml/runs?status=success&per_page=100&page={page}"
+            f"repos/{{owner}}/{{repo}}/actions/workflows/tests.yml/runs?status=completed&per_page=100&page={page}"
         ))["workflow_runs"]
-        # A re-run attempt mixes timelines, so only runs that passed on their first attempt are sampled.
-        runs += [run for run in batch if run["run_attempt"] == 1]
+        # A failed run still ran every job to the end; a cancelled run or a re-run attempt has a cut or
+        # split timeline. Durations come only from the jobs that succeeded.
+        runs += [run for run in batch if run["run_attempt"] == 1 and run["conclusion"] in SAMPLED_CONCLUSIONS]
         if not batch or len(runs) >= count:
             return sorted(runs, key=lambda run: run["created_at"], reverse=True)[:count]
 
@@ -262,7 +270,7 @@ def run_jobs(run_id):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--runs", type=int, default=50, help="successful first-attempt Tests runs to sample")
+    parser.add_argument("--runs", type=int, default=50, help="completed first-attempt Tests runs to sample")
     arguments = parser.parse_args()
 
     runs = recent_runs(arguments.runs)
