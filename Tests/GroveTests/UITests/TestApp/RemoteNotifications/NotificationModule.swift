@@ -9,13 +9,14 @@
 import Grove
 
 
+#if compiler(>=6.4)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers Grove's deprecated remote notification actions.")
+#endif
 @MainActor
 class NotificationModule: Module, EnvironmentAccessible {
-    @available(*, deprecated, message: "Covers Grove's deprecated remote notification actions.")
     @Application(\.registerRemoteNotifications)
     var registerRemoteNotifications
 
-    @available(*, deprecated, message: "Covers Grove's deprecated remote notification actions.")
     @Application(\.unregisterRemoteNotifications)
     var unregisterRemoteNotifications
 }
