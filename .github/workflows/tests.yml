@@ -167,7 +167,11 @@ jobs:
           if [ "${{ inputs.fhir_only }}" = "true" ] || [ "${{ inputs.verify_release_packages }}" = "true" ]; then
             ARGS+=(--fhir-only)
           fi
-          python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
+          # TEMPORARY (drop before merge): run every scheduled Apple job on the self-hosted runners,
+          # to time them there and check they pass.
+          python3 Scripts/affected-test-matrix.py "${ARGS[@]}" \
+            | sed -E 's/("platform": "(iOS|macOS|watchOS)", "selfHosted": )false/\1true/g' \
+            >> "$GITHUB_OUTPUT"
       - name: Dump matrix (debug)
         env:
           AFFECTED: ${{ steps.compute.outputs.affected }}
@@ -285,7 +289,7 @@ jobs:
     name: FHIR Output Conformance
     needs: detect
     if: needs.detect.outputs.has_fhir_conformance == 'true'
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS]  # TEMPORARY (drop before merge): macos-latest
     timeout-minutes: 90
     env:
       GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '0.8.0' }}
