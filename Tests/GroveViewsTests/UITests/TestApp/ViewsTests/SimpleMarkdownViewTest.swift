@@ -14,6 +14,7 @@ struct SimpleMarkdownViewTest: View {
     @State private var viewState: ViewState = .idle
     @State private var textAlignment: TextAlignment = .center
     
+    @available(*, deprecated, message: "Covers MarkdownView's deprecated `Data` initializers.")
     var body: some View {
         ScrollView {
             Group {

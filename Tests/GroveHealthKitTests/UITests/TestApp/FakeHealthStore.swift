@@ -51,7 +51,7 @@ final class FakeHealthStore: Module, DefaultInitializable, EnvironmentAccessible
     
     func configure() {
         if !FakeHealthStore.collectedSamplesOnly {
-            Task {
+            _ = Task {
                 try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
             }
         }

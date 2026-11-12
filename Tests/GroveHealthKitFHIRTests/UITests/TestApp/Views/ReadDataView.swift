@@ -28,7 +28,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
         Form {
             Section {
                 Button("Read \(sampleType.displayTitle)") {
-                    Swift::Task {
+                    _ = Swift::Task {
                         try await readData()
                         showingSheet.toggle()
                     }
@@ -54,12 +54,7 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
             limit: 1,
             sortedBy: [.init(\.startDate, order: .reverse)]
         )
-        let healthKitSamples = try samples.map { sample in
-            guard let healthKitSample = sample as? HKSample else {
-                throw NotASample()
-            }
-            return healthKitSample
-        }
+        let healthKitSamples: [HKSample] = samples
         var bundles: [ModelsR4.Bundle] = []
         try await makeFHIRTestExporter().export(healthKitSamples) { export in
             switch export.outcome {
@@ -75,6 +70,3 @@ struct ReadDataView<Sample: _HKSampleWithSampleType>: View {
         self.json = String(decoding: data, as: UTF8.self)
     }
 }
-
-
-private struct NotASample: Error {}

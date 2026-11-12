@@ -17,6 +17,7 @@ import XCTestExtensions
 // documentation-screenshots: snapshot Tests/GroveViewsTests/__Snapshots__/SnapshotTests/descriptionGridRow.header.png DescriptionGridRow
 
 /// Walks the view examples to the states the documentation shows; run through `Scripts/documentation-screenshots.sh`.
+@MainActor
 final class DocumentationScreenshots: XCTestCase {
     override func setUpWithError() throws {
         // The walk needs the app the script launched and the states it prepared; a plain test run skips it.

@@ -74,7 +74,7 @@ final class NotificationAuthorizationTests: XCTestCase {
         app.confirmNotificationAuthorization()
         
         // check that requiring the alert to show up, when it won't, is a failure
-        XCTExpectFailure {
+        _ = XCTExpectFailure {
             // an explicit short timeout keeps the negative path fast
             app.confirmNotificationAuthorization(timeout: 5, requireAlertToAppear: true)
         }

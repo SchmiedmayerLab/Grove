@@ -19,6 +19,7 @@ struct RenderedConsentDocumentView: View {
     let docId: ConsentDocumentIdentifier
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.displayScale) private var displayScale
     @Environment(ManagedNavigationStack.Path.self) private var path: ManagedNavigationStack.Path?
     @Environment(TestAppConsentStorage.self) private var consentStorage
     @State private var viewState: ViewState = .idle
@@ -114,12 +115,7 @@ struct RenderedConsentDocumentView: View {
                     let value = exportResult.userResponses.signatures[signatureId]! // swiftlint:disable:this force_unwrapping
                     LabeledContent("Name", value: value.name.formatted())
                     LabeledContent("Signature") {
-                        #if os(iOS)
-                        let scale: CGFloat = UIScreen.main.scale
-                        #else
-                        let scale: CGFloat = 3
-                        #endif
-                        let image = value.signature.image(from: value.signature.bounds, scale: scale)
+                        let image = value.signature.image(from: value.signature.bounds, scale: displayScale)
                         Image(uiImage: image)
                             .resizable()
                             .aspectRatio(contentMode: .fit)

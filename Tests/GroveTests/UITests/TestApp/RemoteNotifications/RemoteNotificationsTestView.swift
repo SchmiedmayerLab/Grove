@@ -19,6 +19,7 @@ struct RemoteNotificationsTestView: View {
 
     @State private var task: Task<Void, Never>?
 
+    @available(*, deprecated, message: "Covers Grove's deprecated remote notification actions.")
     var body: some View {
         List { // swiftlint:disable:this closure_body_length
             Section("Token") {

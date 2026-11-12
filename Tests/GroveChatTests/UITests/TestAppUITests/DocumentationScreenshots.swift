@@ -15,6 +15,7 @@ import XCTest
 // documentation-screenshots: copy ToolCall Sources/Grove/Grove.docc/Resources/ToolCall.png
 
 /// Walks the chat to the states the documentation shows; run through `Scripts/documentation-screenshots.sh`.
+@MainActor
 final class DocumentationScreenshots: XCTestCase {
     override func setUpWithError() throws {
         // The walk needs the app the script launched and the states it prepared; a plain test run skips it.

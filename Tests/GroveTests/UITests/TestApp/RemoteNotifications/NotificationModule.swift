@@ -11,9 +11,11 @@ import Grove
 
 @MainActor
 class NotificationModule: Module, EnvironmentAccessible {
+    @available(*, deprecated, message: "Covers Grove's deprecated remote notification actions.")
     @Application(\.registerRemoteNotifications)
     var registerRemoteNotifications
 
+    @available(*, deprecated, message: "Covers Grove's deprecated remote notification actions.")
     @Application(\.unregisterRemoteNotifications)
     var unregisterRemoteNotifications
 }
