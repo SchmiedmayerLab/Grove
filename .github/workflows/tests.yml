@@ -289,7 +289,7 @@ jobs:
     name: FHIR Output Conformance
     needs: detect
     if: needs.detect.outputs.has_fhir_conformance == 'true'
-    runs-on: [self-hosted, macOS]  # TEMPORARY (drop before merge): macos-latest
+    runs-on: macos-latest
     timeout-minutes: 90
     env:
       GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '0.8.0' }}
