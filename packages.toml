@@ -27,7 +27,8 @@
 #               pinned either way go to whichever runner pool is expected to finish them first
 #               (Scripts/refresh-ci-durations.py). Add "unit" (e.g. ["unit", "ui"]) for tests that need
 #               more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests starve on
-#               the few-vCPU GitHub runner). Linux unit jobs always stay on GitHub-hosted ubuntu
+#               the few-vCPU GitHub runner) or whose snapshot references match only the self-hosted
+#               runner's Xcode. Linux unit jobs always stay on GitHub-hosted ubuntu
 #               regardless (the self-hosted runner is macOS).
 #   github-hosted-ci = optional ["unit"]: pins the unit tests to GitHub-hosted runners, e.g. while a
 #               test fails only on the self-hosted runner.
@@ -58,6 +59,8 @@ platforms = ["iOS"]
 targets = ["GroveAccessGuard"]
 tests = ["GroveAccessGuardTests"]
 uiTests = ["iOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveAccount]
 platforms = ["iOS", "macOS"]
@@ -76,12 +79,16 @@ platforms = ["iOS", "macOS", "visionOS"]
 targets = ["GroveChat"]
 tests = ["GroveChatTests"]
 uiTests = ["iOS", "visionOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveConsent]
 platforms = ["iOS", "macOS", "visionOS", "Linux"]
 targets = ["GroveConsent"]
 tests = ["GroveConsentTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveContact]
 platforms = ["iOS"]
@@ -125,6 +132,8 @@ platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "Linux"]
 targets = ["GroveHealthKit", "Codegen", "LocalizationsProcessor", "GroveHealthKitBulkExport", "GroveHealthKitUI"]
 tests = ["GroveHealthKitTests"]
 uiTests = ["iOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 # Formerly a standalone HealthKit-to-FHIR package, merged into this monorepo (see Package.swift). Kept as its own scheduling entry rather than folded into [GroveHealthKit], so its
 # UITests project keeps a home and CI stays granular -- the test matrix is directory-based.
@@ -190,6 +199,8 @@ platforms = ["iOS", "macOS", "watchOS", "visionOS"]
 targets = ["GroveScheduler", "GroveSchedulerMacros", "GroveSchedulerUI"]
 tests = ["GroveSchedulerTests", "GroveSchedulerUITests"]
 uiTests = ["iOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveSensorKit]
 platforms = ["iOS"]
@@ -225,6 +236,8 @@ platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
 targets = ["GroveViews", "GrovePersonalInfo", "GroveValidation"]
 tests = ["GroveViewsTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [ThreadLocal]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]
