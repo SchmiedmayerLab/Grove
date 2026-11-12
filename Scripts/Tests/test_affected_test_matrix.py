@@ -274,7 +274,8 @@ class InfrastructureSelectionTests(unittest.TestCase):
         smoke = MODULE.smoke_packages()
         shapes = {
             (tuple(sorted(info["platforms"])), tuple(sorted(info.get("uiTests", []))), bool(info.get("linuxTargets")),
-             tuple(sorted(info.get("self-hosted-ci", ["ui"]))), tuple(info.get("extra_runner_labels", [])))
+             tuple(sorted(info.get("self-hosted-ci", ["ui"]))), tuple(info.get("extra_runner_labels", [])),
+             info.get("uiParallelWorkers", 1) > 1)
             for name, info in MODULE.PKGS.items() if name in smoke
         }
         self.assertEqual(len(shapes), len(smoke))
