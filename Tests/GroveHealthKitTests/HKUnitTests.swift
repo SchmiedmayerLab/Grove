@@ -981,6 +981,7 @@ extension HKUnitTests {
     
     
     @Test
+    @available(*, deprecated, message: "Covers the deprecated HKUnit.calorie().")
     func calorie() throws {
         #expect(try HKUnitA.parse(HKUnitA.largeCalorie().unitString) == HKUnitA.largeCalorie())
         #expect(try HKUnitB.parse(HKUnitB.largeCalorie().unitString) == HKUnitB.largeCalorie())

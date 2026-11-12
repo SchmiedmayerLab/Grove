@@ -44,6 +44,7 @@ struct ZoomableImageViewTests {
     }
 
     @Test("Opens fitted to its bounds and can zoom in from there")
+    @available(*, deprecated, message: "A unit test has no window scene, so it hosts the view in a deprecated frame-based UIWindow.")
     func opensFitted() throws {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 1000, height: 500)).image { _ in }
         let controller = UIHostingController(rootView: ZoomableImageView(image: image))
@@ -61,6 +62,7 @@ struct ZoomableImageViewTests {
     }
 
     @Test("Fits again when its bounds change without inflating the picture")
+    @available(*, deprecated, message: "A unit test has no window scene, so it hosts the view in a deprecated frame-based UIWindow.")
     func refitsOnBoundsChange() throws {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 1000, height: 500)).image { _ in }
         let controller = UIHostingController(rootView: ZoomableImageView(image: image))

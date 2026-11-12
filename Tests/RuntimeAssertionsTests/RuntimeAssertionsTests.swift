@@ -14,6 +14,7 @@ import Testing
 @Suite("Runtime Assertions")
 struct RuntimeAssertionsTests {
     @Test("Runtime Assertions")
+    @available(*, deprecated, message: "Covers the deprecated runtime assertion expectations.")
     func testRuntimeAssertion() throws {
         struct RuntimeAssertionError: Error {}
         
@@ -57,6 +58,7 @@ struct RuntimeAssertionsTests {
     }
 
     @Test("Async Runtime Assertion")
+    @available(*, deprecated, message: "Covers the deprecated runtime assertion expectations.")
     func testAsyncRuntimeAssertion() async throws {
         try await confirmation { confirmation in
             try await expectRuntimeAssertion("\(#function)", expectedCount: 1) {
@@ -71,6 +73,7 @@ struct RuntimeAssertionsTests {
     }
 
     @Test("Assertion not triggered")
+    @available(*, deprecated, message: "Covers the deprecated runtime assertion expectations.")
     func testRuntimeAssertionNotTriggered() throws {
         struct RuntimeAssertionNotTriggeredError: Error {}
         withKnownIssue {
@@ -89,6 +92,7 @@ struct RuntimeAssertionsTests {
     }
     
     @Test("No assertions")
+    @available(*, deprecated, message: "Covers the deprecated runtime assertion expectations.")
     func testNoAssertions() {
         expectRuntimeAssertion(expectedCount: 0) {
             // nothing
@@ -109,6 +113,7 @@ struct RuntimeAssertionsTests {
 
     @MainActor
     @Test("MainActor Annotated Closure")
+    @available(*, deprecated, message: "Covers the deprecated runtime assertion expectations.")
     func testActorAnnotatedClosure() throws {
         @MainActor
         class Test {

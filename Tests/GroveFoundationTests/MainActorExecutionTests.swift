@@ -28,6 +28,7 @@ private actor TestActor: GlobalActor {
 struct MainActorExecutionTests {
     @Test
     @MainActor
+    @available(*, deprecated, message: "Covers the deprecated runOrScheduleOnMainActor.")
     func ifAlreadyRunningOnMainActor() {
         // XCTest by default runs all test cases on the main thread, ie the main queue, ie the main actor.
         dispatchPrecondition(condition: .onQueue(.main))
@@ -40,6 +41,7 @@ struct MainActorExecutionTests {
     
     @Test
     @TestActor
+    @available(*, deprecated, message: "Covers the deprecated runOrScheduleOnMainActor.")
     func ifRunningOffTheMainActor() async throws {
         dispatchPrecondition(condition: .notOnQueue(.main))
         dispatchPrecondition(condition: .onQueue(TestActor.shared.queue))

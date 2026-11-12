@@ -14,6 +14,7 @@ import Testing
 @Suite("Runtime Precondition")
 struct RuntimePreconditionsTests {
     @Test("Runtime Precondition")
+    @available(*, deprecated, message: "Covers the deprecated runtime precondition expectations.")
     func testRuntimePrecondition() async {
         let number = 42
 
@@ -38,6 +39,7 @@ struct RuntimePreconditionsTests {
     }
 
     @Test("Async Runtime Precondition")
+    @available(*, deprecated, message: "Covers the deprecated runtime precondition expectations.")
     func testAsyncRuntimePrecondition() async {
         await confirmation { confirmation in
             expectRuntimePrecondition(timeout: 1.0) {
@@ -51,6 +53,7 @@ struct RuntimePreconditionsTests {
     }
 
     @Test("Precondition not triggered")
+    @available(*, deprecated, message: "Covers the deprecated runtime precondition expectations.")
     func testRuntimePreconditionNotTriggered() {
         withKnownIssue {
             expectRuntimePrecondition {
@@ -69,6 +72,7 @@ struct RuntimePreconditionsTests {
     }
     
     @Test("No preconditions")
+    @available(*, deprecated, message: "Covers the deprecated runtime precondition expectations.")
     func testNoPrecondition() {
         expectNoRuntimePrecondition {
             // nothing
@@ -76,6 +80,7 @@ struct RuntimePreconditionsTests {
     }
     
     @Test("No preconditions")
+    @available(*, deprecated, message: "Covers the deprecated runtime precondition expectations.")
     func testNoPreconditionAsync() {
         expectNoRuntimePrecondition { () async in
             // nothing

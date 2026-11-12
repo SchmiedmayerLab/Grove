@@ -161,7 +161,7 @@ struct HealthKitMetadataConsumptionTests {
             dateInterval: DateInterval(start: begin, duration: 60),
             metadata: ["com.example.lap": 1, HKMetadataKeyTimeZone: GoldenFixtures.timeZone]
         )
-        let workout = HKWorkout(
+        let workout = HKWorkout.fixture(
             activityType: .running,
             start: begin,
             end: begin.addingTimeInterval(600),
@@ -195,7 +195,7 @@ struct HealthKitMetadataConsumptionTests {
         )
         let segment = HKWorkoutEvent(type: .segment, dateInterval: DateInterval(start: begin, duration: 300), metadata: stating("com.example.segment"))
         let lap = HKWorkoutEvent(type: .lap, dateInterval: DateInterval(start: begin, duration: 60), metadata: stating("com.example.lap"))
-        let built = HKWorkout(
+        let built = HKWorkout.fixture(
             activityType: .running,
             start: begin,
             end: begin.addingTimeInterval(600),

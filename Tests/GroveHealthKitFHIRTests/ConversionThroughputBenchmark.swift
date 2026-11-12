@@ -315,7 +315,7 @@ struct ConversionThroughputBenchmark {
             "identifier-system-roles", "entry-keys", "governed-reference-targets", "active-lifecycle"
         ]
         var passNanoseconds = [UInt64](repeating: 0, count: passNames.count)
-        for (graph, data) in zip(run.graphs, run.encoded) {
+        for (graph, _) in zip(run.graphs, run.encoded) {
             try autoreleasepool {
                 let bundle = graph.bundle
                 let entries = bundle.entry ?? []

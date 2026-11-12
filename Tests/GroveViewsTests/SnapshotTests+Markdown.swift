@@ -45,6 +45,7 @@ struct PadSnapshotTests {
 
 #if os(iOS)
     @Test
+    @available(*, deprecated, message: "A unit test has no window scene, so it hosts the view in a deprecated frame-based UIWindow.")
     func markdownView() async throws {
         let view = MarkdownView(document: try MarkdownDocument(processing: "*Clean* Coding"))
             .multilineTextAlignment(.center)
