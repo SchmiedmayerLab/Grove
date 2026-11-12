@@ -201,15 +201,26 @@ extension XCTestCase {
         }
         
         healthApp.navigationBars["Health Details"].buttons["Done"].tapWhenHittable()
-        healthApp.navigationBars["Health Details"].buttons["Profile"].tapWhenHittable()
-        let doneButton = healthApp.navigationBars.firstMatch.buttons["Done"]
-        let closeButton = healthApp.navigationBars.firstMatch.buttons["close"]
-        if doneButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
-            doneButton.tap()
-        } else if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
-            closeButton.tap()
+        if XCTestCase.isIOS27OrGreater {
+            // From iOS 27 the back button no longer carries the "Profile" title, and the profile sheet closes with an "x"
+            // button; its navigation bar is not the first one, since the Summary tab's stays in the tree underneath.
+            healthApp.navigationBars["Health Details"].buttons["BackButton"].tapWhenHittable()
+            healthApp.navigationBars["HealthExperienceUI.ProfileView"].buttons["close"].tapWhenHittable()
+            XCTAssert(
+                healthApp.navigationBars["HealthExperienceUI.ProfileView"].waitForNonExistence(timeout: 5),
+                "The profile sheet did not dismiss"
+            )
         } else {
-            XCTFail("Unable to find done/close button")
+            healthApp.navigationBars["Health Details"].buttons["Profile"].tapWhenHittable()
+            let doneButton = healthApp.navigationBars.firstMatch.buttons["Done"]
+            let closeButton = healthApp.navigationBars.firstMatch.buttons["close"]
+            if doneButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
+                doneButton.tap()
+            } else if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
+                closeButton.tap()
+            } else {
+                XCTFail("Unable to find done/close button")
+            }
         }
     }
 }
