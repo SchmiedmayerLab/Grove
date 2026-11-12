@@ -22,13 +22,15 @@
 #               runs them one at a time on the destination itself. Each clone launches its own copy of
 #               the app, so this pays off only for a long suite whose tests do not depend on each other.
 #               The UI_WORKERS environment variable overrides it for a local run.
-#   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
-#               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
-#               unit tests on GitHub-hosted (today's behavior). Add "unit" (e.g. ["unit", "ui"]) to
-#               also route a package's unit tests to the self-hosted runner — useful for tests that
-#               need more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests
-#               starve on the few-vCPU GitHub runner). Linux unit jobs always stay on GitHub-hosted
-#               ubuntu regardless (the self-hosted runner is macOS).
+#   self-hosted-ci = which test kinds are pinned to the self-hosted runner: a subset of ["unit", "ui"].
+#               Optional; defaults to ["ui"]. UI tests not listed run GitHub-hosted. Unit tests not
+#               pinned either way go to whichever runner pool is expected to finish them first
+#               (Scripts/refresh-ci-durations.py). Add "unit" (e.g. ["unit", "ui"]) for tests that need
+#               more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests starve on
+#               the few-vCPU GitHub runner). Linux unit jobs always stay on GitHub-hosted ubuntu
+#               regardless (the self-hosted runner is macOS).
+#   github-hosted-ci = optional ["unit"]: pins the unit tests to GitHub-hosted runners, e.g. while a
+#               test fails only on the self-hosted runner.
 # Note: GroveFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "GroveCZlib".
 
 [FHIRModelsExtensions]

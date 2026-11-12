@@ -7,6 +7,7 @@
 #
 
 import contextlib
+import datetime
 import importlib.util
 import io
 import json
@@ -282,8 +283,8 @@ class InfrastructureSelectionTests(unittest.TestCase):
         smoke = MODULE.smoke_packages()
         shapes = {
             (tuple(sorted(info["platforms"])), tuple(sorted(info.get("uiTests", []))), bool(info.get("linuxTargets")),
-             tuple(sorted(info.get("self-hosted-ci", ["ui"]))), tuple(info.get("extra_runner_labels", [])),
-             info.get("uiParallelWorkers", 1) > 1)
+             tuple(sorted(info.get("self-hosted-ci", ["ui"]))), tuple(sorted(info.get("github-hosted-ci", []))),
+             tuple(info.get("extra_runner_labels", [])), info.get("uiParallelWorkers", 1) > 1)
             for name, info in MODULE.PKGS.items() if name in smoke
         }
         self.assertEqual(len(shapes), len(smoke))
@@ -566,15 +567,147 @@ class RunnerRoutingTests(unittest.TestCase):
             self.assertTrue(job["selfHosted"])
             self.assertEqual(json.loads(job["selfHostedLabels"]), ["self-hosted", "macOS"])
 
-    def test_linux_and_ordinary_unit_jobs_remain_github_hosted(self):
+    def test_linux_jobs_remain_github_hosted(self):
         result = run_selector("__ALL__")
-        jobs = json.loads(result["matrix"])["include"]
-        linux_jobs = [job for job in jobs if job["platform"] == "Linux"]
-        account_jobs = [job for job in jobs if job["package"] == "GroveAccount"]
+        linux_jobs = [job for job in json.loads(result["matrix"])["include"] if job["platform"] == "Linux"]
 
         self.assertTrue(linux_jobs)
-        self.assertTrue(account_jobs)
-        self.assertTrue(all(not job["selfHosted"] for job in linux_jobs + account_jobs))
+        self.assertTrue(all(not job["selfHosted"] for job in linux_jobs))
+
+    def test_unpinned_unit_jobs_remain_github_hosted_without_durations(self):
+        with mock.patch.object(MODULE, "JOB_DURATIONS_PATH", "/nonexistent/ci-job-durations.toml"):
+            result = run_selector("__ALL__")
+        jobs = json.loads(result["matrix"])["include"]
+
+        self.assertEqual(
+            {job["package"] for job in jobs if job["selfHosted"]},
+            {package for package, info in MODULE.PKGS.items() if "unit" in info.get("self-hosted-ci", [])},
+        )
+        self.assertEqual(result["runner_note"], "")
+
+    def test_unpinned_unit_jobs_follow_recorded_durations(self):
+        durations = {"slots": {"self-hosted": [0.0] * 8, "github-hosted": [60.0]}, "minutes": {}}
+        with durations_file(durations):
+            result = run_selector("Sources/GroveFHIR/File.swift")
+        jobs = {job["platform"]: job for job in json.loads(result["matrix"])["include"]}
+
+        self.assertTrue(jobs["iOS"]["selfHosted"])
+        self.assertTrue(jobs["macOS"]["selfHosted"])
+        self.assertFalse(jobs["Linux"]["selfHosted"])
+
+    def test_github_hosted_pin_keeps_unit_jobs_github_hosted(self):
+        durations = {"slots": {"self-hosted": [0.0] * 8, "github-hosted": [60.0]}, "minutes": {}}
+        pinned = {**MODULE.PKGS["GroveFHIR"], "github-hosted-ci": ["unit"]}
+        with durations_file(durations), mock.patch.dict(MODULE.PKGS, {"GroveFHIR": pinned}):
+            result = run_selector("Sources/GroveFHIR/File.swift")
+
+        self.assertTrue(all(not job["selfHosted"] for job in json.loads(result["matrix"])["include"]))
+
+    def test_conflicting_unit_pins_are_rejected(self):
+        conflicting = {**MODULE.PKGS["GroveFHIR"], "self-hosted-ci": ["unit", "ui"], "github-hosted-ci": ["unit"]}
+        with mock.patch.dict(MODULE.PKGS, {"GroveFHIR": conflicting}), self.assertRaises(SystemExit):
+            run_selector("Sources/GroveFHIR/File.swift")
+
+    def test_committed_durations_are_well_formed(self):
+        durations = MODULE.load_job_durations()
+
+        self.assertIsNotNone(durations)
+        self.assertIsInstance(durations["generated"], datetime.date)
+        for pool in (MODULE.SELF_HOSTED, MODULE.GITHUB_HOSTED):
+            self.assertTrue(durations["slots"][pool], pool)
+            self.assertTrue(all(isinstance(minutes, float) for minutes in durations["slots"][pool]))
+        for name, pools in durations["minutes"].items():
+            with self.subTest(job=name):
+                self.assertTrue(pools)
+                self.assertLessEqual(set(pools), {MODULE.SELF_HOSTED, MODULE.GITHUB_HOSTED})
+
+
+def unit_job(package, platform="iOS"):
+    return {"package": package, "platform": platform, "selfHosted": False}
+
+
+@contextlib.contextmanager
+def durations_file(durations):
+    lines = [f'generated = {datetime.date.today().isoformat()}', "[slots]"]
+    lines += [f'{pool} = {json.dumps(slots)}' for pool, slots in durations["slots"].items()]
+    lines.append("[minutes]")
+    lines += [
+        f'{json.dumps(name)} = {{ {", ".join(f"{pool} = {value}" for pool, value in pools.items())} }}'
+        for name, pools in durations["minutes"].items()
+    ]
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as file:
+        file.write("\n".join(lines) + "\n")
+        file.flush()
+        with mock.patch.object(MODULE, "JOB_DURATIONS_PATH", file.name):
+            yield
+
+
+class DurationRoutingTests(unittest.TestCase):
+    def test_each_job_goes_to_the_pool_that_finishes_it_first(self):
+        durations = {
+            "slots": {"self-hosted": [0.0], "github-hosted": [10.0]},
+            "minutes": {"Long (iOS)": {"github-hosted": 30.0}, "Short (iOS)": {"github-hosted": 5.0}},
+        }
+        long_job, short_job = unit_job("Long"), unit_job("Short")
+
+        MODULE.route_unit_jobs([short_job, long_job], [], durations)
+
+        # Long first: Macs finish at 30, GitHub at 40. Short then: Macs at 35, GitHub at 15.
+        self.assertTrue(long_job["selfHosted"])
+        self.assertFalse(short_job["selfHosted"])
+
+    def test_placed_jobs_occupy_runners_first(self):
+        durations = {
+            "slots": {"self-hosted": [0.0], "github-hosted": [10.0]},
+            "minutes": {"App UI (iOS)": {"self-hosted": 50.0}, "App (iOS)": {"github-hosted": 20.0}},
+        }
+        job = unit_job("App")
+
+        MODULE.route_unit_jobs([job], [("App UI (iOS)", MODULE.SELF_HOSTED)], durations)
+
+        self.assertFalse(job["selfHosted"])
+
+    def test_a_tie_stays_github_hosted(self):
+        durations = {"slots": {"self-hosted": [5.0], "github-hosted": [5.0]}, "minutes": {}}
+        job = unit_job("App")
+
+        MODULE.route_unit_jobs([job], [], durations)
+
+        self.assertFalse(job["selfHosted"])
+
+    def test_unrecorded_pool_scales_by_speed_and_default(self):
+        durations = {
+            "slots": {"self-hosted": [10.0], "github-hosted": [0.0]},
+            "self_hosted_speed": 0.5,
+            "default_minutes": 30.0,
+            "minutes": {"Known (iOS)": {"github-hosted": 30.0}},
+        }
+        known, unknown = unit_job("Known"), unit_job("Unknown", "macOS")
+
+        log = MODULE.route_unit_jobs([known, unknown], [], durations)
+
+        # Known: Macs 10 + 15, GitHub 0 + 30. Unknown: Macs 25 + 15, GitHub 0 + 30.
+        self.assertTrue(known["selfHosted"])
+        self.assertFalse(unknown["selfHosted"])
+        self.assertEqual(log[0], "Known (iOS): self-hosted, done ~25 min (vs ~30 on github-hosted)")
+
+    def test_without_self_hosted_slots_every_job_stays_github_hosted(self):
+        job = unit_job("App")
+
+        MODULE.route_unit_jobs([job], [], {"slots": {"github-hosted": [60.0]}, "minutes": {}})
+
+        self.assertFalse(job["selfHosted"])
+
+    def test_note_asks_for_a_refresh_when_stale_or_incomplete(self):
+        today = datetime.date(2026, 12, 31)
+        recorded = {"generated": datetime.date(2026, 12, 1), "minutes": {"Known (iOS)": {"github-hosted": 1.0}}}
+        stale = {**recorded, "generated": datetime.date(2026, 10, 1)}
+
+        self.assertEqual(MODULE.durations_note(recorded, [unit_job("Known")], today), "")
+        self.assertIn("recorded 91 days ago", MODULE.durations_note(stale, [unit_job("Known")], today))
+        note = MODULE.durations_note(recorded, [unit_job(f"New{index}") for index in range(7)], today)
+        self.assertIn("no duration for New0 (iOS), New1 (iOS), New2 (iOS), New3 (iOS), New4 (iOS) and 2 more", note)
+        self.assertIn("Scripts/refresh-ci-durations.py", note)
 
 
 if __name__ == "__main__":
