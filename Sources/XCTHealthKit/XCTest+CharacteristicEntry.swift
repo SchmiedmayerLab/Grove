@@ -69,8 +69,8 @@ extension XCTestCase {
         XCTAssert(healthApp.wait(for: .runningForeground, timeout: 10))
         handleHealthAppOnboardingIfNecessary()
 
-        // The Health app restores its UI across launches, so a profile sheet that an earlier run left open (e.g. one
-        // that failed half-way through this function) still covers the tab bar, and the Summary tab can't be selected.
+        // On iOS 27 the relaunched Health app can come up with the profile sheet open, even after a previous run closed
+        // it. The sheet covers the tab bar, so the Summary tab can't be selected and the Profile tap would close it.
         let summaryTabButton = healthApp.tabBars.buttons["Summary"]
         if !summaryTabButton.wait(for: \.isHittable, toEqual: true, timeout: 10) {
             _ = healthApp.dismissAccountSheetIfNecessary()
