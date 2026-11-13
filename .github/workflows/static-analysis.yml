@@ -25,7 +25,7 @@ permissions:
 
 env:
   # Match the toolchain used by the Apple test jobs.
-  ANALYSIS_XCODE_VERSION: 'latest-stable'
+  ANALYSIS_XCODE_VERSION: '27.2'
 
 jobs:
   ui-test-projects:
@@ -86,7 +86,9 @@ jobs:
           xcode-version: ${{ env.ANALYSIS_XCODE_VERSION }}
       - name: Use selected Xcode for this job
         # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
-        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Install Periphery
         run: brew install periphery
       - name: Periphery
@@ -107,7 +109,9 @@ jobs:
           xcode-version: ${{ env.ANALYSIS_XCODE_VERSION }}
       - name: Use selected Xcode for this job
         # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
-        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Build DocC Documentation
         env:
           # Authenticate package fetches across the shared runner fleet.

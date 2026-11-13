@@ -46,7 +46,7 @@ env:
   # Package.swift excludes swift-collections 1.7.0,
   # whose Ref helpers linked _swift_initBorrow on older runtimes with Swift 6.4.
   # https://github.com/apple/swift-collections/issues/733
-  TEST_XCODE_VERSION: 'latest-stable'
+  TEST_XCODE_VERSION: '27.2'
 
 jobs:
   detect:
@@ -76,7 +76,9 @@ jobs:
           xcode-version: ${{ env.TEST_XCODE_VERSION }}
       - name: Use selected Xcode for this job
         # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
-        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Determine changed files
         id: changes
         run: |
@@ -199,12 +201,9 @@ jobs:
     name: ${{ matrix.package }} (${{ matrix.platform }})
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
-    # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
-    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
-    # self-hosted label set (matrix.selfHostedLabels) is ["self-hosted","macOS"] plus any
-    # per-package `extra_runner_labels` from packages.toml, computed by
-    # Scripts/affected-test-matrix.py.
-    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}
+    # Hosted macOS images currently lack Xcode 27.2. Route Apple verification to the
+    # configured fleet, retaining package-specific labels; Linux stays GitHub-hosted.
+    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["self-hosted","macOS"]')) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
@@ -216,7 +215,9 @@ jobs:
           xcode-version: ${{ env.TEST_XCODE_VERSION }}
       - name: Use selected Xcode for this job
         if: matrix.platform != 'Linux'
-        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Set up Swift
         if: matrix.platform == 'Linux'
         uses: SwiftyLab/setup-swift@v1
@@ -239,9 +240,8 @@ jobs:
     name: ${{ matrix.package }} UI (${{ matrix.platform }})
     needs: detect
     if: needs.detect.outputs.has_ui_jobs == 'true'
-    # UI tests run on the self-hosted runner by default (packages.toml self-hosted-ci defaults to
-    # ["ui"]); a package can move its UI tests to GitHub-hosted by dropping "ui" from that list.
-    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]') }}
+    # Apple UI tests use the same fleet and stable toolchain as unit tests.
+    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["self-hosted","macOS"]') }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.ui_matrix) }}
@@ -251,7 +251,9 @@ jobs:
         with:
           xcode-version: ${{ env.TEST_XCODE_VERSION }}
       - name: Use selected Xcode for this job
-        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: UI test ${{ matrix.package }} on ${{ matrix.platform }}
         env:
           # Package fetches would otherwise leave the runner anonymous, and GitHub throttles anonymous
@@ -271,7 +273,7 @@ jobs:
     name: FHIR Output Conformance
     needs: detect
     if: needs.detect.outputs.has_fhir_conformance == 'true'
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
@@ -284,6 +286,13 @@ jobs:
           # Typed metadata contract; replace with its release tag when published.
           ref: ${{ inputs.grove_fhir_ref || 'ad2af3acaa7f0d6ab50fa79744b40df1d9b3b2c4' }}
           persist-credentials: false
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.TEST_XCODE_VERSION }}
+      - name: Use selected Xcode for this job
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |

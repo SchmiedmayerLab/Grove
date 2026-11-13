@@ -32,7 +32,7 @@ permissions:
 jobs:
   build-floor:
     name: ${{matrix.name}}
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS]
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +44,13 @@ jobs:
           - {platform: watchOS, kind: simulator, name: watchOS floor (simulator)}
     steps:
       - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '27.2'
+      - name: Use selected Xcode for this job
+        run: |
+          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
+          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Build ${{matrix.platform}} (${{matrix.kind}}) at the deployment floor
         run: python3 Scripts/build-floor.py "${{matrix.platform}}" "${{matrix.kind}}"
 
