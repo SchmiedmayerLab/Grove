@@ -309,24 +309,10 @@ extension GoldenCase {
         // HealthKitHeartRateObservationExample: 72/min at 10:30:00.251 Los Angeles time while sedentary, from the
         // watch, in a study.
         GoldenCase("guide-example-heart-rate") {
-            let start = Date(timeIntervalSince1970: 1_787_160_600.251)
-            let sample = HKQuantitySample(
-                type: HKQuantityType(.heartRate),
-                quantity: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 72),
-                start: start,
-                end: start,
-                device: GoldenFixtures.watch,
-                metadata: [
-                    HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
-                    HKMetadataKeyHeartRateMotionContext: HKHeartRateMotionContext.sedentary.rawValue
-                ]
-            )
-            var inputs = ExportInputs()
-            inputs.studies = [.test("study-a")]
-            return try await GoldenFixtures.export(
-                try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0x78)),
-                inputs
-            )
+            try await guideExampleHeartRate()
+        },
+        GoldenCase("guide-example-source-metadata") {
+            try await guideExampleHeartRate(metadata: ["com.example.note": "after exercise"])
         }
     ]
 
@@ -335,6 +321,26 @@ extension GoldenCase {
         HKMetadataKeySyncIdentifier: "sync-abc",
         HKMetadataKeySyncVersion: 3
     ]
+
+    private static func guideExampleHeartRate(metadata: [String: any Sendable] = [:]) async throws -> GoldenOutput {
+        let start = Date(timeIntervalSince1970: 1_787_160_600.251)
+        var metadata = metadata
+        metadata[HKMetadataKeyTimeZone] = GoldenFixtures.timeZone
+        metadata[HKMetadataKeyHeartRateMotionContext] = HKHeartRateMotionContext.sedentary.rawValue
+        let sample = HKQuantitySample(
+            type: HKQuantityType(.heartRate),
+            quantity: HKQuantity(unit: GoldenFixtures.beatsPerMinute, doubleValue: 72),
+            start: start,
+            end: start,
+            device: GoldenFixtures.watch,
+            metadata: metadata
+        )
+        var inputs = ExportInputs()
+        inputs.studies = [.test("study-a")]
+        return try await GoldenFixtures.export(
+            try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(0x78)), inputs
+        )
+    }
 
     /// A heart rate from the watch, written by `writer`.
     static func attributedHeartRate(

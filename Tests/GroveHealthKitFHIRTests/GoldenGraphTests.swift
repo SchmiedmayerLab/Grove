@@ -94,7 +94,15 @@ struct GoldenGraphTests {
     func matchesCheckedInGolden(_ goldenCase: GoldenCase) async throws {
         let output = try await goldenCase.output()
         let actual = try LosslessJSONValue(parsing: output.record.json)
-        let expected = try LosslessJSONValue(parsing: GoldenStore.data(named: goldenCase.name))
+        let expectedBytes: Data
+        do {
+            expectedBytes = try GoldenStore.data(named: goldenCase.name)
+        } catch {
+            let bytes = try GoldenStore.encoder.encode(output.record.graph.bundle)
+            Attachment.record(String(decoding: bytes, as: UTF8.self), named: "actual-\(goldenCase.name).json")
+            throw error
+        }
+        let expected = try LosslessJSONValue(parsing: expectedBytes)
         let outline = try #require(GoldenStore.outlines()[goldenCase.name], "no outline is pinned for \(goldenCase.name)")
 
         #expect(

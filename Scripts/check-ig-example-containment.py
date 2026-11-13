@@ -57,6 +57,12 @@ PAIRS = {
                 "example": "HealthKitHeartRateObservationExample",
                 "golden": "guide-example-heart-rate",
             },
+            {
+                "guide": "healthkit",
+                "resourceType": "Observation",
+                "example": "HealthKitMetadataObservationExample",
+                "golden": "guide-example-source-metadata",
+            },
         ],
     },
 }
