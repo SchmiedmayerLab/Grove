@@ -16,9 +16,8 @@ import ModelsR4
 import Testing
 
 
-/// Which metadata keys a graph reports as withheld (spec F10-metadata-warnings): a key is carried only through the
-/// element the guide maps it to, on an output that has that element, and every other key the record, or a correlation
-/// member, workout event or workout activity it contains, states is reported once, in one sorted list.
+/// Which metadata keys a graph reports as withheld: mapped facts and preserved sample metadata are carried.
+/// Unsupported values and unrepresented contained-object metadata remain visible as omissions.
 @Suite
 struct HealthKitMetadataWarningTests {
     /// A valid sync pair, which an attributable writer's Observation carries and a document never does.
@@ -86,8 +85,8 @@ struct HealthKitMetadataWarningTests {
         try convert(StoredSampleFixtures.quantitySample(HKQuantityType(.stepCount), value: 120, unit: .count(), facts: facts(0xF7, duration: 60, metadata: metadata)))
     }
 
-    @Test("A recording document carries no writer identity and reports every key it was given")
-    func documentsReportTheirMetadata() throws {
+    @Test("A recording document preserves metadata without inventing writer identity")
+    func documentsPreserveTheirMetadata() throws {
         let metadata = GoldenFixtures.timeZoneMetadata.merging(Self.syncPair) { $1 }
             .merging([HKMetadataKeyWasUserEntered: true, "com.example.note": "x"]) { $1 }
         var conversions = [try Self.heartbeatSeries(metadata: metadata)]
@@ -106,8 +105,8 @@ struct HealthKitMetadataWarningTests {
         conversions.append(try Self.convert(StoredSampleFixtures.withMetadata(stored, metadata)))
         #endif
         for conversion in conversions {
-            #expect(conversion.withheldMetadataKeys == metadata.keys.sorted(), "\(conversion.source.typeIdentifier)")
-            #expect(conversion.warnings == [Self.unmodeled], "\(conversion.source.typeIdentifier)")
+            #expect(conversion.withheldMetadataKeys.isEmpty, "\(conversion.source.typeIdentifier)")
+            #expect(conversion.warnings.isEmpty, "\(conversion.source.typeIdentifier)")
             let documents = conversion.record.bundle.entry?.compactMap { $0.resource?.get(if: DocumentReference.self) } ?? []
             let roles = try documents.flatMap { try ($0.identifier ?? []).map { try RoledIdentifier($0).role } }
             #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact], "\(conversion.source.typeIdentifier)")
@@ -124,8 +123,8 @@ struct HealthKitMetadataWarningTests {
         #expect(try Self.heartbeatSeries(metadata: [HKMetadataKeyWasUserEntered: false]).withheldMetadataKeys.isEmpty)
     }
 
-    @Test("A key another source type reads is reported on this one, and its graph is the one without it")
-    func otherTypesKeysAreReported() throws {
+    @Test("Other source types' keys are preserved as metadata without changing source identity")
+    func otherTypesKeysArePreserved() throws {
         let zone = GoldenFixtures.timeZoneMetadata
         let baseline = try Self.stepCount(metadata: zone)
         let foreign: [String: any Sendable] = [
@@ -137,9 +136,10 @@ struct HealthKitMetadataWarningTests {
         ]
         for (key, value) in foreign {
             let conversion = try Self.stepCount(metadata: zone.merging([key: value]) { $1 })
-            #expect(conversion.withheldMetadataKeys == [key], "\(key)")
-            #expect(conversion.warnings == [Self.unmodeled], "\(key)")
-            #expect(conversion.record.json == baseline.record.json, "\(key)")
+            #expect(conversion.withheldMetadataKeys.isEmpty, "\(key)")
+            #expect(conversion.warnings.isEmpty, "\(key)")
+            #expect(conversion.identifiers.sourceRecord == baseline.identifiers.sourceRecord, "\(key)")
+            #expect(conversion.identifiers.provenance != baseline.identifiers.provenance, "\(key)")
         }
     }
 
@@ -161,25 +161,25 @@ struct HealthKitMetadataWarningTests {
         }
     }
 
-    @Test("A value a lenient reader drops is reported: a textual motion context, a textual manual-entry flag")
-    func droppedValuesAreReported() throws {
+    @Test("Uninterpreted text remains metadata and creates no clinical assertion")
+    func uninterpretedValuesArePreserved() throws {
         let zone = GoldenFixtures.timeZoneMetadata
         let motion = try Self.heartRate(metadata: zone.merging([HKMetadataKeyHeartRateMotionContext: "active"]) { $1 })
-        #expect(motion.withheldMetadataKeys == [HKMetadataKeyHeartRateMotionContext])
-        #expect(motion.warnings == [Self.unmodeled])
-        #expect(motion.record.json == (try Self.heartRate(metadata: zone)).record.json, "no component")
+        #expect(motion.withheldMetadataKeys.isEmpty)
+        #expect(motion.warnings.isEmpty)
+        #expect(!String(decoding: motion.record.json, as: UTF8.self).contains("\"component\""), "no clinical component")
         let entered = try Self.heartRate(metadata: zone.merging([HKMetadataKeyWasUserEntered: "yes"]) { $1 })
-        #expect(entered.withheldMetadataKeys == [HKMetadataKeyWasUserEntered])
-        #expect(entered.warnings == [Self.unmodeled])
-        #expect(entered.record.json == (try Self.heartRate(metadata: zone)).record.json, "no recording method")
+        #expect(entered.withheldMetadataKeys.isEmpty)
+        #expect(entered.warnings.isEmpty)
+        #expect(!String(decoding: entered.record.json, as: UTF8.self).contains("grove-recording-method"))
     }
 
-    @Test("A valid sync pair without an attributable writer is validated, not carried, and reported")
-    func unattributablePairIsReported() throws {
+    @Test("A valid sync pair remains metadata without asserting an unattributable writer identity")
+    func unattributablePairRemainsMetadata() throws {
         let metadata = GoldenFixtures.timeZoneMetadata.merging(Self.syncPair) { $1 }
         let conversion = try Self.heartRate(metadata: metadata, writer: .unattributed)
-        #expect(conversion.withheldMetadataKeys == [HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion].sorted())
-        #expect(conversion.warnings == [Self.unmodeled])
+        #expect(conversion.withheldMetadataKeys.isEmpty)
+        #expect(conversion.warnings.isEmpty)
         #expect(!String(decoding: conversion.record.json, as: UTF8.self).contains("writer-record"))
         #expect(try Self.heartRate(metadata: metadata).warnings.isEmpty, "an attributable writer's Observation carries the pair")
     }
@@ -201,6 +201,7 @@ struct HealthKitMetadataWarningTests {
             sampleType: HKSeriesType.heartbeat(),
             facts: GoldenCase.seriesFacts(uuid: 0xFB, duration: 2)
         )
+        _ = try StoredSampleFixtures.withMetadata(series, ["com.example.unsupported": ["array"]])
         let beats = ContentCorpusGrid.heartbeats.map(\.heartbeat)
         let exports = try await ExporterFixtures.collect(ExporterFixtures.exporter(), [.heartbeatSeries(series, beats: beats)])
         try #require(exports.count == 1)

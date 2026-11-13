@@ -100,7 +100,7 @@ struct HealthKitDeviceFactsTests {
         #expect(conversion.primary.warnings.isEmpty, "every key is carried")
     }
 
-    @Test("An HKDevice property wins over its key, and the key's value is withheld and reported")
+    @Test("An HKDevice property wins for Device facts while the raw metadata remains preserved")
     func hkDeviceWins() async throws {
         let sample = try Self.heartRate(Self.everyFact, metadata: Self.deviceMetadata)
         let conversion = try await ExporterFixtures.export(sample)
@@ -111,9 +111,9 @@ struct HealthKitDeviceFactsTests {
         #expect(device.udiCarrier?.first?.deviceIdentifier == "device-udi")
         #expect(device.serialNumber == "SN-0042", "the serial number has no HKDevice property")
         let assembled = try AssemblyFixtures.conversion(sample)
-        let replaced = [HKMetadataKeyDeviceManufacturerName, HKMetadataKeyDeviceName, HKMetadataKeyUDIDeviceIdentifier]
-        #expect(assembled.withheldMetadataKeys == replaced.sorted())
-        #expect(conversion.primary.warnings == [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")])
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == Self.deviceMetadata.count + 1)
+        #expect(conversion.primary.warnings.isEmpty)
     }
 
     @Test("A key stating what its HKDevice property states is carried")
@@ -137,16 +137,17 @@ struct HealthKitDeviceFactsTests {
         }
     }
 
-    @Test("A device key of a sample without an HKDevice has no Device to carry it, so it is withheld and reported")
-    func noDeviceWithholdsEveryKey() async throws {
+    @Test("Device metadata remains available even when HealthKit supplies no HKDevice")
+    func noDevicePreservesMetadata() async throws {
         let sample = try Self.heartRate(nil, metadata: Self.deviceMetadata)
         let assembled = try AssemblyFixtures.conversion(sample)
-        #expect(assembled.withheldMetadataKeys == Self.deviceMetadata.keys.sorted())
-        #expect(assembled.warnings == [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")])
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == Self.deviceMetadata.count + 1)
+        #expect(assembled.warnings.isEmpty)
     }
 
-    @Test("A value that is no text, or blank, states nothing: the Device omits it, and the key is reported")
-    func unreadableValuesAreWithheld() async throws {
+    @Test("Uninterpretable device facts remain raw metadata without populating the Device")
+    func unreadableValuesRemainMetadata() async throws {
         let sample = try StoredSampleFixtures.withMetadata(Self.heartRate(Self.modelOnly), [
             HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
             HKMetadataKeyDeviceSerialNumber: 42,
@@ -154,13 +155,14 @@ struct HealthKitDeviceFactsTests {
         ])
         let assembled = try AssemblyFixtures.conversion(sample)
         let conversion = try await ExporterFixtures.export(sample)
-        #expect(assembled.withheldMetadataKeys == [HKMetadataKeyDeviceName, HKMetadataKeyDeviceSerialNumber].sorted())
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 3)
         #expect(conversion.recordingDevice?.serialNumber == nil)
         #expect(conversion.recordingDevice?.deviceName == nil)
     }
 
-    @Test("A record without an Observation output represents no device key: its Device states HKDevice alone")
-    func documentsRepresentNoDeviceKey() async throws {
+    @Test("Documents preserve metadata while their Device states HKDevice alone")
+    func documentsPreserveDeviceMetadata() async throws {
         var facts = GoldenCase.seriesFacts(uuid: 0xC2, duration: 2)
         facts.device = Self.everyFact
         facts.metadata = Self.deviceMetadata.merging([HKMetadataKeyDeviceName: "Device Name"]) { $1 }
@@ -172,8 +174,8 @@ struct HealthKitDeviceFactsTests {
 
         #expect(device.serialNumber == nil)
         #expect(device.udiCarrier?.first?.extension == nil)
-        #expect(assembled.withheldMetadataKeys.contains(HKMetadataKeyDeviceName), "even a key the HKDevice repeats")
-        #expect(assembled.withheldMetadataKeys.contains(HKMetadataKeyDeviceSerialNumber))
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == Self.deviceMetadata.count)
     }
 
     @Test("Every device fact is content: a changed one is a new snapshot and a new record version")

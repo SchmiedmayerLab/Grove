@@ -164,10 +164,10 @@ A sample that cannot be exported is refused in place with a ``HealthKitConversio
 ``HealthKitFHIRExporter/Export/warnings`` lists what a record does not carry although its sample did, each a registered `ProducerDiagnostic`; log them with that record.
 `mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone; a blood-pressure correlation that names none takes the zone its systolic and diastolic members agree on.
 `mobile-omission.unmodeled-metadata` is located at `HKSample.metadata`: the sample, or a correlation member, workout event or workout activity it contains, carried metadata its record does not represent.
-A record represents a key only through the element the guide maps it to, on an output that has that element: a time zone on a heartbeat series is withheld, because a document has no element for it, and so is a key one source type reads stated on another.
-A device key is represented only when the recording Device of an Observation states that very value: an `HKDevice` property wins over its key, so a key it replaced is withheld, and so is every device key of a sample without an `HKDevice`.
-`HKMetadataKeyWasUserEntered` stated `false` is represented by omission and never reported, and a blood-pressure member's zone or manual entry that the record takes is represented as the record's own.
-An omission an option chose, such as a route under `.omit`, is never a warning.
+A source-sample key is represented by its clinical mapping or by the typed source-metadata extension on the primary output. The extension also preserves supported custom keys, a document's time zone and available device metadata even when no recording Device carries it. This preservation does not invent a clinical interpretation or change a mapped value.
+Contained metadata remains associated with its owner: a parent key does not represent a same-named key on a correlation member, workout event or activity. A blood-pressure member's zone or manual entry follows the guide's correlation rules; other unrepresented contained keys remain omissions.
+``HealthKitFHIRExporter/Export/metadata`` reports counts of preserved, unsupported and intentionally excluded source-sample keys without exposing their values. Unsupported classes and quantities without a supported compatible unit remain observable; no value is silently stringified.
+An omission an option chose, such as a route under `.omit`, is never a warning. Setting the metadata option to `.omit` reports excluded keys in the metadata summary separately from conversion failures.
 Each export keeps its own warnings; to log a batch without a line per sample, add every export to one ``HealthKitFHIRExporter/WarningReport`` and log its description once.
 It names each kind with its HealthKit cause and how many samples of each type raised it.
 

@@ -55,12 +55,13 @@ struct HealthKitAssembly: Sendable {
         /// The metadata keys the sample, or an object it contains, carried that the record does not represent, each once
         /// and sorted. The `mobile-omission.unmodeled-metadata` warning states only that there are some.
         let withheldMetadataKeys: [String]
+        let metadataSummary: HealthKitFHIRExporter.Export.MetadataSummary
         /// How long encoding and validating the record took; zero unless the exporter measures its throughput.
         let validation: Swift.Duration
 
         /// The export that delivers this record.
         var export: HealthKitFHIRExporter.Export {
-            HealthKitFHIRExporter.Export(source: source, outcome: .record(record), warnings: warnings)
+            HealthKitFHIRExporter.Export(source: source, outcome: .record(record), warnings: warnings, metadata: metadataSummary)
         }
     }
 
@@ -129,6 +130,10 @@ struct HealthKitAssembly: Sendable {
         let facts = try SourceFacts(sample, metadata: metadata, outputs: outputs, policies: request.policies, options: options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
+        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: metadata.values, disclosure: options.metadata)
+        if let container = sourceMetadata.container {
+            outputs[0].trailingExtensions.append(container)
+        }
         // One record states one entry method: its metadata decides it for every output it yields.
         for index in outputs.indices {
             outputs[index].wasUserEntered = facts.wasUserEntered
@@ -155,13 +160,19 @@ struct HealthKitAssembly: Sendable {
         var validation = Swift.Duration.zero
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts))
             .assemble(draft, onValidation: options.measuresThroughput ? { validation += $0 } : nil)
-        let withheld = metadata.withheldKeys(in: outputs, device: facts.recordingDevice)
+        let withheld = metadata.withheldKeys(
+            in: outputs,
+            device: facts.recordingDevice,
+            preservedSampleKeys: sourceMetadata.preservedKeys,
+            excludesSampleMetadata: options.metadata == .omit
+        )
         return Conversion(
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
             record: assembled.record,
             warnings: metadataWarnings(for: metadata, outputs: outputs, withheld: withheld),
             withheldMetadataKeys: withheld,
+            metadataSummary: sourceMetadata.summary,
             validation: validation
         )
     }

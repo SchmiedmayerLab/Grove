@@ -226,7 +226,9 @@ extension HealthKitBloodPressureMemberTests {
             == [HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion].sorted())
         #expect(conversion.warnings == [Self.unmodeled])
         #expect(conversion.writer != nil, "the correlation's writer travels")
-        #expect(conversion.observation.extension?.map(\.url) == [Canonicals.healthKitSourceTypeExtension], "no writer-record version")
+        #expect(conversion.observation.extension?.map(\.url) == [
+            Canonicals.healthKitSourceTypeExtension, FHIRPrimitive(FHIRURI(stringLiteral: HealthKitContract.metadataExtensionURL))
+        ], "source metadata creates no writer-record version")
         #expect(conversion.record.json == unsynced.graph.json)
     }
 }
