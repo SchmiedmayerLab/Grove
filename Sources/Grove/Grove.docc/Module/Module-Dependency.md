@@ -19,7 +19,10 @@ SPDX-License-Identifier: MIT
 This establishes a strict order in which the ``Module/configure()`` methods of each ``Module`` are called,
 to ensure functionality of a dependency is available at configuration.
 
-> Note: Declaring a cyclic dependency will result in a runtime error. 
+> Note: Declaring a cyclic dependency will result in a runtime error.
+> This includes mutual required dependencies between modules that are both listed in your configuration
+> (for example `ModuleA` depends on `ModuleB` and `ModuleB` depends on `ModuleA`), not only cycles created
+> through implicitly loaded default dependencies. 
 
 Below is a example of declaring a dependence on the `ExampleModuleDependency` and additionally providing a default value that is used
 in the case that the module wasn't already configured by the user (for more information, see section below).
