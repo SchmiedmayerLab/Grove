@@ -33,7 +33,8 @@ struct HealthKitSourceMetadataTests {
         case "integer":
             return NSDecimalNumber(string: try #require(item["source"] as? String))
         case "date":
-            return try #require(ISO8601DateFormatter().date(from: #require(item["source"] as? String)))
+            let value = try #require(item["source"] as? String)
+            return try #require(ISO8601DateFormatter().date(from: value))
         case "quantity":
             let source = try #require(item["source"] as? [String: Any])
             let unit = try #require(source["unit"] as? String)
