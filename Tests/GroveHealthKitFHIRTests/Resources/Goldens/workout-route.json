@@ -48,6 +48,24 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKWorkoutRouteTypeIdentifier"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -388,11 +406,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:eJOPd-wFBmwVin5ZtqElB5dW9uogkGwbdchh6gQXbao"
+            "value" : "v0:test:1:o9Vp9fj7dGJ1R85r7rYybx-Ta_UVahtCzozcNl6_TYY"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:3e099c46-94c3-596b-9de7-c250b48c1b7d",
+      "fullUrl" : "urn:uuid:e0e53c74-e249-5529-96c2-44b96dfd2357",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -478,7 +496,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:eJOPd-wFBmwVin5ZtqElB5dW9uogkGwbdchh6gQXbao"
+              "value" : "v0:test:1:o9Vp9fj7dGJ1R85r7rYybx-Ta_UVahtCzozcNl6_TYY"
             }
           }
         ],

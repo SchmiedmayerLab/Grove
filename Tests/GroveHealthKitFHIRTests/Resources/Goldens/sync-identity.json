@@ -60,6 +60,50 @@
           {
             "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version",
             "valueString" : "3"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKMetadataKeySyncIdentifier"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "sync-abc"
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKMetadataKeySyncVersion"
+                  },
+                  {
+                    "url" : "value",
+                    "valueDecimal" : 3
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -534,11 +578,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:94Rx7xlxy1tw0aDNKJSV2OX1iiQ9jz_y16qOnxXQ1NE"
+            "value" : "v0:test:1:HXvVPzlVptwx99gIskogQ50pkjGhSoYVF430USmU2F4"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:e8af3ff2-bf87-5776-b331-d155d236784c",
+      "fullUrl" : "urn:uuid:093f6a3c-1cf2-5bce-a657-54328e767775",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -613,7 +657,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:94Rx7xlxy1tw0aDNKJSV2OX1iiQ9jz_y16qOnxXQ1NE"
+              "value" : "v0:test:1:HXvVPzlVptwx99gIskogQ50pkjGhSoYVF430USmU2F4"
             }
           }
         ],

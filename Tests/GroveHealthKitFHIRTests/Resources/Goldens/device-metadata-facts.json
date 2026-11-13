@@ -56,6 +56,89 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKQuantityTypeIdentifierHeartRate"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKDeviceManufacturerName"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "Example Devices"
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKDeviceName"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "Bedside Cuff"
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKDeviceSerialNumber"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "SN-0042"
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKUDIDeviceIdentifier"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "(01)00844588003288"
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKUDIProductionIdentifier"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "(11)141231(17)150707(10)A213B1(21)1234"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -327,11 +410,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:5AcsCgDLhTyC12bPNNX_6yf0GvAswtDzb2ZS3ekEtGk"
+            "value" : "v0:test:1:mpscORgvQuUVpxJ-_5N-T6pZ0dEvtYNWArtiCG8SDgY"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:c6d886e5-b317-511a-9098-4f64f8d90067",
+      "fullUrl" : "urn:uuid:6d296482-ef9c-59aa-9fd7-c8fd0a34bc1d",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -390,7 +473,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:5AcsCgDLhTyC12bPNNX_6yf0GvAswtDzb2ZS3ekEtGk"
+              "value" : "v0:test:1:mpscORgvQuUVpxJ-_5N-T6pZ0dEvtYNWArtiCG8SDgY"
             }
           }
         ],

@@ -85,6 +85,41 @@
               "reference" : "urn:uuid:61e5af79-2c7a-52f2-8843-bfc2e7645958",
               "type" : "ResearchStudy"
             }
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKMetadataKeyHeartRateMotionContext"
+                  },
+                  {
+                    "url" : "value",
+                    "valueCoding" : {
+                      "code" : "1",
+                      "display" : "Sedentary",
+                      "system" : "https://developer.apple.com/documentation/healthkit/hkheartratemotioncontext"
+                    }
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -538,11 +573,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:Opv6Q8nvs6djpQef0BbywNqWPTYVrVyC9Jo4arxFmtU"
+            "value" : "v0:test:1:5ACi51ml59zb63ilOtiTMlCxVp2OtlWpfYy7nwRD_ao"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:40aa04c2-2e1e-56b2-bcab-b6a40c145d4a",
+      "fullUrl" : "urn:uuid:f59cabd3-b464-5b66-a464-3c88bc52e3d3",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -601,7 +636,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:Opv6Q8nvs6djpQef0BbywNqWPTYVrVyC9Jo4arxFmtU"
+              "value" : "v0:test:1:5ACi51ml59zb63ilOtiTMlCxVp2OtlWpfYy7nwRD_ao"
             }
           }
         ],

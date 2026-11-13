@@ -64,6 +64,24 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKQuantityTypeIdentifierHeartRate"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -272,11 +290,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:aWWFZMn6hWcuknNRwtHThy52NCRL0rBF110uB9XeFqA"
+            "value" : "v0:test:1:p7YmwAYGh7Zn10gajGWJ9En3f3092r5P9ig2bSMJy6I"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:2d41a693-215e-5b6b-abc8-c63bafedc150",
+      "fullUrl" : "urn:uuid:cef4cb70-daa5-54d0-a3be-b0d864e37e15",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -335,7 +353,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:aWWFZMn6hWcuknNRwtHThy52NCRL0rBF110uB9XeFqA"
+              "value" : "v0:test:1:p7YmwAYGh7Zn10gajGWJ9En3f3092r5P9ig2bSMJy6I"
             }
           }
         ],

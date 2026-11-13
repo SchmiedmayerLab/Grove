@@ -77,6 +77,24 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -393,11 +411,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:IfXSj-y7kTqxwPVIj0pLUOT06zXkUi_xeijtHE0AiPk"
+            "value" : "v0:test:1:4ARFfIp9ckT2678g8f6dKMu1iljm3qnqHU10avwlswY"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:069e6952-2d05-56b5-ac4e-3842a2a6ecfa",
+      "fullUrl" : "urn:uuid:4c32830f-0933-54b4-8f73-c53241b6e52e",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -456,7 +474,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:IfXSj-y7kTqxwPVIj0pLUOT06zXkUi_xeijtHE0AiPk"
+              "value" : "v0:test:1:4ARFfIp9ckT2678g8f6dKMu1iljm3qnqHU10avwlswY"
             }
           }
         ],

@@ -46,7 +46,7 @@ struct HealthKitSourceMetadataTests {
 
     @Test("Shared legacy fixtures preserve typed values and quantity semantics")
     func legacyValues() throws {
-        let url = try #require(Bundle.module.url(forResource: "healthkit-metadata-legacy-values", withExtension: "json"))
+        let url = try #require(Bundle.module.url(forResource: "healthkit-metadata-legacy-values", withExtension: "fixture"))
         let fixture = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
         let cases = try #require(fixture["cases"] as? [[String: Any]])
         for item in cases {

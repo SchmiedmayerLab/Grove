@@ -19,8 +19,8 @@ import Testing
 /// each kind's HealthKit cause, and renders the same text for the same exports.
 @Suite
 struct HealthKitFHIRExporterWarningReportTests {
-    /// A metadata key no source type's graph represents.
-    static let unmodeledKey: [String: any Sendable] = ["com.example.note": "x"]
+    /// An unsupported array value, which typed scalar metadata preservation cannot represent.
+    static let unmodeledKey: [String: any Sendable] = ["com.example.note": ["x"]]
 
     /// The exports of one call covering every warning the adapter raises, a clean sample and a refusal:
     /// - two heart rates without a time zone;

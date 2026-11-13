@@ -107,6 +107,41 @@
               "end" : "2026-08-17T15:30:30-07:00",
               "start" : "2026-08-17T15:30:00-07:00"
             }
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKMetadataKeyAppleECGAlgorithmVersion"
+                  },
+                  {
+                    "url" : "value",
+                    "valueCoding" : {
+                      "code" : "2",
+                      "display" : "Version 2",
+                      "system" : "https://developer.apple.com/documentation/healthkit/hkappleecgalgorithmversion"
+                    }
+                  }
+                ],
+                "url" : "entry"
+              },
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "hasMember" : [
@@ -585,11 +620,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:lwHUTc4acF_hW4lA388fJ-d1Ih89wm0l3B73BAWadFQ"
+            "value" : "v0:test:1:liXvXxwDnOHLjfm1ZVSXLBEV3MeZBe2ulJnNcG_2sio"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:c606aec6-e467-5561-bb37-e855aa03ba82",
+      "fullUrl" : "urn:uuid:0fe57953-81a0-54f1-8016-d174e5ccfd46",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -675,7 +710,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:lwHUTc4acF_hW4lA388fJ-d1Ih89wm0l3B73BAWadFQ"
+              "value" : "v0:test:1:liXvXxwDnOHLjfm1ZVSXLBEV3MeZBe2ulJnNcG_2sio"
             }
           }
         ],

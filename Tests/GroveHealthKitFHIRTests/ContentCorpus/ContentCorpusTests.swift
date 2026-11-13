@@ -49,6 +49,7 @@ struct ContentCorpusTests {
     @Test(.enabled(if: !ContentCorpusStore.isGenerating), arguments: 0..<shards)
     func everyLineIsReproduced(shard: Int) async throws {
         var drifted: [String] = []
+        var changedLines: [String] = []
         var uncataloged: [String] = []
         var count = 0
         try await ContentCorpusStore.forEachLine(in: ContentCorpusStore.checkedIn(), shard: (shard, Self.shards)) { line in
@@ -58,9 +59,13 @@ struct ContentCorpusTests {
             count += 1
             if let difference = TokenDiff.firstDifference(expected: line.output, actual: actual) {
                 drifted.append("\(line.id) at \(difference)")
+                changedLines.append(try ContentCorpusStore.line(line.vector, output: actual))
             } else if try Data(ContentCorpusStore.line(line.vector, output: actual).utf8) != line.bytes {
                 drifted.append("\(line.id): equal tokens, but the line prints other bytes (canonically equivalent text, or a restated input)")
             }
+        }
+        if !changedLines.isEmpty {
+            Attachment.record(changedLines.joined(separator: "\n") + "\n", named: "actual-content-corpus-shard-\(shard).jsonl")
         }
         #expect(count > 0, "shard \(shard) of the corpus is empty")
         #expect(drifted.isEmpty, "\(drifted.count) vectors drifted from the corpus: \(drifted.prefix(25))")

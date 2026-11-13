@@ -90,6 +90,24 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKCorrelationTypeIdentifierBloodPressure"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKTimeZone"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "America/Los_Angeles"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -398,11 +416,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:yRLV7J90LihOyw8zIHjKeycLiDYvgzSWtMczpAynQm4"
+            "value" : "v0:test:1:Va68fLmKbWLhn2BlYOIUmo2mz3-8pLuTOQ5c3vtJrIw"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:1d52d3ab-6d5e-5221-9811-23c04ad72ddf",
+      "fullUrl" : "urn:uuid:51820b19-1714-518a-841c-147a567ee877",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -461,7 +479,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:yRLV7J90LihOyw8zIHjKeycLiDYvgzSWtMczpAynQm4"
+              "value" : "v0:test:1:Va68fLmKbWLhn2BlYOIUmo2mz3-8pLuTOQ5c3vtJrIw"
             }
           }
         ],
