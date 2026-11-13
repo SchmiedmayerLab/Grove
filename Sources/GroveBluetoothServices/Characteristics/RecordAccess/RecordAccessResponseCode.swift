@@ -16,6 +16,7 @@ public import struct NIOCore.ByteBuffer
 /// This information is transported as part of messages with the ``RecordAccessOpCode/responseCode`` code.
 ///
 /// Refer to GATT Specification Supplement, 3.178.4 Response Code Values.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessResponseCode {
     /// Reserved for future use.
     public static let reserved = RecordAccessResponseCode(rawValue: 0x00)
@@ -62,15 +63,19 @@ public struct RecordAccessResponseCode {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessResponseCode: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessResponseCode: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessResponseCode: Error {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessResponseCode: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {

@@ -15,6 +15,7 @@ import XCTGroveAccount
 
 /// Walks the account setup, sign-up, an incomplete sign-up, the password reset, the overview with its detail pages, the edit form, and then
 /// the setup page of a signed-in account and the sheet that finishes an incomplete one; run through `Scripts/documentation-screenshots.sh`.
+@MainActor
 final class DocumentationScreenshots: XCTestCase {
     override func setUpWithError() throws {
         // The walk needs the app the script launched and the states it prepared; a plain test run skips it.

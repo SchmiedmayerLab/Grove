@@ -14,6 +14,9 @@ import Testing
 @Suite("Runtime Assertions")
 struct RuntimeAssertionsTests {
     @Test("Runtime Assertions")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime assertion expectations.")
+    #endif
     func testRuntimeAssertion() throws {
         struct RuntimeAssertionError: Error {}
         
@@ -57,6 +60,9 @@ struct RuntimeAssertionsTests {
     }
 
     @Test("Async Runtime Assertion")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime assertion expectations.")
+    #endif
     func testAsyncRuntimeAssertion() async throws {
         try await confirmation { confirmation in
             try await expectRuntimeAssertion("\(#function)", expectedCount: 1) {
@@ -71,6 +77,9 @@ struct RuntimeAssertionsTests {
     }
 
     @Test("Assertion not triggered")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime assertion expectations.")
+    #endif
     func testRuntimeAssertionNotTriggered() throws {
         struct RuntimeAssertionNotTriggeredError: Error {}
         withKnownIssue {
@@ -80,15 +89,22 @@ struct RuntimeAssertionsTests {
             #expect(result == "Hello Paul 👋")
         }
         withKnownIssue {
-            #expect(throws: RuntimeAssertionNotTriggeredError.self) {
+            // `@diagnose` doesn't reach into `#expect`'s expansion, so the deprecated call stays outside it.
+            func expectAssertion() throws {
                 try expectRuntimeAssertion {
                     throw RuntimeAssertionNotTriggeredError()
                 }
+            }
+            #expect(throws: RuntimeAssertionNotTriggeredError.self) {
+                try expectAssertion()
             }
         }
     }
     
     @Test("No assertions")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime assertion expectations.")
+    #endif
     func testNoAssertions() {
         expectRuntimeAssertion(expectedCount: 0) {
             // nothing
@@ -109,6 +125,9 @@ struct RuntimeAssertionsTests {
 
     @MainActor
     @Test("MainActor Annotated Closure")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime assertion expectations.")
+    #endif
     func testActorAnnotatedClosure() throws {
         @MainActor
         class Test {

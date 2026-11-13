@@ -444,7 +444,7 @@ struct StoreRelocationTests {
         #expect(outcome == .relocated)
         #expect(fileManager.fileExists(atPath: destination.appendingPathComponent(".store_SUPPORT").path))
         let reopened = NSPersistentStoreCoordinator(managedObjectModel: model)
-        try reopened.addPersistentStore(type: .sqlite, at: destination.appendingPathComponent("store.sqlite"))
+        _ = try reopened.addPersistentStore(type: .sqlite, at: destination.appendingPathComponent("store.sqlite"))
         let readContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         readContext.persistentStoreCoordinator = reopened
         try readContext.performAndWait {

@@ -12,6 +12,7 @@ import GroveFoundation
 import Synchronization
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct CharacteristicAccessorCapture: Sendable {
     let isNotifying: Bool
     let properties: CBCharacteristicProperties

@@ -99,6 +99,7 @@ extension QuestionnaireSheetNavigator {
         /// to do when a test reaches past where the participant is — in either direction: a page
         /// builds a row shortly before it shows it, so reaching a control is not touching it.
         fileprivate func tap(_ element: XCUIElement) {
+            navigator.waitUntilPageIsAtRest()
             navigator.scan { navigator.isReachable(element) }
             element.tap()
         }
@@ -142,7 +143,7 @@ extension QuestionnaireSheetNavigator.Question {
     /// Waits until the question is no longer being asked.
     @discardableResult
     public func waitUntilNoLongerAsked(timeout: TimeInterval = QuestionnaireSheetNavigator.defaultTimeout) -> Bool {
-        element.waitForNonExistence(timeout: timeout) && !scrollIntoView()
+        waitUntil(timeout: timeout) { !element.exists } && !scrollIntoView()
     }
 }
 
@@ -156,7 +157,7 @@ extension QuestionnaireSheetNavigator.Question {
     /// Choice options are buttons rather than text; ask ``isSelected(_:)`` about those.
     public var text: [String] {
         scrollIntoView()
-        return element.staticTexts.allElementsBoundByIndex.map(\.label)
+        return lines.map(\.label)
     }
 
     /// The question's place in the run, on the questionnaires that asked for one to be shown.
@@ -230,7 +231,7 @@ extension QuestionnaireSheetNavigator.Question {
         let option = element.buttons.matching(label: "Option: \(title), Not Selected").firstMatch
         // The card can be on screen while the option is not: a long option list is realised a row
         // at a time, so reaching the question is not the same as reaching the answer.
-        guard option.waitForExistence(timeout: timeout) || navigator.scan(for: { option.exists }) else {
+        guard waitUntil(timeout: timeout, { option.exists }) || navigator.scan(for: { option.exists }) else {
             XCTFail("Question '\(linkId)' does not offer an option titled '\(title)'.", file: file, line: line)
             return
         }
@@ -269,13 +270,16 @@ extension QuestionnaireSheetNavigator.Question {
         }
         scrollIntoView()
         let option = element.buttons.matching(label: "Option: \(title), Selected").firstMatch
-        guard option.waitForExistence(timeout: timeout) else {
+        guard waitUntil(timeout: timeout, { option.exists }) else {
             XCTFail("Question '\(linkId)' does not offer an option titled '\(title)'.", file: file, line: line)
             return
         }
         tap(option)
         XCTAssert(
-            self.option(title).wait(for: \.label, toEqual: "Option: \(title), Not Selected", timeout: timeout),
+            waitUntil(timeout: timeout) {
+                let option = self.option(title)
+                return option.exists && option.label == "Option: \(title), Not Selected"
+            },
             "Question '\(linkId)' did not clear option '\(title)'.",
             file: file,
             line: line
@@ -301,14 +305,14 @@ extension QuestionnaireSheetNavigator.Question {
     ) {
         scrollIntoView()
         let dropDown = element.buttons.firstMatch
-        guard dropDown.waitForExistence(timeout: timeout) else {
+        guard waitUntil(timeout: timeout, { dropDown.exists }) else {
             XCTFail("Question '\(linkId)' has no drop-down.", file: file, line: line)
             return
         }
         tap(dropDown)
         // The menu is presented above the questionnaire rather than inside the question's card.
         let item = app.buttons.matching(label: title).firstMatch
-        guard item.waitForExistence(timeout: timeout) else {
+        guard waitUntil(timeout: timeout, { item.exists }) else {
             XCTFail("The drop-down of question '\(linkId)' does not offer '\(title)'.", file: file, line: line)
             return
         }
@@ -329,10 +333,11 @@ extension QuestionnaireSheetNavigator.Question {
     ) throws {
         select(label, file: file, line: line)
         let field = element.textFields.firstMatch
-        guard field.waitForExistence(timeout: QuestionnaireSheetNavigator.defaultTimeout) else {
+        guard waitUntil(timeout: QuestionnaireSheetNavigator.defaultTimeout, { field.exists }) else {
             XCTFail("Selecting '\(label)' on question '\(linkId)' did not offer a field to write in.", file: file, line: line)
             return
         }
+        navigator.waitUntilPageIsAtRest()
         try field.enter(value: text, options: .disableKeyboardDismiss)
         navigator.dismissKeyboard()
     }
@@ -360,9 +365,10 @@ extension QuestionnaireSheetNavigator.Question {
             // The row reads as one control, and its pill sits at the trailing end; a tap in the middle lands on
             // the label.
             let row = element.buttons.firstMatch
+            navigator.waitUntilPageIsAtRest()
             navigator.scan { navigator.isReachable(row) }
             row.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5)).tap()
-            _ = picker.waitForExistence(timeout: QuestionnaireSheetNavigator.defaultTimeout)
+            waitUntil(timeout: QuestionnaireSheetNavigator.defaultTimeout) { picker.exists }
         }
         return picker
     }
@@ -370,7 +376,15 @@ extension QuestionnaireSheetNavigator.Question {
     /// The files attached to the question so far, by filename.
     public var attachedFilenames: [String] {
         scrollIntoView()
-        return element.staticTexts.matching(identifier: "FileAttachmentFilename").allElementsBoundByIndex.map(\.label)
+        return lines.filter { $0.identifier == "FileAttachmentFilename" }.map(\.label)
+    }
+
+    /// Every text in the question's card, read off one snapshot of it.
+    private var lines: [any XCUIElementSnapshot] {
+        guard let card = try? element.snapshot() else {
+            return []
+        }
+        return card.children.flatMap(\.staticTextsWithin)
     }
 
     /// Where a free-text answer is typed.
@@ -379,15 +393,15 @@ extension QuestionnaireSheetNavigator.Question {
     /// answered by either — asking for only one of them missed half the questions.
     private func freeTextField(file: StaticString, line: UInt) -> XCUIElement? {
         scrollIntoView()
-        let deadline = Date().addingTimeInterval(QuestionnaireSheetNavigator.defaultTimeout)
-        repeat {
-            for candidate in [element.textFields.firstMatch, element.textViews.firstMatch] where candidate.exists {
-                return candidate
-            }
-            usleep(200_000)
-        } while Date() < deadline
-        XCTFail("Question '\(linkId)' has no free-text field.", file: file, line: line)
-        return nil
+        var editor: XCUIElement?
+        waitUntil(timeout: QuestionnaireSheetNavigator.defaultTimeout) {
+            editor = [element.textFields.firstMatch, element.textViews.firstMatch].first(where: \.exists)
+            return editor != nil
+        }
+        if editor == nil {
+            XCTFail("Question '\(linkId)' has no free-text field.", file: file, line: line)
+        }
+        return editor
     }
 
     /// Writes `text` into a free-text question and lets the keyboard go afterwards.
@@ -411,6 +425,7 @@ extension QuestionnaireSheetNavigator.Question {
             return
         }
         if editor.elementType == .textField {
+            navigator.waitUntilPageIsAtRest()
             try editor.clear(options: .disableKeyboardDismiss)
         } else {
             // A text view is not a text field, so it has no `textFieldValue`; its answer is its value.
@@ -425,10 +440,11 @@ extension QuestionnaireSheetNavigator.Question {
     public func enterNumber(_ value: Double, file: StaticString = #filePath, line: UInt = #line) throws {
         scrollIntoView()
         let field = element.textFields.firstMatch
-        guard field.waitForExistence(timeout: QuestionnaireSheetNavigator.defaultTimeout) else {
+        guard waitUntil(timeout: QuestionnaireSheetNavigator.defaultTimeout, { field.exists }) else {
             XCTFail("Question '\(linkId)' has no numeric field.", file: file, line: line)
             return
         }
+        navigator.waitUntilPageIsAtRest()
         try field.enter(
             value: NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal),
             options: .disableKeyboardDismiss
@@ -439,6 +455,7 @@ extension QuestionnaireSheetNavigator.Question {
     /// Moves a numeric question that is drawn as a slider, where 0 is its minimum and 1 its maximum.
     public func moveSlider(to position: Double) {
         scrollIntoView()
+        navigator.waitUntilPageIsAtRest()
         element.sliders.firstMatch.adjust(toNormalizedSliderPosition: position)
     }
 
@@ -448,7 +465,7 @@ extension QuestionnaireSheetNavigator.Question {
         tap(element.buttons["FilePickerButton"])
         let option = app.buttons.matching(label: source.rawValue).firstMatch
         // The menu item exists from the moment the menu opens, but its label takes a moment to settle.
-        guard option.waitForExistence(timeout: 2) else {
+        guard waitUntil(timeout: 2, { option.exists }) else {
             XCTFail("The file picker of question '\(linkId)' does not offer '\(source.rawValue)'.", file: file, line: line)
             return
         }
@@ -465,7 +482,7 @@ extension QuestionnaireSheetNavigator {
             return
         }
         navigationBar.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        if !app.keyboards.firstMatch.waitForNonExistence(timeout: 2) {
+        if !waitUntil(timeout: 2, { !app.keyboards.firstMatch.exists }) {
             app.dismissKeyboard()
         }
     }

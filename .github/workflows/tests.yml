@@ -18,9 +18,13 @@ on:
       grove_fhir_ref:
         description: grove-fhir tag or commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: 1c9ad82e9b89645ad18b90417add41a4ea563ae9
+        default: 0.8.0
       fhir_only:
         description: Run only producer conformance against the selected grove-fhir contract.
+        type: boolean
+        default: false
+      verify_release_packages:
+        description: Build a grove-fhir release tag's guides and check they match its packages (runs only FHIR conformance).
         type: boolean
         default: false
   workflow_call:
@@ -32,7 +36,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir tag or commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: 1c9ad82e9b89645ad18b90417add41a4ea563ae9
+        default: 0.8.0
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -42,11 +46,11 @@ permissions:
   contents: read
 
 env:
-  # Use stable Xcode and the iOS 27.2 runtime selected by run-package-tests.sh.
-  # Package.swift excludes swift-collections 1.7.0,
+  # Match MHC's installed Xcode selection; some runners no longer retain Xcode 26.6.
+  # Tests keep their 26.5 simulator destinations. Package.swift excludes swift-collections 1.7.0,
   # whose Ref helpers linked _swift_initBorrow on older runtimes with Swift 6.4.
   # https://github.com/apple/swift-collections/issues/733
-  TEST_XCODE_VERSION: '27.2'
+  TEST_XCODE_VERSION: 'latest-stable'
 
 jobs:
   detect:
@@ -76,9 +80,7 @@ jobs:
           xcode-version: ${{ env.TEST_XCODE_VERSION }}
       - name: Use selected Xcode for this job
         # The runner's inherited DEVELOPER_DIR takes precedence over xcode-select.
-        run: |
-          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
-          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Determine changed files
         id: changes
         run: |
@@ -161,7 +163,8 @@ jobs:
           if [ "${{ steps.changes.outputs.ui_test_projects_changed }}" = "true" ] && [ -f "$RUNNER_TEMP/base-ui-test-projects.toml" ]; then
             ARGS+=(--base-ui-test-projects "$RUNNER_TEMP/base-ui-test-projects.toml")
           fi
-          if [ "${{ inputs.fhir_only }}" = "true" ]; then
+          # Verifying the release packages is a conformance-lane check, so it runs that lane whatever changed.
+          if [ "${{ inputs.fhir_only }}" = "true" ] || [ "${{ inputs.verify_release_packages }}" = "true" ]; then
             ARGS+=(--fhir-only)
           fi
           python3 Scripts/affected-test-matrix.py "${ARGS[@]}" >> "$GITHUB_OUTPUT"
@@ -172,7 +175,11 @@ jobs:
           HAS_FHIR_CONFORMANCE: ${{ steps.compute.outputs.has_fhir_conformance }}
           HAS_JOBS: ${{ steps.compute.outputs.has_jobs }}
           MATRIX: ${{ steps.compute.outputs.matrix }}
+          RUNNER_NOTE: ${{ steps.compute.outputs.runner_note }}
         run: |
+          if [ -n "$RUNNER_NOTE" ]; then
+            echo "::warning title=Runner assignment::$RUNNER_NOTE"
+          fi
           echo "has_jobs = $HAS_JOBS"
           echo "has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
           echo "fhir_components = $FHIR_COMPONENTS"
@@ -188,6 +195,10 @@ jobs:
             echo "**Affected packages:** $AFFECTED"
             echo "**FHIR producer lanes:** $FHIR_COMPONENTS"
             echo ""
+            if [ -n "$RUNNER_NOTE" ]; then
+              echo "**Runner assignment:** $RUNNER_NOTE"
+              echo ""
+            fi
             echo "<details><summary>Generated matrix JSON ($JOBS jobs)</summary>"
             echo ""
             echo '```json'
@@ -201,9 +212,12 @@ jobs:
     name: ${{ matrix.package }} (${{ matrix.platform }})
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
-    # Hosted macOS images currently lack Xcode 27.2. Route Apple verification to the
-    # configured fleet, retaining package-specific labels; Linux stays GitHub-hosted.
-    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["self-hosted","macOS"]')) }}
+    # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff matrix.selfHosted, else
+    # GitHub-hosted macos-latest. Scripts/affected-test-matrix.py sets selfHosted from a packages.toml
+    # pin or, for unpinned unit tests, from recorded durations (Scripts/refresh-ci-durations.py). The
+    # self-hosted label set (matrix.selfHostedLabels) is ["self-hosted","macOS"] plus any per-package
+    # `extra_runner_labels` from packages.toml.
+    runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
@@ -215,9 +229,7 @@ jobs:
           xcode-version: ${{ env.TEST_XCODE_VERSION }}
       - name: Use selected Xcode for this job
         if: matrix.platform != 'Linux'
-        run: |
-          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
-          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Set up Swift
         if: matrix.platform == 'Linux'
         uses: SwiftyLab/setup-swift@v1
@@ -240,8 +252,9 @@ jobs:
     name: ${{ matrix.package }} UI (${{ matrix.platform }})
     needs: detect
     if: needs.detect.outputs.has_ui_jobs == 'true'
-    # Apple UI tests use the same fleet and stable toolchain as unit tests.
-    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["self-hosted","macOS"]') }}
+    # UI tests run on the self-hosted runner by default (packages.toml self-hosted-ci defaults to
+    # ["ui"]); a package can move its UI tests to GitHub-hosted by dropping "ui" from that list.
+    runs-on: ${{ matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]') }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.detect.outputs.ui_matrix) }}
@@ -251,9 +264,7 @@ jobs:
         with:
           xcode-version: ${{ env.TEST_XCODE_VERSION }}
       - name: Use selected Xcode for this job
-        run: |
-          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
-          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
+        run: echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: UI test ${{ matrix.package }} on ${{ matrix.platform }}
         env:
           # Package fetches would otherwise leave the runner anonymous, and GitHub throttles anonymous
@@ -273,8 +284,10 @@ jobs:
     name: FHIR Output Conformance
     needs: detect
     if: needs.detect.outputs.has_fhir_conformance == 'true'
-    runs-on: [self-hosted, macOS]
+    runs-on: macos-latest
     timeout-minutes: 90
+    env:
+      GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '0.8.0' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -283,26 +296,35 @@ jobs:
         with:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
-          # Typed metadata contract; replace with its release tag when published.
-          ref: ${{ inputs.grove_fhir_ref || '1c9ad82e9b89645ad18b90417add41a4ea563ae9' }}
+          ref: ${{ env.GROVE_FHIR_REF }}
           persist-credentials: false
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: ${{ env.TEST_XCODE_VERSION }}
-      - name: Use selected Xcode for this job
-        run: |
-          DEVELOPER_DIR="$MD_APPLE_SDK_ROOT/Contents/Developer" Scripts/check-ci-xcode.sh
-          echo "DEVELOPER_DIR=$MD_APPLE_SDK_ROOT/Contents/Developer" >> "$GITHUB_ENV"
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '1c9ad82e9b89645ad18b90417add41a4ea563ae9' }}"
+          echo "grove-fhir ref: $GROVE_FHIR_REF"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
-      - name: Pin the implementation-guide cache key
+      - name: Choose where the implementation guides come from
+        env:
+          VERIFY_RELEASE_PACKAGES: ${{ inputs.verify_release_packages }}
         run: |
           RESOLVED_GROVE_FHIR_SHA="$(git -C .fhir/grove-fhir rev-parse HEAD)"
           echo "GROVE_FHIR_GUIDE_CACHE_KEY=grove-fhir-validation-${{ runner.os }}-$RESOLVED_GROVE_FHIR_SHA-${{ hashFiles('.fhir/grove-fhir/Gemfile.lock', '.fhir/grove-fhir/package-lock.json', '.fhir/grove-fhir/Scripts/**', '.fhir/grove-fhir/catalog/**', '.fhir/grove-fhir/mobile/**', '.fhir/grove-fhir/sensor/**', '.fhir/grove-fhir/sensorkit/**', '.fhir/grove-fhir/healthkit/**', '.fhir/grove-fhir/questionnaire/**') }}" >> "$GITHUB_ENV"
+          # validate-fhir-conformance.sh downloads a release tag's packages itself, so only a commit, or a release
+          # being compared with its own build, is built here. See GROVE_FHIR_GUIDE_SOURCE in that script.
+          if [ "$VERIFY_RELEASE_PACKAGES" = "true" ]; then
+            GUIDE_SOURCE=compare
+          elif git -C .fhir/grove-fhir rev-parse -q --verify "refs/tags/$GROVE_FHIR_REF^{commit}" > /dev/null; then
+            GUIDE_SOURCE=release
+          else
+            GUIDE_SOURCE=build
+          fi
+          echo "grove-fhir guide source: $GUIDE_SOURCE"
+          echo "GROVE_FHIR_GUIDE_SOURCE=$GUIDE_SOURCE" >> "$GITHUB_ENV"
+          # The packages compared below come from the build step, or from a cache keyed by this commit and its guide
+          # sources, so the script need not rebuild them to be sure they are current.
+          echo "GROVE_FHIR_GUIDES_CURRENT=1" >> "$GITHUB_ENV"
       - name: Restore built implementation guides
+        if: env.GROVE_FHIR_GUIDE_SOURCE != 'release'
         id: guide-cache
         uses: actions/cache/restore@v6
         with:
@@ -324,21 +346,12 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - name: Install Ruby runtime dependencies
-        run: |
-          for dependency in gmp openssl@3 libyaml; do
-            if ! brew list --versions "$dependency" >/dev/null; then
-              brew install "$dependency"
-            fi
-          done
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
           bundler-cache: false
-      - name: Check Ruby native extensions
-        run: ruby -ropenssl -rpsych -e 'puts OpenSSL::OPENSSL_VERSION; puts Psych::VERSION'
       - name: Build active implementation guides
-        if: steps.guide-cache.outputs.cache-hit != 'true'
+        if: env.GROVE_FHIR_GUIDE_SOURCE != 'release' && steps.guide-cache.outputs.cache-hit != 'true'
         working-directory: .fhir/grove-fhir
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
@@ -364,7 +377,7 @@ jobs:
           done
           ./Scripts/build-guides.sh "${GUIDES[@]}"
       - name: Save built implementation guides
-        if: steps.guide-cache.outputs.cache-hit != 'true'
+        if: env.GROVE_FHIR_GUIDE_SOURCE != 'release' && steps.guide-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: |
@@ -379,7 +392,6 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '1c9ad82e9b89645ad18b90417add41a4ea563ae9' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do

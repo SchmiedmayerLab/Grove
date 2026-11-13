@@ -11,6 +11,7 @@ public import struct NIOCore.ByteBuffer
 
 
 /// The Record Access Operand format for the Omron Record Access Control Point characteristic.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum OmronRecordAccessOperand {
     // REQUEST
 
@@ -30,14 +31,17 @@ public enum OmronRecordAccessOperand {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronRecordAccessOperand: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessFilterType {
     static let omronSequenceNumber = RecordAccessFilterType(rawValue: 0x04)
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronRecordAccessOperand: RecordAccessOperand {
     public var generalResponse: RecordAccessGeneralResponse? {
         guard case let .generalResponse(response) = self else {
@@ -98,6 +102,7 @@ extension OmronRecordAccessOperand: RecordAccessOperand {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperationContent where Operand == OmronRecordAccessOperand {
     /// Records that are greater than or equal to the specified sequence number.
     ///

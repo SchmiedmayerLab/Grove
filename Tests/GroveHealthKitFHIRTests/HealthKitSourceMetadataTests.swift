@@ -164,6 +164,28 @@ struct HealthKitSourceMetadataTests {
         #expect(metadata.container == nil)
         #expect(metadata.unsupportedCount == 2)
     }
+
+    @Test(
+        "Metadata percentages use the same decimal scaling as clinical quantities",
+        arguments: [HKMetadataKeyWeatherHumidity, HKMetadataKeyAlpineSlopeGrade],
+        [(0.282, "28.2"), (0.29, "29"), (0.975, "97.5")]
+    )
+    func percentQuantities(key: String, value: (fraction: Double, expected: String)) throws {
+        let metadata = HealthKitSourceMetadata(
+            sample: Self.sample(),
+            values: [key: HKQuantity(unit: .percent(), doubleValue: value.fraction)],
+            disclosure: .authorized
+        )
+        let encoded = try #require(metadata.container?.extension?.first?.extension?.last?.value)
+        guard case .quantity(let quantity) = encoded else {
+            Issue.record("Metadata percentage must be a quantity")
+            return
+        }
+        #expect(quantity.code?.value?.string == "%")
+        #expect(quantity.value?.value?.decimal.description == value.expected)
+        #expect(metadata.preservedKeys == [key])
+        #expect(metadata.unsupportedCount == 0)
+    }
 }
 
 #endif

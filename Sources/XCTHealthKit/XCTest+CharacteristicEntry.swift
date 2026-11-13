@@ -68,8 +68,14 @@ extension XCTestCase {
         healthApp.launch()
         XCTAssert(healthApp.wait(for: .runningForeground, timeout: 10))
         handleHealthAppOnboardingIfNecessary()
-        
-        healthApp.tabBars.buttons["Summary"].tapWhenHittable() // make sure we're on the first tab
+
+        // On iOS 27 the relaunched Health app can come up with the profile sheet open, even after a previous run closed
+        // it. The sheet covers the tab bar, so the Summary tab can't be selected and the Profile tap would close it.
+        let summaryTabButton = healthApp.tabBars.buttons["Summary"]
+        if !summaryTabButton.wait(for: \.isHittable, toEqual: true, timeout: 10) {
+            _ = healthApp.dismissAccountSheetIfNecessary()
+        }
+        summaryTabButton.tapWhenHittable() // make sure we're on the first tab
         let profileButton = healthApp.buttons["Profile"]
         XCTAssert(profileButton.waitForExistence(timeout: 10))
         profileButton.tryToTapReallySoftlyMaybeThisWillMakeItWork()
@@ -201,15 +207,26 @@ extension XCTestCase {
         }
         
         healthApp.navigationBars["Health Details"].buttons["Done"].tapWhenHittable()
-        healthApp.navigationBars["Health Details"].buttons["Profile"].tapWhenHittable()
-        let doneButton = healthApp.navigationBars.firstMatch.buttons["Done"]
-        let closeButton = healthApp.navigationBars.firstMatch.buttons["close"]
-        if doneButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
-            doneButton.tap()
-        } else if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
-            closeButton.tap()
+        if XCTestCase.isIOS27OrGreater {
+            // From iOS 27 the back button no longer carries the "Profile" title, and the profile sheet closes with an "x"
+            // button; its navigation bar is not the first one, since the Summary tab's stays in the tree underneath.
+            healthApp.navigationBars["Health Details"].buttons["BackButton"].tapWhenHittable()
+            healthApp.navigationBars["HealthExperienceUI.ProfileView"].buttons["close"].tapWhenHittable()
+            XCTAssert(
+                healthApp.navigationBars["HealthExperienceUI.ProfileView"].waitForNonExistence(timeout: 5),
+                "The profile sheet did not dismiss"
+            )
         } else {
-            XCTFail("Unable to find done/close button")
+            healthApp.navigationBars["Health Details"].buttons["Profile"].tapWhenHittable()
+            let doneButton = healthApp.navigationBars.firstMatch.buttons["Done"]
+            let closeButton = healthApp.navigationBars.firstMatch.buttons["close"]
+            if doneButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
+                doneButton.tap()
+            } else if closeButton.wait(for: \.isHittable, toEqual: true, timeout: 5) {
+                closeButton.tap()
+            } else {
+                XCTFail("Unable to find done/close button")
+            }
         }
     }
 }

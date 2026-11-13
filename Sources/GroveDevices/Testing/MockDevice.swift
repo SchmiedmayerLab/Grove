@@ -159,6 +159,7 @@ extension MockDevice {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement {
     /// Create a mock blood pressure measurement.
     /// - Parameters:
@@ -196,6 +197,7 @@ extension BloodPressureMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurement {
     /// Create a mock weight measurement.
     /// - Parameters:

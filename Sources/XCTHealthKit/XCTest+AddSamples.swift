@@ -56,12 +56,15 @@ extension XCTestCase {
 
 
 extension XCUIApplication {
-    /// Attempts to navigate the Health app to the "search" (nee "Browse") tab.
+    /// Attempts to navigate the Health app to the tab listing the health categories: "Browse" before iOS 26 and again from
+    /// iOS 27, "Search" on iOS 26.
     ///
     /// - Note: This function expects that no modals or sheets are currently presented.
     @MainActor
     public func goToBrowseTab() throws {
-        if XCTestCase.isIOS26OrGreater {
+        if XCTestCase.isIOS27OrGreater {
+            try goToBrowseTabOnIOS27()
+        } else if XCTestCase.isIOS26OrGreater {
             try assertIsHealthApp()
             if self.navigationBars["Search"].exists {
                 return
@@ -90,14 +93,36 @@ extension XCUIApplication {
         }
     }
     
+    @MainActor
+    private func goToBrowseTabOnIOS27() throws {
+        try assertIsHealthApp()
+        if self.navigationBars["Browse"].exists {
+            return
+        }
+        let browseTabBarButton = self.tabBars.buttons["UIA.Health.Tab.Browse"]
+        guard browseTabBarButton.wait(for: \.isHittable, toEqual: true, timeout: 10) else {
+            if dismissAccountSheetIfNecessary() {
+                try goToBrowseTab()
+                return
+            } else {
+                throw XCTHealthKitError("Unable to find 'Browse' tab bar item")
+            }
+        }
+        browseTabBarButton.tap() // select the tab
+        if !self.navigationBars["Browse"].waitForExistence(timeout: 2) {
+            browseTabBarButton.tap() // go back to the tab's root VC, if necessary
+        }
+    }
+
     /// - returns: `true` if the account sheet was dismissed, otherwise false.
     @MainActor
     func dismissAccountSheetIfNecessary() -> Bool {
-        let doneButton = self.navigationBars["HealthExperienceUI.ProfileView"].buttons["Done"]
-        if doneButton.exists {
-            XCTAssert(doneButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
-            doneButton.tap()
-            XCTAssert(doneButton.waitForNonExistence(timeout: 2))
+        // From iOS 27 the sheet closes with an "x" button, labelled "close".
+        let closeButton = self.navigationBars["HealthExperienceUI.ProfileView"].buttons[XCTestCase.isIOS27OrGreater ? "close" : "Done"]
+        if closeButton.exists {
+            XCTAssert(closeButton.wait(for: \.isHittable, toEqual: true, timeout: 2))
+            closeButton.tap()
+            XCTAssert(closeButton.waitForNonExistence(timeout: 2))
             return true
         } else {
             return false

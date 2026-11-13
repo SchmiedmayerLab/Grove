@@ -7,6 +7,7 @@
 //
 
 /// The result of a connection attempt.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum ConnectionAttemptResult: Sendable {
     /// The connection attempt was successful and the device is connected.
     case success

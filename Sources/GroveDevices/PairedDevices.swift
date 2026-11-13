@@ -174,7 +174,7 @@ public final class PairedDevices: ServiceModule {
     }
 
 
-    nonisolated(unsafe) private var _pairedDevices: OrderedDictionary<UUID, PairedDevice> = [:]
+    @ObservationIgnored nonisolated(unsafe) private var pairedDevicesStorage: OrderedDictionary<UUID, PairedDevice> = [:]
     private let devicesLock = NSLock()
     /// The collection of paired devices that are persisted on disk.
     @MainActor public var pairedDevices: [PairedDeviceInfo]? { // swiftlint:disable:this discouraged_optional_collection
@@ -263,18 +263,10 @@ public final class PairedDevices: ServiceModule {
         self.fetchAllPairedInfos()
         self.syncDeviceIcons() // make sure assets are up to date
 
-        var powerUpUsingASKit = false
+        let hasPairedDevices = !self.devicesLock.withLock { _pairedDevices.isEmpty }
 
 #if canImport(AccessorySetupKit) && !os(macOS) && !targetEnvironment(macCatalyst)
         if accessorySetup != nil {
-            powerUpUsingASKit = true
-        } else {
-            logger.info("AccessorySetupKit is supported by the platform but `NSAccessorySetupKitSupports` doesn't declare support for Bluetooth.")
-        }
-#endif
-
-        let hasPairedDevices = !self.devicesLock.withLock { _pairedDevices.isEmpty }
-        if powerUpUsingASKit {
             // We use the ASKit activate event to power up the central if there are paired devices as we need control over it.
             switch asKitMigrationState {
             case .notDetermined:
@@ -283,16 +275,17 @@ public final class PairedDevices: ServiceModule {
                 break
             }
 
-#if canImport(AccessorySetupKit) && !os(macOS) && !targetEnvironment(macCatalyst)
             // power up accessory setup kit after we determined the migration state
             setupAccessoryChangeSubscription()
+            return
+        }
+        logger.info("AccessorySetupKit is supported by the platform but `NSAccessorySetupKitSupports` doesn't declare support for Bluetooth.")
 #endif
-        } else {
-            asKitMigrationState = .notDetermined // support downgrades
-            if let bluetooth, hasPairedDevices {
-                // otherwise, power up central and subscribe to state changes
-                self.stateSubscription.subscribe(with: bluetooth)
-            }
+
+        asKitMigrationState = .notDetermined // support downgrades
+        if let bluetooth, hasPairedDevices {
+            // otherwise, power up central and subscribe to state changes
+            self.stateSubscription.subscribe(with: bluetooth)
         }
     }
 
@@ -463,6 +456,23 @@ public final class PairedDevices: ServiceModule {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension PairedDevices: Module, EnvironmentAccessible, DefaultInitializable, @unchecked Sendable {}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension PairedDevices {
+    /// Tracked by hand: `@Observable` would move `nonisolated(unsafe)` onto its generated accessors, where it has no effect.
+    private var _pairedDevices: OrderedDictionary<UUID, PairedDevice> {
+        get {
+            access(keyPath: \._pairedDevices)
+            return pairedDevicesStorage
+        }
+        set {
+            withMutation(keyPath: \._pairedDevices) {
+                pairedDevicesStorage = newValue
+            }
+        }
+    }
+}
 
 // MARK: - Manual Discovery
 

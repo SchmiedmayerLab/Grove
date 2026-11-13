@@ -16,6 +16,7 @@ public import CoreBluetooth
 /// `CBUUID` is by its definition not `Sendable`. Not because of its implementation not-being thread-safe, but it being declared as an open class with the open properties
 /// ``uuidString`` and ``data``. By wrapping the `CBUUID` type, and making sure no-one can inject a non-thread-safe sub-class, we create a effectively sendable version
 /// of `CBUUID`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BTUUID {
     /// The CoreBluetooth UUID.
     nonisolated(unsafe) public let cbuuid: CBUUID
@@ -57,9 +58,11 @@ public struct BTUUID {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BTUUID: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BTUUID: ExpressibleByStringLiteral {
     /// Create a Bluetooth UUID from a 16-, 32-, or 128-bit UUID string.
     /// - Parameter value: A string containing a 16-, 32-, or 128-bit UUID.
@@ -69,9 +72,11 @@ extension BTUUID: ExpressibleByStringLiteral {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BTUUID: Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BTUUID: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         cbuuid.description

@@ -21,27 +21,23 @@ struct ContentView: View {
         List {
             Section("Authoring") {
                 ForEach(AuthoringRoute.allCases) { route in
-                    NavigationLink(route.title, value: route)
+                    NavigationLink(route.title, value: CatalogPage.route(route))
                         .accessibilityIdentifier("Route:\(route.title)")
                 }
             }
 
             Section("Renderer") {
-                NavigationLink("Existing Responses") {
-                    ExistingResponsesExample()
+                ForEach([CatalogPage.existingResponses, .completionFlow], id: \.self) { page in
+                    NavigationLink(page.title, value: page)
+                        .accessibilityIdentifier("Renderer:\(page.title)")
                 }
-                .accessibilityIdentifier("Renderer:Existing Responses")
-                NavigationLink("Completion Flow") {
-                    CompletionFlowExample()
-                }
-                .accessibilityIdentifier("Renderer:Completion Flow")
             }
 
             responsesSection
         }
         .navigationTitle("Grove Questionnaire")
-        .navigationDestination(for: AuthoringRoute.self) { route in
-            page(for: route)
+        .navigationDestination(for: CatalogPage.self) { page in
+            view(for: page)
         }
         .sheet(item: $shownResponse) { entry in
             ResponseDetailsSheet(entry: entry)
@@ -73,14 +69,18 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private func page(for route: AuthoringRoute) -> some View {
-        switch route {
-        case .swiftDSL:
+    private func view(for page: CatalogPage) -> some View {
+        switch page {
+        case .route(.swiftDSL):
             SwiftDSLRoute()
-        case .modelValues:
+        case .route(.modelValues):
             ModelValuesRoute()
-        case .fhir:
+        case .route(.fhir):
             FHIRRoute()
+        case .existingResponses:
+            ExistingResponsesExample()
+        case .completionFlow:
+            CompletionFlowExample()
         }
     }
 }

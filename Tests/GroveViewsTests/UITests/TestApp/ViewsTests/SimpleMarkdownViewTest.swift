@@ -17,15 +17,8 @@ struct SimpleMarkdownViewTest: View {
     var body: some View {
         ScrollView {
             Group {
-                MarkdownView(
-                    asyncMarkdown: {
-                        try? await Task.sleep(for: .seconds(2))
-                        return Data("This is a *markdown* **example** taking 2 seconds to load.".utf8)
-                    }
-                )
-                MarkdownView(
-                    markdown: Data("This is a *markdown* **example**.".utf8)
-                )
+                asyncMarkdownView
+                dataMarkdownView
             }
             .multilineTextAlignment(textAlignment)
             .padding(.horizontal)
@@ -46,8 +39,30 @@ struct SimpleMarkdownViewTest: View {
             #endif
         }
     }
-    
-    
+
+
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers MarkdownView's deprecated `Data` initializers.")
+    #endif
+    private var asyncMarkdownView: some View {
+        MarkdownView(
+            asyncMarkdown: {
+                try? await Task.sleep(for: .seconds(2))
+                return Data("This is a *markdown* **example** taking 2 seconds to load.".utf8)
+            }
+        )
+    }
+
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers MarkdownView's deprecated `Data` initializers.")
+    #endif
+    private var dataMarkdownView: some View {
+        MarkdownView(
+            markdown: Data("This is a *markdown* **example**.".utf8)
+        )
+    }
+
+
     private var toolbarContent: some View {
         HStack {
             Text("Text Alignment")

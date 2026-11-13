@@ -10,6 +10,7 @@ public import GroveViews
 
 
 /// Describes how a bluetooth device should be visually presented to the user.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct Appearance {
     /// Provides a user-friendly name for the device.
     ///
@@ -29,4 +30,5 @@ public struct Appearance {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Appearance: Hashable, Sendable {}

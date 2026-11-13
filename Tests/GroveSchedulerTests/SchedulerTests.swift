@@ -820,7 +820,7 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
     }
 
     @Test
-    func iOS26Migration() throws {
+    func iOS26Migration() async throws {
         let fm = FileManager.default // swiftlint:disable:this identifier_name
         let schedulerDir = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
         try fm.createDirectory(at: schedulerDir, withIntermediateDirectories: true)
@@ -836,30 +836,96 @@ struct SchedulerTests { // swiftlint:disable:this type_body_length
         try copyInputFile("sqlite")
         try copyInputFile("sqlite-shm")
         try copyInputFile("sqlite-wal")
+        try await withOnDiskScheduler(in: schedulerDir) { scheduler in
+            #expect(fm.itemExists(at: didMigrateFlagUrl))
+            let tasks = try scheduler.queryAllTasks()
+            #expect(tasks.count == 5)
+            #expect(tasks.mapIntoSet(\.id) == ["task1", "task2", "task3"])
+            #expect(tasks.count { $0.id == "task1" } == 2)
+            #expect(tasks.count { $0.id == "task2" } == 2)
+            #expect(tasks.count { $0.id == "task3" } == 1)
+            let task1Versions = Array(try #require(tasks.first { $0.id == "task1" }).allVersions)
+            #expect(task1Versions.map { String(localized: $0.title) } == ["Task 1 Title", "Task 1 Title (new)"])
+            #expect(task1Versions.map { String(localized: $0.instructions) } == ["Task 1 Instructions", "Task 1 Instructions (new)"])
+            let task2Versions = Array(try #require(tasks.first { $0.id == "task2" }).allVersions)
+            #expect(task2Versions.map { String(localized: $0.title) } == ["Task 2 Title (#items: 1)", "Task 2 Title (#items: 2)"])
+            #expect(task2Versions.map { String(localized: $0.instructions) } == ["Please answer 1 question", "Please answer 2 questions"])
+            let task3Versions = Array(try #require(tasks.first { $0.id == "task3" }).allVersions)
+            #expect(task3Versions.count == 1)
+            let task3 = try #require(task3Versions.first)
+            #expect(
+                task3.title == "Task 3 \(placeholder: .double) \(placeholder: .float) \(placeholder: .int) \(placeholder: .uint) \(placeholder: .object)"
+            )
+            #expect(String(localized: task3.instructions) == "Task 3")
+        }
+    }
+
+    /// A store that can no longer be read must fail the check rather than report notification tasks.
+    ///
+    /// SwiftData answers a count against such a store with `NSNotFound` instead of throwing, which read as
+    /// "has tasks" and sent the notification rebuild on to the authorization check.
+    @Test
+    func unreadableStoreFailsNotificationCheck() async throws {
+        let fm = FileManager.default // swiftlint:disable:this identifier_name
+        let schedulerDir = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
+        try fm.createDirectory(at: schedulerDir, withIntermediateDirectories: true)
         let scheduler = Scheduler(persistence: .onDisk(directory: schedulerDir))
         withDependencyResolution {
             scheduler
         }
-        #expect(fm.itemExists(at: didMigrateFlagUrl))
-        let tasks = try scheduler.queryAllTasks()
-        #expect(tasks.count == 5)
-        #expect(tasks.mapIntoSet(\.id) == ["task1", "task2", "task3"])
-        #expect(tasks.count { $0.id == "task1" } == 2)
-        #expect(tasks.count { $0.id == "task2" } == 2)
-        #expect(tasks.count { $0.id == "task3" } == 1)
-        let task1Versions = Array(try #require(tasks.first { $0.id == "task1" }).allVersions)
-        #expect(task1Versions.map { String(localized: $0.title) } == ["Task 1 Title", "Task 1 Title (new)"])
-        #expect(task1Versions.map { String(localized: $0.instructions) } == ["Task 1 Instructions", "Task 1 Instructions (new)"])
-        let task2Versions = Array(try #require(tasks.first { $0.id == "task2" }).allVersions)
-        #expect(task2Versions.map { String(localized: $0.title) } == ["Task 2 Title (#items: 1)", "Task 2 Title (#items: 2)"])
-        #expect(task2Versions.map { String(localized: $0.instructions) } == ["Please answer 1 question", "Please answer 2 questions"])
-        let task3Versions = Array(try #require(tasks.first { $0.id == "task3" }).allVersions)
-        #expect(task3Versions.count == 1)
-        let task3 = try #require(task3Versions.first)
-        #expect(
-            task3.title == "Task 3 \(placeholder: .double) \(placeholder: .float) \(placeholder: .int) \(placeholder: .uint) \(placeholder: .object)"
-        )
-        #expect(String(localized: task3.instructions) == "Task 3")
+        #expect(try !scheduler.hasTasksWithNotifications(for: .now...))
+        try fm.removeItem(at: schedulerDir)
+        // SQLite notices the deletion with a delay; until then, reads still reach the unlinked file.
+        try #require(try await poll { (try? scheduler.queryAllTasks()) == nil }, "The store stayed readable after its deletion.")
+        #expect(throws: (any Error).self) {
+            try scheduler.hasTasksWithNotifications(for: .now...)
+        }
+    }
+
+    /// An in-memory store can't outlive the process, so a refresh owed to it isn't recorded for the next launch.
+    ///
+    /// The record is shared by every scheduler in the process: written here, the next scheduler to start
+    /// would rebuild for it, against its own store and whatever state that store is in by then.
+    @Test
+    func inMemorySchedulerDoesNotRecordPendingRefresh() {
+        let key = SchedulerNotifications.pendingNotificationRefreshStorageKey
+        let scheduler = Scheduler(persistence: .inMemory)
+        withDependencyResolution {
+            scheduler
+        }
+        UserDefaults.standard.removeObject(forKey: key)
+        scheduler.manuallyScheduleNotificationRefresh()
+        #expect(UserDefaults.standard.object(forKey: key) == nil)
+    }
+
+    /// Runs `body` against a scheduler that stores its data in `directory`, and returns once that scheduler is gone.
+    ///
+    /// `configure()` queues launch work that keeps the scheduler, and its open store, alive past `body`.
+    /// Deleting the store under that work fails its reads, so the caller may delete `directory` only after this returns.
+    private func withOnDiskScheduler(in directory: URL, _ body: (Scheduler) throws -> Void) async throws {
+        weak var releasedScheduler: Scheduler?
+        let result = Result {
+            let scheduler = Scheduler(persistence: .onDisk(directory: directory))
+            withDependencyResolution {
+                scheduler
+            }
+            releasedScheduler = scheduler
+            try body(scheduler)
+        }
+        #expect(try await poll { releasedScheduler == nil }, "The scheduler outlived the work queued by its configuration.")
+        try result.get()
+    }
+
+    /// Re-checks `condition` until it holds or `timeout` passes, and returns whether it held.
+    private func poll(timeout: Duration = .seconds(10), until condition: () -> Bool) async throws -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while !condition() {
+            guard ContinuousClock.now < deadline else {
+                return false
+            }
+            try await Swift::Task.sleep(for: .milliseconds(10))
+        }
+        return true
     }
 
 

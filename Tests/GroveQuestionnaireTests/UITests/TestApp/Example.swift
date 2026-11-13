@@ -83,6 +83,7 @@ struct ExampleCatalog: View {
         }
         .navigationTitle(route.title)
         .runsQuestionnaires($running)
+        .startsAtLaunch(groups.flatMap(\.examples), in: $running)
     }
 }
 
@@ -103,6 +104,25 @@ extension View {
     /// Presents the selected example, and files whatever it collects in the responses store.
     func runsQuestionnaires(_ example: Binding<Example?>) -> some View {
         modifier(QuestionnaireRunner(example: example))
+    }
+
+    /// Starts whichever of `examples` the launch asked for, once the page is on screen.
+    func startsAtLaunch(_ examples: [Example], in example: Binding<Example?>) -> some View {
+        modifier(LaunchStarter(examples: examples, example: example))
+    }
+}
+
+
+private struct LaunchStarter: ViewModifier {
+    let examples: [Example]
+    @Binding var example: Example?
+
+    func body(content: Content) -> some View {
+        content.task {
+            if let waiting = examples.first(where: { LaunchShortcut.isWaiting($0.title) }), LaunchShortcut.claim(waiting.title) {
+                example = waiting
+            }
+        }
     }
 }
 

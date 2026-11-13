@@ -8,6 +8,7 @@
 
 
 /// A characteristic description.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CharacteristicDescription {
     /// The characteristic id.
     public let characteristicId: BTUUID
@@ -30,9 +31,11 @@ public struct CharacteristicDescription {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicDescription: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicDescription: ExpressibleByStringLiteral {
     public init(stringLiteral value: StringLiteralType) {
         self.init(id: BTUUID(stringLiteral: value))
@@ -40,4 +43,5 @@ extension CharacteristicDescription: ExpressibleByStringLiteral {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CharacteristicDescription: Hashable {}

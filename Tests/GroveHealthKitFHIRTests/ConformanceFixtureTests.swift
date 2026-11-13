@@ -347,7 +347,7 @@ struct ConformanceFixtureTests {
         let workout = try vector("workout")
         try requireCode("running", in: workout)
         let workoutDates = try dates(workout)
-        try await add("workout", HKWorkout(
+        try await add("workout", HKWorkout.fixture(
             activityType: .running,
             start: workoutDates.start,
             end: workoutDates.end,
@@ -362,7 +362,7 @@ struct ConformanceFixtureTests {
         let workoutSegment = try vector("workout-segment")
         try requireCode("lap", in: workoutSegment)
         let segmentDates = try dates(workoutSegment)
-        let segmentWorkout = HKWorkout(
+        let segmentWorkout = HKWorkout.fixture(
             activityType: .running,
             start: segmentDates.start,
             end: segmentDates.end,

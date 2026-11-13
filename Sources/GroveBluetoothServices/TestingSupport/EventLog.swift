@@ -17,6 +17,7 @@ public import struct NIOCore.ByteBuffer
 /// An event emitted by the test peripheral.
 ///
 /// Those events always imply to happen on characteristics of the `TestService`.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 public enum EventLog {
     /// No event happened yet.
@@ -32,10 +33,12 @@ public enum EventLog {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 extension EventLog: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 extension EventLog: CustomStringConvertible {
     public var description: String {
@@ -55,6 +58,7 @@ extension EventLog: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 extension EventLog: ByteCodable {
     private enum EventType: UInt8 {

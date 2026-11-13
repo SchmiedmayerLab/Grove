@@ -260,7 +260,9 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
         // study identifier rewrite, whose pending notifications reference the rewritten rows), and a
         // process killed between the queueing and the rebuild must not lose it. Cleared only when a
         // rebuild completes; `checkForInitialScheduling` re-runs a leftover on the next launch.
-        UserDefaults.standard.set(true, forKey: Self.pendingNotificationRefreshStorageKey)
+        if scheduler.storeOutlivesProcess {
+            UserDefaults.standard.set(true, forKey: Self.pendingNotificationRefreshStorageKey)
+        }
         queuedForNextTick = true
         Swift::Task { @MainActor in
             await Swift::Task.yield()
@@ -305,7 +307,7 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
     func checkForInitialScheduling(scheduler: Scheduler) async {
         var scheduleNotificationUpdate = false
 
-        if UserDefaults.standard.bool(forKey: Self.pendingNotificationRefreshStorageKey) {
+        if scheduler.storeOutlivesProcess, UserDefaults.standard.bool(forKey: Self.pendingNotificationRefreshStorageKey) {
             // Consumed immediately rather than on completion: one retry per launch is the designed
             // guarantee (a kill between the study row rewrite committing and its refresh running),
             // and consuming here keeps a persistent flag from turning every later launch — or every
@@ -354,7 +356,9 @@ public final class SchedulerNotifications: Module, DefaultInitializable, Environ
         let task = Swift::Task { @MainActor in
             await Swift::Task.yield()
             try await scheduleNotifications(for: scheduler)
-            UserDefaults.standard.removeObject(forKey: Self.pendingNotificationRefreshStorageKey)
+            if scheduler.storeOutlivesProcess {
+                UserDefaults.standard.removeObject(forKey: Self.pendingNotificationRefreshStorageKey)
+            }
             // (Also consumed at launch by `checkForInitialScheduling`; clearing here as well simply
             // avoids one redundant refresh when the rebuild did complete.)
         }

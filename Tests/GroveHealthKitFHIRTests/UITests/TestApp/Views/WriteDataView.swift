@@ -22,7 +22,7 @@ struct WriteDataView: View {
             Section {
                 TextField("Number of steps...", value: $steps, format: .number)
                 Button("Write Step Count") {
-                    Task {
+                    _ = Task {
                         try await writeSteps()
                     }
                 }

@@ -139,7 +139,7 @@ extension HealthKitSourceMetadata {
         ])
     ]
 
-    /// Preserve the legacy SDK-enumeration systems and raw codes without truncating fractional numbers.
+    /// Encode SDK enumerations with their documentation systems and raw codes without truncating fractional numbers.
     static func metadataCoding(_ number: NSNumber, key: String) -> Coding? {
         guard let raw = Int(exactly: number.doubleValue), number.decimalValue == Decimal(raw) else {
             return nil

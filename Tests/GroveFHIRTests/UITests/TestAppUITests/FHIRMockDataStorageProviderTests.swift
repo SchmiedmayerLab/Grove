@@ -11,6 +11,7 @@ import XCTest
 import XCTestExtensions
 
 
+@MainActor
 final class GroveFHIRTests: XCTestCase {
     func testMockPatientResources() throws {
         let app = XCUIApplication()

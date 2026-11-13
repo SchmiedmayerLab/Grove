@@ -788,14 +788,14 @@ struct ExchangeGraphCorpusTests {
         let assembler = try #require(provenance.agent.first?.who.reference?.value?.string)
         let assemblerEntry = graph.bundle.entry?.first { $0.fullUrl?.value?.url.absoluteString == assembler }
         #expect(assemblerEntry?.resource?.get(if: Device.self) != nil)
-        let end = FHIRPrimitive(try DateTime("2026-08-21T08:00:00Z"))
+        let end = FHIRPrimitive(DateTime("2026-08-21T08:00:00Z"))
         switch occurred {
         case .instant:
             #expect(provenance.occurred == .dateTime(end))
         case .period(nil, _):
             #expect(provenance.occurred == .period(Period(end: end)))
         case .period:
-            #expect(provenance.occurred == .period(Period(end: end, start: FHIRPrimitive(try DateTime("2026-08-21T07:00:00Z")))))
+            #expect(provenance.occurred == .period(Period(end: end, start: FHIRPrimitive(DateTime("2026-08-21T07:00:00Z")))))
         }
         _ = try ExchangeGraph(validating: JSONEncoder().encode(graph.bundle), kind: .retraction)
     }

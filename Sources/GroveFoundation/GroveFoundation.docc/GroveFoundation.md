@@ -36,7 +36,6 @@ Grove Foundation provides a base layer of functionality useful in many applicati
 - ``withManagedTaskQueue(limit:_:)``
 - ``AsyncSemaphore``
 - ``ManagedAsynchronousAccess``
-- ``runOrScheduleOnMainActor(_:)``
 - ``CancelableTaskHandle``
 - ``_Concurrency/DiscardingTaskGroup/addCancelableTask(_:)``
 

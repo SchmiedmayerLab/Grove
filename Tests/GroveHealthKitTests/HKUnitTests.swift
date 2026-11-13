@@ -40,6 +40,13 @@ struct HKUnitTests {
     }()
     
     
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated `calorie()`.")
+    #endif
+    private static func deprecatedCalorieUnits() -> (HKUnitA, HKUnitB) {
+        (HKUnitA.calorie(), HKUnitB.calorie())
+    }
+
     @Test func unitCompatibility() throws {
         func _checkCompatible( // swiftlint:disable:this identifier_name
             _ unit1String: String,
@@ -522,18 +529,12 @@ struct HKUnitTests {
         #expect(HKUnitA._nullUnit.isCompatible(with: ._nullUnit))
         #expect(HKUnitB._nullUnit.isCompatible(with: ._nullUnit))
         
-        // Apple appears to have fixed this in OS 27: HealthKit used to give the null unit a
-        // factorization of `null: 1`, making it compatible with any other unitless dimension, and
-        // `_HKUnit` deliberately diverged with an empty factorization. OS 27 adopts the empty
-        // factorization, so our implementation is now on par and needs no change. Both answers are
-        // asserted so the suite says which OS does what instead of encoding whichever one built it.
-        if hasHealthKit {
-            if #available(iOS 27, macOS 27, watchOS 27, visionOS 27, *) {
-                #expect(!HKUnitA._nullUnit.isCompatible(with: .count()))
-            } else {
-                #expect(HKUnitA._nullUnit.isCompatible(with: .count()))
-            }
-        }
+        // HealthKit gives the null unit a factorization of `null: 1`, making it compatible with any other
+        // unitless dimension; `_HKUnit` deliberately diverges with an empty factorization. HealthKit's
+        // answer depends on the OS point release, not the major version: macOS 27.0.1 adopts the empty
+        // factorization, while macOS 26 and macOS 27.2 keep `null: 1`. So the suite reads HealthKit's
+        // answer instead of asserting it, and checks that `count` and `percent` agree with each other.
+        let healthKitNullUnitIsCompatibleWithCount = hasHealthKit && HKUnitA._nullUnit.isCompatible(with: .count())
         #expect(!HKUnitB._nullUnit.isCompatible(with: .count()))
         
         #expect(HKUnitB._nullUnit.factorization == HKFactorization([:]))
@@ -548,11 +549,7 @@ struct HKUnitTests {
         #expect(!HKUnitB._nullUnit.isCompatible(with: .count().unitRaised(toPower: 2)))
         
         if hasHealthKit {
-            if #available(iOS 27, macOS 27, watchOS 27, visionOS 27, *) {
-                #expect(!HKUnitA._nullUnit.isCompatible(with: .percent()))
-            } else {
-                #expect(HKUnitA._nullUnit.isCompatible(with: .percent()))
-            }
+            #expect(HKUnitA._nullUnit.isCompatible(with: .percent()) == healthKitNullUnitIsCompatibleWithCount)
         }
         #expect(!HKUnitB._nullUnit.isCompatible(with: .percent()))
         
@@ -585,10 +582,10 @@ struct HKUnitTests {
         #expect(!(HKUnitB.percent() / .count()).isNull())
         
         if hasHealthKit {
-            // Same OS 27 change as above: with the null unit no longer compatible with `count` or
-            // `percent`, HealthKit raises on the conversion rather than returning a value — and an
-            // ObjC exception here aborts the whole test process, not just this case.
-            if #unavailable(iOS 27, macOS 27, watchOS 27, visionOS 27) {
+            // When HealthKit's null unit is not compatible with `count` or `percent` (see above), HealthKit
+            // raises on the conversion rather than returning a value — and an ObjC exception here aborts
+            // the whole test process, not just this case.
+            if healthKitNullUnitIsCompatibleWithCount {
                 #expect(HKQuantityA(unit: ._nullUnit, doubleValue: 1).doubleValue(for: .count()) == 1)
                 #expect(HKQuantityA(unit: ._nullUnit, doubleValue: 1).doubleValue(for: .percent()) == 1)
             }
@@ -998,8 +995,9 @@ extension HKUnitTests {
         #expect(try HKUnitA.parse(HKUnitA.smallCalorie().unitString) == HKUnitA.smallCalorie())
         #expect(try HKUnitB.parse(HKUnitB.smallCalorie().unitString) == HKUnitB.smallCalorie())
         
-        #expect(try HKUnitA.parse(HKUnitA.calorie().unitString) == HKUnitA.calorie())
-        #expect(try HKUnitB.parse(HKUnitB.calorie().unitString) == HKUnitB.calorie())
+        let (calorieA, calorieB) = Self.deprecatedCalorieUnits()
+        #expect(try HKUnitA.parse(calorieA.unitString) == calorieA)
+        #expect(try HKUnitB.parse(calorieB.unitString) == calorieB)
         
         // HKUnit docs: "The large calorie is the same as a kilocalorie (1 Cal = 4184.0 J)."
         

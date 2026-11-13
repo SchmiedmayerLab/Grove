@@ -10,6 +10,7 @@
 public import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct BluetoothScanningOptionsModifier: ViewModifier {
     private let minimumRSSI: Int?
     private let advertisementStaleInterval: TimeInterval?
@@ -33,6 +34,7 @@ private struct BluetoothScanningOptionsModifier: ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension View {
     /// Define bluetooth scanning options in the view hierarchy.
     ///

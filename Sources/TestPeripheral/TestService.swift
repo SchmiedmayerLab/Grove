@@ -13,6 +13,7 @@ import GroveBluetoothServices
 import OSLog
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct ATTErrorCode: Error, Sendable {
     let code: CBATTError.Code
 
@@ -22,6 +23,7 @@ struct ATTErrorCode: Error, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @MainActor
 @available(visionOS, unavailable)
 @available(watchOS, unavailable)

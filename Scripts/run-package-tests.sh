@@ -89,6 +89,16 @@ print(" ".join(
 PY
 }
 
+# package -> how many simulator clones its UI tests are spread across (packages.toml uiParallelWorkers)
+ui_workers_for() {
+  python3 - "$1" <<'PY'
+import sys
+import tomllib
+
+print(int(tomllib.load(open("packages.toml", "rb"))[sys.argv[1]].get("uiParallelWorkers", 1)))
+PY
+}
+
 # package -> the platforms it was tested on upstream (the union CI matrix)
 platforms_for() { case "$1" in
     FHIRModelsExtensions) echo "iOS macOS macCatalyst watchOS visionOS tvOS" ;;
@@ -129,8 +139,8 @@ platforms_for() { case "$1" in
   esac; }
 
 dest() { case "$1" in
-  iOS)          echo "platform=iOS Simulator,name=iPhone 18 Pro,OS=27.2" ;;
-  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M5),OS=27.2" ;;
+  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5" ;;
+  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=26.5" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
   watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=26.5" ;;
@@ -191,13 +201,20 @@ run() { # <package> <platform> [mode: "ui"]
       | beautify
       return
     fi
+    # A package can spread a long suite across simulator clones (packages.toml uiParallelWorkers);
+    # UI_WORKERS overrides that for a local run.
+    local workers
+    workers="${UI_WORKERS:-$(ui_workers_for "$1")}"
+    local parallel=(-parallel-testing-enabled NO)
+    if [ "$workers" -gt 1 ]; then
+      parallel=(-parallel-testing-enabled YES -parallel-testing-worker-count "$workers")
+    fi
     xcodebuild test \
       -project "$uidir/UITests.xcodeproj" \
       -scheme TestApp \
       -configuration Debug \
       -destination "$(dest "$2")" \
-      -parallel-testing-enabled "${UI_PARALLEL:-NO}" \
-      -maximum-concurrent-test-simulator-destinations "${UI_WORKERS:-4}" \
+      "${parallel[@]}" \
       -resultBundlePath "$result" \
       -skipMacroValidation \
       -skipPackagePluginValidation \

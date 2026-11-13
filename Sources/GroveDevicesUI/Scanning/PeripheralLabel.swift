@@ -13,6 +13,7 @@ public import SwiftUI
 
 
 /// The label of a bluetooth peripheral.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PeripheralLabel: View {
     private let peripheral: any GenericBluetoothPeripheral
 
@@ -30,6 +31,7 @@ public struct PeripheralLabel: View {
 
 
 #if DEBUG
+@available(iOS 18, macOS 15, watchOS 11, *)
 #Preview {
     List {
         PeripheralLabel(MockBluetoothPeripheral(label: "MyDevice 1", state: .connected))

@@ -18,6 +18,7 @@ public import struct NIOCore.ByteBuffer
 /// for displaying purposes while a blood pressure measurement is in progress.
 ///
 /// Refer to GATT Specification Supplement, 3.126 Intermediate Cuff Pressure.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct IntermediateCuffPressure {
     /// The  intermediate cuff pressure has the same format as the blood pressure measurement characteristic.
     ///
@@ -100,6 +101,7 @@ public struct IntermediateCuffPressure {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension IntermediateCuffPressure: Hashable, Sendable {
     public static func == (lhs: IntermediateCuffPressure, rhs: IntermediateCuffPressure) -> Bool {
         // we need to override the implementation to avoid weird behavior with NaNs
@@ -113,6 +115,7 @@ extension IntermediateCuffPressure: Hashable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension IntermediateCuffPressure: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let representation = BloodPressureMeasurement(from: &byteBuffer) else {
@@ -128,6 +131,7 @@ extension IntermediateCuffPressure: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension IntermediateCuffPressure: Codable {
     public init(from decoder: any Decoder) throws {
         self.representation = try BloodPressureMeasurement(from: decoder)

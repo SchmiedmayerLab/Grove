@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// The current time and a reason for adjustment.
 ///
 /// Refer to GATT Specification Supplement, 3.62 Current Time.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct CurrentTime {
     /// The reason why a peripheral adjusted its current time.
     public struct AdjustReason: OptionSet {
@@ -52,9 +53,11 @@ public struct CurrentTime {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime.AdjustReason: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime.AdjustReason: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         var components: [String] = []
@@ -79,9 +82,11 @@ extension CurrentTime.AdjustReason: CustomStringConvertible, CustomDebugStringCo
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime.AdjustReason: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {
@@ -96,6 +101,7 @@ extension CurrentTime.AdjustReason: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let time = ExactTime256(from: &byteBuffer),
@@ -113,7 +119,9 @@ extension CurrentTime: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime.AdjustReason: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CurrentTime: Codable {}

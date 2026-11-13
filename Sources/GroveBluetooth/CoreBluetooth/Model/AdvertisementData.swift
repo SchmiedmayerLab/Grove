@@ -10,6 +10,7 @@ public import CoreBluetooth
 
 
 /// Advertisement information of a peripheral.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct AdvertisementData {
     /// The local name of a peripheral.
     public let localName: String?
@@ -71,6 +72,7 @@ public struct AdvertisementData {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AdvertisementData {
     /// Creates advertisement data based on CoreBluetooth's dictionary.
     /// - Parameter advertisementData: Core Bluetooth's advertisement data
@@ -95,6 +97,7 @@ extension AdvertisementData {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AdvertisementData: CustomStringConvertible {
     public var description: String {
         var components: [String] = []
@@ -128,4 +131,5 @@ extension AdvertisementData: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AdvertisementData: Sendable, Hashable {}

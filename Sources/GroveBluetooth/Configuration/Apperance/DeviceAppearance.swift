@@ -10,6 +10,7 @@ public import GroveViews
 
 
 /// Describes the appearances and variants of a device.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum DeviceAppearance {
     /// The appearance for the device.
     case appearance(Appearance)
@@ -21,9 +22,11 @@ public enum DeviceAppearance {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceAppearance: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceAppearance {
     /// Retrieve the appearance for a device.
     /// - Parameter variantPredicate: If the device has different variants, this predicate will be used to match the desired variant.

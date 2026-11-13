@@ -9,6 +9,7 @@
 public import GroveBluetoothServices
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOpCode {
     /// Report the sequence number of the latest records.
     ///

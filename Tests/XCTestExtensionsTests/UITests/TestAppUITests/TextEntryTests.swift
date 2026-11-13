@@ -11,17 +11,15 @@ import XCTest
 
 
 @MainActor
-final class TextEntryTests: XCTestCase, Sendable {
+final class TextEntryTests: XCTestCase {
     private let app = XCUIApplication()
     
-    override nonisolated func setUpWithError() throws {
-        try super.setUpWithError()
-        MainActor.assumeIsolated {
-            continueAfterFailure = false
-            simulateFlakySimulatorTextEntry = false
-            app.launch()
-            XCTAssert(app.wait(for: .runningForeground, timeout: 4))
-        }
+    override func setUp() async throws {
+        try await super.setUp()
+        continueAfterFailure = false
+        simulateFlakySimulatorTextEntry = false
+        app.launch()
+        XCTAssert(app.wait(for: .runningForeground, timeout: 4))
     }
     
     

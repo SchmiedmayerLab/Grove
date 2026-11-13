@@ -66,7 +66,7 @@ extension HealthKitSourceMetadata {
         (.lux(), "lx")
     ]
 
-    /// Known keys retain their legacy units. A custom key uses the first compatible canonical unit.
+    /// Known keys use their specified units. A custom key uses the first compatible canonical unit.
     static func metadataQuantity(_ quantity: HKQuantity, key: String, sample: HKSample) -> Quantity? {
         let binding: (unit: HKUnit, code: String)?
         if key == HKMetadataKeySessionEstimate {
@@ -84,7 +84,8 @@ extension HealthKitSourceMetadata {
         guard let binding, quantity.is(compatibleWith: binding.unit) else {
             return nil
         }
-        let number = quantity.doubleValue(for: binding.unit) * (binding.code == "%" ? 100 : 1)
+        let rawValue = quantity.doubleValue(for: binding.unit)
+        let number = binding.code == "%" ? QuantityRead.percent(ofFraction: rawValue) : rawValue
         guard let value = try? GroveFHIRDecimal(number) else {
             return nil
         }

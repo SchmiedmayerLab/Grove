@@ -41,11 +41,14 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.staticTexts["Date of Birth, Mar 9, 1824"].exists)
 #endif
 
+        // Logout is the last row and can sit below the fold, where the list hasn't created it yet.
 #if os(visionOS)
         app.scrollUpInOverview()
+#else
+        app.swipeUp()
 #endif
-        XCTAssertTrue(app.staticTexts["License Information"].exists)
-        XCTAssertTrue(app.buttons["Logout"].exists)
+        XCTAssertTrue(app.staticTexts["License Information"].waitForExistence(timeout: 2.0))
+        XCTAssertTrue(app.buttons["Logout"].waitForExistence(timeout: 2.0))
     }
 
     @MainActor
@@ -95,11 +98,14 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
 
         app.openAccountOverview()
 
+        // Logout is the last row and can sit below the fold, where the list hasn't created it yet.
 #if os(visionOS)
         app.scrollUpInOverview()
+#else
+        app.swipeUp()
 #endif
 
-        XCTAssertTrue(app.buttons["Logout"].exists)
+        XCTAssertTrue(app.buttons["Logout"].waitForExistence(timeout: 2.0))
         app.buttons["Logout"].tap()
 
         let alert = "Are you sure you want to logout?"
@@ -460,7 +466,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Phone Numbers"].exists)
         app.buttons["Phone Numbers"].tap()
         
-        try await app.addPhoneNumber("6502345678", otc: "012345")
+        try app.addPhoneNumber("6502345678", otc: "012345")
         
         XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 8.0))
         
@@ -493,7 +499,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Phone Numbers"].exists)
         app.buttons["Phone Numbers"].tap()
         
-        try await app.addPhoneNumber("6502345678", otc: "123456")
+        try app.addPhoneNumber("6502345678", otc: "123456")
         
         XCTAssertTrue(app.staticTexts["Failed to verify phone number. Please check your code and try again."].waitForExistence(timeout: 8.0))
     }

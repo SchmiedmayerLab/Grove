@@ -69,5 +69,9 @@ The `enter(value:)` and `delete(count:)` methods provide the `checkIfTextWasEnte
 - ``XCUIAutomation/XCUIElement/flipToggle()``
 - ``XCUIAutomation/XCUIElement/setToggleState(isOn:)``
 
+### Waiting
+- ``waitUntil(timeout:_:)``
+- ``XCUIAutomation/XCUIElement/waitUntilSettled(timeout:)``
+
 ### Other
 - ``sleep(for:)``

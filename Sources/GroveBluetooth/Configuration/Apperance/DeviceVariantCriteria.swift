@@ -24,6 +24,7 @@ import GroveViews
 ///
 /// ### Match against discovery information
 /// - ``matches(name:advertisementData:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceVariantCriteria {
     let aspects: [DescriptorAspect]
 
@@ -52,9 +53,11 @@ public struct DeviceVariantCriteria {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceVariantCriteria: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceVariantCriteria {
     /// Match against the device name.
     ///

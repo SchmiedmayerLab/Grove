@@ -12,7 +12,7 @@ public import Observation
 #if canImport(PDFKit)
 public import class PDFKit.PDFDocument
 #endif
-#if canImport(PencilKit)
+#if canImport(PencilKit) && !os(macOS)
 public import PencilKit
 #endif
 #if canImport(SwiftUI)

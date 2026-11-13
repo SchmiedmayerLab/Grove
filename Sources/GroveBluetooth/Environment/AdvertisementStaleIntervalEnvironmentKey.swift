@@ -9,11 +9,13 @@
 public import SwiftUI
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct AdvertisementStaleIntervalEnvironmentKey: EnvironmentKey {
     static let defaultValue: TimeInterval? = nil
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension EnvironmentValues {
     /// The time interval after which a peripheral advertisement is considered stale if we don't hear back from the device. Minimum is 1 second.
     public internal(set) var advertisementStaleInterval: TimeInterval? {

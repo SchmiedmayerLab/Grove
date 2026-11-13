@@ -61,6 +61,7 @@ extension BluetoothDevice {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Array where Element == any ViewModifier {
     @MainActor
     fileprivate func modify<V: View>(_ view: V) -> AnyView {
@@ -73,6 +74,7 @@ extension Array where Element == any ViewModifier {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ViewModifier {
     fileprivate func modify(_ view: AnyView) -> AnyView {
         AnyView(view.modifier(self))

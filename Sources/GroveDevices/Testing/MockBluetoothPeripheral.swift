@@ -10,6 +10,7 @@ public import GroveBluetooth
 
 
 /// Mock peripheral used for internal previews.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(TestingSupport)
 public struct MockBluetoothPeripheral: GenericBluetoothPeripheral {
     public let label: String

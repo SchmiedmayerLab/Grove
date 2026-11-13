@@ -60,7 +60,7 @@ enum ContentCorpusRecorder {
             return .object(["unprojected": .object(["code": .string(error.diagnostic.code), "error": .string(String(describing: error))])])
         }
         let stored = try StoredSampleFixtures.stored(sample, uuid: ContentCorpusSamples.uuid, writer: .unattributed)
-        var inputs = ExportInputs()
+        let inputs = ExportInputs()
         let exports = try await ExporterFixtures.exports(.sample(stored), inputs)
         if exports.count == 1, case .refused(let error) = exports[0].outcome {
             return refusal(error)

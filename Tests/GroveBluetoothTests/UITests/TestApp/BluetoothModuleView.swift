@@ -54,7 +54,7 @@ struct BluetoothModuleView: View {
                                 }
                             }
                         }
-                            .accessibilityLabel("Pair \(type(of: device))")
+                            .accessibilityLabel(Text(verbatim: "Pair \(type(of: device))"))
                     }
                 } header: {
                     Text("Connected Devices")

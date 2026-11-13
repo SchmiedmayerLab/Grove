@@ -15,7 +15,7 @@ import HealthKit
 import ModelsR4
 
 
-/// The typed metadata carrier used before record exchange, applied before record versioning.
+/// Typed source-sample metadata, attached before record versioning.
 /// Source keys and values remain metadata; they never establish clinical or writer identity.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct HealthKitSourceMetadata {
@@ -64,7 +64,7 @@ struct HealthKitSourceMetadata {
         excludedCount = 0
     }
 
-    /// Adapted from the original metadata extension builder. No descriptive-string fallback can erase a type.
+    /// Encode supported values with their FHIR types; unsupported values remain observable omissions.
     private static func value(_ value: Any, key: String, sample: HKSample) -> Extension.ValueX? {
         switch value {
         case let text as String:

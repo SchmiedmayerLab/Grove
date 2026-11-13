@@ -43,6 +43,7 @@ public import GroveFoundation
 /// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:)-(_,_,_,BTUUID...)``
 /// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:)-(_,_,_,[BTUUID])``
 /// - ``accessory(manufacturer:manufacturerData:nameSubstring:advertising:_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DiscoveryCriteria {
     let aspects: [DescriptorAspect]
 
@@ -70,9 +71,11 @@ public struct DiscoveryCriteria {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryCriteria: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryCriteria {
     /// Identity a device by their advertised service.
     /// - Parameters:
@@ -133,6 +136,7 @@ extension DiscoveryCriteria {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryCriteria {
     private static func accessory(
         uuid: BTUUID,
@@ -459,6 +463,7 @@ extension DiscoveryCriteria {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DiscoveryCriteria: Hashable, CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         "DiscoveryCriteria(\(aspects.map { $0.description }.joined(separator: ", ")))"

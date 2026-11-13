@@ -43,16 +43,30 @@ public struct NewHealthSampleInput {
 extension NewHealthSampleInput.EnterSampleValueHandler {
     /// Creates a new sample value input handler that inserts a numeric value into a text field.
     /// - parameter value: The numeric value to insert.
-    /// - parameter textFieldPredicate: optional predicate allowing the caller to specify which exact text field the value should be inserted into
+    /// - parameter textFieldPredicate: optional predicate allowing the caller to specify which exact text field the value should be inserted into.
+    ///     From iOS 27 the text field has no label of its own, so the predicate is matched against the texts in its row instead,
+    ///     such as the unit.
     public static func enterSimpleNumericValue(_ value: Double, inTextField textFieldPredicate: NSPredicate? = nil) -> Self {
         nonisolated(unsafe) let textFieldPredicate = textFieldPredicate
         return Self { _, healthApp in
-            let dataEntryTable = healthApp.tables["UIA.Health.AddData.View"]
             let textField: XCUIElement
-            if let textFieldPredicate {
-                textField = dataEntryTable.textFields.matching(textFieldPredicate).firstMatch
+            if XCTestCase.isIOS27OrGreater {
+                // From iOS 27 the sheet is a form whose value row holds an unlabelled text field next to the unit, so
+                // the predicate picks the row by its texts.
+                let valueRows = healthApp.cells.containing(.textField, identifier: "UIA.Health.AddData.View")
+                let valueRow = if let textFieldPredicate {
+                    valueRows.containing(textFieldPredicate).firstMatch
+                } else {
+                    valueRows.firstMatch
+                }
+                textField = valueRow.textFields.firstMatch
             } else {
-                textField = dataEntryTable.cells["UIA.Health.AddData.ValueCell"].textFields.firstMatch
+                let dataEntryTable = healthApp.tables["UIA.Health.AddData.View"]
+                if let textFieldPredicate {
+                    textField = dataEntryTable.textFields.matching(textFieldPredicate).firstMatch
+                } else {
+                    textField = dataEntryTable.cells["UIA.Health.AddData.ValueCell"].textFields.firstMatch
+                }
             }
             textField.tapWhenHittable(timeout: 2)
             let stringValue: String
@@ -92,7 +106,9 @@ extension NewHealthSampleInput {
     /// Creates a new Electrocardiogram sample input, with the specified values
     public static func electrocardiogram() -> Self {
         .init(sampleType: .electrocardiograms, date: nil, enterSampleValueHandler: .custom { _, app in
-            app.tables.staticTexts["High Heart Rate"].firstMatch.tapWhenHittable(timeout: 2)
+            // From iOS 27 the classifications are listed in a collection view.
+            let classifications = XCTestCase.isIOS27OrGreater ? app.collectionViews : app.tables
+            classifications.staticTexts["High Heart Rate"].firstMatch.tapWhenHittable(timeout: 2)
         })
     }
     
@@ -122,9 +138,10 @@ extension NewHealthSampleInput {
         } else {
             navBar.buttons["Add Data"]
         }
+        // The bar's buttons can arrive a moment after the page is pushed.
         guard navBar.exists,
               navBar.buttons[sampleType.category.healthAppDisplayTitle].exists,
-              addDataButton.exists else {
+              addDataButton.waitForExistence(timeout: 5) else {
             throw XCTSkip("Not at the right page")
         }
         addDataButton.tapWhenHittable()
@@ -137,7 +154,10 @@ extension NewHealthSampleInput {
         try enterSampleValueHandler.imp(self, healthApp)
         
         // Save the sample to the database.
-        if XCTestCase.isIOS26OrGreater {
+        if XCTestCase.isIOS27OrGreater {
+            // The sheet's navigation bar is no longer the first one: the sample type page's stays in the tree underneath.
+            healthApp.buttons["UIA.Health.AddData.Add"].tapWhenHittable()
+        } else if XCTestCase.isIOS26OrGreater {
             healthApp.navigationBars.firstMatch.buttons["UIA.Health.AddData.Add"].tapWhenHittable()
         } else {
             healthApp.navigationBars.firstMatch.buttons["Add"].tapWhenHittable()
@@ -147,6 +167,18 @@ extension NewHealthSampleInput {
 
 
 extension XCUIApplication {
+    /// Where to look for the date picker pop-up's month button and days.
+    private var datePickerPopupScope: any XCUIElementTypeQueryProvider {
+        // From iOS 27 the sample type page behind the sheet has a "month" chart scope button and numbers of its own.
+        XCTestCase.isIOS27OrGreater ? datePickers : self
+    }
+
+    /// The button covering the screen behind a date or time picker's pop-up, which dismisses it.
+    private var datePickerPopupDismissButton: XCUIElement {
+        // From iOS 27 its label reads "dismiss pop-up".
+        XCTestCase.isIOS27OrGreater ? buttons["PopoverDismissRegion"] : buttons["dismiss popup"]
+    }
+
     /// Enters date components for date and time into the "Add Sample" sheet when manually adding a sample in the Health app
     func enterDateComponentsInHealthAppNewSampleSheet(_ components: DateComponents, in app: XCUIApplication) throws {
         enterDateInHealthAppNewSampleSheet(components, in: app)
@@ -165,7 +197,7 @@ extension XCUIApplication {
         XCTAssert(datePicker.wait(for: \.isHittable, toEqual: true, timeout: 2))
         datePicker.coordinate(withNormalizedOffset: .init(dx: 0.9, dy: 0.5)).tap()
 
-        let monthAndYearButton = app.buttons.matching(NSPredicate(format: "label LIKE[cd] %@", "month")).firstMatch
+        let monthAndYearButton = app.datePickerPopupScope.buttons.matching(NSPredicate(format: "label LIKE[cd] %@", "month")).firstMatch
         if !monthAndYearButton.waitForExistence(timeout: 2) {
             XCTFail("Unable to find month button")
         }
@@ -203,13 +235,13 @@ extension XCUIApplication {
             }
         }
         if let day = components.day {
-            let button = app.staticTexts[String(day)]
+            let button = app.datePickerPopupScope.staticTexts[String(day)]
             if !button.waitForExistence(timeout: 1) {
                 XCTFail("Unable to find button to select day.")
             }
             button.tapWhenHittable(timeout: 1)
         }
-        self.buttons["dismiss popup"].tapWhenHittable(timeout: 2) // dismiss the date picker
+        datePickerPopupDismissButton.tapWhenHittable(timeout: 2) // dismiss the date picker
     }
     
     
@@ -241,7 +273,7 @@ extension XCUIApplication {
         if let minute = components.minute {
             pickerWheels[1].adjust(toPickerWheelValue: String(format: "%02lld", minute))
         }
-        self.buttons["dismiss popup"].tapWhenHittable(timeout: 2) // dismiss the time picker
+        datePickerPopupDismissButton.tapWhenHittable(timeout: 2) // dismiss the time picker
     }
 }
 

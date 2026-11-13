@@ -54,7 +54,7 @@ struct DeviceRowView<Peripheral: SomePeripheral>: View {
     @MainActor
     func peripheralAction() {
         let state = peripheral.state
-        Task {
+        _ = Task {
             switch state {
             case .disconnected, .disconnecting:
                 try await self.peripheral.connect()

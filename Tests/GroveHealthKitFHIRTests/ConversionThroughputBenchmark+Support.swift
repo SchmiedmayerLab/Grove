@@ -290,7 +290,7 @@ enum SampleFactory {
                     metadata: nil
                 ))
             }
-            return HKWorkout(
+            return HKWorkout.fixture(
                 activityType: .running,
                 start: begin,
                 end: begin.addingTimeInterval(3_600),

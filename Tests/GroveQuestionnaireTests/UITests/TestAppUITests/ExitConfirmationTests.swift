@@ -7,6 +7,7 @@
 //
 
 import XCTest
+import XCTestExtensions
 import XCTGroveQuestionnaire
 
 
@@ -31,7 +32,7 @@ final class ExitConfirmationTests: TestAppUITests, @unchecked Sendable {
         try questionnaire.question("t0").enterNumber(5)
 
         questionnaire.closeButton.tap()
-        XCTAssert(questionnaire.exitOption(.discardAnswers).waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.exitOption(.discardAnswers).exists })
         // a half-answered questionnaire has answers to lose, but none to hand off
         XCTAssertFalse(questionnaire.exitOption(.submitAnswers).exists)
         questionnaire.keepAnswering()
@@ -60,14 +61,12 @@ final class ExitConfirmationTests: TestAppUITests, @unchecked Sendable {
     /// instant its button is tapped, so the page keeps the work and reports through its own state.
     @MainActor
     func testClosingAFinishedQuestionnaireOffersToSubmitInstead() {
-        launchApp()
-        open(.completionFlow)
-        startExample("Completion Page, Submit", titled: "Reopenable Survey")
+        launchAppAndStartExample("Completion Page, Submit", in: .completionFlow, titled: "Reopenable Survey")
         questionnaire.question("flavour").select("Strawberry")
         XCTAssert(questionnaire.waitUntilReadiness(.ready))
 
         questionnaire.closeButton.tap()
-        XCTAssert(questionnaire.exitOption(.submitAnswers).waitForExistence(timeout: 10))
+        XCTAssert(waitUntil(timeout: 10) { questionnaire.exitOption(.submitAnswers).exists })
         XCTAssert(questionnaire.exitOption(.discardAnswers).exists)
         questionnaire.exitOption(.submitAnswers).tap()
 

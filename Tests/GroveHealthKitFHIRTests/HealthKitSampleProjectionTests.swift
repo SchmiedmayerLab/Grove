@@ -145,7 +145,7 @@ struct HealthKitSampleProjectionTests {
     @Test("A reading from before the 1582 calendar reform lands on its proleptic Gregorian instant")
     func preReformInstantIsProleptic() throws {
         var observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
-        observation.effective = .dateTime(FHIRPrimitive(try DateTime("1500-01-01T00:00:00Z")))
+        observation.effective = .dateTime(FHIRPrimitive(DateTime("1500-01-01T00:00:00Z")))
         let sample = try observation.healthKitSample()
         #expect(sample.startDate == Date(timeIntervalSince1970: -14_831_769_600))
         #expect(sample.endDate == sample.startDate)

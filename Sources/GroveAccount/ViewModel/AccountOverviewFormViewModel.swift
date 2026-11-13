@@ -218,10 +218,7 @@ class AccountOverviewFormViewModel {
                 return Text(AccountKeys.name.name)
             }
 
-            let separator = ", "
-            return Text(AccountKeys.name.name)
-                + Text(separator)
-                + userId
+            return Text("\(Text(AccountKeys.name.name)), \(userId)", bundle: .module)
         }
 
         return userId

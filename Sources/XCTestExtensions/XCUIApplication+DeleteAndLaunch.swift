@@ -70,9 +70,13 @@ extension XCUIApplication {
 
         func visibleIcon(named name: String) -> XCUIElement? {
             homeScreenIcons.matching(identifier: name).allElementsBoundByIndex.first { icon in
+                // For an icon that is off screen (e.g. every icon while the Today view is showing), `isHittable` can
+                // record a failure instead of returning false, so it is only asked once the icon is on screen.
                 let frame = icon.frame
-                let center = CGPoint(x: frame.midX, y: frame.midY)
-                return icon.isHittable && !frame.isEmpty && !frame.isNull && springboard.frame.contains(center)
+                guard !frame.isEmpty, !frame.isNull else {
+                    return false
+                }
+                return springboard.frame.contains(CGPoint(x: frame.midX, y: frame.midY)) && icon.isHittable
             }
         }
 

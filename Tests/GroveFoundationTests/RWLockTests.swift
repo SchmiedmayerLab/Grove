@@ -33,7 +33,7 @@ final class RWLockTests: XCTestCase {
         Thread.detachNewThread {
             XCTAssertEqual(firstReaderEntered.wait(timeout: .now() + 5), .success)
             lock.withReadLock {
-                secondReaderEntered.signal()
+                _ = secondReaderEntered.signal()
             }
             readersFinished.fulfill()
         }

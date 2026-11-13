@@ -20,16 +20,14 @@ final class FailedSubmissionTests: TestAppUITests, @unchecked Sendable {
     @MainActor
     func testAFailedSubmissionIsReportedAndKeepsTheAnswers() {
         app.launchArguments += ["--failSubmission"]
-        launchApp()
-        open(.completionFlow)
-        startExample("No Completion Page", titled: "Reopenable Survey")
+        launchAppAndStartExample("No Completion Page", in: .completionFlow, titled: "Reopenable Survey")
 
         questionnaire.question("flavour").select("Mango")
         XCTAssert(questionnaire.waitUntilReadiness(.ready))
         questionnaire.tapPrimaryAction()
 
         let alert = app.alerts.firstMatch
-        XCTAssert(alert.waitForExistence(timeout: 10), "A submission the app refused has to be reported.")
+        XCTAssert(waitUntil(timeout: 10) { alert.exists }, "A submission the app refused has to be reported.")
         alert.buttons.firstMatch.tap()
 
         XCTAssertFalse(questionnaire.waitUntilDismissed(timeout: 2), "The questionnaire should still be open.")

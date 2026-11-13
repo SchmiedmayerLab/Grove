@@ -322,7 +322,7 @@ extension HealthKitSampleMetadata {
     /// method and writer record.
     ///
     /// A key is carried only through the representation the guide publishes for it, on an output that has that
-    /// representation, or the restored typed metadata extension on its source output.
+    /// representation, or the typed metadata extension on its source output.
     /// A blood-pressure member's zone or manual entry that the record takes, because the correlation states none,
     /// is carried as the record's own would be.
     func withheldKeys(

@@ -42,6 +42,7 @@ public import Foundation
 ///
 /// ### Unknown Error
 /// - ``unknown``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum AccessorySetupKitError {
     /// Success
     case success
@@ -70,6 +71,7 @@ public enum AccessorySetupKitError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccessorySetupKitError: Error {}
 
 
@@ -122,6 +124,7 @@ extension AccessorySetupKitError {
 }
 #endif
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension AccessorySetupKitError: LocalizedError {
     public var errorDescription: String? {
         String(localized: errorDescriptionLocalization, bundle: .module)

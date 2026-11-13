@@ -86,7 +86,7 @@ enum ExchangeRecordFixtures {
             status: FHIRPrimitive(.final)
         )
         observation.meta = Meta(profile: [Profile.groveMobileHeartRate])
-        observation.effective = .dateTime(FHIRPrimitive(try DateTime("2026-08-20T08:30:00Z")))
+        observation.effective = .dateTime(FHIRPrimitive(DateTime("2026-08-20T08:30:00Z")))
         observation.value = .quantity(Quantity(
             code: "/min",
             system: Canonicals.ucum,

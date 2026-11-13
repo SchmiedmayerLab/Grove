@@ -68,7 +68,7 @@ struct ViewStateExample: View {
         Spacer()
 
         AsyncButton(state: $viewState) {
-            Task {
+            _ = Task {
                 try await Task.sleep(for: .seconds(10))
                 backButtonHidden = false
             }

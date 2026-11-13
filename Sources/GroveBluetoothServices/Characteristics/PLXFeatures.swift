@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 
 
 /// The features supported by a Bluetooth-enabled Pulse Oximeter.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PLXFeatures: ByteCodable, Hashable, Sendable, Codable {
     /// The measurement-status-fields supported by this device.
     /// - Note: Even though this is the same type as ``PLXContinuousMeasurement/MeasurementStatus-swift.struct``

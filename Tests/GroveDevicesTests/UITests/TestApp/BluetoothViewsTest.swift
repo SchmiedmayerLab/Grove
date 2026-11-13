@@ -40,7 +40,7 @@ struct BluetoothViewsTest: View {
 
     @MainActor
     private func tapAction() {
-        Task {
+        _ = Task {
             switch device.state {
             case .disconnected, .disconnecting:
                 try await device.connect()

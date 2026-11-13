@@ -12,6 +12,7 @@ import XCTest
 // documentation-screenshots: resources Sources/GroveLLMOpenAI/GroveLLMOpenAI.docc/Resources
 
 /// Walks the OpenAI onboarding to the states the documentation shows; run through `Scripts/documentation-screenshots.sh`.
+@MainActor
 final class DocumentationScreenshots: XCTestCase {
     override func setUpWithError() throws {
         // The walk needs the app the script launched and the states it prepared; a plain test run skips it.

@@ -70,7 +70,7 @@ struct HealthKitWorkoutSegmentTests {
     func duplicateEventsHaveDistinctStableIdentitiesWithoutDuplicatingActivityEvents() throws {
         let base = GoldenFixtures.workout(withEvents: false)
         let event = HKWorkoutEvent(type: .lap, dateInterval: DateInterval(start: base.startDate, duration: 30), metadata: nil)
-        let workout = HKWorkout(
+        let workout = HKWorkout.fixture(
             activityType: .running,
             start: base.startDate,
             end: base.endDate,
@@ -96,7 +96,7 @@ struct HealthKitWorkoutSegmentTests {
             dateInterval: DateInterval(start: base.startDate, duration: 0),
             metadata: nil
         )
-        let workout = HKWorkout(
+        let workout = HKWorkout.fixture(
             activityType: .running,
             start: base.startDate,
             end: base.endDate,

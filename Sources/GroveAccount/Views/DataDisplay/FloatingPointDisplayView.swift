@@ -27,8 +27,7 @@ public struct FloatingPointDisplayView<Key: AccountKey>: DataDisplayView where K
 
     public var body: some View {
         ListRow(Key.name) {
-            Text(value, format: formatStyleValue)
-                + unit
+            Text("\(value, format: formatStyleValue)\(unit)", bundle: .module)
         }
     }
 

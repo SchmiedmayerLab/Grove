@@ -10,6 +10,7 @@ public import GroveViews
 
 
 /// Describes the appearance of a device variant and criteria that identify the variant.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct Variant {
     /// A unique and persistent identifier for the device variant.
     ///
@@ -43,4 +44,5 @@ public struct Variant {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Variant: Hashable, Sendable, Identifiable {}
