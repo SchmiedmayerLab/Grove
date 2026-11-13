@@ -19,123 +19,123 @@ import ModelsR4
 extension HealthKitSourceMetadata {
     private static let codingTables: [String: [Int: Coding]] = [
         HKMetadataKeyAppleECGAlgorithmVersion: codings(HKAppleECGAlgorithmVersion.self, displays: [
-            HKAppleECGAlgorithmVersion.version1.rawValue: "Version 1",
-            HKAppleECGAlgorithmVersion.version2.rawValue: "Version 2"
+            HKAppleECGAlgorithmVersion.version1: "Version 1",
+            HKAppleECGAlgorithmVersion.version2: "Version 2"
         ]),
         HKMetadataKeyBloodGlucoseMealTime: codings(HKBloodGlucoseMealTime.self, displays: [
-            HKBloodGlucoseMealTime.preprandial.rawValue: "Preprandial",
-            HKBloodGlucoseMealTime.postprandial.rawValue: "Postprandial"
+            HKBloodGlucoseMealTime.preprandial: "Preprandial",
+            HKBloodGlucoseMealTime.postprandial: "Postprandial"
         ]),
         HKMetadataKeyBodyTemperatureSensorLocation: codings(HKBodyTemperatureSensorLocation.self, displays: [
-            HKBodyTemperatureSensorLocation.other.rawValue: "Other",
-            HKBodyTemperatureSensorLocation.armpit.rawValue: "Armpit",
-            HKBodyTemperatureSensorLocation.body.rawValue: "Body",
-            HKBodyTemperatureSensorLocation.ear.rawValue: "Ear",
-            HKBodyTemperatureSensorLocation.finger.rawValue: "Finger",
-            HKBodyTemperatureSensorLocation.gastroIntestinal.rawValue: "Gastro Intestinal",
-            HKBodyTemperatureSensorLocation.mouth.rawValue: "Mouth",
-            HKBodyTemperatureSensorLocation.rectum.rawValue: "Rectum",
-            HKBodyTemperatureSensorLocation.toe.rawValue: "Toe",
-            HKBodyTemperatureSensorLocation.earDrum.rawValue: "Ear Drum",
-            HKBodyTemperatureSensorLocation.temporalArtery.rawValue: "Temporal Artery",
-            HKBodyTemperatureSensorLocation.forehead.rawValue: "Forehead"
+            HKBodyTemperatureSensorLocation.other: "Other",
+            HKBodyTemperatureSensorLocation.armpit: "Armpit",
+            HKBodyTemperatureSensorLocation.body: "Body",
+            HKBodyTemperatureSensorLocation.ear: "Ear",
+            HKBodyTemperatureSensorLocation.finger: "Finger",
+            HKBodyTemperatureSensorLocation.gastroIntestinal: "Gastro Intestinal",
+            HKBodyTemperatureSensorLocation.mouth: "Mouth",
+            HKBodyTemperatureSensorLocation.rectum: "Rectum",
+            HKBodyTemperatureSensorLocation.toe: "Toe",
+            HKBodyTemperatureSensorLocation.earDrum: "Ear Drum",
+            HKBodyTemperatureSensorLocation.temporalArtery: "Temporal Artery",
+            HKBodyTemperatureSensorLocation.forehead: "Forehead"
         ]),
         HKMetadataKeyCyclingFunctionalThresholdPowerTestType: codings(HKCyclingFunctionalThresholdPowerTestType.self, displays: [
-            HKCyclingFunctionalThresholdPowerTestType.maxExercise60Minute.rawValue: "Max Exercise 60Minute",
-            HKCyclingFunctionalThresholdPowerTestType.maxExercise20Minute.rawValue: "Max Exercise 20Minute",
-            HKCyclingFunctionalThresholdPowerTestType.rampTest.rawValue: "Ramp Test",
-            HKCyclingFunctionalThresholdPowerTestType.predictionExercise.rawValue: "Prediction Exercise"
+            HKCyclingFunctionalThresholdPowerTestType.maxExercise60Minute: "Max Exercise 60Minute",
+            HKCyclingFunctionalThresholdPowerTestType.maxExercise20Minute: "Max Exercise 20Minute",
+            HKCyclingFunctionalThresholdPowerTestType.rampTest: "Ramp Test",
+            HKCyclingFunctionalThresholdPowerTestType.predictionExercise: "Prediction Exercise"
         ]),
         HKMetadataKeyDevicePlacementSide: codings(HKDevicePlacementSide.self, displays: [
-            HKDevicePlacementSide.unknown.rawValue: "Unknown",
-            HKDevicePlacementSide.left.rawValue: "Left",
-            HKDevicePlacementSide.right.rawValue: "Right",
-            HKDevicePlacementSide.central.rawValue: "Central"
+            HKDevicePlacementSide.unknown: "Unknown",
+            HKDevicePlacementSide.left: "Left",
+            HKDevicePlacementSide.right: "Right",
+            HKDevicePlacementSide.central: "Central"
         ]),
         HKMetadataKeyHeartRateMotionContext: codings(HKHeartRateMotionContext.self, displays: [
-            HKHeartRateMotionContext.notSet.rawValue: "Not Set",
-            HKHeartRateMotionContext.sedentary.rawValue: "Sedentary",
-            HKHeartRateMotionContext.active.rawValue: "Active"
+            HKHeartRateMotionContext.notSet: "Not Set",
+            HKHeartRateMotionContext.sedentary: "Sedentary",
+            HKHeartRateMotionContext.active: "Active"
         ]),
         HKMetadataKeyHeartRateRecoveryTestType: codings(HKHeartRateRecoveryTestType.self, displays: [
-            HKHeartRateRecoveryTestType.maxExercise.rawValue: "Max Exercise",
-            HKHeartRateRecoveryTestType.predictionSubMaxExercise.rawValue: "Prediction Sub Max Exercise",
-            HKHeartRateRecoveryTestType.predictionNonExercise.rawValue: "Prediction Non Exercise"
+            HKHeartRateRecoveryTestType.maxExercise: "Max Exercise",
+            HKHeartRateRecoveryTestType.predictionSubMaxExercise: "Prediction Sub Max Exercise",
+            HKHeartRateRecoveryTestType.predictionNonExercise: "Prediction Non Exercise"
         ]),
         HKMetadataKeyHeartRateSensorLocation: codings(HKHeartRateSensorLocation.self, displays: [
-            HKHeartRateSensorLocation.other.rawValue: "Other",
-            HKHeartRateSensorLocation.chest.rawValue: "Chest",
-            HKHeartRateSensorLocation.wrist.rawValue: "Wrist",
-            HKHeartRateSensorLocation.finger.rawValue: "Finger",
-            HKHeartRateSensorLocation.hand.rawValue: "Hand",
-            HKHeartRateSensorLocation.earLobe.rawValue: "Ear Lobe",
-            HKHeartRateSensorLocation.foot.rawValue: "Foot"
+            HKHeartRateSensorLocation.other: "Other",
+            HKHeartRateSensorLocation.chest: "Chest",
+            HKHeartRateSensorLocation.wrist: "Wrist",
+            HKHeartRateSensorLocation.finger: "Finger",
+            HKHeartRateSensorLocation.hand: "Hand",
+            HKHeartRateSensorLocation.earLobe: "Ear Lobe",
+            HKHeartRateSensorLocation.foot: "Foot"
         ]),
         HKMetadataKeyInsulinDeliveryReason: codings(HKInsulinDeliveryReason.self, displays: [
-            HKInsulinDeliveryReason.basal.rawValue: "Basal",
-            HKInsulinDeliveryReason.bolus.rawValue: "Bolus"
+            HKInsulinDeliveryReason.basal: "Basal",
+            HKInsulinDeliveryReason.bolus: "Bolus"
         ]),
         HKMetadataKeyPhysicalEffortEstimationType: codings(HKPhysicalEffortEstimationType.self, displays: [
-            HKPhysicalEffortEstimationType.activityLookup.rawValue: "Activity Lookup",
-            HKPhysicalEffortEstimationType.deviceSensed.rawValue: "Device Sensed"
+            HKPhysicalEffortEstimationType.activityLookup: "Activity Lookup",
+            HKPhysicalEffortEstimationType.deviceSensed: "Device Sensed"
         ]),
         HKMetadataKeySwimmingStrokeStyle: codings(HKSwimmingStrokeStyle.self, displays: [
-            HKSwimmingStrokeStyle.unknown.rawValue: "Unknown",
-            HKSwimmingStrokeStyle.mixed.rawValue: "Mixed",
-            HKSwimmingStrokeStyle.freestyle.rawValue: "Freestyle",
-            HKSwimmingStrokeStyle.backstroke.rawValue: "Backstroke",
-            HKSwimmingStrokeStyle.breaststroke.rawValue: "Breaststroke",
-            HKSwimmingStrokeStyle.butterfly.rawValue: "Butterfly",
-            HKSwimmingStrokeStyle.kickboard.rawValue: "Kickboard"
+            HKSwimmingStrokeStyle.unknown: "Unknown",
+            HKSwimmingStrokeStyle.mixed: "Mixed",
+            HKSwimmingStrokeStyle.freestyle: "Freestyle",
+            HKSwimmingStrokeStyle.backstroke: "Backstroke",
+            HKSwimmingStrokeStyle.breaststroke: "Breaststroke",
+            HKSwimmingStrokeStyle.butterfly: "Butterfly",
+            HKSwimmingStrokeStyle.kickboard: "Kickboard"
         ]),
         HKMetadataKeyUserMotionContext: codings(HKUserMotionContext.self, displays: [
-            HKUserMotionContext.notSet.rawValue: "Not Set",
-            HKUserMotionContext.stationary.rawValue: "Stationary",
-            HKUserMotionContext.active.rawValue: "Active"
+            HKUserMotionContext.notSet: "Not Set",
+            HKUserMotionContext.stationary: "Stationary",
+            HKUserMotionContext.active: "Active"
         ]),
         HKMetadataKeyVO2MaxTestType: codings(HKVO2MaxTestType.self, displays: [
-            HKVO2MaxTestType.maxExercise.rawValue: "Max Exercise",
-            HKVO2MaxTestType.predictionSubMaxExercise.rawValue: "Prediction Sub Max Exercise",
-            HKVO2MaxTestType.predictionNonExercise.rawValue: "Prediction Non Exercise"
+            HKVO2MaxTestType.maxExercise: "Max Exercise",
+            HKVO2MaxTestType.predictionSubMaxExercise: "Prediction Sub Max Exercise",
+            HKVO2MaxTestType.predictionNonExercise: "Prediction Non Exercise"
         ]),
         HKMetadataKeyWaterSalinity: codings(HKWaterSalinity.self, displays: [
-            HKWaterSalinity.freshWater.rawValue: "Fresh Water",
-            HKWaterSalinity.saltWater.rawValue: "Salt Water"
+            HKWaterSalinity.freshWater: "Fresh Water",
+            HKWaterSalinity.saltWater: "Salt Water"
         ]),
         HKMetadataKeyWeatherCondition: codings(HKWeatherCondition.self, displays: [
-            HKWeatherCondition.none.rawValue: "None",
-            HKWeatherCondition.clear.rawValue: "Clear",
-            HKWeatherCondition.fair.rawValue: "Fair",
-            HKWeatherCondition.partlyCloudy.rawValue: "Partly Cloudy",
-            HKWeatherCondition.mostlyCloudy.rawValue: "Mostly Cloudy",
-            HKWeatherCondition.cloudy.rawValue: "Cloudy",
-            HKWeatherCondition.foggy.rawValue: "Foggy",
-            HKWeatherCondition.haze.rawValue: "Haze",
-            HKWeatherCondition.windy.rawValue: "Windy",
-            HKWeatherCondition.blustery.rawValue: "Blustery",
-            HKWeatherCondition.smoky.rawValue: "Smoky",
-            HKWeatherCondition.dust.rawValue: "Dust",
-            HKWeatherCondition.snow.rawValue: "Snow",
-            HKWeatherCondition.hail.rawValue: "Hail",
-            HKWeatherCondition.sleet.rawValue: "Sleet",
-            HKWeatherCondition.freezingDrizzle.rawValue: "Freezing Drizzle",
-            HKWeatherCondition.freezingRain.rawValue: "Freezing Rain",
-            HKWeatherCondition.mixedRainAndHail.rawValue: "Mixed Rain And Hail",
-            HKWeatherCondition.mixedRainAndSnow.rawValue: "Mixed Rain And Snow",
-            HKWeatherCondition.mixedRainAndSleet.rawValue: "Mixed Rain And Sleet",
-            HKWeatherCondition.mixedSnowAndSleet.rawValue: "Mixed Snow And Sleet",
-            HKWeatherCondition.drizzle.rawValue: "Drizzle",
-            HKWeatherCondition.scatteredShowers.rawValue: "Scattered Showers",
-            HKWeatherCondition.showers.rawValue: "Showers",
-            HKWeatherCondition.thunderstorms.rawValue: "Thunderstorms",
-            HKWeatherCondition.tropicalStorm.rawValue: "Tropical Storm",
-            HKWeatherCondition.hurricane.rawValue: "Hurricane",
-            HKWeatherCondition.tornado.rawValue: "Tornado"
+            HKWeatherCondition.none: "None",
+            HKWeatherCondition.clear: "Clear",
+            HKWeatherCondition.fair: "Fair",
+            HKWeatherCondition.partlyCloudy: "Partly Cloudy",
+            HKWeatherCondition.mostlyCloudy: "Mostly Cloudy",
+            HKWeatherCondition.cloudy: "Cloudy",
+            HKWeatherCondition.foggy: "Foggy",
+            HKWeatherCondition.haze: "Haze",
+            HKWeatherCondition.windy: "Windy",
+            HKWeatherCondition.blustery: "Blustery",
+            HKWeatherCondition.smoky: "Smoky",
+            HKWeatherCondition.dust: "Dust",
+            HKWeatherCondition.snow: "Snow",
+            HKWeatherCondition.hail: "Hail",
+            HKWeatherCondition.sleet: "Sleet",
+            HKWeatherCondition.freezingDrizzle: "Freezing Drizzle",
+            HKWeatherCondition.freezingRain: "Freezing Rain",
+            HKWeatherCondition.mixedRainAndHail: "Mixed Rain And Hail",
+            HKWeatherCondition.mixedRainAndSnow: "Mixed Rain And Snow",
+            HKWeatherCondition.mixedRainAndSleet: "Mixed Rain And Sleet",
+            HKWeatherCondition.mixedSnowAndSleet: "Mixed Snow And Sleet",
+            HKWeatherCondition.drizzle: "Drizzle",
+            HKWeatherCondition.scatteredShowers: "Scattered Showers",
+            HKWeatherCondition.showers: "Showers",
+            HKWeatherCondition.thunderstorms: "Thunderstorms",
+            HKWeatherCondition.tropicalStorm: "Tropical Storm",
+            HKWeatherCondition.hurricane: "Hurricane",
+            HKWeatherCondition.tornado: "Tornado"
         ]),
         HKMetadataKeySwimmingLocationType: codings(HKWorkoutSwimmingLocationType.self, displays: [
-            HKWorkoutSwimmingLocationType.unknown.rawValue: "Unknown",
-            HKWorkoutSwimmingLocationType.pool.rawValue: "Pool",
-            HKWorkoutSwimmingLocationType.openWater.rawValue: "Open Water"
+            HKWorkoutSwimmingLocationType.unknown: "Unknown",
+            HKWorkoutSwimmingLocationType.pool: "Pool",
+            HKWorkoutSwimmingLocationType.openWater: "Open Water"
         ])
     ]
 
@@ -146,16 +146,19 @@ extension HealthKitSourceMetadata {
         }
         if #available(iOS 26, macOS 26, watchOS 26, *), key == HKMetadataKeyVO2MaxTestType,
            raw == HKVO2MaxTestType.predictionStepTest.rawValue {
-            return codings(HKVO2MaxTestType.self, displays: [raw: "Prediction Step Test"])[raw]
+            return codings(HKVO2MaxTestType.self, displays: [.predictionStepTest: "Prediction Step Test"])[raw]
         }
         return codingTables[key]?[raw]
     }
 
-    private static func codings<Value>(_ type: Value.Type, displays: [Int: String]) -> [Int: Coding] {
+    private static func codings<Value: RawRepresentable & Hashable>(
+        _ type: Value.Type,
+        displays: [Value: String]
+    ) -> [Int: Coding] where Value.RawValue == Int {
         let url = "https://developer.apple.com/documentation/healthkit/" + String(describing: type).lowercased()
         let system = FHIRPrimitive(FHIRURI(stringLiteral: url))
-        return Dictionary(uniqueKeysWithValues: displays.map { raw, display in
-            (raw, Coding(code: String(raw).asFHIRStringPrimitive(), display: display.asFHIRStringPrimitive(), system: system))
+        return Dictionary(uniqueKeysWithValues: displays.map { value, display in
+            (value.rawValue, Coding(code: String(value.rawValue).asFHIRStringPrimitive(), display: display.asFHIRStringPrimitive(), system: system))
         })
     }
 }
