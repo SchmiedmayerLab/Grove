@@ -114,41 +114,6 @@
               "reference" : "urn:uuid:61e5af79-2c7a-52f2-8843-bfc2e7645958",
               "type" : "ResearchStudy"
             }
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKMetadataKeyAppleECGAlgorithmVersion"
-                  },
-                  {
-                    "url" : "value",
-                    "valueCoding" : {
-                      "code" : "2",
-                      "display" : "Version 2",
-                      "system" : "https://developer.apple.com/documentation/healthkit/hkappleecgalgorithmversion"
-                    }
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "hasMember" : [
@@ -789,11 +754,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:UACdsE_vJTaxtxDTgW2gPTrCeEaPq9_vOjpERiS1W-Y"
+            "value" : "v0:test:1:-fFQ-PsuQkQN1Twbm-kQ6zeFgJmgft_J8mr9x8jvOUk"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:2b38b0e0-6b09-5668-bbdc-273644d6c8f5",
+      "fullUrl" : "urn:uuid:b7d6f243-8131-5eeb-a641-16c0f6bed241",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -879,7 +844,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:UACdsE_vJTaxtxDTgW2gPTrCeEaPq9_vOjpERiS1W-Y"
+              "value" : "v0:test:1:-fFQ-PsuQkQN1Twbm-kQ6zeFgJmgft_J8mr9x8jvOUk"
             }
           }
         ],

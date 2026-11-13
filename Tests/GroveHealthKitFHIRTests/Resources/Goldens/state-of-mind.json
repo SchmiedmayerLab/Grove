@@ -127,24 +127,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKDataTypeStateOfMind"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -352,11 +334,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:yaCigL1miNFhHVYyiGGsOksu4yYEH6S1mVSCOCVzzlA"
+            "value" : "v0:test:1:kIkfGhRJbNcIeaTece54hRYLDzD1Z2u2vpSvhwz61MI"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:9ecd2fb6-0d32-5ca2-bd59-4ab61ad180a7",
+      "fullUrl" : "urn:uuid:d2dace76-71cc-53e1-bbaa-aeeddd7c11da",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -415,7 +397,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:yaCigL1miNFhHVYyiGGsOksu4yYEH6S1mVSCOCVzzlA"
+              "value" : "v0:test:1:kIkfGhRJbNcIeaTece54hRYLDzD1Z2u2vpSvhwz61MI"
             }
           }
         ],

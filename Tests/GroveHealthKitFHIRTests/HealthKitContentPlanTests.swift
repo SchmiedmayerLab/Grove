@@ -105,7 +105,7 @@ struct HealthKitContentPlanTests {
         ])
     }
 
-    @Test("Every unit a plan reads measures the quantity it reads, and every UCUM code the rules bind is read")
+    @Test("Every plan unit measures its quantity, and every shared UCUM binding serves a plan or metadata")
     func quantityUnitsAreCompatible() throws {
         var read = Self.electrocardiogramUnits()
         for plan in HealthKitContentPlan.all {
@@ -138,6 +138,8 @@ struct HealthKitContentPlanTests {
                 break
             }
         }
+        read.formUnion(HealthKitSourceMetadata.knownQuantityCodes.values)
+        read.formUnion(HealthKitSourceMetadata.fallbackQuantityCodes)
         #expect(read == Set(HealthKitContentRules.ucumUnits.keys))
     }
 }

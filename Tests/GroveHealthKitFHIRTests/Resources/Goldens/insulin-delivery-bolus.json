@@ -75,41 +75,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKQuantityTypeIdentifierInsulinDelivery"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKInsulinDeliveryReason"
-                  },
-                  {
-                    "url" : "value",
-                    "valueCoding" : {
-                      "code" : "2",
-                      "display" : "Bolus",
-                      "system" : "https://developer.apple.com/documentation/healthkit/hkinsulindeliveryreason"
-                    }
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -317,11 +282,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:xpwFb2dkc_yu9aPNJTJ2zHgy670X-Vb3S66GR04qsyo"
+            "value" : "v0:test:1:kS7cxHFObUOoG89bjBYiO2pivT109BEJERxaVhn525I"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:a17756dc-04c2-5324-b6ab-2860bac127b7",
+      "fullUrl" : "urn:uuid:20b7f65e-51f2-5eca-b458-a444c2adb58b",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -380,7 +345,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:xpwFb2dkc_yu9aPNJTJ2zHgy670X-Vb3S66GR04qsyo"
+              "value" : "v0:test:1:kS7cxHFObUOoG89bjBYiO2pivT109BEJERxaVhn525I"
             }
           }
         ],

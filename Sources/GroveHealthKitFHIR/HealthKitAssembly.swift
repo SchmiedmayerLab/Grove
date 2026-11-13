@@ -127,13 +127,9 @@ struct HealthKitAssembly: Sendable {
         guard !outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
-        let facts = try SourceFacts(sample, metadata: metadata, outputs: outputs, policies: request.policies, options: options)
+        let facts = try SourceFacts(sample, metadata: metadata, policies: request.policies, options: options)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
-        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: metadata.values, disclosure: options.metadata)
-        if let container = sourceMetadata.container {
-            outputs[0].trailingExtensions.append(container)
-        }
         // One record states one entry method: its metadata decides it for every output it yields.
         for index in outputs.indices {
             outputs[index].wasUserEntered = facts.wasUserEntered
@@ -147,6 +143,11 @@ struct HealthKitAssembly: Sendable {
                     outputs[index].writerRecord = facts.writerRecord
                 }
             }
+        }
+        let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice)
+        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, disclosure: options.metadata)
+        if let container = sourceMetadata.container {
+            outputs[0].trailingExtensions.append(container)
         }
         let draft = ExchangeRecordDraft(
             instant: request.instant,

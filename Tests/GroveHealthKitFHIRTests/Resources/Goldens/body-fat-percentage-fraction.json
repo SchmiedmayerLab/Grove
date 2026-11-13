@@ -42,24 +42,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKQuantityTypeIdentifierBodyFatPercentage"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -268,11 +250,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:zKCFIemOxAzDMK_sn5yyHiDRME90oyOSGZVdN3QoCoA"
+            "value" : "v0:test:1:eBEOqfAGKBwT2TWSDu01Yim_xZS0-Nuh9AR_rwhjQgM"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:1d32d0f1-638d-5cf5-b796-7f1e854d8891",
+      "fullUrl" : "urn:uuid:a088aa8a-513c-50e6-a986-757a122dc00d",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -331,7 +313,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:zKCFIemOxAzDMK_sn5yyHiDRME90oyOSGZVdN3QoCoA"
+              "value" : "v0:test:1:eBEOqfAGKBwT2TWSDu01Yim_xZS0-Nuh9AR_rwhjQgM"
             }
           }
         ],

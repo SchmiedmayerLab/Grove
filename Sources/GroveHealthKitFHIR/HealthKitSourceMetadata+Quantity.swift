@@ -16,54 +16,36 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitSourceMetadata {
-    private static let knownQuantityUnits: [String: (unit: HKUnit, code: String)] = [
-        HKMetadataKeyWeatherTemperature: (.degreeCelsius(), "Cel"),
-        HKMetadataKeyWeatherHumidity: (.percent(), "%"),
-        HKMetadataKeyAlpineSlopeGrade: (.percent(), "%"),
-        HKMetadataKeyHeartRateRecoveryActivityDuration: (.second(), "s"),
-        HKMetadataKeyFitnessMachineDuration: (.second(), "s"),
-        HKMetadataKeyAudioExposureDuration: (.second(), "s"),
-        HKMetadataKeyHeartRateRecoveryMaxObservedRecoveryHeartRate: (.count().unitDivided(by: .minute()), "/min"),
-        HKMetadataKeyHeartRateEventThreshold: (.count().unitDivided(by: .minute()), "/min"),
-        HKMetadataKeyAverageSpeed: (.meter().unitDivided(by: .second()), "m/s"),
-        HKMetadataKeyMaximumSpeed: (.meter().unitDivided(by: .second()), "m/s"),
-        HKMetadataKeyElevationAscended: (.meter(), "m"),
-        HKMetadataKeyElevationDescended: (.meter(), "m"),
-        HKMetadataKeyIndoorBikeDistance: (.meter(), "m"),
-        HKMetadataKeyCrossTrainerDistance: (.meter(), "m"),
-        HKMetadataKeyAverageMETs: (.largeCalorie().unitDivided(by: .gramUnit(with: .kilo).unitMultiplied(by: .hour())), "kcal/(kg.h)"),
-        HKMetadataKeyAudioExposureLevel: (.decibelAWeightedSoundPressureLevel(), "dB[SPL]"),
-        HKMetadataKeyHeadphoneGain: (.decibelAWeightedSoundPressureLevel(), "dB[SPL]"),
-        HKMetadataKeyBarometricPressure: (.millimeterOfMercury(), "mm[Hg]"),
-        HKMetadataKeyVO2MaxValue: (oxygenVolumeUnit, "mL/kg/min"),
-        HKMetadataKeyLowCardioFitnessEventThreshold: (oxygenVolumeUnit, "mL/kg/min"),
-        HKMetadataKeyMaximumLightIntensity: (.lux(), "lx")
+    private static let percentageCode = "%"
+
+    static let knownQuantityCodes: [String: String] = [
+        HKMetadataKeyWeatherTemperature: "Cel",
+        HKMetadataKeyWeatherHumidity: percentageCode,
+        HKMetadataKeyAlpineSlopeGrade: percentageCode,
+        HKMetadataKeyHeartRateRecoveryActivityDuration: "s",
+        HKMetadataKeyFitnessMachineDuration: "s",
+        HKMetadataKeyAudioExposureDuration: "s",
+        HKMetadataKeyHeartRateRecoveryMaxObservedRecoveryHeartRate: "/min",
+        HKMetadataKeyHeartRateEventThreshold: "/min",
+        HKMetadataKeyAverageSpeed: "m/s",
+        HKMetadataKeyMaximumSpeed: "m/s",
+        HKMetadataKeyElevationAscended: "m",
+        HKMetadataKeyElevationDescended: "m",
+        HKMetadataKeyIndoorBikeDistance: "m",
+        HKMetadataKeyCrossTrainerDistance: "m",
+        HKMetadataKeyAverageMETs: "kcal/(kg.h)",
+        HKMetadataKeyAudioExposureLevel: "dB[SPL]",
+        HKMetadataKeyHeadphoneGain: "dB[SPL]",
+        HKMetadataKeyBarometricPressure: "mm[Hg]",
+        HKMetadataKeyVO2MaxValue: "mL/kg/min",
+        HKMetadataKeyLowCardioFitnessEventThreshold: "mL/kg/min",
+        HKMetadataKeyMaximumLightIntensity: "lx"
     ]
 
-    private static let oxygenVolumeUnit = HKUnit.literUnit(with: .milli)
-        .unitDivided(by: .gramUnit(with: .kilo).unitMultiplied(by: .minute()))
-
-    private static let fallbackQuantityUnits: [(unit: HKUnit, code: String)] = [
-        (.count(), "1"),
-        (.count().unitDivided(by: .minute()), "/min"),
-        (.second(), "s"),
-        (.meter(), "m"),
-        (.meter().unitDivided(by: .second()), "m/s"),
-        (.gram(), "g"),
-        (.liter(), "L"),
-        (.liter().unitDivided(by: .minute()), "L/min"),
-        (.largeCalorie(), "kcal"),
-        (.watt(), "W"),
-        (.degreeCelsius(), "Cel"),
-        (.millimeterOfMercury(), "mm[Hg]"),
-        (.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)), "mg/dL"),
-        (.literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo).unitMultiplied(by: .minute())), "mL/kg/min"),
-        (.largeCalorie().unitDivided(by: .gramUnit(with: .kilo).unitMultiplied(by: .hour())), "kcal/(kg.h)"),
-        (.internationalUnit(), "[iU]"),
-        (.siemen(), "S"),
-        (.decibelAWeightedSoundPressureLevel(), "dB[SPL]"),
-        (.decibelHearingLevel(), "dB"),
-        (.lux(), "lx")
+    /// The fallback order is part of the metadata contract; HealthKit unit constructors live in the shared unit table.
+    static let fallbackQuantityCodes = [
+        "1", "/min", "s", "m", "m/s", "g", "L", "L/min", "kcal", "W", "Cel", "mm[Hg]", "mg/dL", "mL/kg/min",
+        "kcal/(kg.h)", "[iU]", "S", "dB[SPL]", "dB", "lx"
     ]
 
     /// Known keys use their specified units. A custom key uses the first compatible canonical unit.
@@ -76,22 +58,24 @@ extension HealthKitSourceMetadata {
                 return nil
             }
             binding = (unit.unit, unit.ucumCode)
-        } else if let known = knownQuantityUnits[key] {
-            binding = known
+        } else if let code = knownQuantityCodes[key] {
+            binding = HealthKitContentRules.ucumUnits[code].map { ($0, code) }
         } else {
-            binding = fallbackQuantityUnits.first { quantity.is(compatibleWith: $0.unit) }
+            binding = fallbackQuantityCodes.lazy
+                .compactMap { code in HealthKitContentRules.ucumUnits[code].map { (unit: $0, code: code) } }
+                .first { quantity.is(compatibleWith: $0.unit) }
         }
         guard let binding, quantity.is(compatibleWith: binding.unit) else {
             return nil
         }
         let rawValue = quantity.doubleValue(for: binding.unit)
-        let number = binding.code == "%" ? QuantityRead.percent(ofFraction: rawValue) : rawValue
+        let number = binding.code == percentageCode ? QuantityRead.percent(ofFraction: rawValue) : rawValue
         guard let value = try? GroveFHIRDecimal(number) else {
             return nil
         }
         return Quantity(
             code: binding.code.asFHIRStringPrimitive(),
-            system: "http://unitsofmeasure.org",
+            system: Canonicals.ucum,
             unit: binding.code.asFHIRStringPrimitive(),
             value: value.primitive
         )

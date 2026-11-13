@@ -112,7 +112,7 @@ struct HealthKitDeviceFactsTests {
         #expect(device.serialNumber == "SN-0042", "the serial number has no HKDevice property")
         let assembled = try AssemblyFixtures.conversion(sample)
         #expect(assembled.withheldMetadataKeys.isEmpty)
-        #expect(assembled.export.metadata?.preservedSampleKeys == Self.deviceMetadata.count + 1)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 3, "only the conflicting name, manufacturer and UDI need metadata")
         #expect(conversion.primary.warnings.isEmpty)
     }
 
@@ -137,13 +137,20 @@ struct HealthKitDeviceFactsTests {
         }
     }
 
-    @Test("Device metadata remains available even when HealthKit supplies no HKDevice")
-    func noDevicePreservesMetadata() async throws {
+    @Test("Device metadata creates a recording Device when HealthKit supplies no HKDevice")
+    func metadataNamesRecordingHardware() async throws {
         let sample = try Self.heartRate(nil, metadata: Self.deviceMetadata)
         let assembled = try AssemblyFixtures.conversion(sample)
         #expect(assembled.withheldMetadataKeys.isEmpty)
-        #expect(assembled.export.metadata?.preservedSampleKeys == Self.deviceMetadata.count + 1)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 0)
         #expect(assembled.warnings.isEmpty)
+        let conversion = try await ExporterFixtures.export(sample)
+        let device = try #require(conversion.recordingDevice)
+        #expect(Self.name(of: device)?.name == "Metadata Name")
+        #expect(device.manufacturer == "Metadata Manufacturer")
+        #expect(device.serialNumber == Self.serial.asFHIRStringPrimitive())
+        #expect(device.udiCarrier?.first?.deviceIdentifier == "metadata-udi")
+        #expect(device.identifier?.contains { $0.type?.coding?.contains { $0.code?.value?.string == GroveIdentifierRole.recordingDevice.rawValue } == true } != true)
     }
 
     @Test("Uninterpretable device facts remain raw metadata without populating the Device")
@@ -156,15 +163,15 @@ struct HealthKitDeviceFactsTests {
         let assembled = try AssemblyFixtures.conversion(sample)
         let conversion = try await ExporterFixtures.export(sample)
         #expect(assembled.withheldMetadataKeys.isEmpty)
-        #expect(assembled.export.metadata?.preservedSampleKeys == 3)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 2)
         #expect(conversion.recordingDevice?.serialNumber == nil)
         #expect(conversion.recordingDevice?.deviceName == nil)
     }
 
-    @Test("Documents preserve metadata while their Device states HKDevice alone")
-    func documentsPreserveDeviceMetadata() async throws {
+    @Test("Documents map device metadata with or without HKDevice", arguments: [true, false])
+    func documentsMapDeviceMetadata(hasHKDevice: Bool) async throws {
         var facts = GoldenCase.seriesFacts(uuid: 0xC2, duration: 2)
-        facts.device = Self.everyFact
+        facts.device = hasHKDevice ? Self.everyFact : nil
         facts.metadata = Self.deviceMetadata.merging([HKMetadataKeyDeviceName: "Device Name"]) { $1 }
         let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
         let beats = [HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false)]
@@ -172,10 +179,40 @@ struct HealthKitDeviceFactsTests {
         let devices = assembled.record.bundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
         let device = try #require(devices.first { $0.meta?.profile?.contains(Profile.groveRecordingDevice) == true })
 
-        #expect(device.serialNumber == nil)
-        #expect(device.udiCarrier?.first?.extension == nil)
+        #expect(device.serialNumber == Self.serial.asFHIRStringPrimitive())
+        #expect(device.udiCarrier?.first?.extension?.first?.url == Canonicals.udiProductionIdentifier)
         #expect(assembled.withheldMetadataKeys.isEmpty)
-        #expect(assembled.export.metadata?.preservedSampleKeys == Self.deviceMetadata.count)
+        #expect(device.manufacturer == (hasHKDevice ? "Device Manufacturer" : "Metadata Manufacturer").asFHIRStringPrimitive())
+        #expect(assembled.export.metadata?.preservedSampleKeys == (hasHKDevice ? 2 : 0), "only conflicting device facts need metadata")
+        let document = try #require(assembled.record.bundle.entry?.compactMap { $0.resource?.get(if: DocumentReference.self) }.first)
+        let address = try #require(assembled.record.bundle.entry?.first {
+            $0.resource?.get(if: Device.self)?.meta?.profile?.contains(Profile.groveRecordingDevice) == true
+        }?.fullUrl?.value?.url.absoluteString)
+        #expect(document.author?.contains { $0.reference?.value?.string == address } == true)
+    }
+
+    @Test("Unrecognized or malformed device metadata does not invent source hardware")
+    func noRecognizableDeviceFacts() async throws {
+        let sample = try StoredSampleFixtures.withMetadata(Self.heartRate(nil), [
+            HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
+            HKMetadataKeyDeviceName: "   ",
+            HKMetadataKeyDeviceManufacturerName: 42
+        ])
+        let conversion = try await ExporterFixtures.export(sample)
+        #expect(conversion.recordingDevice == nil)
+        #expect(try AssemblyFixtures.conversion(sample).export.metadata?.preservedSampleKeys == 2)
+    }
+
+    @Test("Clinical and time mappings take precedence over metadata preservation")
+    func mappedValuesAreNotDuplicated() throws {
+        let sample = try Self.heartRate(nil, metadata: [HKMetadataKeyHeartRateMotionContext: 1, "com.example.note": "after exercise"])
+        let assembled = try AssemblyFixtures.conversion(sample)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 1, "motion context and time zone are already mapped")
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        let observation = try #require(assembled.record.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
+        let metadata = try #require(observation.extension?.first { $0.url.value?.url.absoluteString == HealthKitSourceMetadata.url })
+        #expect(metadata.extension?.count == 1)
+        #expect(metadata.extension?.first?.extension?.first?.value == .string("com.example.note"))
     }
 
     @Test("Every device fact is content: a changed one is a new snapshot and a new record version")

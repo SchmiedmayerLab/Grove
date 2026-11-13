@@ -61,37 +61,6 @@
               "display" : "Manual entry",
               "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-recording-method"
             }
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKWasUserEntered"
-                  },
-                  {
-                    "url" : "value",
-                    "valueBoolean" : true
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -300,11 +269,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:K7nuzwVVk-ifo9q93c_TQDnrU6-Dp_g6Yedyc-dhyNI"
+            "value" : "v0:test:1:n9XLmC0lqPyc_brN5CKaKACl2bV7VbQuZRoWxSgl2AA"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:0fb5beb3-9a7c-5aed-b13c-21606b552811",
+      "fullUrl" : "urn:uuid:4f0564dc-259c-5a32-b692-9f6e470fde72",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -363,7 +332,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:K7nuzwVVk-ifo9q93c_TQDnrU6-Dp_g6Yedyc-dhyNI"
+              "value" : "v0:test:1:n9XLmC0lqPyc_brN5CKaKACl2bV7VbQuZRoWxSgl2AA"
             }
           }
         ],

@@ -103,24 +103,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKWorkoutTypeIdentifier"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "Europe/Berlin"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "hasMember" : [
@@ -1869,11 +1851,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:K2d6VbkGZ2uOXyX-8Lx-X2_0g5bh1aa4Seucw1jcD14"
+            "value" : "v0:test:1:LD72sCfZBeOBsuMoY_Mdxp6yqLASHCWy13AVHqfmYwU"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:baf66958-7298-5f70-bc42-519054ec7fb0",
+      "fullUrl" : "urn:uuid:ad8b2f83-2542-5711-9718-8ce5270a2bfd",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -1932,7 +1914,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:K2d6VbkGZ2uOXyX-8Lx-X2_0g5bh1aa4Seucw1jcD14"
+              "value" : "v0:test:1:LD72sCfZBeOBsuMoY_Mdxp6yqLASHCWy13AVHqfmYwU"
             }
           }
         ],

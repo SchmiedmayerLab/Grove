@@ -55,29 +55,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKCategoryTypeIdentifierHighHeartRateEvent"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKHeartRateEventThreshold"
-                  },
-                  {
-                    "url" : "value",
-                    "valueQuantity" : {
-                      "code" : "/min",
-                      "system" : "http://unitsofmeasure.org",
-                      "unit" : "/min",
-                      "value" : 120
-                    }
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -288,11 +265,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:S0UqSqilsHH8eq8EWQtSnB3BA6HWCQc8LfF0o2t1ZD0"
+            "value" : "v0:test:1:lFArEXkTeUPq_EWmfZbJ_4ICQ6TDEerk_lPxLFygev8"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:e76600c8-6ad9-5ecd-8877-c5f38fe17e4b",
+      "fullUrl" : "urn:uuid:66559311-839d-5382-b80f-14d111f9192d",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -351,7 +328,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:S0UqSqilsHH8eq8EWQtSnB3BA6HWCQc8LfF0o2t1ZD0"
+              "value" : "v0:test:1:lFArEXkTeUPq_EWmfZbJ_4ICQ6TDEerk_lPxLFygev8"
             }
           }
         ],

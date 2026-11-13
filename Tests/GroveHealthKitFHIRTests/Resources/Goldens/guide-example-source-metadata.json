@@ -92,36 +92,6 @@
                 "extension" : [
                   {
                     "url" : "key",
-                    "valueString" : "HKMetadataKeyHeartRateMotionContext"
-                  },
-                  {
-                    "url" : "value",
-                    "valueCoding" : {
-                      "code" : "1",
-                      "display" : "Sedentary",
-                      "system" : "https://developer.apple.com/documentation/healthkit/hkheartratemotioncontext"
-                    }
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
                     "valueString" : "com.example.note"
                   },
                   {
@@ -586,11 +556,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:PnOuu4fZWh_5KCSOmczq2ZF5JhDJv8UhYzwWtAGOKjk"
+            "value" : "v0:test:1:xm4SBvkflQyI4shXp5Ge5mdmE37mM59ZJaoVqQp_ThQ"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:3ce5b7b5-204f-5231-bedd-3744c0cc9a49",
+      "fullUrl" : "urn:uuid:17a96482-542f-5121-9048-6b42708b7bd8",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -649,7 +619,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:PnOuu4fZWh_5KCSOmczq2ZF5JhDJv8UhYzwWtAGOKjk"
+              "value" : "v0:test:1:xm4SBvkflQyI4shXp5Ge5mdmE37mM59ZJaoVqQp_ThQ"
             }
           }
         ],

@@ -134,24 +134,6 @@
               "reference" : "urn:uuid:61e5af79-2c7a-52f2-8843-bfc2e7645958",
               "type" : "ResearchStudy"
             }
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -514,11 +496,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:c8lLEai4osLVB-8vOBTtu-Myek6V9vycUZu1fQ7MrCk"
+            "value" : "v0:test:1:mwfIZ2JdwvkGeoe6MIIL17a8ZQoVQDoUZ6nBJ6Ncapk"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:b6ce3988-d84a-5925-8bd4-196d1c71a628",
+      "fullUrl" : "urn:uuid:da904766-217f-5959-9a48-d79c90a6fb68",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -577,7 +559,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:c8lLEai4osLVB-8vOBTtu-Myek6V9vycUZu1fQ7MrCk"
+              "value" : "v0:test:1:mwfIZ2JdwvkGeoe6MIIL17a8ZQoVQDoUZ6nBJ6Ncapk"
             }
           }
         ],

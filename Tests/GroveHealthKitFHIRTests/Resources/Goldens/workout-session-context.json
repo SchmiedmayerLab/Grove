@@ -127,37 +127,6 @@
               "reference" : "urn:uuid:61e5af79-2c7a-52f2-8843-bfc2e7645958",
               "type" : "ResearchStudy"
             }
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "Europe/Berlin"
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKWasUserEntered"
-                  },
-                  {
-                    "url" : "value",
-                    "valueBoolean" : true
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "hasMember" : [
@@ -882,11 +851,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:Ug2iymQY8mqPOmZcQGG1hKnzlCkWpkqYzCqrKEvXGM0"
+            "value" : "v0:test:1:l7Dve6zQKyHTXm9Hh5j2UuLiPbT39Blbjg69APfUImQ"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:40a994ea-5001-5218-b47d-f5be5ef89873",
+      "fullUrl" : "urn:uuid:88f9b8ea-a02a-54d0-a69e-3b92bfbf5cdd",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -945,7 +914,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:Ug2iymQY8mqPOmZcQGG1hKnzlCkWpkqYzCqrKEvXGM0"
+              "value" : "v0:test:1:l7Dve6zQKyHTXm9Hh5j2UuLiPbT39Blbjg69APfUImQ"
             }
           }
         ],

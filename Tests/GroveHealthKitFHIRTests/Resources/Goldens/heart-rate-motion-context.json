@@ -78,41 +78,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKQuantityTypeIdentifierHeartRate"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKMetadataKeyHeartRateMotionContext"
-                  },
-                  {
-                    "url" : "value",
-                    "valueCoding" : {
-                      "code" : "2",
-                      "display" : "Active",
-                      "system" : "https://developer.apple.com/documentation/healthkit/hkheartratemotioncontext"
-                    }
-                  }
-                ],
-                "url" : "entry"
-              },
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -427,11 +392,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:PlTRU5TAMKuG7DY2vfV6UQllf5DoP_T_tkigWzp2eXI"
+            "value" : "v0:test:1:B0z_4Fs0H3QpVe5b5ox1PhTIGK-KNTV_7W-DyhzOs0E"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:1cf866cd-2b0c-5d5d-8ff1-684be5a3f091",
+      "fullUrl" : "urn:uuid:2803095d-f8df-5e8e-aaf4-9228ea944246",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -490,7 +455,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:PlTRU5TAMKuG7DY2vfV6UQllf5DoP_T_tkigWzp2eXI"
+              "value" : "v0:test:1:B0z_4Fs0H3QpVe5b5ox1PhTIGK-KNTV_7W-DyhzOs0E"
             }
           }
         ],

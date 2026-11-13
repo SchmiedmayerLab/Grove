@@ -347,6 +347,19 @@ extension HealthKitSampleMetadata {
         return Self.withheldKeys(record: own, contained: contained, carried: carried)
     }
 
+    /// Source-sample values without a faithful representation in the mapped content or supporting graph.
+    /// Conflicting device metadata remains here; a preferred HKDevice value cannot represent a different source value.
+    func unmappedValues(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String: Any] {
+        values.filter { key, value in
+            // A keyed identity cannot reproduce the original sync identifier. Likewise, absence of
+            // manual-entry coding cannot distinguish an explicit false from missing source metadata.
+            if key == HKMetadataKeySyncIdentifier || (key == HKMetadataKeyWasUserEntered && (value as? Bool) == false) {
+                return true
+            }
+            return !carries(key, value: value, in: outputs, device: device)
+        }
+    }
+
     /// Whether a blood-pressure correlation or one of its members states manual entry `true` that `outputs` do not
     /// state as the manual-entry recording method: the record as a whole does not establish it (healthkit mapping.md,
     /// Blood-pressure correlation objects).
@@ -363,8 +376,7 @@ extension HealthKitSampleMetadata {
     /// - manual entry, `false` by omission and `true` as an Observation's manual-entry recording method;
     /// - the time zone as a `timezone` extension on an Observation's effective time (mapping.md: "Map an available
     ///   IANA time-zone name to the standard FHIR `timezone` extension"), which a document has no element for;
-    /// - a device key as the very value the Device an Observation references states in the element the guide gives it, so
-    ///   a value an `HKDevice` property replaced is withheld, and so is every device key of a sample with no `HKDevice`;
+    /// - a device key as the very value the recording Device states in the element the guide gives it;
     /// - a key of the type's own content when its reader accepts the value.
     private func carries(_ key: String, value: Any, in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> Bool {
         switch key {
@@ -379,7 +391,7 @@ extension HealthKitSampleMetadata {
             return outputs.contains(where: \.namesEffectiveZone)
         case HKMetadataKeyDeviceSerialNumber, HKMetadataKeyDeviceName, HKMetadataKeyDeviceManufacturerName,
             HKMetadataKeyUDIDeviceIdentifier, HKMetadataKeyUDIProductionIdentifier:
-            guard let stated = value as? String, outputs.contains(where: \.isObservation) else {
+            guard let stated = value as? String, outputs.contains(where: { $0.links.contains(.recordingDevice) }) else {
                 return false
             }
             return device?.statedFact(forMetadataKey: key) == stated

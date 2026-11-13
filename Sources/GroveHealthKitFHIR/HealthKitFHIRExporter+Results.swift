@@ -99,7 +99,8 @@ extension HealthKitFHIRExporter {
             case refused(HealthKitConversionError)
         }
 
-        /// Counts for sample-level metadata; contained-object omissions remain in `warnings`.
+        /// Counts for otherwise unmapped sample metadata; values carried by structured mappings are not counted.
+        /// Contained-object omissions remain in `warnings`.
         /// Keys and values are deliberately absent from this aggregate diagnostic.
         public struct MetadataSummary: Sendable, Equatable {
             public let preservedSampleKeys: Int

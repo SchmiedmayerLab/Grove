@@ -167,7 +167,7 @@ struct ConversionThroughputBenchmark {
         exporter: HealthKitFHIRExporter
     ) throws -> HealthKitAssembly.SourceFacts {
         let policies = HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options)
-        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, outputs: [], policies: policies, options: exporter.options)
+        return try HealthKitAssembly.SourceFacts(sample, metadata: metadata, policies: policies, options: exporter.options)
     }
 
     @Test
