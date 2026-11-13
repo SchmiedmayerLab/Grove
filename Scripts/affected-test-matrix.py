@@ -22,6 +22,8 @@
 #   extra_runner_labels = additional runner labels to require for this package's self-hosted jobs, on
 #                    top of the base ["self-hosted", "macOS"]. Optional; default []. Emitted per job as
 #                    `selfHostedLabels` for the workflow's `runs-on`.
+#   uiParallelWorkers = how many simulator clones its UI tests are spread across. Optional; read by
+#                    run-package-tests.sh, and here only to put a parallel UI job in the smoke set.
 # The dir -> package map used for change detection is derived from each package's targets+tests.
 #
 # Usage:
@@ -35,7 +37,8 @@
 # Only a manifest change the graph diff cannot classify runs the whole matrix; no lockfile is
 # tracked (Package.resolved is ignored). Changes to the test workflow, the shared actions,
 # the runner script or the Xcode scheme run a smoke set instead: one package per distinct
-# configuration shape in packages.toml (platforms, UI tests, Linux targets, runner routing), which
+# configuration shape in packages.toml (platforms, UI tests, Linux targets, runner routing, parallel
+# UI tests), which
 # exercises every job variant without repeating it for every package. An unknown script under
 # Scripts/ is an error until it is classified below, as a new target must be assigned to a package.
 # The workflow temporarily passes --ignore-manifest-and-ci-changes to suspend selection from manifest
@@ -173,6 +176,7 @@ def smoke_packages(packages=None):
             bool(info.get("linuxTargets")),
             tuple(sorted(info.get("self-hosted-ci", ["ui"]))),
             tuple(info.get("extra_runner_labels", [])),
+            info.get("uiParallelWorkers", 1) > 1,
         )
         shapes.setdefault(shape, []).append(name)
     return {sorted(names, key=lambda name: (len(packages[name]["targets"]), name))[0] for names in shapes.values()}

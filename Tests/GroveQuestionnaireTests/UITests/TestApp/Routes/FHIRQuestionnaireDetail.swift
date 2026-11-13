@@ -57,6 +57,9 @@ struct FHIRQuestionnaireDetail: View {
             converted = Result {
                 try GroveQuestionnaire.Questionnaire(example.fhir, clock: .live(in: .current))
             }
+            if case .success(let questionnaire) = converted, LaunchShortcut.claim(example.title) {
+                running = Example(questionnaire, title: example.title)
+            }
         }
         .runsQuestionnaires($running)
         .sheet(isPresented: $runningLegacy) {

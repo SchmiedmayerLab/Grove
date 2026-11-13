@@ -18,6 +18,10 @@
 #   linuxTargets = optional; what the Linux leg compile-checks instead of `tests`, for a package whose
 #               test target is Apple-only but whose sources build on Linux.
 #   uiTests   = the platforms its UITests Xcode project runs on (absent = no UI tests).
+#   uiParallelWorkers = optional; how many simulator clones its UI tests are spread across. Absent (or 1)
+#               runs them one at a time on the destination itself. Each clone launches its own copy of
+#               the app, so this pays off only for a long suite whose tests do not depend on each other.
+#               The UI_WORKERS environment variable overrides it for a local run.
 #   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
 #               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
 #               unit tests on GitHub-hosted (today's behavior). Add "unit" (e.g. ["unit", "ui"]) to
@@ -172,6 +176,8 @@ targets = ["GroveQuestionnaire", "GroveQuestionnaireUI", "GroveQuestionnaireCata
 tests = ["GroveQuestionnaireTests", "GroveQuestionnaireExtractionTests", "GroveQuestionnaireMacrosTests"]
 testPlatforms = { GroveQuestionnaireMacrosTests = ["macOS"] }
 uiTests = ["iOS", "iPadOS"]
+# The longest UI suite by far: run one at a time it holds up the whole test workflow.
+uiParallelWorkers = 4
 # Everything that treats a questionnaire as data builds off-Apple; only GroveQuestionnaireUI,
 # which renders it, is Apple-bound. The annotate-image kind goes with the UI: its config names an
 # image asset and its answer is a PencilKit drawing, so off-Apple it is neither parsed nor encoded.

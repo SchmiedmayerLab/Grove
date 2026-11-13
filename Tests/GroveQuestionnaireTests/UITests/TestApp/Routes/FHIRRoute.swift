@@ -55,6 +55,8 @@ struct FHIRRoute: View {
     ]
 
     @State private var imported: FHIRExample?
+    /// The row the launch asked for, opened without a tap; its page then starts the questionnaire.
+    @State private var opened: FHIRExample?
     @State private var showFileImporter = false
     @State private var viewState: ViewState = .idle
 
@@ -83,6 +85,12 @@ struct FHIRRoute: View {
             }
         }
         .navigationTitle(AuthoringRoute.fhir.title)
+        .navigationDestination(item: $opened) { example in
+            FHIRQuestionnaireDetail(example: example)
+        }
+        .task {
+            opened = (Self.researchInstruments + Self.sdcExamples).first { LaunchShortcut.isWaiting($0.title) }
+        }
         .viewStateAlert(state: $viewState)
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.json]) { result in
             do {
@@ -103,7 +111,7 @@ struct FHIRRoute: View {
 
 
 /// A FHIR resource the catalog offers, kept in its source form until the detail page converts it.
-struct FHIRExample: Identifiable, Sendable {
+struct FHIRExample: Identifiable, Hashable, Sendable {
     let title: String
     let fhir: ModelsR4.Questionnaire
 
@@ -124,5 +132,14 @@ struct FHIRExample: Identifiable, Sendable {
             url.stopAccessingSecurityScopedResource()
         }
         self.init(try JSONDecoder().decode(ModelsR4.Questionnaire.self, from: try Data(contentsOf: url)))
+    }
+
+    /// Two rows are the same example when they share a title, as their identity already says.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }

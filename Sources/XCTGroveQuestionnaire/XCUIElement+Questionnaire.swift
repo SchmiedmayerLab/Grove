@@ -32,10 +32,10 @@ extension XCUIElementQuery {
 }
 
 
-extension XCUIElement {
-    /// Waits until the element's accessibility value equals `value`.
-    func wait(forValue value: String, timeout: TimeInterval) -> Bool {
-        let hasValue = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", value), object: self)
-        return XCTWaiter().wait(for: [hasValue], timeout: timeout) == .completed
+extension XCUIElementSnapshot {
+    /// This element if it is a static text, then every static text beneath it, depth first: the
+    /// order in which a `staticTexts` query lists them.
+    @MainActor var staticTextsWithin: [any XCUIElementSnapshot] {
+        (elementType == .staticText ? [self] : []) + children.flatMap(\.staticTextsWithin)
     }
 }
