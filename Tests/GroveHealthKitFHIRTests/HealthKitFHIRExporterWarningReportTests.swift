@@ -54,7 +54,9 @@ struct HealthKitFHIRExporterWarningReportTests {
             try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x51), metadata: nil),
             try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x52), device: GoldenFixtures.watchWithoutUnitToken, metadata: nil),
             steps,
-            try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x54), metadata: zoned.merging(unmodeledKey) { $1 }),
+            try StoredSampleFixtures.withMetadata(
+                GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x54)), zoned.merging(unmodeledKey) { $1 }
+            ),
             try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x55), device: GoldenFixtures.watchWithoutUnitToken),
             try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0x56), device: GoldenFixtures.watch),
             ecg
