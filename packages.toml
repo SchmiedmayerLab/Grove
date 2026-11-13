@@ -22,13 +22,16 @@
 #               runs them one at a time on the destination itself. Each clone launches its own copy of
 #               the app, so this pays off only for a long suite whose tests do not depend on each other.
 #               The UI_WORKERS environment variable overrides it for a local run.
-#   self-hosted-ci = which test kinds run on the self-hosted runner (vs GitHub-hosted): a subset of
-#               ["unit", "ui"]. Optional; defaults to ["ui"] — UI tests on the self-hosted runner,
-#               unit tests on GitHub-hosted (today's behavior). Add "unit" (e.g. ["unit", "ui"]) to
-#               also route a package's unit tests to the self-hosted runner — useful for tests that
-#               need more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests
-#               starve on the few-vCPU GitHub runner). Linux unit jobs always stay on GitHub-hosted
-#               ubuntu regardless (the self-hosted runner is macOS).
+#   self-hosted-ci = which test kinds are pinned to the self-hosted runner: a subset of ["unit", "ui"].
+#               Optional; defaults to ["ui"]. UI tests not listed run GitHub-hosted. Unit tests not
+#               pinned either way go to whichever runner pool is expected to finish them first
+#               (Scripts/refresh-ci-durations.py). Add "unit" (e.g. ["unit", "ui"]) for tests that need
+#               more CPU cores (e.g. RuntimeAssertions, whose cooperative-pool-blocking tests starve on
+#               the few-vCPU GitHub runner) or whose snapshot references match only the self-hosted
+#               runner's Xcode. Linux unit jobs always stay on GitHub-hosted ubuntu
+#               regardless (the self-hosted runner is macOS).
+#   github-hosted-ci = optional ["unit"]: pins the unit tests to GitHub-hosted runners, e.g. while a
+#               test fails only on the self-hosted runner.
 # Note: GroveFoundation's "CZlib" is a directory name (Sources/CZlib); its Swift target is "GroveCZlib".
 
 [FHIRModelsExtensions]
@@ -56,6 +59,8 @@ platforms = ["iOS"]
 targets = ["GroveAccessGuard"]
 tests = ["GroveAccessGuardTests"]
 uiTests = ["iOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveAccount]
 platforms = ["iOS", "macOS"]
@@ -74,12 +79,16 @@ platforms = ["iOS", "macOS", "visionOS"]
 targets = ["GroveChat"]
 tests = ["GroveChatTests"]
 uiTests = ["iOS", "visionOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveConsent]
 platforms = ["iOS", "macOS", "visionOS", "Linux"]
 targets = ["GroveConsent"]
 tests = ["GroveConsentTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveContact]
 platforms = ["iOS"]
@@ -123,6 +132,8 @@ platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "Linux"]
 targets = ["GroveHealthKit", "Codegen", "LocalizationsProcessor", "GroveHealthKitBulkExport", "GroveHealthKitUI"]
 tests = ["GroveHealthKitTests"]
 uiTests = ["iOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 # Formerly a standalone HealthKit-to-FHIR package, merged into this monorepo (see Package.swift). Kept as its own scheduling entry rather than folded into [GroveHealthKit], so its
 # UITests project keeps a home and CI stays granular -- the test matrix is directory-based.
@@ -188,6 +199,8 @@ platforms = ["iOS", "macOS", "watchOS", "visionOS"]
 targets = ["GroveScheduler", "GroveSchedulerMacros", "GroveSchedulerUI"]
 tests = ["GroveSchedulerTests", "GroveSchedulerUITests"]
 uiTests = ["iOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [GroveSensorKit]
 platforms = ["iOS"]
@@ -223,6 +236,8 @@ platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]
 targets = ["GroveViews", "GrovePersonalInfo", "GroveValidation"]
 tests = ["GroveViewsTests"]
 uiTests = ["iOS", "iPadOS", "visionOS"]
+# Its snapshot references match the self-hosted runner's Xcode; GitHub-hosted runners render them differently.
+self-hosted-ci = ["ui", "unit"]
 
 [ThreadLocal]
 platforms = ["iOS", "macOS", "macCatalyst", "watchOS", "visionOS", "tvOS"]

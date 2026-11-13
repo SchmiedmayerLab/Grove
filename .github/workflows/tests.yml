@@ -175,7 +175,11 @@ jobs:
           HAS_FHIR_CONFORMANCE: ${{ steps.compute.outputs.has_fhir_conformance }}
           HAS_JOBS: ${{ steps.compute.outputs.has_jobs }}
           MATRIX: ${{ steps.compute.outputs.matrix }}
+          RUNNER_NOTE: ${{ steps.compute.outputs.runner_note }}
         run: |
+          if [ -n "$RUNNER_NOTE" ]; then
+            echo "::warning title=Runner assignment::$RUNNER_NOTE"
+          fi
           echo "has_jobs = $HAS_JOBS"
           echo "has_fhir_conformance = $HAS_FHIR_CONFORMANCE"
           echo "fhir_components = $FHIR_COMPONENTS"
@@ -191,6 +195,10 @@ jobs:
             echo "**Affected packages:** $AFFECTED"
             echo "**FHIR producer lanes:** $FHIR_COMPONENTS"
             echo ""
+            if [ -n "$RUNNER_NOTE" ]; then
+              echo "**Runner assignment:** $RUNNER_NOTE"
+              echo ""
+            fi
             echo "<details><summary>Generated matrix JSON ($JOBS jobs)</summary>"
             echo ""
             echo '```json'
@@ -204,11 +212,11 @@ jobs:
     name: ${{ matrix.package }} (${{ matrix.platform }})
     needs: detect
     if: needs.detect.outputs.has_jobs == 'true'
-    # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff packages.toml's
-    # self-hosted-ci routed unit tests there (matrix.selfHosted), else GitHub-hosted macos-latest. The
-    # self-hosted label set (matrix.selfHostedLabels) is ["self-hosted","macOS"] plus any
-    # per-package `extra_runner_labels` from packages.toml, computed by
-    # Scripts/affected-test-matrix.py.
+    # Runner per job: Linux -> GitHub-hosted ubuntu; otherwise self-hosted iff matrix.selfHosted, else
+    # GitHub-hosted macos-latest. Scripts/affected-test-matrix.py sets selfHosted from a packages.toml
+    # pin or, for unpinned unit tests, from recorded durations (Scripts/refresh-ci-durations.py). The
+    # self-hosted label set (matrix.selfHostedLabels) is ["self-hosted","macOS"] plus any per-package
+    # `extra_runner_labels` from packages.toml.
     runs-on: ${{ matrix.platform == 'Linux' && 'ubuntu-latest' || (matrix.selfHosted && fromJson(matrix.selfHostedLabels) || fromJson('["macos-latest"]')) }}
     strategy:
       fail-fast: false
