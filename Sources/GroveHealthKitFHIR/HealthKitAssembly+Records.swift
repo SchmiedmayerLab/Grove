@@ -136,6 +136,16 @@ extension HealthKitAssembly {
         request: Request
     ) throws -> [Conversion] {
         let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
+        var document = document
+        if case .recording = plan.route, document.context?.period == nil {
+            let zone = try metadata.timeZone()
+            guard try EffectiveRule.interval(nonZero: false).admitsPeriod(from: sample.startDate, to: sample.endDate) else {
+                throw HealthKitConversionError.ValueFailure.effectivePeriodInvalid
+            }
+            var context = document.context ?? DocumentReferenceContext()
+            context.period = try HealthKitEffectiveTime.period(start: sample.startDate, end: sample.endDate, zone: zone)
+            document.context = context
+        }
         let output = plan.outputs[0].draft(.document(document))
         return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [output], request: request)]
     }

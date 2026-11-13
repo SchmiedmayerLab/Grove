@@ -43,29 +43,33 @@
             }
           }
         ],
+        "context" : {
+          "period" : {
+            "_end" : {
+              "extension" : [
+                {
+                  "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                  "valueCode" : "America/Los_Angeles"
+                }
+              ]
+            },
+            "_start" : {
+              "extension" : [
+                {
+                  "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                  "valueCode" : "America/Los_Angeles"
+                }
+              ]
+            },
+            "end" : "2026-08-17T15:30:01-07:00",
+            "start" : "2026-08-17T15:30:00-07:00"
+          }
+        },
         "date" : "2026-08-17T23:30:00Z",
         "extension" : [
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKWorkoutRouteTypeIdentifier"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -406,11 +410,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:o9Vp9fj7dGJ1R85r7rYybx-Ta_UVahtCzozcNl6_TYY"
+            "value" : "v0:test:1:owo6OrDiCzKtX2cym3_xSGDQ9ztTDR0wbFxIJ5UC0yk"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:e0e53c74-e249-5529-96c2-44b96dfd2357",
+      "fullUrl" : "urn:uuid:4d88fe49-2197-54a6-a8b2-e90ee8826e7f",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -496,7 +500,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:o9Vp9fj7dGJ1R85r7rYybx-Ta_UVahtCzozcNl6_TYY"
+              "value" : "v0:test:1:owo6OrDiCzKtX2cym3_xSGDQ9ztTDR0wbFxIJ5UC0yk"
             }
           }
         ],

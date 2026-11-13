@@ -17,7 +17,7 @@ import Testing
 
 
 /// The assembler adds the study references to a document's own context instead of replacing it, so an adapter's
-/// period and related outputs stay first; no HealthKit document states a context of its own, so its bytes do not change.
+/// recording period and related outputs stay first.
 @Suite
 struct DocumentContextMergeTests {
     private static let enrollments = [StudyEnrollment.test("a"), StudyEnrollment.test("b")]
@@ -43,8 +43,8 @@ struct DocumentContextMergeTests {
         return (document, studies)
     }
 
-    @Test("An exported HealthKit document states exactly the study references as its context")
-    func healthKitDocumentContextIsTheStudies() async throws {
+    @Test("An exported HealthKit recording keeps its source period alongside the study references")
+    func healthKitDocumentContextKeepsPeriodAndStudies() async throws {
         let record = try Self.record()
         let producer = try ExporterFixtures.producer(studies: Self.enrollments)
         let exports = try await ExporterFixtures.collect(
@@ -53,7 +53,9 @@ struct DocumentContextMergeTests {
         )
         let (document, studies) = try Self.document(in: try #require(exports.first?.record?.graph))
         #expect(studies.count == 2)
-        #expect(document.context == DocumentReferenceContext(related: document.context?.related))
+        let period = try #require(document.context?.period)
+        #expect(try #require(period.start?.value).asNSDate() == record.series.startDate)
+        #expect(try #require(period.end?.value).asNSDate() == record.series.endDate)
         #expect(document.context?.related?.compactMap { $0.reference?.value?.string } == studies)
     }
 
@@ -69,7 +71,7 @@ struct DocumentContextMergeTests {
         )
         let adapterReference = Reference(display: "The adapter's own related output".asFHIRStringPrimitive())
         document.context = DocumentReferenceContext(period: period, related: [adapterReference])
-        // No exporter input states a document context of its own, so the assembly is handed one directly.
+        // Exercise assembly with an already mapped period and an adapter-owned related reference.
         let base = TestDeployment.test()
         let assembly = HealthKitAssembly(scope: ExchangeEnvelope.Scope(
             adapter: HealthKitAssembly.adapter,

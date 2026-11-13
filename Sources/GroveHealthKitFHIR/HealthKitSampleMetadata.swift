@@ -374,8 +374,7 @@ extension HealthKitSampleMetadata {
     /// - the sync pair as the writer-record identity and version, which only an Observation primary states, and only for
     ///   an attributable writer (healthkit profiles.fsh, healthkit-writer-record-1);
     /// - manual entry, `false` by omission and `true` as an Observation's manual-entry recording method;
-    /// - the time zone as a `timezone` extension on an Observation's effective time (mapping.md: "Map an available
-    ///   IANA time-zone name to the standard FHIR `timezone` extension"), which a document has no element for;
+    /// - the time zone as a `timezone` extension on an Observation's effective time or a recording document's source period;
     /// - a device key as the very value the recording Device states in the element the guide gives it;
     /// - a key of the type's own content when its reader accepts the value.
     private func carries(_ key: String, value: Any, in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> Bool {
@@ -388,7 +387,7 @@ extension HealthKitSampleMetadata {
             }
             return !entered || outputs.contains(where: \.statesManualEntry)
         case HKMetadataKeyTimeZone:
-            return outputs.contains(where: \.namesEffectiveZone)
+            return outputs.contains(where: \.namesMeasurementZone)
         case HKMetadataKeyDeviceSerialNumber, HKMetadataKeyDeviceName, HKMetadataKeyDeviceManufacturerName,
             HKMetadataKeyUDIDeviceIdentifier, HKMetadataKeyUDIProductionIdentifier:
             guard let stated = value as? String, outputs.contains(where: { $0.links.contains(.recordingDevice) }) else {
@@ -413,15 +412,19 @@ extension ExchangeOutputDraft {
         if case .observation = resource { links.contains(.manualEntry) && wasUserEntered } else { false }
     }
 
-    /// Whether the output is an Observation naming the zone of its effective time in a `timezone` extension.
-    fileprivate var namesEffectiveZone: Bool {
-        guard case .observation(let observation) = resource else {
-            return false
-        }
-        return switch observation.effective {
-        case .dateTime(let instant): instant.namesZone
-        case .period(let period): period.start?.namesZone == true || period.end?.namesZone == true
-        case .instant, .timing, nil: false
+    /// Whether the output names the zone of its measurement time in a `timezone` extension.
+    fileprivate var namesMeasurementZone: Bool {
+        switch resource {
+        case .observation(let observation):
+            switch observation.effective {
+            case .dateTime(let instant): instant.namesZone
+            case .period(let period): period.start?.namesZone == true || period.end?.namesZone == true
+            case .instant, .timing, nil: false
+            }
+        case .document(let document):
+            document.context?.period?.start?.namesZone == true || document.context?.period?.end?.namesZone == true
+        default:
+            false
         }
     }
 }
