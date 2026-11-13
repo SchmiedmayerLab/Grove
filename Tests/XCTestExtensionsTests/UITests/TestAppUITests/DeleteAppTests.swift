@@ -8,6 +8,7 @@
 
 import XCTest
 @testable import XCTestExtensions
+import XCTHealthKit
 
 
 @MainActor
@@ -52,8 +53,7 @@ final class DeleteAppTests: XCTestCase {
         
         if app.staticTexts["Has access"].waitForNonExistence(timeout: 2) {
             // if the view isn't telling us that it has access, it's currently requesting access
-            app.tables.staticTexts["Turn On All"].tap()
-            app.buttons["UIA.Health.Allow.Button"].tap()
+            app.handleHealthKitAuthorization(requireSheetToAppear: true)
         }
         
         XCTAssert(app.staticTexts["Did add sample!"].waitForExistence(timeout: 5))

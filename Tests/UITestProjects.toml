@@ -208,7 +208,7 @@ test_products = ["XCTHealthKit", "XCTestExtensions"]
 
 [XCTestExtensions]
 app_products = ["XCTestApp"]
-test_products = ["XCTestExtensions"]
+test_products = ["XCTHealthKit", "XCTestExtensions"]
 [XCTestExtensions.app_settings]
 "CODE_SIGN_ENTITLEMENTS" = "TestApp/TestApp.entitlements"
 "INFOPLIST_FILE" = "TestApp/Info.plist"
