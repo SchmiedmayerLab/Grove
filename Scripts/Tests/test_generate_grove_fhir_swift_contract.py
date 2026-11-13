@@ -255,6 +255,10 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             },
             "healthkit-adapter.json": {
                 **base,
+                "metadataExtension": {
+                    "url": "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
+                    "valueElements": ["valueString", "valueDecimal", "valueBoolean", "valueDateTime", "valueCoding", "valueQuantity"],
+                },
                 "sourceTypeExtension": {
                     "url": (
                         "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
@@ -736,6 +740,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn("HKQuantityTypeIdentifierBodyMassIndex", generated)
         self.assertIn("package static let electrocardiogramProfiles", generated)
         self.assertIn("package static let sourceTypeExtension", generated)
+        self.assertIn('metadataExtensionURL = "https://grovealliance.org/fhir/core/StructureDefinition/metadata"', generated)
         # Members no Swift code reads are not generated.
         for unread in ("catalogVersion", "sourceTypeCodeSystem", "electrocardiogramSourceTypeIdentifier", "bodyMassIndexProfiles"):
             self.assertNotIn(unread, generated)

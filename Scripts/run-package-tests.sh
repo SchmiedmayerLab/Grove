@@ -129,8 +129,8 @@ platforms_for() { case "$1" in
   esac; }
 
 dest() { case "$1" in
-  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5" ;;
-  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=26.5" ;;
+  iOS)          echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=27.2" ;;
+  iPadOS)       echo "platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=27.2" ;;
   macOS)        echo "platform=macOS,arch=arm64" ;;
   macCatalyst)  echo "platform=macOS,arch=arm64,variant=Mac Catalyst" ;;
   watchOS)      echo "platform=watchOS Simulator,name=Apple Watch Series 11 (46mm),OS=26.5" ;;
