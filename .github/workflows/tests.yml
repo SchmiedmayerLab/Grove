@@ -324,6 +324,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+      - name: Install Ruby runtime dependency
+        run: |
+          if ! brew list --versions gmp >/dev/null; then
+            brew install gmp
+          fi
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
