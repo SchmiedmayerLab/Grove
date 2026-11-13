@@ -97,6 +97,7 @@ public struct SensorKitNativeRecording: Sendable {
     public enum Payload: Sendable {
         case inline(Data)
         case sidecar(path: String, bytes: Data)
+        case file(path: String, contents: RecordingFile)
     }
 
     public let title: String
@@ -136,20 +137,20 @@ public struct SensorKitNativeRecording: Sendable {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SensorKitRecordError.invalidAttachmentTitle
         }
-        let bytes: Data
-        switch payload {
-        case .inline(let data), .sidecar(_, let data):
-            bytes = data
+        guard payload.byteCount > 0 else { throw SensorKitRecordError.emptyPayload }
+        guard payload.byteCount <= Int(Int32.max) else {
+            throw SensorKitConversionError.payloadTooLarge(byteCount: payload.byteCount)
         }
-        guard !bytes.isEmpty else {
-            throw SensorKitRecordError.emptyPayload
-        }
-        if case .sidecar(let path, _) = payload, !Self.isRelativeSidecarPath(path) {
+        if let path = payload.sidecarPath, !Self.isRelativeSidecarPath(path) {
             throw SensorKitRecordError.invalidSidecarPath(path)
         }
         do {
-            try validatePayload(bytes)
-        } catch {
+            try format.validatePayloadSize(payload.byteCount)
+            switch payload {
+            case .inline(let bytes), .sidecar(_, let bytes): try validatePayload(bytes)
+            case .file(_, let contents): try format.validatePayload(contents)
+            }
+        } catch let error as RegisteredRecordingPayloadError {
             throw SensorKitRecordError.invalidRegisteredPayload(format: format, reason: error)
         }
         guard let contentType = format.resolveContentType(contentType) else {
@@ -162,10 +163,30 @@ public struct SensorKitNativeRecording: Sendable {
         self.payload = payload
     }
 
-    var bytes: Data {
-        switch payload {
-        case .inline(let data), .sidecar(_, let data): data
+    /// The exact number of attached bytes, independent of their backing storage.
+    public var byteCount: Int { payload.byteCount }
+
+    var attachmentSHA1: Data { payload.attachmentSHA1 }
+
+    /// Whole decoding is reserved for formats with an explicit allocation bound.
+    func decodedPayload() throws -> Data {
+        guard byteCount <= RegisteredRecordingFormat.maximumDecodedPayloadByteCount else {
+            throw RegisteredRecordingPayloadError.payloadLimitExceeded
         }
+        switch payload {
+        case .inline(let data), .sidecar(_, let data): return data
+        case .file(_, let file):
+            return try file.decodedPayload(maximumByteCount: RegisteredRecordingFormat.maximumDecodedPayloadByteCount)
+        }
+    }
+
+    func readRows(_ onRow: (RecordingCSVReader.Row) throws -> Void) throws {
+        var stream = try RecordingCSVReader.Stream(format: format)
+        switch payload {
+        case .inline(let data), .sidecar(_, let data): try stream.read(data, onRow: onRow)
+        case .file(_, let file): try file.readChunks { try stream.read($0, onRow: onRow) }
+        }
+        try stream.finish()
     }
 
     /// Whether `path` is a relative reference with no empty, `.` or `..` segment, query or fragment, which a deployment

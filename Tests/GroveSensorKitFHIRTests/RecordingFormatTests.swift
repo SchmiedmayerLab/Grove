@@ -392,7 +392,7 @@ struct RegisteredRecordingPayloadTests {
                 try recording(at: path)
             }
         }
-        #expect(try recording(at: "payloads/ambient-light/session-1.json").bytes == Data("{}".utf8))
+        #expect(try recording(at: "payloads/ambient-light/session-1.json").decodedPayload() == Data("{}".utf8))
     }
 }
 

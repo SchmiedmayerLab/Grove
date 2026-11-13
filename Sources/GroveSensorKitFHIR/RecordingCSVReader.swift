@@ -6,9 +6,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Members are ordered to read as a narrative rather than by kind, and the parser mirrors the
-// registry's quoting rules branch for branch rather than splitting them across helpers.
-// swiftlint:disable type_contents_order cyclomatic_complexity function_body_length
+// Members are ordered to keep row access, errors, and whole-payload reading together.
+// swiftlint:disable type_contents_order
 
 public import Foundation
 public import GroveFHIRContract
@@ -156,6 +155,16 @@ public struct RecordingCSVReader: Sendable {
         case unexpectedCarriageReturn(row: Int, column: Int, byteOffset: Int)
         /// The payload does not end with the row terminator the registry mandates.
         case missingFinalRowTerminator
+        /// Read limits must be positive and fit the R4 attachment size range.
+        case invalidReadLimits
+        /// The payload exceeds the configured total byte count.
+        case payloadLimitExceeded
+        /// An encoded row, including its terminator, exceeds the configured byte count.
+        case recordLimitExceeded(row: Int)
+        /// A decoded field exceeds the configured UTF-8 byte count.
+        case fieldLimitExceeded(row: Int, column: Int)
+        /// A stream cannot be reused after it finishes or any read or consumer operation fails.
+        case streamClosed
     }
 
     /// The columns the format publishes, in order.
@@ -168,124 +177,12 @@ public struct RecordingCSVReader: Sendable {
     /// - Parameters:
     ///   - data: The exact payload bytes.
     ///   - format: The registry format the carrying document declares.
-    public init(_ data: Data, format: RegisteredRecordingFormat) throws {
-        guard let expected = format.csvColumns else {
-            throw ReaderError.notTabular(format)
-        }
-        guard let text = String(data: data, encoding: .utf8) else {
-            throw ReaderError.invalidUTF8
-        }
-        guard !text.isEmpty else {
-            throw ReaderError.missingHeader
-        }
-        // The registry mandates LF after every row, the last one included; a truncated upload is
-        // otherwise indistinguishable from a complete one whose final row happens to parse.
-        guard text.hasSuffix("\n") else {
-            throw ReaderError.missingFinalRowTerminator
-        }
-        let parsed = try Self.parse(text)
-        guard let header = parsed.first else {
-            throw ReaderError.missingHeader
-        }
-        guard header == expected else {
-            throw ReaderError.unexpectedHeader(expected: expected, actual: header)
-        }
-        let records = parsed.dropFirst()
-        for (offset, fields) in records.enumerated() where fields.count != expected.count {
-            throw ReaderError.columnCountMismatch(
-                row: offset + 1,
-                expected: expected.count,
-                actual: fields.count
-            )
-        }
-        self.columns = expected
-        self.rows = records.map { Row(fields: $0, columns: expected) }
-    }
-
-    /// Splits the payload into rows of fields.
-    ///
-    /// Parsed in one pass rather than by splitting on newlines first: a quoted field may contain the row terminator,
-    /// and splitting would tear such a row in half. The pass reads UTF-8 bytes: every byte the grammar gives meaning
-    /// (quote, comma, LF, CR) is ASCII, which no byte of a multi-byte scalar equals, and each field becomes a String once.
-    private static func parse(_ text: String) throws -> [[String]] {
-        var text = text
-        return try text.withUTF8 { try parse(utf8: $0) }
-    }
-
-    private static func parse(utf8 bytes: UnsafeBufferPointer<UInt8>) throws -> [[String]] {
-        enum State {
-            case fieldStart
-            case unquoted
-            case quoted
-            case afterQuote
-        }
-
-        var rows: [[String]] = []
-        var fields: [String] = []
-        var field: [UInt8] = []
-        var state = State.fieldStart
-        var row = 0
-        var byteOffset = 0
-
-        func locationError(_ error: (Int, Int, Int) -> ReaderError) -> ReaderError {
-            error(row, fields.count, byteOffset)
-        }
-        func appendField() {
-            fields.append(String(decoding: field, as: UTF8.self))
-            field.removeAll(keepingCapacity: true)
-            state = .fieldStart
-        }
-        func appendRow() {
-            appendField()
-            rows.append(fields)
-            fields = []
-            fields.reserveCapacity(rows[rows.count - 1].count)
-            row += 1
-        }
-
-        while byteOffset < bytes.count {
-            let byte = bytes[byteOffset]
-            switch state {
-            case .fieldStart:
-                switch byte {
-                case UInt8(ascii: "\""): state = .quoted
-                case UInt8(ascii: ","): appendField()
-                case UInt8(ascii: "\n"): appendRow()
-                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
-                default:
-                    field.append(byte)
-                    state = .unquoted
-                }
-            case .unquoted:
-                switch byte {
-                case UInt8(ascii: "\""): throw locationError(ReaderError.unexpectedQuote)
-                case UInt8(ascii: ","): appendField()
-                case UInt8(ascii: "\n"): appendRow()
-                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
-                default: field.append(byte)
-                }
-            case .quoted:
-                switch byte {
-                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
-                case UInt8(ascii: "\""): state = .afterQuote
-                default: field.append(byte)
-                }
-            case .afterQuote:
-                switch byte {
-                case UInt8(ascii: "\""):
-                    field.append(byte)
-                    state = .quoted
-                case UInt8(ascii: ","): appendField()
-                case UInt8(ascii: "\n"): appendRow()
-                case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
-                default: throw locationError(ReaderError.invalidCharacterAfterClosingQuote)
-                }
-            }
-            byteOffset += 1
-        }
-        if state == .quoted {
-            throw ReaderError.unterminatedQuote(row: rows.count)
-        }
-        return rows
+    public init(_ data: Data, format: RegisteredRecordingFormat, limits: Limits = .default) throws {
+        var stream = try Stream(format: format, limits: limits)
+        var rows: [Row] = []
+        try stream.read(data) { rows.append($0) }
+        try stream.finish()
+        self.columns = stream.columns
+        self.rows = rows
     }
 }
