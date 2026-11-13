@@ -223,12 +223,20 @@ class FHIRConformanceSelectionTests(unittest.TestCase):
 
     def test_guide_cache_key_includes_the_resolved_contract_revision(self):
         workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
-        cache_key_step = workflow.split("- name: Pin the implementation-guide cache key", 1)[1].split(
+        cache_key_step = workflow.split("- name: Choose where the implementation guides come from", 1)[1].split(
             "- name: Restore built implementation guides",
             1,
         )[0]
 
         self.assertIn("RESOLVED_GROVE_FHIR_SHA", cache_key_step)
+
+    def test_a_release_tag_skips_the_guide_build_and_its_cache(self):
+        workflow = (SCRIPT.parents[1] / ".github/workflows/tests.yml").read_text()
+
+        self.assertIn("GUIDE_SOURCE=release", workflow)
+        for step in ["Restore built", "Build active", "Save built"]:
+            condition = workflow.split(f"- name: {step} implementation guides\n", 1)[1].split("\n", 1)[0]
+            self.assertIn("env.GROVE_FHIR_GUIDE_SOURCE != 'release'", condition)
 
     def test_runner_script_runs_the_smoke_set_without_conformance(self):
         result = run_selector("Scripts/run-package-tests.sh")
