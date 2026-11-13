@@ -173,6 +173,7 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", "603.0.0"..<"605.0.0"),
     .package(url: "https://github.com/dfed/swift-testing-expectation.git", .upToNextMinor(from: "0.1.4")),
     .package(url: "https://github.com/techprimate/TPPDF.git", from: "2.6.1"),
+    .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/SchmiedmayerLab/zstd.git", exact: "1.5.8-beta.1")
 ]
 
@@ -182,7 +183,6 @@ var dependencies: [Package.Dependency] = [
 // Linux products, which breaks graph loading outright.
 dependencies += [
     .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
-    .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1")
 ]
 #endif
@@ -1552,19 +1552,14 @@ var targets: [Target] = [
     ),
     .target(
         name: "GroveSensorKitFHIR",
-        dependencies: { () -> [Target.Dependency] in
-            var deps: [Target.Dependency] = [
-                .target(name: "FHIRModelsExtensions"),
-                .target(name: "GroveFHIRContract"),
-                .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),
-                .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-                .target(name: "GroveFoundation")
-            ]
-            #if canImport(Darwin)
-            deps.append(.product(name: "SQLite", package: "SQLite.swift"))
-            #endif
-            return deps
-        }(),
+        dependencies: [
+            .target(name: "FHIRModelsExtensions"),
+            .target(name: "GroveFHIRContract"),
+            .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .target(name: "GroveFoundation"),
+            .product(name: "SQLite", package: "SQLite.swift")
+        ],
         exclude: targetExcludes("GroveSensorKitFHIR"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
