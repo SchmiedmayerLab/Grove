@@ -68,8 +68,14 @@ extension XCTestCase {
         healthApp.launch()
         XCTAssert(healthApp.wait(for: .runningForeground, timeout: 10))
         handleHealthAppOnboardingIfNecessary()
-        
-        healthApp.tabBars.buttons["Summary"].tapWhenHittable() // make sure we're on the first tab
+
+        // The Health app restores its UI across launches, so a profile sheet that an earlier run left open (e.g. one
+        // that failed half-way through this function) still covers the tab bar, and the Summary tab can't be selected.
+        let summaryTabButton = healthApp.tabBars.buttons["Summary"]
+        if !summaryTabButton.wait(for: \.isHittable, toEqual: true, timeout: 10) {
+            _ = healthApp.dismissAccountSheetIfNecessary()
+        }
+        summaryTabButton.tapWhenHittable() // make sure we're on the first tab
         let profileButton = healthApp.buttons["Profile"]
         XCTAssert(profileButton.waitForExistence(timeout: 10))
         profileButton.tryToTapReallySoftlyMaybeThisWillMakeItWork()
