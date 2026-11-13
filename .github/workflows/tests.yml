@@ -18,7 +18,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir tag or commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: ad2af3acaa7f0d6ab50fa79744b40df1d9b3b2c4
+        default: 1c9ad82e9b89645ad18b90417add41a4ea563ae9
       fhir_only:
         description: Run only producer conformance against the selected grove-fhir contract.
         type: boolean
@@ -32,7 +32,7 @@ on:
       grove_fhir_ref:
         description: grove-fhir tag or commit carrying the Grove FHIR Implementation Guides contract.
         type: string
-        default: ad2af3acaa7f0d6ab50fa79744b40df1d9b3b2c4
+        default: 1c9ad82e9b89645ad18b90417add41a4ea563ae9
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -284,7 +284,7 @@ jobs:
           repository: SchmiedmayerLab/grove-fhir
           path: .fhir/grove-fhir
           # Typed metadata contract; replace with its release tag when published.
-          ref: ${{ inputs.grove_fhir_ref || 'ad2af3acaa7f0d6ab50fa79744b40df1d9b3b2c4' }}
+          ref: ${{ inputs.grove_fhir_ref || '1c9ad82e9b89645ad18b90417add41a4ea563ae9' }}
           persist-credentials: false
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -296,7 +296,7 @@ jobs:
       - name: Record grove-fhir contract revision
         working-directory: .fhir/grove-fhir
         run: |
-          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || 'ad2af3acaa7f0d6ab50fa79744b40df1d9b3b2c4' }}"
+          echo "grove-fhir ref: ${{ inputs.grove_fhir_ref || '1c9ad82e9b89645ad18b90417add41a4ea563ae9' }}"
           echo "grove-fhir SHA: $(git rev-parse HEAD)"
       - name: Pin the implementation-guide cache key
         run: |
@@ -324,15 +324,19 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - name: Install Ruby runtime dependency
+      - name: Install Ruby runtime dependencies
         run: |
-          if ! brew list --versions gmp >/dev/null; then
-            brew install gmp
-          fi
+          for dependency in gmp openssl@3 libyaml; do
+            if ! brew list --versions "$dependency" >/dev/null; then
+              brew install "$dependency"
+            fi
+          done
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
           bundler-cache: false
+      - name: Check Ruby native extensions
+        run: ruby -ropenssl -rpsych -e 'puts OpenSSL::OPENSSL_VERSION; puts Psych::VERSION'
       - name: Build active implementation guides
         if: steps.guide-cache.outputs.cache-hit != 'true'
         working-directory: .fhir/grove-fhir
@@ -375,7 +379,7 @@ jobs:
       - name: Validate resources emitted by Grove
         env:
           FHIR_COMPONENTS: ${{ needs.detect.outputs.fhir_components }}
-          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || 'ad2af3acaa7f0d6ab50fa79744b40df1d9b3b2c4' }}
+          GROVE_FHIR_REF: ${{ inputs.grove_fhir_ref || '1c9ad82e9b89645ad18b90417add41a4ea563ae9' }}
         run: |
           IFS=',' read -r -a COMPONENTS <<< "$FHIR_COMPONENTS"
           for component in "${COMPONENTS[@]}"; do
