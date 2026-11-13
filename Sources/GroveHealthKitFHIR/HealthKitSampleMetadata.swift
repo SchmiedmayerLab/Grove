@@ -16,7 +16,8 @@ import ModelsR4
 
 /// The metadata keys a source type's own content carries, and whether its record holds its correlation's members'
 /// metadata. The keys every path can carry (the time zone, manual entry, the sync pair and the device keys) are carried as
-/// the graph's outputs and recording Device show; every other key is withheld and reported.
+/// the graph's outputs and recording Device show. Source-sample keys can also be preserved in the typed metadata
+/// extension; unrepresented keys remain observable omissions.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MetadataRule: Sendable {
     /// The rule of a type whose content reads no metadata key of its own.
@@ -321,10 +322,15 @@ extension HealthKitSampleMetadata {
     /// method and writer record.
     ///
     /// A key is carried only through the representation the guide publishes for it, on an output that has that
-    /// representation: "There is no generic metadata extension." (healthkit mapping.md, Supported HealthKit metadata)
+    /// representation, or the typed metadata extension on its source output.
     /// A blood-pressure member's zone or manual entry that the record takes, because the correlation states none,
     /// is carried as the record's own would be.
-    func withheldKeys(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String] {
+    func withheldKeys(
+        in outputs: [ExchangeOutputDraft],
+        device: RecordingDevice?,
+        preservedSampleKeys: Set<String> = [],
+        excludesSampleMetadata: Bool = false
+    ) -> [String] {
         guard !values.isEmpty || !containedValues.isEmpty else {
             return []
         }
@@ -336,7 +342,22 @@ extension HealthKitSampleMetadata {
         let contained = memberValues.isEmpty ? containedValues : containedValues.map { metadata in
             metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
         }
-        return Self.withheldKeys(record: values, contained: contained, carried: carried)
+        // Generic metadata represents only its owner. It cannot make a same-named contained value disappear.
+        let own = values.filter { !preservedSampleKeys.contains($0.key) && !excludesSampleMetadata }
+        return Self.withheldKeys(record: own, contained: contained, carried: carried)
+    }
+
+    /// Source-sample values without a faithful representation in the mapped content or supporting graph.
+    /// Conflicting device metadata remains here; a preferred HKDevice value cannot represent a different source value.
+    func unmappedValues(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String: Any] {
+        values.filter { key, value in
+            // A keyed identity cannot reproduce the original sync identifier. Likewise, absence of
+            // manual-entry coding cannot distinguish an explicit false from missing source metadata.
+            if key == HKMetadataKeySyncIdentifier || (key == HKMetadataKeyWasUserEntered && (value as? Bool) == false) {
+                return true
+            }
+            return !carries(key, value: value, in: outputs, device: device)
+        }
     }
 
     /// Whether a blood-pressure correlation or one of its members states manual entry `true` that `outputs` do not
@@ -353,10 +374,8 @@ extension HealthKitSampleMetadata {
     /// - the sync pair as the writer-record identity and version, which only an Observation primary states, and only for
     ///   an attributable writer (healthkit profiles.fsh, healthkit-writer-record-1);
     /// - manual entry, `false` by omission and `true` as an Observation's manual-entry recording method;
-    /// - the time zone as a `timezone` extension on an Observation's effective time (mapping.md: "Map an available
-    ///   IANA time-zone name to the standard FHIR `timezone` extension"), which a document has no element for;
-    /// - a device key as the very value the Device an Observation references states in the element the guide gives it, so
-    ///   a value an `HKDevice` property replaced is withheld, and so is every device key of a sample with no `HKDevice`;
+    /// - the time zone as a `timezone` extension on an Observation's effective time or a recording document's source period;
+    /// - a device key as the very value the recording Device states in the element the guide gives it;
     /// - a key of the type's own content when its reader accepts the value.
     private func carries(_ key: String, value: Any, in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> Bool {
         switch key {
@@ -368,10 +387,10 @@ extension HealthKitSampleMetadata {
             }
             return !entered || outputs.contains(where: \.statesManualEntry)
         case HKMetadataKeyTimeZone:
-            return outputs.contains(where: \.namesEffectiveZone)
+            return outputs.contains(where: \.namesMeasurementZone)
         case HKMetadataKeyDeviceSerialNumber, HKMetadataKeyDeviceName, HKMetadataKeyDeviceManufacturerName,
             HKMetadataKeyUDIDeviceIdentifier, HKMetadataKeyUDIProductionIdentifier:
-            guard let stated = value as? String, outputs.contains(where: \.isObservation) else {
+            guard let stated = value as? String, outputs.contains(where: { $0.links.contains(.recordingDevice) }) else {
                 return false
             }
             return device?.statedFact(forMetadataKey: key) == stated
@@ -393,15 +412,19 @@ extension ExchangeOutputDraft {
         if case .observation = resource { links.contains(.manualEntry) && wasUserEntered } else { false }
     }
 
-    /// Whether the output is an Observation naming the zone of its effective time in a `timezone` extension.
-    fileprivate var namesEffectiveZone: Bool {
-        guard case .observation(let observation) = resource else {
-            return false
-        }
-        return switch observation.effective {
-        case .dateTime(let instant): instant.namesZone
-        case .period(let period): period.start?.namesZone == true || period.end?.namesZone == true
-        case .instant, .timing, nil: false
+    /// Whether the output names the zone of its measurement time in a `timezone` extension.
+    fileprivate var namesMeasurementZone: Bool {
+        switch resource {
+        case .observation(let observation):
+            switch observation.effective {
+            case .dateTime(let instant): instant.namesZone
+            case .period(let period): period.start?.namesZone == true || period.end?.namesZone == true
+            case .instant, .timing, nil: false
+            }
+        case .document(let document):
+            document.context?.period?.start?.namesZone == true || document.context?.period?.end?.namesZone == true
+        default:
+            false
         }
     }
 }

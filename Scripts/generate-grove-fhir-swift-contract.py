@@ -1114,6 +1114,9 @@ def generate(catalog_directory: Path) -> str:
         "/// Machine-generated HealthKit producer contract and complete source inventory.",
         "package enum HealthKitContract {",
     ])
+    metadata = healthkit_catalog["metadataExtension"]
+    if metadata["valueElements"] != ["valueString", "valueDecimal", "valueBoolean", "valueDateTime", "valueCoding", "valueQuantity"]:
+        raise ValueError("HealthKit metadata must preserve the six supported typed values")
     source_type_extension = healthkit_catalog["sourceTypeExtension"]
     if (
         source_type_extension["valueElement"] != "valueCode"
@@ -1187,6 +1190,7 @@ def generate(catalog_directory: Path) -> str:
     if any(measurement["id"] == "body-mass-index" for measurement in measurements):
         raise ValueError("body-mass-index is a standard adapter claim, not a catalog measurement")
     lines.extend([
+        f"    package static let metadataExtensionURL = {swift_string(metadata['url'])}",
         "    package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "
         f"{swift_string(source_type_extension['url'])}",
         "    package static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = "

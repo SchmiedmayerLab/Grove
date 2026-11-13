@@ -41,6 +41,9 @@ extension HealthKitFHIRExporter {
         /// retracts a route only when the producer establishes that it disclosed it (HealthKit guide `implementation.md`,
         /// retracting a source record); keep one route policy for an installation to keep that true.
         public var route: Disclosure = .omit
+        /// Preserve supported sample metadata without a faithful structured mapping in its typed extension by default.
+        /// An explicit omission is reported separately from unsupported values and does not change clinical mappings.
+        public var metadata: Disclosure = .authorized
         /// At most how many child tasks build one call's records at once; `nil`, the default, builds on one per active
         /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports.
         public var maximumConcurrency: Int?

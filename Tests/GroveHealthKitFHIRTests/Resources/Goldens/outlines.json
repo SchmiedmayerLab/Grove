@@ -295,7 +295,8 @@
     "entries" : [
       {
         "extensions" : [
-          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
         ],
         "fullUrl" : "urn:uuid:522e0b85-6287-5760-9cdb-8cbe87ee4011",
         "identifiers" : [
@@ -330,7 +331,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:dafa982b-d8c6-51b8-8a8b-4e6bff888889",
+        "fullUrl" : "urn:uuid:371a97ef-739e-5980-acd9-339c4d327037",
         "identifiers" : [
 
         ],
@@ -338,7 +339,7 @@
       }
     ],
     "warnings" : [
-      "mobile-omission.unmodeled-metadata@HKSample.metadata"
+
     ]
   },
   "device-metadata-facts" : {
@@ -613,7 +614,8 @@
     "entries" : [
       {
         "extensions" : [
-          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
         ],
         "fullUrl" : "urn:uuid:8a294dd6-c351-54b4-87aa-81ea07206c74",
         "identifiers" : [
@@ -660,7 +662,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:8ff3ac80-9f06-5d22-a40b-1a2d03e40214",
+        "fullUrl" : "urn:uuid:e3cf08f5-0daa-5d11-aefb-04a20067ab05",
         "identifiers" : [
 
         ],
@@ -668,14 +670,15 @@
       }
     ],
     "warnings" : [
-      "mobile-omission.unmodeled-metadata@HKSample.metadata"
+
     ]
   },
   "exporter-clinical-record-r4" : {
     "entries" : [
       {
         "extensions" : [
-          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
         ],
         "fullUrl" : "urn:uuid:83ea8a42-ca57-5036-9396-5371a81d42f2",
         "identifiers" : [
@@ -722,7 +725,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:fb2c12d9-ec42-552f-a344-965d89fbc891",
+        "fullUrl" : "urn:uuid:e187d4ee-2680-5d77-b551-29c3d24559e9",
         "identifiers" : [
 
         ],
@@ -730,7 +733,7 @@
       }
     ],
     "warnings" : [
-      "mobile-omission.unmodeled-metadata@HKSample.metadata"
+
     ]
   },
   "exporter-default-apple-watch-heart-rate" : {
@@ -1666,6 +1669,100 @@
 
     ]
   },
+  "guide-example-source-metadata" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "http://hl7.org/fhir/StructureDefinition/workflow-researchStudy",
+          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+        ],
+        "fullUrl" : "urn:uuid:03dd352f-6df3-55e3-9d9b-b1498bd222c9",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:Eesi62AEc--BuYuLJqYnU2IM3nVlEyVH-Xt9DWGtYKw",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:X57J5eKPOcWSVMYxv6_I8rlFoMpbt1ytHKvwV24at7o"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:61e5af79-2c7a-52f2-8843-bfc2e7645958",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchstudy|study-a",
+          "context-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/context-snapshot/test/1|v0:test:1:YLh072JH3ZteOC9dqOHaxl3U-hWacO1gjBhXMh9xrq0"
+        ],
+        "resourceType" : "ResearchStudy"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:73e50d6a-70f4-589b-9b1e-5327b8c98fde",
+        "identifiers" : [
+          "context-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/context-snapshot/test/1|v0:test:1:qgb_CBilEt8sShdgTEXv7MQ3ZBUx0S2DBAK6IooOqnw"
+        ],
+        "resourceType" : "PlanDefinition"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:6d8f9587-a49b-58fb-a248-caafd60626ad",
+        "identifiers" : [
+          "-|https://grovealliance.org/fhir/testing/identifiers/researchsubject|enrollment-study-a",
+          "context-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/context-snapshot/test/1|v0:test:1:mWXz44dCnJ4Dl-NdILaNkXb-PQIkHm4AZLsZkmGh7WY"
+        ],
+        "resourceType" : "ResearchSubject"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:f2f0c807-6e46-5bf3-ba55-4da8217167dd",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:2i5O5soFOC6vC6OSbNBEP9eXoOZ-uneyj5kvOLgavtk",
+          "device-local-identifier|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-local-identifier|6C4B1D1E-0000-4000-8000-000000000001"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:eecd7aa5-3f56-57dc-85e3-75fb1d7747d6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:EtS_H7lbXColnb2cn4p55V4xPSYdwekyIKN1ZxhR1Sc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:12f291db-9efc-59f1-95f2-fc43d390ef2b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:aKPfjyYL_z9J-MBwJV2E4tguLthTq_nov6F3vgSwnJY",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
+        ],
+        "fullUrl" : "urn:uuid:17a96482-542f-5121-9048-6b42708b7bd8",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
   "heart-rate-device-without-unit-token" : {
     "entries" : [
       {
@@ -2136,7 +2233,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:2acaac53-8aac-5908-ab64-8e3b0754c6c3",
+        "fullUrl" : "urn:uuid:36aa43b0-943e-548a-87fd-965c8e6635c7",
         "identifiers" : [
 
         ],
@@ -2144,7 +2241,7 @@
       }
     ],
     "warnings" : [
-      "mobile-omission.unmodeled-metadata@HKSample.metadata"
+
     ]
   },
   "high-heart-rate-threshold" : {
@@ -2672,7 +2769,8 @@
       {
         "extensions" : [
           "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version",
+          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
         ],
         "fullUrl" : "urn:uuid:ecd979c9-a1e9-5edd-9297-4427ce7cad0f",
         "identifiers" : [
@@ -2740,7 +2838,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:e8af3ff2-bf87-5776-b331-d155d236784c",
+        "fullUrl" : "urn:uuid:4f05a56f-60a9-5935-af3a-c6285f43394b",
         "identifiers" : [
 
         ],
@@ -2989,7 +3087,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:3e099c46-94c3-596b-9de7-c250b48c1b7d",
+        "fullUrl" : "urn:uuid:4d88fe49-2197-54a6-a8b2-e90ee8826e7f",
         "identifiers" : [
 
         ],
@@ -2997,7 +3095,7 @@
       }
     ],
     "warnings" : [
-      "mobile-omission.unmodeled-metadata@HKSample.metadata"
+
     ]
   },
   "workout-session" : {
@@ -3317,7 +3415,8 @@
       {
         "extensions" : [
           "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version",
+          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
         ],
         "fullUrl" : "urn:uuid:4144d1e7-84d9-5f2b-a350-43608cf12bc7",
         "identifiers" : [
@@ -3364,7 +3463,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:0dbb28ee-6478-51d1-a24d-b4e40da18f66",
+        "fullUrl" : "urn:uuid:bebe0e74-87ed-580d-bc83-40f2baea6a64",
         "identifiers" : [
 
         ],

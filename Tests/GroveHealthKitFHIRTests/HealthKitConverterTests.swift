@@ -608,7 +608,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func unmodelledMetadataAndExternalUUIDAreNotInventedAsFHIRComponents() async throws {
+    func sourceMetadataPreservesCustomValuesWithoutInventingFHIRComponents() async throws {
         let conversion = try await ExporterFixtures.export(
             quantitySample(
                 .heartRate,
@@ -621,16 +621,15 @@ struct HealthKitFHIRConverterTests {
             ),
             inputs
         )
-        // The IG's metadata mapping is closed. An open source dictionary cannot silently create
-        // unprofiled Observation components, and ExternalUUID needs its own governed mapping rather
-        // than inheriting the policy for HKObject.uuid.
+        // Source metadata retains typed values in its extension. It creates no measurement
+        // components and does not substitute ExternalUUID for the HealthKit object's native UUID.
         #expect(conversion.observation.component?.contains {
             $0.code.text?.value?.string == "ThirdPartyAppNote"
                 || $0.code.text?.value?.string == HKMetadataKeyExternalUUID
         } != true)
         let encoded = String(decoding: try JSONEncoder().encode(conversion.bundle), as: UTF8.self)
-        #expect(!encoded.contains("a key no contract models"))
-        #expect(!encoded.contains("linkable-and-withheld"))
+        #expect(encoded.contains("a key no contract models"))
+        #expect(encoded.contains("linkable-and-withheld"))
     }
 
     @Test
@@ -712,7 +711,7 @@ struct HealthKitFHIRConverterTests {
     }
 
     @Test
-    func heartRateMetadataIsAllowlistedAndUnknownValuesFailClosed() async throws {
+    func heartRateModeledMetadataIsValidatedAlongsidePreservedSourceMetadata() async throws {
         let valid = try await ExporterFixtures.export(
             quantitySample(
                 .heartRate,
@@ -728,9 +727,7 @@ struct HealthKitFHIRConverterTests {
         #expect(valid.observation.component?.contains {
             $0.code.coding?.first?.code?.value?.string == HKMetadataKeyHeartRateMotionContext
         } == true)
-        #expect(valid.observation.extension?.contains {
-            $0.url.value?.url.absoluteString.contains("metadata") == true
-        } != true)
+        #expect(valid.observation.extension?.contains { $0.url.value?.url.absoluteString == HealthKitSourceMetadata.url } == true)
 
         let invalid = quantitySample(
             .heartRate,

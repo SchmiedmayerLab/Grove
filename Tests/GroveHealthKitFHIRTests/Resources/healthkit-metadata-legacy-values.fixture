@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 0,
+  "legacySourceRevision": "04d60675223812d79626079c197ed3bf1d04120b",
+  "extensionURL": "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
+  "comparison": "Typed values, coding system/code and quantity value/system/code preserve legacy semantics; optional displays and equivalent UTC date-time spellings are not identity claims.",
+  "cases": [
+    {
+      "key": "com.example.note",
+      "sourceType": "string",
+      "source": "after exercise",
+      "valueString": "after exercise"
+    },
+    {
+      "key": "com.example.count",
+      "sourceType": "integer",
+      "source": "70000",
+      "valueDecimal": 70000
+    },
+    {
+      "key": "com.example.flag",
+      "sourceType": "boolean",
+      "source": true,
+      "valueBoolean": true
+    },
+    {
+      "key": "com.example.date",
+      "sourceType": "date",
+      "source": "2026-11-12T18:00:00Z",
+      "valueDateTime": "2026-11-12T18:00:00+00:00"
+    },
+    {
+      "key": "HKMetadataKeyHeartRateMotionContext",
+      "sourceType": "integer",
+      "source": "2",
+      "valueCoding": {
+        "system": "https://developer.apple.com/documentation/healthkit/hkheartratemotioncontext",
+        "code": "2",
+        "display": "Active"
+      }
+    },
+    {
+      "key": "HKWeatherTemperature",
+      "sourceType": "quantity",
+      "source": {
+        "unit": "degC",
+        "value": 22
+      },
+      "valueQuantity": {
+        "value": 22,
+        "system": "http://unitsofmeasure.org",
+        "code": "Cel"
+      }
+    },
+    {
+      "key": "HKWeatherHumidity",
+      "sourceType": "quantity",
+      "source": {
+        "unit": "%",
+        "value": 0.75
+      },
+      "valueQuantity": {
+        "value": 75,
+        "system": "http://unitsofmeasure.org",
+        "code": "%"
+      }
+    }
+  ]
+}

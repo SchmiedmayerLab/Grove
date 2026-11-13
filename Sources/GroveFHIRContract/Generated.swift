@@ -4197,6 +4197,7 @@ package struct HealthKitContractRow: Sendable {
 
 /// Machine-generated HealthKit producer contract and complete source inventory.
 package enum HealthKitContract {
+    package static let metadataExtensionURL = "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
     package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
     package static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = Profile.healthkitConversionProvenance
     package static let applicationDeviceProfile: FHIRPrimitive<Canonical> = Profile.healthkitApplicationDevice

@@ -100,7 +100,7 @@ struct HealthKitDeviceFactsTests {
         #expect(conversion.primary.warnings.isEmpty, "every key is carried")
     }
 
-    @Test("An HKDevice property wins over its key, and the key's value is withheld and reported")
+    @Test("An HKDevice property wins for Device facts while the raw metadata remains preserved")
     func hkDeviceWins() async throws {
         let sample = try Self.heartRate(Self.everyFact, metadata: Self.deviceMetadata)
         let conversion = try await ExporterFixtures.export(sample)
@@ -111,9 +111,9 @@ struct HealthKitDeviceFactsTests {
         #expect(device.udiCarrier?.first?.deviceIdentifier == "device-udi")
         #expect(device.serialNumber == "SN-0042", "the serial number has no HKDevice property")
         let assembled = try AssemblyFixtures.conversion(sample)
-        let replaced = [HKMetadataKeyDeviceManufacturerName, HKMetadataKeyDeviceName, HKMetadataKeyUDIDeviceIdentifier]
-        #expect(assembled.withheldMetadataKeys == replaced.sorted())
-        #expect(conversion.primary.warnings == [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")])
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 3, "only the conflicting name, manufacturer and UDI need metadata")
+        #expect(conversion.primary.warnings.isEmpty)
     }
 
     @Test("A key stating what its HKDevice property states is carried")
@@ -137,16 +137,24 @@ struct HealthKitDeviceFactsTests {
         }
     }
 
-    @Test("A device key of a sample without an HKDevice has no Device to carry it, so it is withheld and reported")
-    func noDeviceWithholdsEveryKey() async throws {
+    @Test("Device metadata creates a recording Device when HealthKit supplies no HKDevice")
+    func metadataNamesRecordingHardware() async throws {
         let sample = try Self.heartRate(nil, metadata: Self.deviceMetadata)
         let assembled = try AssemblyFixtures.conversion(sample)
-        #expect(assembled.withheldMetadataKeys == Self.deviceMetadata.keys.sorted())
-        #expect(assembled.warnings == [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKSample.metadata")])
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 0)
+        #expect(assembled.warnings.isEmpty)
+        let conversion = try await ExporterFixtures.export(sample)
+        let device = try #require(conversion.recordingDevice)
+        #expect(Self.name(of: device)?.name == "Metadata Name")
+        #expect(device.manufacturer == "Metadata Manufacturer")
+        #expect(device.serialNumber == Self.serial.asFHIRStringPrimitive())
+        #expect(device.udiCarrier?.first?.deviceIdentifier == "metadata-udi")
+        #expect(device.identifier?.contains { $0.type?.coding?.contains { $0.code?.value?.string == GroveIdentifierRole.recordingDevice.rawValue } == true } != true)
     }
 
-    @Test("A value that is no text, or blank, states nothing: the Device omits it, and the key is reported")
-    func unreadableValuesAreWithheld() async throws {
+    @Test("Uninterpretable device facts remain raw metadata without populating the Device")
+    func unreadableValuesRemainMetadata() async throws {
         let sample = try StoredSampleFixtures.withMetadata(Self.heartRate(Self.modelOnly), [
             HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
             HKMetadataKeyDeviceSerialNumber: 42,
@@ -154,15 +162,16 @@ struct HealthKitDeviceFactsTests {
         ])
         let assembled = try AssemblyFixtures.conversion(sample)
         let conversion = try await ExporterFixtures.export(sample)
-        #expect(assembled.withheldMetadataKeys == [HKMetadataKeyDeviceName, HKMetadataKeyDeviceSerialNumber].sorted())
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 2)
         #expect(conversion.recordingDevice?.serialNumber == nil)
         #expect(conversion.recordingDevice?.deviceName == nil)
     }
 
-    @Test("A record without an Observation output represents no device key: its Device states HKDevice alone")
-    func documentsRepresentNoDeviceKey() async throws {
+    @Test("Documents map device metadata with or without HKDevice", arguments: [true, false])
+    func documentsMapDeviceMetadata(hasHKDevice: Bool) async throws {
         var facts = GoldenCase.seriesFacts(uuid: 0xC2, duration: 2)
-        facts.device = Self.everyFact
+        facts.device = hasHKDevice ? Self.everyFact : nil
         facts.metadata = Self.deviceMetadata.merging([HKMetadataKeyDeviceName: "Device Name"]) { $1 }
         let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
         let beats = [HealthKitFHIRExporter.Record.Heartbeat(timeSinceSeriesStart: 0, precededByGap: false)]
@@ -170,10 +179,40 @@ struct HealthKitDeviceFactsTests {
         let devices = assembled.record.bundle.entry?.compactMap { $0.resource?.get(if: Device.self) } ?? []
         let device = try #require(devices.first { $0.meta?.profile?.contains(Profile.groveRecordingDevice) == true })
 
-        #expect(device.serialNumber == nil)
-        #expect(device.udiCarrier?.first?.extension == nil)
-        #expect(assembled.withheldMetadataKeys.contains(HKMetadataKeyDeviceName), "even a key the HKDevice repeats")
-        #expect(assembled.withheldMetadataKeys.contains(HKMetadataKeyDeviceSerialNumber))
+        #expect(device.serialNumber == Self.serial.asFHIRStringPrimitive())
+        #expect(device.udiCarrier?.first?.extension?.first?.url == Canonicals.udiProductionIdentifier)
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        #expect(device.manufacturer == (hasHKDevice ? "Device Manufacturer" : "Metadata Manufacturer").asFHIRStringPrimitive())
+        #expect(assembled.export.metadata?.preservedSampleKeys == (hasHKDevice ? 2 : 0), "only conflicting device facts need metadata")
+        let document = try #require(assembled.record.bundle.entry?.compactMap { $0.resource?.get(if: DocumentReference.self) }.first)
+        let address = try #require(assembled.record.bundle.entry?.first {
+            $0.resource?.get(if: Device.self)?.meta?.profile?.contains(Profile.groveRecordingDevice) == true
+        }?.fullUrl?.value?.url.absoluteString)
+        #expect(document.author?.contains { $0.reference?.value?.string == address } == true)
+    }
+
+    @Test("Unrecognized or malformed device metadata does not invent source hardware")
+    func noRecognizableDeviceFacts() async throws {
+        let sample = try StoredSampleFixtures.withMetadata(Self.heartRate(nil), [
+            HKMetadataKeyTimeZone: GoldenFixtures.timeZone,
+            HKMetadataKeyDeviceName: "   ",
+            HKMetadataKeyDeviceManufacturerName: 42
+        ])
+        let conversion = try await ExporterFixtures.export(sample)
+        #expect(conversion.recordingDevice == nil)
+        #expect(try AssemblyFixtures.conversion(sample).export.metadata?.preservedSampleKeys == 2)
+    }
+
+    @Test("Clinical and time mappings take precedence over metadata preservation")
+    func mappedValuesAreNotDuplicated() throws {
+        let sample = try Self.heartRate(nil, metadata: [HKMetadataKeyHeartRateMotionContext: 1, "com.example.note": "after exercise"])
+        let assembled = try AssemblyFixtures.conversion(sample)
+        #expect(assembled.export.metadata?.preservedSampleKeys == 1, "motion context and time zone are already mapped")
+        #expect(assembled.withheldMetadataKeys.isEmpty)
+        let observation = try #require(assembled.record.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
+        let metadata = try #require(observation.extension?.first { $0.url.value?.url.absoluteString == HealthKitSourceMetadata.url })
+        #expect(metadata.extension?.count == 1)
+        #expect(metadata.extension?.first?.extension?.first?.value == .string("com.example.note"))
     }
 
     @Test("Every device fact is content: a changed one is a new snapshot and a new record version")

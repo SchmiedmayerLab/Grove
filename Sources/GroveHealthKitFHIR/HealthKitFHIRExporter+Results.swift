@@ -99,8 +99,20 @@ extension HealthKitFHIRExporter {
             case refused(HealthKitConversionError)
         }
 
+        /// Counts for otherwise unmapped sample metadata; values carried by structured mappings are not counted.
+        /// Contained-object omissions remain in `warnings`.
+        /// Keys and values are deliberately absent from this aggregate diagnostic.
+        public struct MetadataSummary: Sendable, Equatable {
+            public let preservedSampleKeys: Int
+            public let unsupportedSampleKeys: Int
+            public let excludedSampleKeys: Int
+        }
+
         public let source: Source
         public let outcome: Outcome
+        /// The effective preservation result, or nil when conversion was refused.
+        public let metadata: MetadataSummary?
+
         /// What the sample carried that its record does not; each is a registered omission rule. ``WarningReport``
         /// summarizes them by kind across many exports.
         public let warnings: [ProducerDiagnostic]
@@ -108,6 +120,13 @@ extension HealthKitFHIRExporter {
         /// The record, when one was produced.
         public var record: ExchangeRecord? {
             if case .record(let record) = outcome { record } else { nil }
+        }
+
+        init(source: Source, outcome: Outcome, warnings: [ProducerDiagnostic], metadata: MetadataSummary? = nil) {
+            self.source = source
+            self.outcome = outcome
+            self.warnings = warnings
+            self.metadata = metadata
         }
     }
 

@@ -60,6 +60,24 @@
           {
             "url" : "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version",
             "valueString" : "3"
+          },
+          {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "key",
+                    "valueString" : "HKMetadataKeySyncIdentifier"
+                  },
+                  {
+                    "url" : "value",
+                    "valueString" : "sync-abc"
+                  }
+                ],
+                "url" : "entry"
+              }
+            ],
+            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -534,11 +552,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:94Rx7xlxy1tw0aDNKJSV2OX1iiQ9jz_y16qOnxXQ1NE"
+            "value" : "v0:test:1:H9jaUI4VYMNQ0dReJBL9L06lRxQJlZXj2wtGi_0dA64"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:e8af3ff2-bf87-5776-b331-d155d236784c",
+      "fullUrl" : "urn:uuid:4f05a56f-60a9-5935-af3a-c6285f43394b",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -613,7 +631,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:94Rx7xlxy1tw0aDNKJSV2OX1iiQ9jz_y16qOnxXQ1NE"
+              "value" : "v0:test:1:H9jaUI4VYMNQ0dReJBL9L06lRxQJlZXj2wtGi_0dA64"
             }
           }
         ],

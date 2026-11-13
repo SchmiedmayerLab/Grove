@@ -27,24 +27,21 @@ extension HealthKitAssembly {
         let writerRecord: ExchangeOutputDraft.WriterRecord?
         let wasUserEntered: Bool
 
-        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it. `outputs`
-        /// are the record's: only an Observation output takes the sample's device metadata keys.
+        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it.
         init(
             _ sample: HKSample,
             metadata: HealthKitSampleMetadata,
-            outputs: [ExchangeOutputDraft],
             policies: HealthKitFHIRExporter.ResolvedPolicies,
             options: HealthKitFHIRExporter.Options
         ) throws {
             let revision = sample.sourceRevision
-            self.recordingDevice = sample.device.map { healthKitDevice in
-                var device = RecordingDevice(healthKitDevice)
-                // A record without an Observation output represents no metadata key (healthkit mapping.md, Withheld metadata).
-                if outputs.contains(where: \.isObservation) {
-                    device.fill(from: metadata)
-                }
+            var device = sample.device.map(RecordingDevice.init) ?? RecordingDevice()
+            device.fill(from: metadata)
+            if sample.device != nil || device.hasMetadataFacts {
                 device.identifyUnit(token: policies.unitToken, writer: revision.source)
-                return device
+                self.recordingDevice = device
+            } else {
+                self.recordingDevice = nil
             }
             self.writer = try Self.writer(revision, classification: policies.writer)
             self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision) : nil
@@ -60,6 +57,11 @@ extension HealthKitAssembly {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordingDevice {
+    /// Descriptive facts can name source hardware without asserting a stable physical-unit identity.
+    fileprivate var hasMetadataFacts: Bool {
+        name != nil || manufacturer != nil || serialNumber != nil || udiDeviceIdentifier != nil || udiProductionIdentifier != nil
+    }
+
     /// The hardware `device` names, with every fact it states.
     fileprivate init(_ device: HKDevice) {
         self.init()

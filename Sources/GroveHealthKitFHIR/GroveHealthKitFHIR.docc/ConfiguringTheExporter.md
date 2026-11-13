@@ -103,7 +103,7 @@ Every output carries typed `source-record` and `source-output` identifiers; reco
 
 ## Choosing the unit token and disclosures
 
-Every non-nil `HKDevice` is a recording Device, stating every fact HealthKit supplies: its name, manufacturer, model, versions, local identifier and UDI, and the sample's device metadata keys where the record has an Observation output.
+Every non-nil `HKDevice` is a recording Device, stating its name, manufacturer, model, versions, local identifier and UDI. Sample device metadata supplements missing facts for both Observation and document outputs. Recognizable device metadata creates a recording Device even when `HKDevice` is absent; descriptive facts alone do not establish a stable physical-unit identity.
 An `HKDevice` property wins over its key, a key fills only an absent field, and the serial number and the UDI production identifier come only from their keys.
 These facts prove no physical unit; two Devices of equal content are one snapshot, not one unit.
 
@@ -112,8 +112,16 @@ The default `.localIdentifier` uses `HKDevice.localIdentifier`, `.custom` takes 
 The token enters the keyed `recording-device` identity, scoped to the writing source's `HKSource.bundleIdentifier`, as a local identifier is local to one host and writable by any application.
 
 Grove carries every source fact, and a deployment that shares data applies its own policy to the sensitive ones, such as a serial number or a name a person gave a device.
-What the guide leaves to a disclosure defaults to omission: the workout route and the clear native identifier are emitted only under an explicit authorized option, and an omission an option chose never warns.
+Workout routes and clear native identifiers default to omission and are emitted only under an explicit authorized option. An omission an option chose never warns. Supported sample metadata is preserved by default, as described below.
 ``HealthKitFHIRExporter/Options/nativeIdentifier`` governs both paths: the primary output of an export and the target of a retraction carry the HealthKit UUID under the same authorized system.
+
+## Preserving source metadata
+
+``HealthKitFHIRExporter/Options/metadata`` defaults to `.authorized`, preserving otherwise unmapped sample metadata on the primary output. Values faithfully represented by clinical elements, recording Devices or other IG-defined constructs are not duplicated. When an `HKDevice` fact conflicts with sample metadata, the device fact takes precedence and the different metadata value remains in the typed extension. Set it to `.omit` for an explicit deployment exclusion. Strings, finite numbers, Booleans, dates, known SDK enumerations and quantities with supported compatible units retain their types. Custom keys are preserved; arrays, nested dictionaries, binary values and unsupported quantity dimensions remain observable omissions. The native UUID option remains independent.
+
+The container uses `https://grovealliance.org/fhir/core/StructureDefinition/metadata`. Each `entry` has a `key` child containing the exact runtime key and a `value` child containing its typed value. Metadata participates in record versioning: changing the exported metadata changes the record version while source and output identifiers remain stable. Preserve staged records verbatim for retries.
+
+Clinical source bytes remain unchanged; their DocumentReference wrapper carries the metadata. Metadata on contained workout parts or correlation objects is not flattened into the parent's extension. Read each export's metadata summary and omission warnings to distinguish successful conversion from complete preservation.
 
 ## Understanding the two kinds of time
 

@@ -80,7 +80,7 @@ struct HealthKitMetadataConsumptionTests {
             varied: shared + [[HKMetadataKeyAppleECGAlgorithmVersion: 2]],
             carried: observationKeys.union([HKMetadataKeyAppleECGAlgorithmVersion])
         ) { try Warnings.electrocardiogram(metadata: $0) },
-        MetadataConsumptionRow(testDescription: "heartbeat series", varied: shared, carried: []) { try Warnings.heartbeatSeries(metadata: $0) }
+        MetadataConsumptionRow(testDescription: "heartbeat series", varied: shared, carried: observationKeys) { try Warnings.heartbeatSeries(metadata: $0) }
     ]
 
     /// A category sample over a minute stating exactly `metadata`.
@@ -144,7 +144,7 @@ struct HealthKitMetadataConsumptionTests {
             correlation: zone.merging(["com.example.zeta": "z"]) { $1 },
             systolic: [HKMetadataKeyWasUserEntered: true, "com.example.cuff": "x"]
         )
-        #expect(merged.withheldMetadataKeys == ["com.example.cuff", "com.example.zeta"])
+        #expect(merged.withheldMetadataKeys == ["com.example.cuff"])
         // The systolic member states manual entry that the record, whose diastolic member states none, does not establish.
         #expect(merged.warnings == [Warnings.unmodeled, HealthKitBloodPressureMemberTests.recordingMethod])
         let unentered: [String: any Sendable] = [HKMetadataKeyWasUserEntered: false]

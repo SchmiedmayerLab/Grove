@@ -33,7 +33,7 @@ private let groveFHIRIsAvailable = FileManager.default.fileExists(
 )
 
 
-/// Every optional parameter defaults the same way on every platform, and every disclosure omits.
+/// Every optional parameter defaults the same way on every platform.
 @Suite
 struct ProducerDefaultsTests {
     @Test("Device facts default to nothing beyond what identifies the device")
@@ -52,7 +52,7 @@ struct ProducerDefaultsTests {
         #expect(recording.stableUnitToken == nil && recording.name == nil && recording.manufacturer == nil && recording.model == nil)
     }
 
-    @Test("Every HealthKit disclosure omits and the unit token is the local identifier")
+    @Test("HealthKit metadata defaults to preservation and other disclosures remain explicit")
     func healthKitOptionDefaults() {
         let options = HealthKitFHIRExporter.Options()
         guard case .omit = options.writer else {
@@ -64,6 +64,7 @@ struct ProducerDefaultsTests {
             return
         }
         #expect(options.role == .assembler)
+        #expect(options.metadata == .authorized)
         #expect(options.route == .omit)
         #expect(options.nativeIdentifier == .omit)
     }
@@ -177,7 +178,7 @@ struct ProducerWarningTests {
                 metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles", "com.example.zeta": "z", "com.example.custom": "x"]
             )
         )
-        #expect(withheld.warnings == [Self.unmodeledMetadataWithheld])
+        #expect(withheld.warnings.isEmpty)
 
         let complete = try await ExporterFixtures.export(
             Self.heartRate(device: identified, metadata: [HKMetadataKeyTimeZone: "America/Los_Angeles"])

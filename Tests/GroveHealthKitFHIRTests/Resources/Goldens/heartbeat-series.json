@@ -43,6 +43,28 @@
             }
           }
         ],
+        "context" : {
+          "period" : {
+            "_end" : {
+              "extension" : [
+                {
+                  "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                  "valueCode" : "America/Los_Angeles"
+                }
+              ]
+            },
+            "_start" : {
+              "extension" : [
+                {
+                  "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                  "valueCode" : "America/Los_Angeles"
+                }
+              ]
+            },
+            "end" : "2026-08-17T15:30:02-07:00",
+            "start" : "2026-08-17T15:30:00-07:00"
+          }
+        },
         "date" : "2026-08-17T23:30:00Z",
         "extension" : [
           {
@@ -388,11 +410,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:4JjsCdA9uK0CnRNO_22CdSXQFZ1di2kodOTrI0wSBsM"
+            "value" : "v0:test:1:1aEldSs-qKDpDPHeOTpwqM6uuMjq1I1Kmp4OSKgAil8"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:2acaac53-8aac-5908-ab64-8e3b0754c6c3",
+      "fullUrl" : "urn:uuid:36aa43b0-943e-548a-87fd-965c8e6635c7",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -478,7 +500,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:4JjsCdA9uK0CnRNO_22CdSXQFZ1di2kodOTrI0wSBsM"
+              "value" : "v0:test:1:1aEldSs-qKDpDPHeOTpwqM6uuMjq1I1Kmp4OSKgAil8"
             }
           }
         ],
