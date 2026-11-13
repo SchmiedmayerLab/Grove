@@ -16,6 +16,7 @@ public import struct NIOCore.ByteBuffer
 /// Specifies the day within a seven-day week as specified in IOS 8601.
 ///
 /// Refer to GATT Specification Supplement, 3.73 Day of Week.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DayOfWeek {
     /// Unknown day of week.
     public static let unknown = DayOfWeek(rawValue: 0)
@@ -47,12 +48,15 @@ public struct DayOfWeek {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayOfWeek: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayOfWeek: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayOfWeek: CustomStringConvertible {
     public var description: String {
         switch self {
@@ -79,6 +83,7 @@ extension DayOfWeek: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayOfWeek: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {
@@ -93,4 +98,5 @@ extension DayOfWeek: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayOfWeek: Codable {}

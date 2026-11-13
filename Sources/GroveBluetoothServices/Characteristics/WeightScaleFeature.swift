@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// Features of a weight scale.
 ///
 /// Refer to GATT Specification Supplement, 3.253 Weight Scale Feature.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct WeightScaleFeature: OptionSet {
     /// Weight resolutions for a weight measurement.
     public struct WeightResolution {
@@ -203,21 +204,27 @@ public struct WeightScaleFeature: OptionSet {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature.WeightResolution: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature.WeightResolution: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature.HeightResolution: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature.HeightResolution: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         var options: [String] = []
@@ -239,6 +246,7 @@ extension WeightScaleFeature: CustomStringConvertible, CustomDebugStringConverti
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt32(from: &byteBuffer) else {
@@ -253,4 +261,5 @@ extension WeightScaleFeature: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightScaleFeature: Codable {}

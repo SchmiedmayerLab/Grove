@@ -16,6 +16,7 @@ public import struct NIOCore.ByteBuffer
 /// - Note: The applicable values are specified by the respective Service specification.
 ///
 /// Refer to GATT Specification Supplement, 3.178.2 Operator field.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessOperator {
     /// Null operator.
     public static let null = RecordAccessOperator(rawValue: 0x00)
@@ -62,12 +63,15 @@ public struct RecordAccessOperator {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperator: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperator: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOperator: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {

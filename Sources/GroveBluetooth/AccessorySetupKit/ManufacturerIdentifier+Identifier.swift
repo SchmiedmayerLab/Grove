@@ -10,6 +10,7 @@
 public import AccessorySetupKit
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManufacturerIdentifier {
     /// Retrieve the `ASBluetoothCompanyIdentifier` representation for the manufacturer identifier.
     @available(iOS 18.0, *)

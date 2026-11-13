@@ -25,7 +25,7 @@ struct TimeSubheadline: View {
             if cal.isDateInToday(measurement.startDate) {
                 Text("Today, \(Text(measurement.startDate, style: .time))", bundle: .module)
             } else {
-                Text(.now, style: .date) + Text(verbatim: ", ") + Text(.now, style: .time)
+                Text("\(Text(.now, style: .date)), \(Text(.now, style: .time))", bundle: .module)
             }
         }
             .font(.subheadline)

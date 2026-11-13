@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// Date and time information.
 ///
 /// Refer to GATT Specification Supplement, 3.70 Date Time.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DateTime {
     /// The month.
     public struct Month {
@@ -103,6 +104,7 @@ public struct DateTime {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime {
     /// The date components representation for the date and time.
     public var dateComponents: DateComponents {
@@ -166,12 +168,15 @@ extension DateTime {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime.Month: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime.Month: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime.Month: CustomStringConvertible {
     public var description: String {
         switch self {
@@ -208,9 +213,11 @@ extension DateTime.Month: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime.Month: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let value = UInt8(from: &byteBuffer) else {
@@ -226,6 +233,7 @@ extension DateTime.Month: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let year = UInt16(from: &byteBuffer),
@@ -251,7 +259,9 @@ extension DateTime: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime.Month: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DateTime: Codable {}

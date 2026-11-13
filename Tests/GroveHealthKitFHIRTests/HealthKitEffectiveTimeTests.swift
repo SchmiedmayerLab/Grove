@@ -162,7 +162,7 @@ struct HealthKitEffectiveTimeTests {
         guard fields.count == 6 else {
             return nil
         }
-        let wallClock = String(format: "%04ld-%02ld-%02ldT%02ld:%02ld:%02ld", arguments: fields.map { $0 as CVarArg })
+        let wallClock = String(format: "%04ld-%02ld-%02ldT%02ld:%02ld:%02ld", arguments: fields.map { $0 as any CVarArg })
         let fraction = millisecond == 0 ? "" : String(format: ".%03lld", millisecond)
         let hoursAndMinutes = String(format: "%02ld:%02ld", abs(offset) / 3_600, abs(offset) % 3_600 / 60)
         return wallClock + fraction + (offset == 0 ? "Z" : (offset < 0 ? "-" : "+") + hoursAndMinutes)
@@ -446,7 +446,9 @@ struct HealthKitEffectiveTimeTests {
     @Test("A named zone reads a repeated time as its first occurrence, a skipped one at the earlier offset, and a later one at the new offset")
     func namedZonesFollowFoundationAtTransitions() throws {
         func halfPast(_ hour: UInt8, on day: FHIRDate, in identifier: String) throws -> DateTime {
-            DateTime(date: day, time: FHIRTime(hour: hour, minute: 30, second: 0), timezone: try #require(TimeZone(identifier: identifier)))
+            // Unwrap outside the call: against the optional `timezone:` parameter, `#require` would wrap instead of unwrapping.
+            let timezone = try #require(TimeZone(identifier: identifier))
+            return DateTime(date: day, time: FHIRTime(hour: hour, minute: 30, second: 0), timezone: timezone)
         }
         let pinned: [(DateTime, TimeInterval)] = [
             (try halfPast(1, on: FHIRDate(year: 2026, month: 11, day: 1), in: "America/Los_Angeles"), 1_793_521_800),

@@ -133,7 +133,11 @@ extension StoredSampleFixtures {
     /// A workout of any activity raw value, duration and statistics; HealthKit computes statistics only while it
     /// records a workout, so they are stated in the workout's primary activity.
     static func workout(activity: UInt, duration: TimeInterval, statistics: [WorkoutStatistic], facts: SampleFacts) throws -> HKWorkout {
-        let workout = HKWorkout(activityType: .running, start: GoldenFixtures.sampleStart, end: GoldenFixtures.sampleStart.addingTimeInterval(60))
+        let workout = HKWorkout.fixture(
+            activityType: .running,
+            start: GoldenFixtures.sampleStart,
+            end: GoldenFixtures.sampleStart.addingTimeInterval(60)
+        )
         try restate(workout, with: ["workoutActivityType": NSNumber(value: activity), "duration": NSNumber(value: duration)])
         guard let primary = try read("primaryActivity", of: workout) as? NSObject,
               let byType = try read("statisticsPerType", of: primary) as? NSMutableDictionary else {

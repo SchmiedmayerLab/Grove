@@ -13,6 +13,7 @@ import HealthKit
 import SwiftData
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct CodableHKDevice {
     let name: String?
     let manufacturer: String?
@@ -26,6 +27,7 @@ private struct CodableHKDevice {
 
 
 /// Copy of the `BloodPressureMeasurement` type that just uses plain RawValue types to work around SwiftData coding issues and crashes.
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct BloodPressureMeasurementSwiftDataWorkaroundContainer { // swiftlint:disable:this type_name
     let systolicValue: UInt16
     let diastolicValue: UInt16
@@ -66,6 +68,7 @@ private struct BloodPressureMeasurementSwiftDataWorkaroundContainer { // swiftli
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private struct WeightMeasurementSwiftDataWorkaroundContainer { // swiftlint:disable:this type_name
     let weight: UInt16
     let unit: String
@@ -102,6 +105,7 @@ private struct WeightMeasurementSwiftDataWorkaroundContainer { // swiftlint:disa
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 // swiftlint:disable:next type_name
 private struct SwiftDataBluetoothHealthMeasurementWorkaroundContainer {
     enum MeasurementType: String, Codable {
@@ -179,6 +183,7 @@ final class StoredMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CodableHKDevice: Codable {}
 
 
@@ -210,6 +215,7 @@ extension CodableHKDevice {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurementSwiftDataWorkaroundContainer: Codable {
     enum CodingKeys: CodingKey {
         case systolicValue
@@ -248,6 +254,7 @@ extension BloodPressureMeasurementSwiftDataWorkaroundContainer: Codable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension WeightMeasurementSwiftDataWorkaroundContainer: Codable {
     enum CodingKeys: CodingKey {
         case weight
@@ -281,6 +288,7 @@ extension WeightMeasurementSwiftDataWorkaroundContainer: Codable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension SwiftDataBluetoothHealthMeasurementWorkaroundContainer: Codable {
     enum CodingKeys: CodingKey {
         case type

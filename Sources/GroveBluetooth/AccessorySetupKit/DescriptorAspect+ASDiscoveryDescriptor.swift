@@ -71,6 +71,7 @@ extension DescriptorAspect {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DataDescriptor {
     fileprivate init?(dataProperty: Data?, maskProperty: Data?) {
         guard let dataProperty, let maskProperty, dataProperty.count == maskProperty.count else {

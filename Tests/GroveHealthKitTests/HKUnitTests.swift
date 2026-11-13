@@ -40,6 +40,13 @@ struct HKUnitTests {
     }()
     
     
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated `calorie()`.")
+    #endif
+    private static func deprecatedCalorieUnits() -> (HKUnitA, HKUnitB) {
+        (HKUnitA.calorie(), HKUnitB.calorie())
+    }
+
     @Test func unitCompatibility() throws {
         func _checkCompatible( // swiftlint:disable:this identifier_name
             _ unit1String: String,
@@ -988,8 +995,9 @@ extension HKUnitTests {
         #expect(try HKUnitA.parse(HKUnitA.smallCalorie().unitString) == HKUnitA.smallCalorie())
         #expect(try HKUnitB.parse(HKUnitB.smallCalorie().unitString) == HKUnitB.smallCalorie())
         
-        #expect(try HKUnitA.parse(HKUnitA.calorie().unitString) == HKUnitA.calorie())
-        #expect(try HKUnitB.parse(HKUnitB.calorie().unitString) == HKUnitB.calorie())
+        let (calorieA, calorieB) = Self.deprecatedCalorieUnits()
+        #expect(try HKUnitA.parse(calorieA.unitString) == calorieA)
+        #expect(try HKUnitB.parse(calorieB.unitString) == calorieB)
         
         // HKUnit docs: "The large calorie is the same as a kilocalorie (1 Cal = 4184.0 J)."
         

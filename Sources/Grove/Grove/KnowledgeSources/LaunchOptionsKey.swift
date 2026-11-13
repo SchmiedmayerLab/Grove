@@ -7,7 +7,7 @@
 //
 
 import GroveFoundation
-#if canImport(SwiftUI)
+#if os(iOS) || os(visionOS) || os(tvOS)
 public import SwiftUI
 #endif
 

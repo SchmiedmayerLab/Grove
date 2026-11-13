@@ -240,7 +240,7 @@ struct BulkExporterAPITests {
         let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
         let healthKit = HealthKit()
         let storage = LocalStorage()
-        await withDependencyResolution(standard: TestStandard()) { healthKit; storage; module }
+        withDependencyResolution(standard: TestStandard()) { healthKit; storage; module }
         let sessionID = BulkExportSessionIdentifier(UUID().uuidString)
         let checkpointKey = LocalStorageKey<ExportSessionDescriptor>(BulkHealthExporter.localStorageKey(forSessionId: sessionID), setting: .unencrypted())
         defer { try? storage.delete(checkpointKey) }
@@ -492,7 +492,7 @@ struct BulkExporterAPITests {
     @Test @MainActor
     func pauseDrainsBeforeRestart() async throws {
         let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
-        await withDependencyResolution(standard: TestStandard()) { module }
+        withDependencyResolution(standard: TestStandard()) { module }
         let sessionId = BulkExportSessionIdentifier(UUID().uuidString)
         let session = try await module.session(withId: sessionId, for: [], startDate: .oldestSample, using: .identity)
         let firstRun = try session.start()
@@ -657,7 +657,7 @@ private func makeProcessingSession(
     let module = BulkHealthExporter(checkpointStorageSetting: .unencrypted())
     let healthKit = HealthKit()
     let storage = LocalStorage()
-    await withDependencyResolution(standard: TestStandard()) { healthKit; storage; module }
+    withDependencyResolution(standard: TestStandard()) { healthKit; storage; module }
     let sessionID = BulkExportSessionIdentifier(UUID().uuidString)
     let storageKey = LocalStorageKey<ExportSessionDescriptor>(
         BulkHealthExporter.localStorageKey(forSessionId: sessionID), setting: .unencrypted()

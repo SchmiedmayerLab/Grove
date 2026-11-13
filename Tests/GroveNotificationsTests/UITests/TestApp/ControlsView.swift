@@ -83,7 +83,7 @@ struct ControlsView: View {
                 if authorizationStatus != .authorized {
                     AsyncButton("Request Authorization", state: $viewState) {
                         do {
-                            try await requestNotificationAuthorization(options: [.alert, .badge, .sound])
+                            _ = try await requestNotificationAuthorization(options: [.alert, .badge, .sound])
                             authorizationStatus = await notificationSettings().authorizationStatus
                         } catch {
                             authorizationStatus = await notificationSettings().authorizationStatus
@@ -114,7 +114,7 @@ struct ControlsView: View {
     private func scheduleNotifications() async throws {
         let settings = await notificationSettings()
         if settings.authorizationStatus == .notDetermined {
-            try await requestNotificationAuthorization(options: [.alert, .badge, .sound, .provisional])
+            _ = try await requestNotificationAuthorization(options: [.alert, .badge, .sound, .provisional])
             authorizationStatus = await notificationSettings().authorizationStatus
         }
 

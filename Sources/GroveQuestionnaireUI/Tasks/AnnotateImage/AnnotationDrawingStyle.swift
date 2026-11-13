@@ -12,6 +12,7 @@ import UIKit
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
+@MainActor
 enum AnnotationDrawingStyle {
     private static let lineWidthRatio = 0.014
     private static let lineWidthRange: ClosedRange<CGFloat> = 6...72

@@ -466,7 +466,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Phone Numbers"].exists)
         app.buttons["Phone Numbers"].tap()
         
-        try await app.addPhoneNumber("6502345678", otc: "012345")
+        try app.addPhoneNumber("6502345678", otc: "012345")
         
         XCTAssertTrue(app.staticTexts["+1 (650) 234-5678"].waitForExistence(timeout: 8.0))
         
@@ -499,7 +499,7 @@ final class AccountOverviewTests: XCTestCase { // swiftlint:disable:this type_bo
         XCTAssertTrue(app.buttons["Phone Numbers"].exists)
         app.buttons["Phone Numbers"].tap()
         
-        try await app.addPhoneNumber("6502345678", otc: "123456")
+        try app.addPhoneNumber("6502345678", otc: "123456")
         
         XCTAssertTrue(app.staticTexts["Failed to verify phone number. Please check your code and try again."].waitForExistence(timeout: 8.0))
     }

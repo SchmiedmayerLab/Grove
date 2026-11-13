@@ -10,6 +10,7 @@ import Foundation
 import GroveFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 class Box<Value> {
     var value: Value
 

@@ -13,6 +13,7 @@ import OSLog
 ///
 /// Describes what services we expect to be present for a certain type of device.
 /// The ``BluetoothManager`` uses that to determine what devices to discover and what services and characteristics to expect.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct DeviceDescription {
     /// The set of service configurations we expect from the device.
     ///
@@ -44,12 +45,15 @@ public struct DeviceDescription {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceDescription: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DeviceDescription: Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension Collection where Element: Identifiable, Element.ID == DiscoveryCriteria {
     func find(name: String?, advertisementData: AdvertisementData, logger: Logger) -> Element? {
         let configurations = filter { configuration in

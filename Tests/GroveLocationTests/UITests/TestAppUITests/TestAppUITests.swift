@@ -10,6 +10,7 @@ import XCTest
 import XCTestExtensions
 
 
+@MainActor
 class TestAppUITests: XCTestCase {
     override func setUp() {
         super.setUp()

@@ -152,7 +152,7 @@ public struct SequentialOnboardingView<Header: View>: View {
                     if let title = step.title {
                         title
                             .bold()
-                            .accessibilityLabel(Text(verbatim: "\(index + 1). ") + title)
+                            .accessibilityLabel(Text("\(index + 1). \(title)", bundle: .module))
                             .accessibilityAddTraits(.isHeader)
                     }
                     step.description

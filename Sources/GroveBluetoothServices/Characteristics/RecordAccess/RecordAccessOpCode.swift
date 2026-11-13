@@ -17,6 +17,7 @@ public import struct NIOCore.ByteBuffer
 /// - Note: The applicable values are specified by the respective Service specification.
 ///
 /// Refer to GATT Specification Supplement, 3.178.1 Op Code field.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessOpCode {
     /// Reserved for future use.
     public static let reserved = RecordAccessOpCode(rawValue: 0x00)
@@ -85,12 +86,15 @@ public struct RecordAccessOpCode {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOpCode: RawRepresentable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOpCode: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessOpCode: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {

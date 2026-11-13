@@ -244,12 +244,8 @@ extension ConsentDocument.SignatureStorage {
     #if !os(macOS)
     @MainActor
     fileprivate func signatureImage(size: CGSize) -> UIImage {
-        let scale: CGFloat
-        #if os(iOS)
-        scale = UIScreen.main.scale
-        #else
-        scale = 3 // retina scale is default
-        #endif
+        // Rasterize at retina scale everywhere: the PDF doesn't depend on the exporting device's screen.
+        let scale: CGFloat = 3
         // As the `PKDrawing.image()` function automatically converts the ink color dependent on the used color scheme (light or dark mode),
         // force the tint color used in the `UIImage` to `black`.
         let image = signature.image(

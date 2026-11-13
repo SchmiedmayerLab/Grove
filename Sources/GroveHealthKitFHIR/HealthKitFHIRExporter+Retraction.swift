@@ -9,7 +9,7 @@
 #if canImport(HealthKit)
 
 public import Foundation
-public import GroveFHIRContract
+import GroveFHIRContract
 import HealthKit
 
 

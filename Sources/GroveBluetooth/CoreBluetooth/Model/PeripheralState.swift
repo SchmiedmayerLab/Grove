@@ -11,6 +11,7 @@ public import CoreBluetooth
 
 
 /// Describes the state of a Bluetooth peripheral.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum PeripheralState: UInt8 {
     /// The peripheral is disconnected.
     case disconnected
@@ -23,12 +24,15 @@ public enum PeripheralState: UInt8 {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PeripheralState: RawRepresentable, AtomicValue {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PeripheralState: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PeripheralState: CustomStringConvertible {
     public var description: String {
         switch self {
@@ -45,6 +49,7 @@ extension PeripheralState: CustomStringConvertible {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PeripheralState {
     /// Derive peripheral state from CoreBluetooth
     public init(from state: CBPeripheralState) {

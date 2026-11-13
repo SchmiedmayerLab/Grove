@@ -11,11 +11,13 @@ import CoreBluetooth
 import GroveFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private protocol DecodableCharacteristic {
     @GroveBluetooth
     func handleUpdateValueAssumingIsolation(_ data: Data?)
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private protocol PrimitiveDecodableCharacteristic {
     func decodePrimitiveValue<ValueType>(from data: Data, as value: ValueType.Type) -> ValueType?
 }

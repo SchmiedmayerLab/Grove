@@ -9,6 +9,7 @@
 public import Foundation
 import OSLog
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 private func optionalMax<Value: Comparable>(_ lhs: Value?, _ rhs: Value?) -> Value? {
     guard let lhs, let rhs else {
         return lhs ?? rhs
@@ -17,6 +18,7 @@ private func optionalMax<Value: Comparable>(_ lhs: Value?, _ rhs: Value?) -> Val
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(APISupport)
 public struct BluetoothManagerDiscoveryState: BluetoothScanningState {
     /// The device descriptions describing how nearby devices are discovered.
@@ -57,6 +59,7 @@ public struct BluetoothManagerDiscoveryState: BluetoothScanningState {
 
 
 /// Intermediate storage object that is later translated to a BluetoothManagerDiscoveryState.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(APISupport)
 public struct BluetoothModuleDiscoveryState: BluetoothScanningState {
     /// The minimum rssi that is required for a device to be considered discovered.
@@ -170,9 +173,11 @@ class DiscoverySession: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothManagerDiscoveryState: Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothModuleDiscoveryState: Hashable {}
 
 // MARK: - Auto Connect

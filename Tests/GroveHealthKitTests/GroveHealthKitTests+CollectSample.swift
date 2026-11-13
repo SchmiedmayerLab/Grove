@@ -77,7 +77,7 @@ extension GroveHealthKitTests {
     func deletionLowerBound() async throws {
         let standard = DeletionBoundRecorder()
         let healthKit = HealthKit()
-        await withDependencyResolution(standard: standard) {
+        withDependencyResolution(standard: standard) {
             healthKit
         }
         let collector = HealthKitSampleCollector(

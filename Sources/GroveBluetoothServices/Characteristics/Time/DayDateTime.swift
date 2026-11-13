@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// Represent weekday, date and time.
 ///
 /// Refer to GATT Specification Supplement, 3.72 Day Date Time.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @dynamicMemberLookup
 public struct DayDateTime {
     /// The date and time.
@@ -41,6 +42,7 @@ public struct DayDateTime {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayDateTime {
     /// The date components representation for the date and time.
     public var dateComponents: DateComponents {
@@ -93,9 +95,11 @@ extension DayDateTime {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayDateTime: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayDateTime: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let dateTime = DateTime(from: &byteBuffer),
@@ -114,4 +118,5 @@ extension DayDateTime: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DayDateTime: Codable {}

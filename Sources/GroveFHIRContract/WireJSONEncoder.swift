@@ -87,7 +87,7 @@ extension WireJSONEncoder {
         }
 
         /// The node `value` encodes to, with the special cases `JSONEncoder` applies before calling `encode(to:)`.
-        static func encoding<T: Encodable>(_ value: T, parent: Encoder?, key: CodingKey?) throws -> Node {
+        static func encoding<T: Encodable>(_ value: T, parent: Encoder?, key: (any CodingKey)?) throws -> Node {
             if T.self == String.self {
                 // swiftlint:disable:next force_cast
                 return .string(value as! String)
@@ -132,11 +132,11 @@ extension WireJSONEncoder {
 extension WireJSONEncoder {
     fileprivate final class Encoder: Swift.Encoder {
         let parent: Encoder?
-        let key: CodingKey?
+        let key: (any CodingKey)?
         var node: Node?
 
-        var codingPath: [CodingKey] {
-            var path: [CodingKey] = []
+        var codingPath: [any CodingKey] {
+            var path: [any CodingKey] = []
             var current: Encoder? = self
             while let encoder = current {
                 if let key = encoder.key {
@@ -149,7 +149,7 @@ extension WireJSONEncoder {
 
         var userInfo: [CodingUserInfoKey: Any] { [:] }
 
-        init(parent: Encoder?, key: CodingKey?) {
+        init(parent: Encoder?, key: (any CodingKey)?) {
             self.parent = parent
             self.key = key
         }
@@ -158,11 +158,11 @@ extension WireJSONEncoder {
             KeyedEncodingContainer(KeyedContainer<Key>(encoder: self, box: objectBox()))
         }
 
-        func unkeyedContainer() -> UnkeyedEncodingContainer {
+        func unkeyedContainer() -> any UnkeyedEncodingContainer {
             UnkeyedContainer(encoder: self, box: arrayBox())
         }
 
-        func singleValueContainer() -> SingleValueEncodingContainer {
+        func singleValueContainer() -> any SingleValueEncodingContainer {
             SingleValueContainer(encoder: self)
         }
 
@@ -219,7 +219,7 @@ extension WireJSONEncoder {
         let encoder: Encoder
         let box: ObjectBox
 
-        var codingPath: [CodingKey] { encoder.codingPath }
+        var codingPath: [any CodingKey] { encoder.codingPath }
 
         private func set(_ node: Node, for key: Key) {
             box.members.append((key.stringValue, node))
@@ -299,22 +299,22 @@ extension WireJSONEncoder {
             return KeyedEncodingContainer(KeyedContainer<NestedKey>(encoder: nested, box: nestedBox))
         }
 
-        mutating func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
+        mutating func nestedUnkeyedContainer(forKey key: Key) -> any UnkeyedEncodingContainer {
             let nested = Encoder(parent: encoder, key: key)
             let nestedBox = nested.arrayBox()
             set(.array(nestedBox), for: key)
             return UnkeyedContainer(encoder: nested, box: nestedBox)
         }
 
-        mutating func superEncoder() -> Swift.Encoder {
+        mutating func superEncoder() -> any Swift.Encoder {
             superEncoder(forKey: SuperKey())
         }
 
-        mutating func superEncoder(forKey key: Key) -> Swift.Encoder {
-            superEncoder(forKey: key as CodingKey)
+        mutating func superEncoder(forKey key: Key) -> any Swift.Encoder {
+            superEncoder(forKey: key as any CodingKey)
         }
 
-        private func superEncoder(forKey key: CodingKey) -> Swift.Encoder {
+        private func superEncoder(forKey key: any CodingKey) -> any Swift.Encoder {
             let nested = Encoder(parent: encoder, key: key)
             box.members.append((key.stringValue, .object(nested.objectBox())))
             return nested
@@ -325,7 +325,7 @@ extension WireJSONEncoder {
         let encoder: Encoder
         let box: ArrayBox
 
-        var codingPath: [CodingKey] { encoder.codingPath }
+        var codingPath: [any CodingKey] { encoder.codingPath }
         var count: Int { box.elements.count }
 
         mutating func encodeNil() throws {
@@ -399,14 +399,14 @@ extension WireJSONEncoder {
             return KeyedEncodingContainer(KeyedContainer<NestedKey>(encoder: nested, box: nestedBox))
         }
 
-        mutating func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
+        mutating func nestedUnkeyedContainer() -> any UnkeyedEncodingContainer {
             let nested = Encoder(parent: encoder, key: IndexKey(intValue: box.elements.count))
             let nestedBox = nested.arrayBox()
             box.elements.append(.array(nestedBox))
             return UnkeyedContainer(encoder: nested, box: nestedBox)
         }
 
-        mutating func superEncoder() -> Swift.Encoder {
+        mutating func superEncoder() -> any Swift.Encoder {
             let nested = Encoder(parent: encoder, key: IndexKey(intValue: box.elements.count))
             box.elements.append(.object(nested.objectBox()))
             return nested
@@ -416,7 +416,7 @@ extension WireJSONEncoder {
     fileprivate struct SingleValueContainer: SingleValueEncodingContainer {
         let encoder: Encoder
 
-        var codingPath: [CodingKey] { encoder.codingPath }
+        var codingPath: [any CodingKey] { encoder.codingPath }
 
         mutating func encodeNil() throws {
             encoder.node = .null

@@ -16,6 +16,7 @@ import RegexBuilder
 ///
 /// A local name typically starts with the `BLESmart_` prefix, followed by 4 bytes of model identifier and 6 bytes of the Bluetooth Mac Address.
 /// However, if the `s` is lowercase in `BLEsmart_`, the device signals that it is advertising in pairing mode.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct OmronLocalName {
     /// The pairing mode derived from the local name.
     public enum PairingMode {
@@ -118,12 +119,15 @@ public struct OmronLocalName {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronLocalName.PairingMode: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronLocalName.ModelIdentifier: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension OmronLocalName.MacAddress: Sendable, Hashable {}
 
 

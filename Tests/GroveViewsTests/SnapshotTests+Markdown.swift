@@ -18,6 +18,15 @@ import Testing
 @Suite
 @MainActor
 struct PadSnapshotTests {
+#if os(iOS)
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "A unit test has no window scene to create a window from.")
+    #endif
+    private static func screenSizedWindow() -> UIWindow {
+        UIWindow(frame: UIScreen.main.bounds)
+    }
+#endif
+
     @Test
     func reverseLabelStyle() {
         let label = SwiftUI.Label("100 %", image: "battery.100")
@@ -50,7 +59,7 @@ struct PadSnapshotTests {
             .multilineTextAlignment(.center)
 
         let host = UIHostingController(rootView: view)
-        let window = UIWindow(frame: UIScreen.main.bounds)
+        let window = Self.screenSizedWindow()
         window.rootViewController = host
         window.makeKeyAndVisible()
 

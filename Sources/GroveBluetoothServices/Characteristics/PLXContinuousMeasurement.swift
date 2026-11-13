@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 
 
 /// A PLX Continuous Measurement, as defined in the [Bluetooth specification](https://www.bluetooth.com/specifications/specs/plxs-html/).
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PLXContinuousMeasurement: ByteCodable, Hashable, Sendable, Codable {
     struct Flags: OptionSet, ByteCodable, Sendable, Codable, Hashable {
         static let hasSpO2PRFast = Self(rawValue: 1 << 0)

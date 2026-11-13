@@ -14,6 +14,9 @@ import Testing
 @Suite("Runtime Precondition")
 struct RuntimePreconditionsTests {
     @Test("Runtime Precondition")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime precondition expectations.")
+    #endif
     func testRuntimePrecondition() async {
         let number = 42
 
@@ -38,6 +41,9 @@ struct RuntimePreconditionsTests {
     }
 
     @Test("Async Runtime Precondition")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime precondition expectations.")
+    #endif
     func testAsyncRuntimePrecondition() async {
         await confirmation { confirmation in
             expectRuntimePrecondition(timeout: 1.0) {
@@ -51,6 +57,9 @@ struct RuntimePreconditionsTests {
     }
 
     @Test("Precondition not triggered")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime precondition expectations.")
+    #endif
     func testRuntimePreconditionNotTriggered() {
         withKnownIssue {
             expectRuntimePrecondition {
@@ -69,6 +78,9 @@ struct RuntimePreconditionsTests {
     }
     
     @Test("No preconditions")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime precondition expectations.")
+    #endif
     func testNoPrecondition() {
         expectNoRuntimePrecondition {
             // nothing
@@ -76,6 +88,9 @@ struct RuntimePreconditionsTests {
     }
     
     @Test("No preconditions")
+    #if compiler(>=6.4)
+    @diagnose(DeprecatedDeclaration, as: ignored, reason: "Covers the deprecated runtime precondition expectations.")
+    #endif
     func testNoPreconditionAsync() {
         expectNoRuntimePrecondition { () async in
             // nothing

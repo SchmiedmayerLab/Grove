@@ -35,6 +35,7 @@
 ///
 /// ### Configuration
 /// - ``configure()``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol BluetoothService {
     /// The Bluetooth service id.
     static var id: BTUUID { get }
@@ -48,6 +49,7 @@ public protocol BluetoothService {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BluetoothService {
     /// Empty default configure method.
     public func configure() {}

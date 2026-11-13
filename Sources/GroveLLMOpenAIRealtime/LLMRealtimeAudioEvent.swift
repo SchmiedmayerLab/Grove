@@ -8,7 +8,7 @@
 
 package import Foundation
 package import GeneratedOpenAIClient
-package import GroveLLMOpenAI
+import GroveLLMOpenAI
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)

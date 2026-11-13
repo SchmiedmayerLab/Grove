@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if !os(macOS) && !os(watchOS)
 public import SwiftUI
 
-#if !os(macOS) && !os(watchOS)
 
 @available(visionOS, unavailable)
 @available(tvOS, unavailable)

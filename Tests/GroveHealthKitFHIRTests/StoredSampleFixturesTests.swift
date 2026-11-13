@@ -186,7 +186,7 @@ struct StoredSampleFixturesTests {
     @Test("The chosen UUID and writer are what the converter sees")
     func converterReadsTheStoredFacts() async throws {
         let sample = try GoldenFixtures.heartRate(uuid: Self.uuid, device: GoldenFixtures.watch, writer: Self.writer)
-        var inputs = ExportInputs.applicationWriter
+        let inputs = ExportInputs.applicationWriter
         let conversion = try await ExporterFixtures.export(sample, inputs).primary
 
         #expect(conversion.source.uuid == Self.uuid)

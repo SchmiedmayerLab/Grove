@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 
 
 /// Protocol for the Record Access Control Point characteristic.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol _RecordAccessControlPoint: ControlPointCharacteristic { // swiftlint:disable:this type_name
     /// The operand format.
     associatedtype Operand: RecordAccessOperand
@@ -41,6 +42,7 @@ public protocol _RecordAccessControlPoint: ControlPointCharacteristic { // swift
 /// - ``deleteStoredRecords(_:)``
 /// - ``abort()``
 /// - ``reportNumberOfStoredRecords(_:)``
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessControlPoint<Operand: RecordAccessOperand> {
     /// The operation code.
     public let opCode: RecordAccessOpCode
@@ -63,21 +65,27 @@ public struct RecordAccessControlPoint<Operand: RecordAccessOperand> {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessControlPoint: _RecordAccessControlPoint {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessControlPoint: Equatable where Operand: Equatable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessControlPoint: Hashable where Operand: Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessControlPoint: Sendable where Operand: Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessControlPoint: ControlPointCharacteristic {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessControlPoint: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let opCode = RecordAccessOpCode(from: &byteBuffer),

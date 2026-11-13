@@ -436,7 +436,7 @@ struct ProducerSurfaceTests {
         let provenance = try #require(graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         #expect(graph.bundle.timestamp?.value?.description == "2026-08-17T23:30:00Z")
         #expect(provenance.recorded.value?.description == "2026-08-17T23:30:00Z")
-        #expect(provenance.occurred == .period(Period(end: FHIRPrimitive(try DateTime("2026-08-17T23:30:00Z")))))
+        #expect(provenance.occurred == .period(Period(end: FHIRPrimitive(DateTime("2026-08-17T23:30:00Z")))))
 
         // A native identifier system the deployment's identity scope reserves is refused when the exporter is configured.
         var reserved = ExportInputs()
@@ -463,7 +463,7 @@ struct ProducerSurfaceTests {
         #expect(targets == [conversion.primary.identifiers.sourceRecord])
         let source = try RoledIdentifier(#require(provenance.entity?.first?.what.identifier))
         #expect(source == conversion.primary.identifiers.sourceRecord)
-        #expect(provenance.occurred == .period(Period(end: FHIRPrimitive(try DateTime("2026-08-17T23:30:00Z")))))
+        #expect(provenance.occurred == .period(Period(end: FHIRPrimitive(DateTime("2026-08-17T23:30:00Z")))))
 
         // The exporter drops a lower bound later than the detection; the retraction record itself refuses an inverted
         // period.

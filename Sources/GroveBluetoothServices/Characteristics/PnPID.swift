@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 /// Bluetooth Vendor ID Source.
 ///
 /// Refer to GATT Specification Supplement, 3.170.1 Vendor ID Source field.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum VendorIDSource {
     /// Assigned Company Identifier value from the Bluetooth SIG Assigned Numbers.
     case bluetoothSIGAssigned
@@ -38,6 +39,7 @@ public enum VendorIDSource {
 /// The Plug and Play (PnP) Vendor ID and Product ID.
 ///
 /// Refer to GATT Specification Supplement, 3.170 PnP ID.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PnPID {
     /// The vendor id source.
     public let vendorIdSource: VendorIDSource
@@ -64,12 +66,15 @@ public struct PnPID {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension VendorIDSource: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PnPID: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension VendorIDSource: RawRepresentable {
     public var rawValue: UInt8 {
         switch self {
@@ -96,6 +101,7 @@ extension VendorIDSource: RawRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension VendorIDSource: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let source = UInt8(from: &byteBuffer) else {
@@ -111,6 +117,7 @@ extension VendorIDSource: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PnPID: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let vendorIdSource = VendorIDSource(from: &byteBuffer),
@@ -132,7 +139,9 @@ extension PnPID: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension VendorIDSource: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PnPID: Codable {}

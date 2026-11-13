@@ -14,6 +14,7 @@ import GroveBluetoothServices
 import OSLog
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @main
 @MainActor
 @available(visionOS, unavailable)
@@ -269,6 +270,7 @@ final class TestPeripheral: NSObject, CBPeripheralManagerDelegate {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CBManagerState: @retroactive CustomStringConvertible, @retroactive CustomDebugStringConvertible {
     public var description: String {
         switch self {

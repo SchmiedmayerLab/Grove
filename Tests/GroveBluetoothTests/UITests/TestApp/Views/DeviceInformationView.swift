@@ -84,7 +84,7 @@ struct DeviceInformationView: View {
             Text("Device Information")
         } footer: {
             HStack {
-                Text("Manufacturer: \(device.testState.didReceiveManufacturer), Model: \(device.testState.didReceiveModel)")
+                Text(verbatim: "Manufacturer: \(device.testState.didReceiveManufacturer), Model: \(device.testState.didReceiveModel)")
                 Spacer()
 
                 AsyncButton("Fetch", state: $viewState, action: readDeviceInformation)

@@ -74,7 +74,7 @@ struct KeychainBrowser: View { // swiftlint:disable:this file_types_order
                 NavigationLink {
                     CredentialsDetailsView(credentials: credentials)
                 } label: {
-                    Text("\(credentials)")
+                    Text(verbatim: "\(credentials)")
                 }
             }
         }
@@ -83,7 +83,7 @@ struct KeychainBrowser: View { // swiftlint:disable:this file_types_order
                 NavigationLink {
                     CredentialsDetailsView(credentials: credentials)
                 } label: {
-                    Text("\(credentials)")
+                    Text(verbatim: "\(credentials)")
                 }
             }
         }
@@ -92,7 +92,7 @@ struct KeychainBrowser: View { // swiftlint:disable:this file_types_order
                 NavigationLink {
                     KeyDetailsView(key: key)
                 } label: {
-                    Text("\(key)")
+                    Text(verbatim: "\(key)")
                 }
             }
         }

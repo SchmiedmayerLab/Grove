@@ -8,6 +8,7 @@
 
 
 /// Determine the type of a Bluetooth write operation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum WriteType {
     /// A write expecting an acknowledgment.
     case withResponse

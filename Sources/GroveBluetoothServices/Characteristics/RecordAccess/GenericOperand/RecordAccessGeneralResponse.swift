@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// The description of a general response.
 ///
 /// Used to represent the content of a ``RecordAccessOpCode/responseCode`` operation.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct RecordAccessGeneralResponse {
     /// The operation code of the request this response is triggered from.
     public let requestOpCode: RecordAccessOpCode
@@ -32,9 +33,11 @@ public struct RecordAccessGeneralResponse {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessGeneralResponse: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordAccessGeneralResponse: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let requestOpCode = RecordAccessOpCode(from: &byteBuffer),

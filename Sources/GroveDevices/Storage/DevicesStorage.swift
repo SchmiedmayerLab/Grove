@@ -17,6 +17,7 @@ import OSLog
 ///
 /// Each store gets its own component directory rather than sharing one, so every relocation can be
 /// committed by an atomic directory rename instead of copying into a directory that already exists.
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum DevicesStorage {
     static let storeFilename = "store.sqlite"
 
@@ -105,6 +106,7 @@ enum DevicesStorage {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension StorageNamespace.Component {
     /// Where the paired-device registry keeps its store.
     static let pairedDevices = Self("PairedDevices")

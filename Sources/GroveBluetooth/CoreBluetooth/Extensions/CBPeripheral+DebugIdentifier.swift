@@ -10,6 +10,7 @@ import CoreBluetooth
 
 
 // CustomDebugStringConvertible is already implemented for NSObjects. So we just define a custom property
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension CBPeripheral {
     var debugIdentifier: String {
         if let name {

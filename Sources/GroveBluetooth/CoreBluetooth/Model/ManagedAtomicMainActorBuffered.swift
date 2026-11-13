@@ -10,6 +10,7 @@ import Atomics
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 final class ManagedAtomicMainActorBuffered<Value: AtomicValue & Sendable>: Sendable where Value.AtomicRepresentation.Value == Value {
     private let managedValue: ManagedAtomic<Value>
     @MainActor private var mainActorValue: Value?
@@ -67,6 +68,7 @@ final class ManagedAtomicMainActorBuffered<Value: AtomicValue & Sendable>: Senda
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ManagedAtomicMainActorBuffered where Value: Equatable {
     @_semantics("atomics.requires_constant_orderings")
     @inlinable

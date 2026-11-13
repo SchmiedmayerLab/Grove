@@ -13,6 +13,7 @@ public import struct NIOCore.ByteBuffer
 /// Represents the time between measurements.
 ///
 /// Refer to GATT Specification Supplement, 3.150 Measurement Interval.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum MeasurementInterval {
     /// No periodic measurement
     case noPeriodicMeasurement
@@ -21,9 +22,11 @@ public enum MeasurementInterval {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MeasurementInterval: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MeasurementInterval: RawRepresentable {
     public var rawValue: UInt16 {
         switch self {
@@ -45,6 +48,7 @@ extension MeasurementInterval: RawRepresentable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MeasurementInterval: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let value = UInt16(from: &byteBuffer) else {
@@ -60,4 +64,5 @@ extension MeasurementInterval: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension MeasurementInterval: Codable {}

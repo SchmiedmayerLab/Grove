@@ -9,6 +9,7 @@
 public import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(APISupport)
 public protocol BluetoothScanningState: Equatable, Sendable {
     /// Merge with another state. Order should not matter in the operation.
@@ -20,6 +21,7 @@ public protocol BluetoothScanningState: Equatable, Sendable {
 
 
 /// Any kind of Bluetooth Scanner.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @_spi(APISupport)
 public protocol BluetoothScanner: Identifiable, Sendable where ID: Hashable {
     /// Captures state required to start scanning.

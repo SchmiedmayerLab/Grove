@@ -20,14 +20,14 @@ struct ContentView: View {
         Form {
             Section("Regular Sample Types") {
                 Button("Request HealthKit Authorization") {
-                    Task {
+                    _ = Task {
                         try await requestAccess()
                     }
                 }
             }
             Section("Clinical Record Types") {
                 Button("Request HealthKit Health Records Authorization") {
-                    Task {
+                    _ = Task {
                         try await requestHealthRecordsAccess()
                     }
                 }

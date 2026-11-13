@@ -89,7 +89,7 @@ struct LifecycleTests {
             Notification(name: NSApplication.willFinishLaunchingNotification, userInfo: launchOptions)
         )
 
-        #expect(module.launchOptions.keys.allSatisfy { launchOptions[$0] != nil })
+        #expect(module.launchOptions.isEmpty) // macOS has no launch options: the dictionary is keyed by `Never`
         #elseif os(watchOS)
         testApplicationDelegate.applicationDidFinishLaunching()
         #endif

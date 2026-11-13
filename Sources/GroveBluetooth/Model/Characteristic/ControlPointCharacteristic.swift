@@ -16,4 +16,5 @@ public import ByteCoding
 ///
 /// This protocol is a marker protocol making additional controls available with the ``CharacteristicAccessor``,
 /// to more easily interact with control point characteristics.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public protocol ControlPointCharacteristic: ByteCodable {}

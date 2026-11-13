@@ -12,6 +12,7 @@ import AccessorySetupKit
 import GroveFoundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum DescriptorAspect {
     /// Matches the ``AdvertisementData/localName``if it is present. If not (and only then) it matches against the GAP name.
     case nameSubstring(String)
@@ -30,9 +31,11 @@ enum DescriptorAspect {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DescriptorAspect: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DescriptorAspect {
     func matches(name: String?, advertisementData: AdvertisementData) -> Bool { // swiftlint:disable:this cyclomatic_complexity
         switch self {
@@ -86,6 +89,7 @@ extension DescriptorAspect {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension DescriptorAspect: CustomStringConvertible {
     var description: String {
         switch self {

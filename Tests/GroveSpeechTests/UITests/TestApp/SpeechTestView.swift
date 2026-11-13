@@ -96,7 +96,7 @@ struct SpeechTestView: View {
         } else {
             message = ""
             
-            Task {
+            _ = Task {
                 do {
                     for try await result in speechRecognizer.start() {
                         message = result.bestTranscription.formattedString

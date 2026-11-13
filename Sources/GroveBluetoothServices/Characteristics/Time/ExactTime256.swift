@@ -14,6 +14,7 @@ public import struct NIOCore.ByteBuffer
 /// Exact time representing using weekday, date and time including fractions of seconds.
 ///
 /// Refer to GATT Specification Supplement, 3.91 Exact Time 256.
+@available(iOS 18, macOS 15, watchOS 11, *)
 @dynamicMemberLookup
 public struct ExactTime256 {
     /// The weekday, date and time.
@@ -50,6 +51,7 @@ public struct ExactTime256 {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExactTime256 {
     /// The factor to convert the 1/256 seconds fraction to nanoseconds.
     ///
@@ -115,9 +117,11 @@ extension ExactTime256 {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExactTime256: Hashable, Sendable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExactTime256: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let dayDateTime = DayDateTime(from: &byteBuffer),
@@ -135,4 +139,5 @@ extension ExactTime256: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension ExactTime256: Codable {}

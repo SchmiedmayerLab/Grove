@@ -15,6 +15,7 @@ public import struct NIOCore.ByteBuffer
 /// A blood pressure measurement.
 ///
 /// Refer to GATT Specification Supplement, 3.31 Blood Pressure Measurement.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct BloodPressureMeasurement {
     fileprivate struct Flags: OptionSet {
         static let kPaUnit = Flags(rawValue: 1 << 0)
@@ -135,15 +136,19 @@ public struct BloodPressureMeasurement {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Unit: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Status: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement: Sendable, Hashable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Status: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         var components: [String] = []
@@ -174,6 +179,7 @@ extension BloodPressureMeasurement.Status: CustomStringConvertible, CustomDebugS
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Flags: ByteCodable {
     init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt8(from: &byteBuffer) else {
@@ -188,6 +194,7 @@ extension BloodPressureMeasurement.Flags: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Status: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let rawValue = UInt16(from: &byteBuffer) else {
@@ -202,6 +209,7 @@ extension BloodPressureMeasurement.Status: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement: ByteCodable {
     public init?(from byteBuffer: inout ByteBuffer) {
         guard let flags = Flags(from: &byteBuffer),
@@ -298,10 +306,13 @@ extension BloodPressureMeasurement: ByteCodable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Unit: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement.Status: Codable {}
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension BloodPressureMeasurement: Codable {}

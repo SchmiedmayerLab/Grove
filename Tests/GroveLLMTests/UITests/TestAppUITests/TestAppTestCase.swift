@@ -11,7 +11,7 @@ import XCTestExtensions
 
 
 @MainActor
-class TestAppTestCase: XCTestCase, Sendable {
+class TestAppTestCase: XCTestCase {
     let app = XCUIApplication()
     
     override nonisolated func setUp() {
