@@ -57,7 +57,7 @@ extension SensorKitSourceRecordID {
     }
 
     /// An RFC 9562 version-8 UUID carrying the leading bits of the framed SHA-256 digest.
-    private static func version8UUID(from digest: Data) -> UUID {
+    static func version8UUID(from digest: Data) -> UUID {
         var bytes = Array(digest.prefix(16))
         bytes[6] = (bytes[6] & 0x0F) | 0x80
         bytes[8] = (bytes[8] & 0x3F) | 0x80

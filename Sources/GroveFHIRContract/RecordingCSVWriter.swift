@@ -6,9 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-// Members are ordered to read as a narrative rather than by kind.
-// swiftlint:disable type_contents_order
-
 public import Foundation
 
 
@@ -43,89 +40,35 @@ public struct RecordingCSVWriter: ~Copyable {
     }
 
     private let columns: [String]
+    private let schema: [RecordingCSVColumn]
     private var bytes: [UInt8] = []
 
-    /// Creates a writer for one closed column set, and writes the header row.
+    /// Creates a syntax-only writer for caller-supplied columns and writes the header row.
+    /// Use `init(format:)` to enforce registered column types and required values.
     public init(columns: [String]) {
         self.columns = columns
-        appendRow(columns.map(Field.text))
+        self.schema = []
+        RecordingCSVRowEncoder.append(columns.map(Field.text), to: &bytes)
     }
 
-    /// Creates a writer for the exact column set the registry publishes for a tabular format.
+    /// Creates a writer enforcing the registry's exact columns, value types and nullability.
     public init(format: RegisteredRecordingFormat) throws(WriterError) {
         guard let columns = format.csvColumns else {
             throw .notTabular(format)
         }
-        self.init(columns: columns)
+        self.columns = columns
+        self.schema = format.csvSchema ?? []
+        RecordingCSVRowEncoder.append(columns.map(Field.text), to: &bytes)
     }
 
     /// Appends one source sample, in source order.
     public mutating func append(_ fields: [Field]) throws {
-        guard fields.count == columns.count else {
-            throw WriterError.columnCountMismatch(expected: columns.count, actual: fields.count)
-        }
-        // Every field is checked before any is written, so a refused row leaves no partial line behind.
-        for (column, field) in zip(columns, fields) {
-            switch field {
-            case .number(let value) where !value.isFinite:
-                throw WriterError.nonFiniteNumber(column: column)
-            case .timestamp(let date) where !date.timeIntervalSince1970.isFinite:
-                throw WriterError.nonFiniteNumber(column: column)
-            case .text(let value) where value.utf8.contains(0x0D):
-                throw WriterError.carriageReturn(column: column)
-            default:
-                break
-            }
-        }
-        appendRow(fields)
+        try RecordingCSVRowEncoder.validate(fields, columns: columns, schema: schema)
+        RecordingCSVRowEncoder.append(fields, to: &bytes)
     }
 
     /// The complete payload.
     public consuming func data() -> Data {
         Data(bytes)
     }
-
-    private mutating func appendRow(_ fields: [Field]) {
-        for (index, field) in fields.enumerated() {
-            if index > 0 {
-                bytes.append(0x2C)
-            }
-            append(field)
-        }
-        bytes.append(0x0A)
-    }
-
-    private mutating func append(_ field: Field) {
-        switch field {
-        case .absent:
-            break
-        case .integer(let value):
-            bytes.append(contentsOf: String(value).utf8)
-        case .number(let value):
-            bytes.append(contentsOf: Self.number(value).utf8)
-        case .timestamp(let date):
-            bytes.append(contentsOf: Self.number(date.timeIntervalSince1970).utf8)
-        case .text(let value):
-            // Quote exactly when the value contains a comma, a double quote, or LF. CR is rejected
-            // before encoding because the registered grammar prohibits it even inside quotes.
-            guard value.utf8.contains(where: { $0 == 0x2C || $0 == 0x22 || $0 == 0x0A }) else {
-                bytes.append(contentsOf: value.utf8)
-                return
-            }
-            bytes.append(0x22)
-            if value.utf8.contains(0x22) {
-                bytes.append(contentsOf: value.replacingOccurrences(of: "\"", with: "\"\"").utf8)
-            } else {
-                bytes.append(contentsOf: value.utf8)
-            }
-            bytes.append(0x22)
-        }
-    }
-
-    /// The one locale-independent shortest round-trip algorithm shared by every Swift producer.
-    private static func number(_ value: Double) -> String {
-        String(groveFHIRPlainDecimal: value)
-    }
 }
-
-// swiftlint:enable type_contents_order

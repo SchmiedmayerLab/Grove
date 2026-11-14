@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "id": "ccdcfc9f-e6b7-5d44-a696-53af0077c6d1",
+      "name": "Configuration 1",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "codeCoverage": {
+      "targets": [
+        {
+          "containerPath": "container:",
+          "identifier": "GroveProviderFHIR",
+          "name": "GroveProviderFHIR"
+        }
+      ]
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveProviderFHIRTests",
+        "name": "GroveProviderFHIRTests"
+      }
+    }
+  ],
+  "version": 1
+}

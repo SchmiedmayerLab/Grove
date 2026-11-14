@@ -7,7 +7,6 @@
 //
 
 public import Foundation
-public import GroveFHIRContract
 
 
 extension RecordingCSVReader {
@@ -50,13 +49,16 @@ extension RecordingCSVReader {
         private enum Phase { case reading, finished, failed }
 
         public let columns: [String]
+        private let schema: [RecordingCSVColumn]
         private var parser: RecordingCSVParser
         private var phase = Phase.reading
 
         public init(format: RegisteredRecordingFormat, limits: Limits = .default) throws {
-            guard let columns = format.csvColumns else { throw ReaderError.notTabular(format) }
+            guard let schema = format.csvSchema else { throw ReaderError.notTabular(format) }
+            let columns = schema.map(\.name)
             try limits.validate()
             self.columns = columns
+            self.schema = schema
             self.parser = RecordingCSVParser(columns: columns, limits: limits)
         }
 
@@ -64,7 +66,11 @@ extension RecordingCSVReader {
         public mutating func read(_ chunk: Data, onRow: (Row) throws -> Void) throws {
             guard phase == .reading else { throw ReaderError.streamClosed }
             do {
-                try parser.read(chunk, onRow: onRow)
+                let schema = schema
+                try parser.read(chunk) { row in
+                    try RecordingCSVColumn.validateFields(zip(schema, row.fields))
+                    try onRow(row)
+                }
             } catch {
                 phase = .failed
                 throw error

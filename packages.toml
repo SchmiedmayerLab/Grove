@@ -208,6 +208,11 @@ targets = ["GroveSensorKit"]
 tests = ["GroveSensorKitTests"]
 uiTests = ["iOS"]
 
+[GroveProviderFHIR]
+platforms = ["iOS", "macOS", "Linux"]
+targets = ["GroveProviderFHIR"]
+tests = ["GroveProviderFHIRTests"]
+
 [GroveSensorKitFHIR]
 platforms = ["iOS", "macOS"]
 targets = ["GroveSensorKitFHIR"]

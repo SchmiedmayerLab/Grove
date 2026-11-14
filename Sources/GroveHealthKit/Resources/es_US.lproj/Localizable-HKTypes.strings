@@ -15,6 +15,7 @@
 "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent" = "Notificaciones de estabilidad al caminar";
 "HKCategoryTypeIdentifierAudioExposureEvent" = "Notificaciones por ruido";
 "HKCategoryTypeIdentifierBladderIncontinence" = "Incontinencia";
+"HKCategoryTypeIdentifierBleedingAfterMenopause" = "Sangrado postmenopáusico";
 "HKCategoryTypeIdentifierBleedingAfterPregnancy" = "Sangrado postparto";
 "HKCategoryTypeIdentifierBleedingDuringPregnancy" = "Sangrado durante el embarazo";
 "HKCategoryTypeIdentifierBloating" = "Distensión";
@@ -39,6 +40,7 @@
 "HKCategoryTypeIdentifierHeartburn" = "Acidez estomacal";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "Notificaciones de frecuencia alta";
 "HKCategoryTypeIdentifierHotFlashes" = "Bochornos";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Notificaciones de hipertensión";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Periodos poco frecuentes";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Manchado";
 "HKCategoryTypeIdentifierIrregularHeartRhythmEvent" = "Notificaciones de ritmo irregular";
@@ -50,6 +52,7 @@
 "HKCategoryTypeIdentifierLowHeartRateEvent" = "Notificaciones de frecuencia baja";
 "HKCategoryTypeIdentifierLowerBackPain" = "Dolor en la espalda baja";
 "HKCategoryTypeIdentifierMemoryLapse" = "Pérdida de la memoria";
+"HKCategoryTypeIdentifierMenopausalState" = "Etapas de la menopausia";
 "HKCategoryTypeIdentifierMenstrualFlow" = "Menstruación";
 "HKCategoryTypeIdentifierMindfulSession" = "Minutos de mindfulness";
 "HKCategoryTypeIdentifierMoodChanges" = "Cambios de humor";
@@ -178,6 +181,7 @@
 "HKQuantityTypeIdentifierHeadphoneAudioExposure" = "Niveles de audio de los audífonos";
 "HKQuantityTypeIdentifierHeartRate" = "Frecuencia cardiaca";
 "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute" = "Recuperación cardiovascular";
+"HKQuantityTypeIdentifierHeartRateVariabilityRMSSD" = "VFC de recuperación";
 "HKQuantityTypeIdentifierHeartRateVariabilitySDNN" = "Variabilidad cardiaca";
 "HKQuantityTypeIdentifierHeight" = "Estatura";
 "HKQuantityTypeIdentifierInhalerUsage" = "Uso de inhaladores";

@@ -165,6 +165,9 @@ struct HealthKitContentCompiler {
     /// The plan of one inventory row: under its listed rule, else under the rule its row implies, else refused.
     private mutating func plan(_ row: HealthKitContractRow, type: HealthKitSourceType) -> HealthKitContentPlan {
         let entry = Self.entry(row)
+        guard HealthKitContentRules.isAvailable(type) else {
+            return HealthKitContentPlan(type, entry: entry, route: .refused(.platformExclusiveSourceType(type)))
+        }
         guard let rule = rules[type] ?? HealthKitContentRules.impliedRule(of: type, status: row.implementationStatus) else {
             if let missing = Self.missingRule(row, type: type) {
                 defects.append("\(type.rawValue): \(missing)")
@@ -195,6 +198,12 @@ struct HealthKitContentCompiler {
             let observation = try self.observation(rule, contract: contract, type: type)
             let outputs = [HealthKitOutputSlot.primary(role: contract.id)]
             return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, metadata: observation.metadataRule)
+        case .food:
+            let contract = try contract(of: row)
+            let content = try HealthKitFoodContent(contract: contract)
+            return HealthKitContentPlan(
+                type, entry: entry, route: .food(content), outputs: [.primary(role: contract.id)]
+            )
         case .electrocardiogram:
             let content = try HealthKitECGContent(sourceType: type)
             let outputs = [content.waveformSlot, content.averageHeartRateSlot]
@@ -353,6 +362,8 @@ extension HealthKitContentCompiler {
             return try Self.protection(contract)
         case .bloodPressure:
             return .bloodPressure(try Self.bloodPressureMembers(contract))
+        case .audiogram:
+            return .audiogram(try HealthKitAudiogramContent(contract))
         case .workout:
             return .workout(try HealthKitWorkoutContent(contract))
         case .stateOfMind:

@@ -239,6 +239,7 @@ var products: [Product] = [
     .library(name: "GroveHealthKitBulkExport", targets: ["GroveHealthKitBulkExport"]),
     .library(name: "GroveHealthKitUI", targets: ["GroveHealthKitUI"]),
     .library(name: "GroveHealthKitFHIR", targets: ["GroveHealthKitFHIR"]),
+    .library(name: "GroveProviderFHIR", targets: ["GroveProviderFHIR"]),
     // MARK: GroveLLM
     .library(name: "GroveLLM", targets: ["GroveLLM"]),
     .library(name: "GroveLLMLocal", targets: ["GroveLLMLocal"]),
@@ -362,6 +363,23 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "FHIRPathParser")
         ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    // MARK: GroveProviderFHIR
+    .target(
+        name: "GroveProviderFHIR",
+        dependencies: [
+            .target(name: "GroveFHIRContract"),
+            .target(name: "FHIRModelsExtensions"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveProviderFHIRTests",
+        dependencies: ["GroveProviderFHIR", "GroveFHIRContract"],
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
@@ -805,6 +823,7 @@ var targets: [Target] = [
     .target(
         name: "GroveFHIRContract",
         dependencies: [
+            .target(name: "GroveFoundation"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .target(name: "ThreadLocal")
@@ -1576,6 +1595,7 @@ var targets: [Target] = [
     .testTarget(
         name: "GroveSensorKitFHIRTests",
         dependencies: [
+            .target(name: "GroveFoundation"),
             .target(name: "GroveSensorKitFHIR"),
             .target(name: "GroveFHIRContract"),
             .target(name: "GroveSensorKit", condition: .when(platforms: [.iOS])),

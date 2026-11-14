@@ -103,6 +103,9 @@ struct HealthKitAssembly: Sendable {
                 outputs += try content.segments(workout, metadata: metadata)
             }
             return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: outputs, request: request)]
+        case .food:
+            // Correlation members need their own policies, resolved by the exporter before concurrent construction.
+            throw HealthKitConversionError.ValueFailure.shapeInvalid
         case .clinical(let document):
             let carried = try clinicalDocument(sample, plan: plan, document: document)
             return try documentGraph(for: sample, plan: plan, document: carried, request: request)
@@ -144,7 +147,8 @@ struct HealthKitAssembly: Sendable {
                 }
             }
         }
-        let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice)
+        let sourceEvidence = try facts.sourceEvidence(sample, metadata: metadata)
+        let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice).filter { !sourceEvidence.metadataKeys.contains($0.key) }
         let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, disclosure: options.metadata)
         if let container = sourceMetadata.container {
             outputs[0].trailingExtensions.append(container)
@@ -155,7 +159,7 @@ struct HealthKitAssembly: Sendable {
             outputs: outputs,
             recordingDevice: facts.recordingDevice,
             writer: facts.writer,
-            sourceExtensions: facts.sourceRevision.map { [$0] } ?? [],
+            sourceExtensions: sourceEvidence.extensions,
             converterRole: request.converterRole
         )
         var validation = Swift.Duration.zero
@@ -164,7 +168,7 @@ struct HealthKitAssembly: Sendable {
         let withheld = metadata.withheldKeys(
             in: outputs,
             device: facts.recordingDevice,
-            preservedSampleKeys: sourceMetadata.preservedKeys,
+            preservedSampleKeys: sourceMetadata.preservedKeys.union(sourceEvidence.metadataKeys),
             excludesSampleMetadata: options.metadata == .omit
         )
         return Conversion(

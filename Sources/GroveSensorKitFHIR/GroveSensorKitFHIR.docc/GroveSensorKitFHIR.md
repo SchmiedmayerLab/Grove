@@ -272,7 +272,7 @@ If the source payload already is a complete R4 `collection` Bundle, declare the 
 
 ### File-backed sidecars
 
-Use ``RecordingFile`` when a recording is already stored in a file. Staging makes an owned snapshot; validation, hashing, conversion and subsequent readers use that same snapshot even if the original changes or is removed.
+The shared `GroveFHIRContract.RecordingCSVFileWriter` creates registered CSV bytes directly in an owned file. Use ``RecordingFile`` when a recording is already stored in a file. Staging makes an owned snapshot; validation, hashing, conversion and subsequent readers use that same snapshot even if the original changes or is removed.
 
 ```swift
 func prepareRotationRecording(
@@ -305,6 +305,30 @@ This snapshot is temporary. Before acknowledging a batch, copy its chunks into y
 | Clinical documents | Byte-preserved; Grove does not decode the issuing document format. |
 
 The limits apply to Data and file payloads. No path truncates bytes or splits a logical recording to satisfy a limit. ``RecordingCSVReader`` retains its resulting rows for callers that need an array; use ``RecordingCSVReader/Stream`` for incremental consumption. A stream's delivered rows remain provisional until `finish()` succeeds.
+
+### Generate a tabular recording directly into a file
+
+``SensorKitTabularRecording/File`` consumes a sample sequence once and applies the same source field mapping as ``SensorKitTabularRecording``. It tracks the effective period without retaining a separate interval array. Wrist-temperature sessions use the same temperature, error, condition and algorithm-version mapping. The resulting CSV, retry evidence and exported FHIR are independent of whether preparation used Data or a file.
+
+```swift
+let recording = try SensorKitTabularRecording.File(
+    samples: batch.samples,
+    deviceProductType: batch.info.device.productType,
+    maximumByteCount: recordingByteBudget
+)
+var retryHasher = SHA256()
+try recording.readRetryEvidenceChunks { retryHasher.update(data: $0) }
+try retryLog.verifyOrRecord(sourceRecordID, digest: retryHasher.finalize())
+let record = try recording.sensorKitRecord(
+    sourceRecordID: sourceRecordID,
+    title: "Accelerometer",
+    sidecarPath: sidecarPath,
+    admission: .callerAuthorizedOpaquePayload
+)
+try recording.file.readChunks { try destination.write(contentsOf: $0) }
+```
+
+`readRetryEvidenceChunks` includes the algorithm-version prefix for wrist-temperature sessions; hashing only their CSV is not equivalent. The file's bytes are the sidecar content, without that prefix. Clinical summaries read the immutable recording and retain required-value checks. Disk, summary-index, byte-budget and cancellation failures must abort publication and leave the batch available for retry; they are not deterministic clinical refusals. A digest alone is not durable storage: complete queue staging before acknowledging collection.
 
 ### Measure recording memory
 
@@ -366,6 +390,7 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 ### Preparing fetched batches
 
 - ``SensorKitTabularRecording``
+- ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
 - ``SensorKitRecordingLocation``

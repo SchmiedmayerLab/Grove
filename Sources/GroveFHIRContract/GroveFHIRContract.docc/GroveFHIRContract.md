@@ -157,6 +157,48 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Governed source identifier | ``GovernedSourceIdentifierDisclosurePolicy`` |
 | Producer diagnostic | ``ProducerDiagnostic`` with its ``ExchangeGraphRule`` |
 
+## Recording bytes
+
+``RecordingCSVWriter`` and ``RecordingCSVFileWriter`` share the registered CSV grammar, field validation, quoting and number formatting. Use the Data writer for small recordings and the file writer when retaining the complete encoded payload would be expensive. Both write exactly the same bytes for the same rows.
+
+```swift
+var writer = try RecordingCSVFileWriter(
+    format: .beatIntervalSeries,
+    maximumByteCount: recordingByteBudget
+)
+for beat in beats {
+    try writer.append([.number(beat.epochSeconds), .integer(beat.precededByGap ? 1 : 0)])
+}
+let file = try writer.finish()
+try file.readChunks { chunk in
+    try destination.write(contentsOf: chunk)
+}
+```
+
+The file writer checks total bytes, encoded row bytes and decoded field bytes before allocating an encoded row. Its default row and field limits match ``RecordingCSVReader/Limits``; callers may provide explicit limits. Headers and final LF terminators count toward the limits. Only the current bounded row and a 64 KiB write buffer are retained. An append error or cancellation invalidates the writer; `finish()` cannot return a successful partial recording.
+
+``RecordingFile`` owns an immutable temporary snapshot and supplies independent readers with chunks of at most 64 KiB. Creating a CSV file computes its FHIR attachment checksum while writing, without a second pass or copy. Existing files can be copied into an owned snapshot with ``RecordingFile/stage(copying:maximumByteCount:)``. For demand-driven uploads, create a reader with ``RecordingFile/makeChunkReader()`` and call ``RecordingFile/ChunkReader/readNextChunk()`` only when the consumer is ready. Each reader retains its snapshot and has an independent position; no bytes are read ahead. These operations are synchronous and belong on the caller's background executor. A durable upload queue must copy the bytes into its own storage before acknowledging collection.
+
+``RecordingFile/zstandardCompressedIfSmaller(maximumByteCount:maximumWindowByteCount:)`` produces one Zstandard frame only when it is strictly smaller than the source. A nil result selects the unchanged source. The selected representation must fit the stored-byte budget; cancellation, read, compression and disk errors propagate. Compression uses bounded chunks and an explicit history-window budget, defaulting to 8 MiB. Both source and compressed files remain temporary snapshots.
+
+``RecordingFile/stage(chunks:maximumByteCount:)`` stages a complete asynchronous byte stream into a private, unnamed file. Source failure, cancellation, an empty stream or an exceeded byte budget returns no partial snapshot. Writes use 64 KiB chunks; callers must also bound the upstream producer's input chunks. ``RecordingFile/zstandardDecompressed(byteCount:maximumWindowByteCount:)`` decodes exactly one complete frame into a second immutable file with the declared decoded size and a bounded window. Apply a decoded-byte budget before calling it. Temporary files are reclaimed with their owners; neither helper establishes format validity, authorization or a cryptographic signature.
+
+FHIR attachment size and checksum describe the original recording bytes. A transport that compresses them must separately retain the encoding, stored byte count and stored digest, and verify the original byte count and digest after decompression. Compression does not change the registered recording format or rewrite the clinical record.
+
+Use ``RecordingCSVReader/Stream`` to read the same grammar without retaining every row. Delivered rows remain provisional until `finish()` validates the complete payload. Clinical converters separately enforce required measurements and sample counts; a syntactically valid CSV is not itself a clinical validation result.
+
+## Inspect collection contracts
+
+``FHIRMeasurementCatalog`` exposes the pinned guide's measurement and HealthKit inventory facts on Apple platforms and Linux.
+Use ``FHIRMeasurementCatalog/measurement(id:)`` to inspect a measurement's temporal shape, canonical quantity unit and components.
+``FHIRMeasurementCatalog/healthKitSource(identifier:)`` retains all declared measurement IDs and profile alternatives; a workout row names both its session and segments.
+Apple callers can pass a typed `HealthKitSourceType`'s `rawValue` without building another source-name table.
+
+Guide admission does not establish converter availability, participant permission or receiver capability.
+For example, a supported food-correlation row can still lack an implemented producer, and a missing value-shape descriptor never admits arbitrary content.
+Adapters choose their implemented source semantics for a `dateTimeOrPeriod` contract, and receivers still validate the complete graph against its profiles.
+The read-only descriptors use the generated contracts; they do not perform conversion or unit arithmetic.
+
 ## Topics
 
 ### Identities
@@ -199,3 +241,9 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+
+### Collection contracts
+
+- ``FHIRMeasurementCatalog``
+- ``FHIRMeasurementDefinition``
+- ``HealthKitSourceDefinition``

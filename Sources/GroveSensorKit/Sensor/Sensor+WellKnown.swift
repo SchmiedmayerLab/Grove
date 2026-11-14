@@ -41,6 +41,15 @@ extension SensorKit {
             Sensor.mediaEvents
             Sensor.faceMetrics
             Sensor.odometer
+            #if os(iOS)
+            if #available(iOS 26, *) {
+                Sensor.sleepSessions
+            }
+            if #available(iOS 27, *) {
+                Sensor.headphoneMotion
+                Sensor.headphoneSettings
+            }
+            #endif
         }
     }()
 }

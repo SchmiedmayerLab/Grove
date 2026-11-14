@@ -10,6 +10,16 @@
 
 // swiftlint:disable all
 
+/// The producer-side assertion that admits an opaque native recording payload.
+/// Grove consumes this value during preflight and never serializes it into FHIR.
+public enum RecordingPayloadAdmission: String, CaseIterable, Hashable, Sendable {
+    /// The caller explicitly authorizes disclosure of exact opaque bytes; Grove does not inspect or sanitize them.
+    case callerAuthorizedOpaquePayload = "caller-authorized-opaque-payload"
+    /// The producer independently verified that the supplied bytes are sanitized.
+    case verifiedSanitizedInput = "verified-sanitized-input"
+}
+
+
 /// A payload format published by the Grove recording-format registry.
 ///
 /// The whole registry is projected, not only the formats one adapter admits, so the type
@@ -20,8 +30,10 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     case ambientPressureSamples = "ambient-pressure-samples"
     case beatIntervalSeries = "beat-interval-series"
     case clinicalDocument = "clinical-document"
+    case deviceMotionSamples = "device-motion-samples"
     case fhirCollectionBundle = "fhir-collection-bundle"
     case fhirResource = "fhir-resource"
+    case headphoneSettingsSamples = "headphone-settings-samples"
     case heartRateSamples = "heart-rate-samples"
     case locationTrackSamples = "location-track-samples"
     case nativeRecording = "native-recording"
@@ -46,8 +58,10 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
         case .ambientPressureSamples: ["text/csv"]
         case .beatIntervalSeries: ["text/csv"]
         case .clinicalDocument: ["application/hl7-cda+xml"]
+        case .deviceMotionSamples: ["text/csv"]
         case .fhirCollectionBundle: ["application/fhir+json"]
         case .fhirResource: ["application/fhir+json; fhirVersion=1.0", "application/fhir+json; fhirVersion=4.0"]
+        case .headphoneSettingsSamples: ["text/csv"]
         case .heartRateSamples: ["text/csv"]
         case .locationTrackSamples: ["text/csv"]
         case .nativeRecording: ["application/json"]
@@ -74,23 +88,30 @@ extension RegisteredRecordingFormat {
     /// A producer emits every declared column and no others; a reader requires the same
     /// header. `nil` for a format that is not tabular.
     public var csvColumns: [String]? {
+        csvSchema?.map(\.name)
+    }
+
+    /// Exact types and absence rules from the same registry rows as the public header.
+    var csvSchema: [RecordingCSVColumn]? {
         switch self {
-        case .ambientLightSamples: ["timestamp", "lux", "placement", "chromaticityX", "chromaticityY", "device"]
-        case .ambientPressureSamples: ["timestamp", "identifier", "pressure", "temperature", "device"]
-        case .beatIntervalSeries: ["timestamp", "precededByGap"]
-        case .heartRateSamples: ["timestamp", "value", "confidence", "device"]
-        case .locationTrackSamples: ["timestamp", "latitude", "longitude", "altitude", "horizontalAccuracy", "verticalAccuracy", "speed", "speedAccuracy", "course", "courseAccuracy"]
-        case .odometerSamples: ["start", "end", "gpsDate", "speed", "speedAccuracy", "slope", "maxAbsSlope", "deltaDistance", "deltaDistanceAccuracy", "deltaAltitude", "verticalAccuracy", "originDevice", "device"]
-        case .pedometerSamples: ["start", "end", "steps", "distance", "floorsUp", "floorsDown", "currentPace", "currentCadence", "avgActivePace", "device"]
-        case .triaxialAccelerationSamples: ["timestamp", "identifier", "x", "y", "z", "device"]
-        case .triaxialRotationSamples: ["timestamp", "x", "y", "z", "device"]
-        case .wristTemperatureSamples: ["timestamp", "value", "errorEstimate", "condition"]
+        case .ambientLightSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "lux", type: .number, nullable: false), .init(name: "placement", type: .string, nullable: false), .init(name: "chromaticityX", type: .number, nullable: false), .init(name: "chromaticityY", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .ambientPressureSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "identifier", type: .integer, nullable: false), .init(name: "pressure", type: .number, nullable: false), .init(name: "temperature", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .beatIntervalSeries: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "precededByGap", type: .integer, nullable: false)]
+        case .deviceMotionSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "deliveryTimestamp", type: .timestamp, nullable: false), .init(name: "uptime", type: .number, nullable: false), .init(name: "identifier", type: .integer, nullable: false), .init(name: "roll", type: .number, nullable: false), .init(name: "pitch", type: .number, nullable: false), .init(name: "yaw", type: .number, nullable: false), .init(name: "m11", type: .number, nullable: false), .init(name: "m12", type: .number, nullable: false), .init(name: "m13", type: .number, nullable: false), .init(name: "m21", type: .number, nullable: false), .init(name: "m22", type: .number, nullable: false), .init(name: "m23", type: .number, nullable: false), .init(name: "m31", type: .number, nullable: false), .init(name: "m32", type: .number, nullable: false), .init(name: "m33", type: .number, nullable: false), .init(name: "quaternionX", type: .number, nullable: false), .init(name: "quaternionY", type: .number, nullable: false), .init(name: "quaternionZ", type: .number, nullable: false), .init(name: "quaternionW", type: .number, nullable: false), .init(name: "rotationRateX", type: .number, nullable: false), .init(name: "rotationRateY", type: .number, nullable: false), .init(name: "rotationRateZ", type: .number, nullable: false), .init(name: "gravityX", type: .number, nullable: false), .init(name: "gravityY", type: .number, nullable: false), .init(name: "gravityZ", type: .number, nullable: false), .init(name: "userAccelerationX", type: .number, nullable: false), .init(name: "userAccelerationY", type: .number, nullable: false), .init(name: "userAccelerationZ", type: .number, nullable: false), .init(name: "magneticFieldX", type: .number, nullable: false), .init(name: "magneticFieldY", type: .number, nullable: false), .init(name: "magneticFieldZ", type: .number, nullable: false), .init(name: "magneticFieldAccuracy", type: .integer, nullable: false), .init(name: "heading", type: .number, nullable: false), .init(name: "headingAccuracy", type: .number, nullable: false), .init(name: "sensorLocation", type: .integer, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .headphoneSettingsSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "adaptiveAudioStrength", type: .integer, nullable: false), .init(name: "listeningMode", type: .integer, nullable: false), .init(name: "personalizedVolumeEnabled", type: .integer, nullable: false), .init(name: "conversationAwarenessEnabled", type: .integer, nullable: false), .init(name: "spatialAudioEnabled", type: .integer, nullable: false), .init(name: "personalizedSpatialAudioEnabled", type: .integer, nullable: false), .init(name: "hearingAidEnabled", type: .integer, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "mediaAssistEnabled", type: .integer, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "adjustMediaEnabled", type: .integer, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "adjustVoiceEnabled", type: .integer, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "hearingProtectionEnabled", type: .integer, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "conversationBoostEnabled", type: .integer, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "hearingAidAmplification", type: .number, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "hearingAidBalance", type: .number, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "hearingAidTone", type: .number, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "ambientNoiseReduction", type: .number, nullable: true, nullableGroup: "hearingAssistance"), .init(name: "device", type: .string, nullable: false)]
+        case .heartRateSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "value", type: .number, nullable: false), .init(name: "confidence", type: .integer, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .locationTrackSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "latitude", type: .number, nullable: false), .init(name: "longitude", type: .number, nullable: false), .init(name: "altitude", type: .number, nullable: false), .init(name: "horizontalAccuracy", type: .number, nullable: true), .init(name: "verticalAccuracy", type: .number, nullable: true), .init(name: "speed", type: .number, nullable: true), .init(name: "speedAccuracy", type: .number, nullable: true), .init(name: "course", type: .number, nullable: true), .init(name: "courseAccuracy", type: .number, nullable: true)]
+        case .odometerSamples: [.init(name: "start", type: .timestamp, nullable: false), .init(name: "end", type: .timestamp, nullable: false), .init(name: "gpsDate", type: .timestamp, nullable: false), .init(name: "speed", type: .number, nullable: false), .init(name: "speedAccuracy", type: .number, nullable: false), .init(name: "slope", type: .number, nullable: true), .init(name: "maxAbsSlope", type: .number, nullable: true), .init(name: "deltaDistance", type: .number, nullable: false), .init(name: "deltaDistanceAccuracy", type: .number, nullable: false), .init(name: "deltaAltitude", type: .number, nullable: false), .init(name: "verticalAccuracy", type: .number, nullable: false), .init(name: "originDevice", type: .string, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .pedometerSamples: [.init(name: "start", type: .timestamp, nullable: false), .init(name: "end", type: .timestamp, nullable: false), .init(name: "steps", type: .integer, nullable: false), .init(name: "distance", type: .number, nullable: true), .init(name: "floorsUp", type: .integer, nullable: true), .init(name: "floorsDown", type: .integer, nullable: true), .init(name: "currentPace", type: .number, nullable: true), .init(name: "currentCadence", type: .number, nullable: true), .init(name: "avgActivePace", type: .number, nullable: true), .init(name: "device", type: .string, nullable: false)]
+        case .triaxialAccelerationSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "identifier", type: .integer, nullable: false), .init(name: "x", type: .number, nullable: false), .init(name: "y", type: .number, nullable: false), .init(name: "z", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .triaxialRotationSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "x", type: .number, nullable: false), .init(name: "y", type: .number, nullable: false), .init(name: "z", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .wristTemperatureSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "value", type: .number, nullable: false), .init(name: "errorEstimate", type: .number, nullable: false), .init(name: "condition", type: .string, nullable: true)]
         default: nil
         }
     }
 
     /// Every format the registry publishes as a tabular recording.
     public static var tabularFormats: [RegisteredRecordingFormat] {
-        [.ambientLightSamples, .ambientPressureSamples, .beatIntervalSeries, .heartRateSamples, .locationTrackSamples, .odometerSamples, .pedometerSamples, .triaxialAccelerationSamples, .triaxialRotationSamples, .wristTemperatureSamples]
+        [.ambientLightSamples, .ambientPressureSamples, .beatIntervalSeries, .deviceMotionSamples, .headphoneSettingsSamples, .heartRateSamples, .locationTrackSamples, .odometerSamples, .pedometerSamples, .triaxialAccelerationSamples, .triaxialRotationSamples, .wristTemperatureSamples]
     }
 }

@@ -17,6 +17,12 @@ public import ModelsR4
 /// extensions, terminology, and adapter identity systems that are also normative but are not listed as profiles in
 /// the package graph catalog.
 public enum Canonicals {
+    // MARK: Connected sources
+
+    public static let providerExtension = ProviderContract.providerExtension
+    public static let providerSourceTypeExtension = ProviderContract.sourceTypeExtension
+    public static let sensorKitSourceTypeExtension = uri("/sensorkit/StructureDefinition/sensorkit-source-type")
+
     // MARK: Mobile
 
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")
@@ -55,6 +61,8 @@ public enum Canonicals {
     public static let writerRecordVersion = uri("/mobile/StructureDefinition/grove-writer-record-version")
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
     public static let healthKitSourceTypeExtension = HealthKitContract.sourceTypeExtension
+    public static let healthKitAudiogramTestDetails = uri("/healthkit/StructureDefinition/healthkit-audiogram-test-details")
+    public static let healthKitSourceMetadata = FHIRPrimitive(FHIRURI(stringLiteral: HealthKitContract.metadataExtensionURL))
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")
@@ -76,6 +84,8 @@ public enum Canonicals {
     public static let healthKitECGSourcePeriodExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-source-period")
 
     // MARK: Standard R4 extensions and terminology
+
+    public static let dataAbsentReason: FHIRPrimitive<FHIRURI> = "http://hl7.org/fhir/StructureDefinition/data-absent-reason"
 
     public static let gatewayDevice: FHIRPrimitive<FHIRURI> =
         "http://hl7.org/fhir/StructureDefinition/observation-gatewayDevice"

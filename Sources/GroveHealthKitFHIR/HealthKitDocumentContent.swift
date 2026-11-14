@@ -59,6 +59,25 @@ struct DocumentPlan: Sendable {
         value < 0 ? .absent : .number(value)
     }
 
+    static func locationFields(_ fix: CLLocation) -> [RecordingCSVWriter.Field] {
+        [
+            .timestamp(fix.timestamp),
+            .number(fix.coordinate.latitude),
+            .number(fix.coordinate.longitude),
+            .number(fix.altitude),
+            Self.reported(fix.horizontalAccuracy),
+            Self.reported(fix.verticalAccuracy),
+            Self.reported(fix.speed),
+            Self.reported(fix.speedAccuracy),
+            Self.reported(fix.course),
+            Self.reported(fix.courseAccuracy)
+        ]
+    }
+
+    static func heartbeatFields(_ beat: HealthKitFHIRExporter.Record.Heartbeat, start: TimeInterval) -> [RecordingCSVWriter.Field] {
+        [.number(start + beat.timeSinceSeriesStart), .integer(beat.precededByGap ? 1 : 0)]
+    }
+
     /// A heartbeat series' beats in the plan's format, the registry's `beat-interval-series` column schema: one row per
     /// beat, its instant in epoch seconds and whether a gap preceded it. A series without beats is refused.
     func beatIntervals(seriesStart: Date, heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> Data {
@@ -70,7 +89,7 @@ struct DocumentPlan: Sendable {
         // and reading it back as epoch seconds rounds twice and moves the beat.
         let start = seriesStart.timeIntervalSince1970
         for beat in heartbeats {
-            try writer.append([.number(start + beat.timeSinceSeriesStart), .integer(beat.precededByGap ? 1 : 0)])
+            try writer.append(Self.heartbeatFields(beat, start: start))
         }
         return writer.data()
     }
@@ -84,18 +103,7 @@ struct DocumentPlan: Sendable {
         }
         var writer = try RecordingCSVWriter(format: format)
         for fix in locations {
-            try writer.append([
-                .timestamp(fix.timestamp),
-                .number(fix.coordinate.latitude),
-                .number(fix.coordinate.longitude),
-                .number(fix.altitude),
-                Self.reported(fix.horizontalAccuracy),
-                Self.reported(fix.verticalAccuracy),
-                Self.reported(fix.speed),
-                Self.reported(fix.speedAccuracy),
-                Self.reported(fix.course),
-                Self.reported(fix.courseAccuracy)
-            ])
+            try writer.append(Self.locationFields(fix))
         }
         return writer.data()
     }
@@ -104,6 +112,23 @@ struct DocumentPlan: Sendable {
     /// or ``locationTrack(_:)`` serialized.
     func document(recording: Data) throws -> DocumentReference {
         try document(recording, title: title, contentType: format.registeredContentType)
+    }
+
+    /// References the complete immutable recording without embedding its bytes or rewriting its sample envelope.
+    func document(recording: HealthKitRecordingFile) throws -> DocumentReference {
+        guard recording.format == format, let size = Int32(exactly: recording.file.byteCount) else {
+            throw HealthKitConversionError.ValueFailure.shapeInvalid
+        }
+        let attachment = Attachment(
+            contentType: (recording.attachmentContentType ?? format.registeredContentType)?.asFHIRStringPrimitive(),
+            hash: FHIRPrimitive(Base64Binary(with: recording.file.attachmentSHA1)),
+            size: FHIRPrimitive(FHIRUnsignedInteger(size)),
+            title: (recording.attachmentTitle ?? title).asFHIRStringPrimitive(),
+            url: FHIRPrimitive(FHIRURI(stringLiteral: recording.relativePath))
+        )
+        var document = skeleton
+        document.content = [DocumentReferenceContent(attachment: attachment, format: formatCoding)]
+        return document
     }
 
     /// The document carrying `payload` under `title`, with its SHA-1 hash and size.
@@ -128,6 +153,12 @@ struct DocumentPlan: Sendable {
 #if !os(watchOS)
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension DocumentPlan {
+    struct ClinicalPayload: Sendable {
+        let data: Data
+        let title: String
+        let contentType: String?
+    }
+
     /// The release code of a FHIR release the guide may admit, or `nil` for any other.
     private static func releaseCode(_ release: HKFHIRRelease) -> String? {
         switch release {
@@ -137,12 +168,26 @@ extension DocumentPlan {
         }
     }
 
+    private static func validatePayloadSize(_ data: Data, maximumByteCount: Int) throws {
+        try _Concurrency.Task.checkCancellation()
+        guard (1...Int(Int32.max)).contains(maximumByteCount) else { throw RecordingFile.FileError.invalidByteLimit }
+        guard !data.isEmpty else { throw HealthKitConversionError.clinicalRecord(.empty) }
+        guard data.count <= maximumByteCount else { throw RecordingFile.FileError.byteLimitExceeded }
+    }
+
     /// The document carrying a clinical record's provider-issued FHIR resource: one JSON resource of an admitted
     /// release, typed by that release's media type. Grove never converts or claims conformance over it.
     func document(_ record: HKClinicalRecord) throws -> DocumentReference {
+        let payload = try clinicalPayload(record, maximumByteCount: Int(Int32.max))
+        return try document(payload.data, title: payload.title, contentType: payload.contentType)
+    }
+
+
+    func clinicalPayload(_ record: HKClinicalRecord, maximumByteCount: Int) throws -> ClinicalPayload {
         guard let resource = record.fhirResource else {
             throw HealthKitConversionError.clinicalRecord(.empty)
         }
+        try Self.validatePayloadSize(resource.data, maximumByteCount: maximumByteCount)
         guard let release = Self.releaseCode(resource.fhirVersion.fhirRelease),
               HealthKitContract.admittedClinicalFHIRReleaseCodes.contains(release) else {
             throw HealthKitConversionError.clinicalRecord(.unsupportedRelease)
@@ -152,17 +197,22 @@ extension DocumentPlan {
         } catch {
             throw HealthKitConversionError.clinicalRecord(.undecodable)
         }
-        return try document(resource.data, title: title, contentType: HealthKitContract.clinicalFHIRContentTypeByRelease[release])
+        return ClinicalPayload(data: resource.data, title: title, contentType: HealthKitContract.clinicalFHIRContentTypeByRelease[release])
     }
 
-    /// The document carrying a CDA document, under the title it states, else the plan's. Only an `HKDocumentQuery`
-    /// that asked for document data fills one in, so a sample from any other query is refused as empty.
+    /// Only an authorized document query requesting data provides the CDA bytes.
     func document(_ sample: HKCDADocumentSample) throws -> DocumentReference {
+        let payload = try clinicalPayload(sample, maximumByteCount: Int(Int32.max))
+        return try document(payload.data, title: payload.title, contentType: payload.contentType)
+    }
+
+    func clinicalPayload(_ sample: HKCDADocumentSample, maximumByteCount: Int) throws -> ClinicalPayload {
         guard let document = sample.document, let data = document.documentData, !data.isEmpty else {
             throw HealthKitConversionError.clinicalRecord(.empty)
         }
+        try Self.validatePayloadSize(data, maximumByteCount: maximumByteCount)
         let stated = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try self.document(data, title: stated.isEmpty ? title : stated, contentType: format.registeredContentType)
+        return ClinicalPayload(data: data, title: stated.isEmpty ? title : stated, contentType: format.registeredContentType)
     }
 }
 #endif

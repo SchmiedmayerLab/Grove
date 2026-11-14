@@ -195,6 +195,8 @@ package struct ExchangeWriterDraft: Sendable {
 
 /// Why a draft could not become a record.
 package enum ExchangeAssemblyError: Error, Equatable, Sendable {
+    /// The draft states two independent upstream writer representations.
+    case conflictingWriter
     /// The draft states no output.
     case noOutputs
 }
@@ -239,6 +241,8 @@ package struct ExchangeRecordDraft: Sendable {
     /// peripheral as its device, and ``recordingDevice`` otherwise.
     package var sourceDevicesSuppliedEverySample: Bool
     package var writer: ExchangeWriterDraft?
+    /// An upstream application with source identifiers and no inferred host; mutually exclusive with `writer`.
+    package var sourceApplication: SourceApplicationDevice?
     /// Adapter facts about the consumed source record, independent of its author agent.
     package var sourceExtensions: [Extension]
     package var converterRole: ConverterRole
@@ -251,6 +255,7 @@ package struct ExchangeRecordDraft: Sendable {
         sourceDevices: [RecordingDevice] = [],
         sourceDevicesSuppliedEverySample: Bool = false,
         writer: ExchangeWriterDraft? = nil,
+        sourceApplication: SourceApplicationDevice? = nil,
         sourceExtensions: [Extension] = [],
         converterRole: ConverterRole = .assembler
     ) {
@@ -261,6 +266,7 @@ package struct ExchangeRecordDraft: Sendable {
         self.sourceDevices = sourceDevices
         self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample
         self.writer = writer
+        self.sourceApplication = sourceApplication
         self.sourceExtensions = sourceExtensions
         self.converterRole = converterRole
     }

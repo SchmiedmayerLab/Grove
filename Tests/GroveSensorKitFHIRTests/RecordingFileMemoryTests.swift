@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+import CryptoKit
 import Darwin
 import Foundation
 import GroveFHIRContract
@@ -23,12 +24,28 @@ struct RecordingFileMemoryTests {
 
     private struct Measurement: Encodable {
         let payloadBytes: Int
+        let compressedBytes: Int
         let distinctBatches: Int
         let baselineBytes: UInt64
         let lifetimePeakBytes: UInt64
         let excessBytes: UInt64
         let maximumExcessBytes: UInt64
         let phases: [String: Footprint]
+    }
+
+    private struct Chunks: AsyncSequence, Sendable {
+        typealias Element = Data
+
+        struct AsyncIterator: AsyncIteratorProtocol, Sendable {
+            var reader: RecordingFile.ChunkReader
+
+            @concurrent
+            mutating func next() async throws -> Data? { try reader.readNextChunk() }
+        }
+
+        let file: RecordingFile
+
+        func makeAsyncIterator() -> AsyncIterator { .init(reader: file.makeChunkReader()) }
     }
 
     @Test
@@ -54,20 +71,41 @@ struct RecordingFileMemoryTests {
         #expect(summary.sampleCount == size.rows && summary.batchCount == size.rows)
         let record = try await SensorKitExporterFixtures.record(.accelerometer(summary))
         #expect(record.json.count < 32 * 1024)
+        let exported = try footprint()
+        let compressedByteCount = try await verifyCompression(of: file)
         let end = try footprint()
         let excess = end.peak > baseline.current ? end.peak - baseline.current : 0
         let measurement = Measurement(
             payloadBytes: file.byteCount,
+            compressedBytes: compressedByteCount,
             distinctBatches: size.rows,
             baselineBytes: baseline.current,
             lifetimePeakBytes: end.peak,
             excessBytes: excess,
             maximumExcessBytes: 64 * 1024 * 1024,
-            phases: ["generated": generated, "staged": staged, "validated": validated, "summarized": summarized, "exported": end]
+            phases: [
+                "generated": generated, "staged": staged, "validated": validated,
+                "summarized": summarized, "exported": exported, "compressionVerified": end
+            ]
         )
         print("RECORDING_MEMORY " + String(decoding: try JSONEncoder().encode(measurement), as: UTF8.self))
         #expect(excess <= measurement.maximumExcessBytes)
         withExtendedLifetime(file) {}
+    }
+
+    private func verifyCompression(of file: RecordingFile) async throws -> Int {
+        let staged = try await RecordingFile.stage(chunks: Chunks(file: file), maximumByteCount: Int64(file.byteCount))
+        #expect(staged.attachmentSHA1 == file.attachmentSHA1)
+        let compressed = try #require(try staged.zstandardCompressedIfSmaller(maximumByteCount: staged.byteCount))
+        let received = try await RecordingFile.stage(chunks: Chunks(file: compressed), maximumByteCount: Int64(compressed.byteCount))
+        let decoded = try received.zstandardDecompressed(byteCount: file.byteCount)
+        var expected = SHA256(), actual = SHA256()
+        try file.readChunks { expected.update(data: $0) }
+        try decoded.readChunks { actual.update(data: $0) }
+        #expect(expected.finalize() == actual.finalize())
+        #expect(decoded.attachmentSHA1 == file.attachmentSHA1)
+        #expect(compressed.byteCount < file.byteCount)
+        return compressed.byteCount
     }
 
     /// Every row has a distinct batch key, so a retained Set would grow with the workload.

@@ -11,7 +11,7 @@
 
 #if os(iOS)
 public import Foundation
-import GroveFHIRContract
+public import GroveFHIRContract
 public import GroveSensorKit
 public import SensorKit
 
@@ -26,6 +26,9 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         _ nativeRecording: SensorKitNativeRecording?
     ) throws -> SensorKitRecord
     public let retryEvidence: Data
+    /// Additional exact source facts absent from the native payload. Append this after `retryEvidence`
+    /// when committing a retry digest. This supplement does not contribute to resource identity inputs.
+    public let retryEvidenceSupplement: Data
     public let nativePayload: Data?
 
     public init(visit: SRVisit.SafeRepresentation) throws {
@@ -49,6 +52,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
             ))
         }
         self.retryEvidence = writer.data()
+        self.retryEvidenceSupplement = Data()
         self.nativePayload = nil
     }
 
@@ -71,6 +75,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
             ))
         }
         self.retryEvidence = writer.data()
+        self.retryEvidenceSupplement = Data()
         self.nativePayload = nil
     }
 
@@ -88,6 +93,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
             ))
         }
         self.retryEvidence = payload
+        self.retryEvidenceSupplement = Data()
         self.nativePayload = payload
     }
 
@@ -105,7 +111,85 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
             ))
         }
         self.retryEvidence = payload
+        self.retryEvidenceSupplement = session.groveRetryEvidenceSupplement
         self.nativePayload = payload
+    }
+
+    /// Prepares every public messages-usage field without carrying a non-Sendable SDK object.
+    public init(messagesUsage report: SRMessagesUsageReport.SafeRepresentation) throws {
+        var writer = RecordingBinaryWriter()
+        try writer.writeFloat64(report.timestamp.timeIntervalSince1970)
+        try writer.writeFloat64(report.duration)
+        writer.writeVarint(Int64(report.totalIncomingMessages))
+        writer.writeVarint(Int64(report.totalOutgoingMessages))
+        writer.writeVarint(Int64(report.totalUniqueContacts))
+        self.makeRecord = { sourceRecordID, nativeRecording in
+            .messagesUsage(SensorKitMessagesUsageRecord(
+                sourceRecordID: sourceRecordID,
+                timestamp: report.timestamp,
+                durationSeconds: report.duration,
+                totalIncomingMessages: report.totalIncomingMessages,
+                totalOutgoingMessages: report.totalOutgoingMessages,
+                totalUniqueContacts: report.totalUniqueContacts,
+                nativeRecording: nativeRecording
+            ))
+        }
+        self.retryEvidence = writer.data()
+        self.retryEvidenceSupplement = Data()
+        self.nativePayload = nil
+    }
+
+    /// Prepares every public phone-usage field without carrying a non-Sendable SDK object.
+    public init(phoneUsage report: SRPhoneUsageReport.SafeRepresentation) throws {
+        var writer = RecordingBinaryWriter()
+        try writer.writeFloat64(report.timestamp.timeIntervalSince1970)
+        try writer.writeFloat64(report.duration)
+        writer.writeVarint(Int64(report.totalIncomingCalls))
+        writer.writeVarint(Int64(report.totalOutgoingCalls))
+        writer.writeVarint(Int64(report.totalUniqueContacts))
+        try writer.writeFloat64(report.totalPhoneCallDuration)
+        self.makeRecord = { sourceRecordID, nativeRecording in
+            .phoneUsage(SensorKitPhoneUsageRecord(
+                sourceRecordID: sourceRecordID,
+                timestamp: report.timestamp,
+                durationSeconds: report.duration,
+                totalIncomingCalls: report.totalIncomingCalls,
+                totalOutgoingCalls: report.totalOutgoingCalls,
+                totalPhoneCallDurationSeconds: report.totalPhoneCallDuration,
+                totalUniqueContacts: report.totalUniqueContacts,
+                nativeRecording: nativeRecording
+            ))
+        }
+        self.retryEvidence = writer.data()
+        self.retryEvidenceSupplement = Data()
+        self.nativePayload = nil
+    }
+
+    /// Preserves the native sleep-session identifier separately from the acquisition-derived identity.
+    @available(iOS 26, *)
+    public init(sleepSession sample: SRSleepSession.SafeRepresentation, identifierSystem: IdentifierSystem) throws {
+        guard sample.duration.isFinite, sample.duration >= 0,
+              sample.startDate.timeIntervalSince1970.isFinite,
+              !sample.identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw SensorKitRecordError.missingProviderValue("sleepSession")
+        }
+        let identifier = try BusinessIdentifier(system: identifierSystem, value: sample.identifier)
+        let session = DateInterval(start: sample.startDate, duration: sample.duration)
+        var writer = RecordingBinaryWriter()
+        try writer.writeFloat64(sample.timestamp.timeIntervalSince1970)
+        try writer.writeFloat64(sample.startDate.timeIntervalSince1970)
+        try writer.writeFloat64(sample.duration)
+        writer.writeString(identifier.system.rawValue)
+        writer.writeString(identifier.value)
+        self.makeRecord = { sourceRecordID, nativeRecording in
+            guard nativeRecording == nil else { throw SensorKitRecordError.invalidRecordingFormat }
+            return .sleepSession(SensorKitSleepSessionRecord(
+                sourceRecordID: sourceRecordID, session: session, nativeSessionIdentifier: identifier
+            ))
+        }
+        self.retryEvidence = writer.data()
+        self.retryEvidenceSupplement = Data()
+        self.nativePayload = nil
     }
 
     /// Creates the Grove record. Native evidence is required exactly when `nativePayload` is non-nil.
@@ -150,8 +234,17 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
 
 
 @available(iOS 18, *)
-private struct DeviceUsageEvidence: Encodable {
+struct DeviceUsageEvidence: Encodable {
+    enum CodingKeys: String, CodingKey, CaseIterable {
+        case timestamp, duration, totalScreenWakes, totalUnlocks, totalUnlockDuration, version
+        case appUsageByCategory, notificationUsageByCategory, webUsageByCategory
+    }
+
     struct ApplicationUsage: Encodable {
+        enum CodingKeys: String, CodingKey, CaseIterable {
+            case bundleIdentifier, reportApplicationIdentifier, relativeStartTime, usageTime, supplementalCategories, textInputSessions
+        }
+
         struct SupplementalCategory: Encodable {
             let identifier: String
         }

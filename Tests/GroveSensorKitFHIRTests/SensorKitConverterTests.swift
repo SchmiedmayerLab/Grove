@@ -584,12 +584,12 @@ struct GroveSensorKitFHIRConverterTests {
     func unknownSourceTokenIsNotAdmitted() async throws {
         let record = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
-            sourceToken: "SRSensor.headphoneMotion",
+            sourceToken: "SRSensor.unrecognizedTestSource",
             effectivePeriod: DateInterval(start: Self.start, duration: 1),
             nativeRecording: try Self.native()
         )
         await #expect(throws: SensorKitConversionError.invalidRecord(
-            .sourceTypeNotAdmitted("SRSensor.headphoneMotion")
+            .sourceTypeNotAdmitted("SRSensor.unrecognizedTestSource")
         )) {
             try await SensorKitExporterFixtures.graph(.raw(record))
         }

@@ -80,6 +80,14 @@ extension HealthKitAssembly {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitContentPlan {
+    /// The document plan for a file-backed native recording or unchanged clinical payload.
+    func fileDocument() throws(HealthKitConversionError) -> DocumentPlan {
+        switch route {
+        case .recording(let document), .clinical(let document): document
+        default: throw refusal
+        }
+    }
+
     /// The recording document this plan carries a record of its type in, which states the payload's format.
     func recordingDocument() throws(HealthKitConversionError) -> DocumentPlan {
         guard case .recording(let document) = route else {

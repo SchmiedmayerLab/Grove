@@ -378,6 +378,28 @@ extension GroveFHIRExchangeIdentityTests {
 }
 
 extension GroveFHIRExchangeIdentityTests {
+    @Test("Equal sync IDs remain distinct across writers and participants")
+    func writerRecordScopeAndReplay() throws {
+        let participant = try Self.identifier("https://study.example.org/participants", "participant-a")
+        let writer = try Self.identifier("https://applications.example.org", "org.example.writer-a")
+        let original = try Self.scope.writerRecord(subject: participant, writerApplication: writer, writerRecordID: "shared-sync-id")
+        let replay = try Self.scope.writerRecord(subject: participant, writerApplication: writer, writerRecordID: "shared-sync-id")
+        let otherWriter = try Self.scope.writerRecord(
+            subject: participant,
+            writerApplication: Self.identifier("https://applications.example.org", "org.example.writer-b"),
+            writerRecordID: "shared-sync-id"
+        )
+        let otherParticipant = try Self.scope.writerRecord(
+            subject: Self.identifier("https://study.example.org/participants", "participant-b"),
+            writerApplication: writer,
+            writerRecordID: "shared-sync-id"
+        )
+        #expect(original == replay)
+        #expect(original != otherWriter)
+        #expect(original != otherParticipant)
+        #expect(original.role == .writerRecord)
+    }
+
     @Test("Identifier systems are absolute ASCII RFC 3986 URIs with complete escapes")
     func identifierSystemGrammar() throws {
         let valid = "urn:uuid:1f5c58aa-6ec6-4e79-a682-829a9debd3f5"

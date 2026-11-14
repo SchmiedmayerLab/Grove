@@ -15,6 +15,7 @@
 "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent" = "Gehstabilitätsmitteilungen";
 "HKCategoryTypeIdentifierAudioExposureEvent" = "Geräusch­mitteilungen";
 "HKCategoryTypeIdentifierBladderIncontinence" = "Blaseninkontinenz";
+"HKCategoryTypeIdentifierBleedingAfterMenopause" = "Blutungen nach der Menopause";
 "HKCategoryTypeIdentifierBleedingAfterPregnancy" = "Blutung nach der Schwangerschaft";
 "HKCategoryTypeIdentifierBleedingDuringPregnancy" = "Blutung in der Schwangerschaft";
 "HKCategoryTypeIdentifierBloating" = "Völlegefühl";
@@ -39,6 +40,7 @@
 "HKCategoryTypeIdentifierHeartburn" = "Sodbrennen";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "Hohe Herzfrequenz-Mitteilungen";
 "HKCategoryTypeIdentifierHotFlashes" = "Hitzewallungen";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Bluthochdruckmitteilungen";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Seltene Perioden";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Schmierblutung";
 "HKCategoryTypeIdentifierIrregularHeartRhythmEvent" = "Unreg. Herzrhythmus-Mitteilungen";
@@ -50,6 +52,7 @@
 "HKCategoryTypeIdentifierLowHeartRateEvent" = "Niedrige Herzfrequenz-Mitteilungen";
 "HKCategoryTypeIdentifierLowerBackPain" = "Rückenschmerzen";
 "HKCategoryTypeIdentifierMemoryLapse" = "Gedächtnisstörung";
+"HKCategoryTypeIdentifierMenopausalState" = "Phasen der Menopause";
 "HKCategoryTypeIdentifierMenstrualFlow" = "Menstruation";
 "HKCategoryTypeIdentifierMindfulSession" = "Minuten der Achtsamkeit";
 "HKCategoryTypeIdentifierMoodChanges" = "Stimmungs­schwankungen";
@@ -178,6 +181,7 @@
 "HKQuantityTypeIdentifierHeadphoneAudioExposure" = "Kopfhörergeräuschpegel";
 "HKQuantityTypeIdentifierHeartRate" = "Herzfrequenz";
 "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute" = "Cardioerholung";
+"HKQuantityTypeIdentifierHeartRateVariabilityRMSSD" = "HFV bei Erholung";
 "HKQuantityTypeIdentifierHeartRateVariabilitySDNN" = "Herzfrequenzvariabilität";
 "HKQuantityTypeIdentifierHeight" = "Größe";
 "HKQuantityTypeIdentifierInhalerUsage" = "Inhalatorgebrauch";

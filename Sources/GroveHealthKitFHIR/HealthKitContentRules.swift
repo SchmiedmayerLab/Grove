@@ -25,6 +25,8 @@ enum HealthKitContentRules {
     enum Rule: Sendable {
         /// One Observation of the row's first measurement, its value read as the observation rule says.
         case observation(ObservationRule)
+        /// A food correlation and the independent nutrient records it groups.
+        case food
         /// The ECG waveform and its derived average heart rate, built only from the caller's ECG record.
         case electrocardiogram
         /// A recording document of the registered format with a fixed title, built only from the caller's record.
@@ -49,6 +51,8 @@ enum HealthKitContentRules {
         case protection
         /// The blood-pressure correlation's members, one component each.
         case bloodPressure
+        /// An air-conduction hearing test, preserving each ear and frequency.
+        case audiogram
         /// The workout's activity, totals and heart-rate statistics.
         case workout
         /// The reflection's valence and its coded axes.
@@ -92,7 +96,7 @@ enum HealthKitContentRules {
 
     /// Supported rows the adapter declares it does not convert yet; any other supported row without a rule is a defect.
     static let notYetConvertible: Set<HealthKitSourceType> = [
-        .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .food, .audiogram
+        .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse
     ]
 
     /// The correlation members, by contract component id; a member type alone converts only inside its correlation.
@@ -218,7 +222,19 @@ enum HealthKitContentRules {
 extension HealthKitContentRules {
     /// Every listed source type's rule, grouped; a type the groups do not list converts under the rule its row implies,
     /// else is refused.
-    static let groups: [RuleGroup] = categoryGroups + recordGroups
+    static let groups: [RuleGroup] = categoryGroups + recordGroups + currentPlatformGroups
+
+    private static let currentPlatformGroups: [RuleGroup] = {
+        guard #available(iOS 27, macOS 27, watchOS 27, *) else {
+            return []
+        }
+        let state = CodedTable(
+            HKCategoryValueMenopausalState.self,
+            sourceSystem: nil,
+            rows: [.menopause: .init("menopause"), .perimenopause: .init("perimenopause"), .none: .init("none")]
+        )
+        return [RuleGroup(.observation(.coded(state)), [.menopausalState])]
+    }()
 
     /// The category rules.
     private static let categoryGroups = [
@@ -237,7 +253,9 @@ extension HealthKitContentRules {
         RuleGroup(.observation(.coded(.contraceptive)), [.contraceptive]),
         RuleGroup(.observation(.coded(.ovulationTestResult)), [.ovulationTestResult]),
         RuleGroup(.observation(.coded(.testResult)), [.pregnancyTestResult, .progesteroneTestResult]),
-        RuleGroup(.observation(.coded(.vaginalBleeding)), [.bleedingAfterPregnancy, .bleedingDuringPregnancy, .menstrualFlow]),
+        RuleGroup(.observation(.coded(.vaginalBleeding)), [
+            .bleedingAfterMenopause, .bleedingAfterPregnancy, .bleedingDuringPregnancy, .menstrualFlow
+        ]),
         RuleGroup(.observation(.coded(.lowCardioFitness)), [.lowCardioFitnessEvent]),
         RuleGroup(.observation(.coded(.walkingSteadiness)), [.appleWalkingSteadinessEvent]),
         RuleGroup(.observation(.coded(.environmentalAudioExposure)), [.audioExposureEvent]),
@@ -254,8 +272,10 @@ extension HealthKitContentRules {
     /// The rules of the remaining sample and record types. Sleeping breathing disturbances are the one quantity whose
     /// row does not imply its rule.
     private static let recordGroups = [
+        RuleGroup(.food, [.food]),
         RuleGroup(.observation(.quantity(.platformRate)), [.appleSleepingBreathingDisturbances]),
         RuleGroup(.observation(.bloodPressure), [.bloodPressure]),
+        RuleGroup(.observation(.audiogram), [.audiogram]),
         RuleGroup(.observation(.workout), [.workout]),
         RuleGroup(.observation(.stateOfMind), [.stateOfMind]),
         RuleGroup(.electrocardiogram, [.electrocardiogram]),
@@ -272,6 +292,19 @@ extension HealthKitContentRules {
         RuleGroup(.clinicalRecord(typeCode: "procedure-record"), [.procedureRecord]),
         RuleGroup(.clinicalRecord(typeCode: "vital-sign-record"), [.vitalSignRecord])
     ]
+
+    /// A source introduced in platform 27 cannot be acquired on earlier systems.
+    static func isAvailable(_ type: HealthKitSourceType) -> Bool {
+        switch type {
+        case .bleedingAfterMenopause, .menopausalState, .heartRateVariabilityRMSSD:
+            if #available(iOS 27, macOS 27, watchOS 27, *) {
+                return true
+            }
+            return false
+        default:
+            return true
+        }
+    }
 }
 
 

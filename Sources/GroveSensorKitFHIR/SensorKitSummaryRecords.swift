@@ -11,6 +11,7 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
+public import GroveFHIRContract
 
 
 /// A content-free SensorKit messages-usage interval summary: counts only, never content or identities.
@@ -128,14 +129,17 @@ public struct SensorKitKeyboardMetricsRecord: Sendable {
 }
 
 
-/// A SensorKit sleep session interval assertion; the source publishes only the session bounds.
+/// A SensorKit sleep session interval and its exact source-native identifier when supplied.
 public struct SensorKitSleepSessionRecord: Sendable {
     public let sourceRecordID: SensorKitSourceRecordID
     public let session: DateInterval
+    /// Source-native traceability under a caller-governed namespace; never a replacement for the acquisition identity.
+    public let nativeSessionIdentifier: BusinessIdentifier?
 
-    public init(sourceRecordID: SensorKitSourceRecordID, session: DateInterval) {
+    public init(sourceRecordID: SensorKitSourceRecordID, session: DateInterval, nativeSessionIdentifier: BusinessIdentifier? = nil) {
         self.sourceRecordID = sourceRecordID
         self.session = session
+        self.nativeSessionIdentifier = nativeSessionIdentifier
     }
 }
 

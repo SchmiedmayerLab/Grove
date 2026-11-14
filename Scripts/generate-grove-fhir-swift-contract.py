@@ -113,6 +113,18 @@ MEASUREMENT_CATALOGS = {
         "HealthKitMeasurementCatalog",
         "Machine-generated HealthKit-exclusive measurement contracts owned by the HealthKit adapter.",
     ),
+    "google-health": (
+        "GoogleHealthMeasurementCatalog",
+        "Machine-generated Google Health measurement contracts.",
+    ),
+    "oura": (
+        "OuraMeasurementCatalog",
+        "Machine-generated Oura measurement contracts.",
+    ),
+    "withings": (
+        "WithingsMeasurementCatalog",
+        "Machine-generated Withings measurement contracts.",
+    ),
 }
 # The output roles of the HealthKit ECG claim: the waveform's and the average heart rate's.
 ELECTROCARDIOGRAM_OUTPUT_ROLES = ("electrocardiogram", "average-heart-rate")
@@ -1466,6 +1478,51 @@ def generate(catalog_directory: Path) -> str:
         "",
         "",
     ])
+    lines.extend([
+        "/// Provider envelope constants from the pinned adapter catalog.",
+        "package enum ProviderContract {",
+        f"    package static let adapterID = {swift_string(providers_catalog['identity']['adapterId'])}",
+        f"    package static let providerExtension: FHIRPrimitive<FHIRURI> = {swift_string(providers_catalog['providerExtension']['url'])}",
+        f"    package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = {swift_string(providers_catalog['sourceTypeExtension']['url'])}",
+        "    package struct Source: Sendable {",
+        "        package let provider: String",
+        "        package let token: String",
+        "        package let status: String",
+        "        package let elements: [Element]",
+        "    }",
+        "    package struct Element: Sendable {",
+        "        package let path: String",
+        "        package let status: String",
+        "        package let outputProfiles: [FHIRPrimitive<Canonical>]",
+        "    }",
+        "    package static let sources: [Source] = [",
+    ])
+    measurement_profiles = dict(zip(
+        (measurement["id"] for measurement in measurements),
+        measurement_canonicals(package_graph, measurements), strict=True,
+    ))
+    for provider in providers_catalog["providers"]:
+        for row in provider.get("sourceTypes", []) + provider.get("groupedMappings", []):
+            source_elements = row.get("elements") or [{
+                "path": "measure-group", "status": row["status"], "measurementIds": row.get("measurementIds", [])
+            }]
+            rendered_elements = []
+            for element in source_elements:
+                profiles = [measurement_profiles[identifier] for identifier in element.get("measurementIds", [])]
+                if element.get("sensorProfile"):
+                    profiles.append(element["sensorProfile"])
+                rendered_profiles = ", ".join(profile_reference(profile) for profile in profiles)
+                rendered_elements.append(
+                    f"Element(path: {swift_string(element['path'])}, status: {swift_string(element['status'])}, "
+                    f"outputProfiles: [{rendered_profiles}])"
+                )
+            elements = ", ".join(rendered_elements)
+            lines.append(
+                "        Source("
+                f"provider: {swift_string(provider['id'])}, token: {swift_string(row['token'])}, "
+                f"status: {swift_string(row['status'])}, elements: [{elements}]),"
+            )
+    lines.extend(["    ]", "}", ""])
     lines.extend(producer_rule_lines(exchange_protocol))
     lines.extend(context_snapshot_role_lines(exchange_protocol))
     lines.extend(opaque_identity_lines(exchange_protocol))

@@ -67,8 +67,17 @@ extension ExchangeGraphAssembler {
         // A peripheral that states the recording Device's very content is that entry, so a record that names it beside
         // another peripheral has two devices that supplied samples, not a sole peripheral.
         let soleSource = Set(peripherals.map(\.identity)).count == 1 ? sources.first : nil
+        guard draft.writer == nil || draft.sourceApplication == nil else { throw ExchangeAssemblyError.conflictingWriter }
         let writer = try writerSnapshots(draft.writer, converter: converter)
-        return Devices(converter: converter, recording: recording, sources: sources, soleSource: soleSource, writer: writer)
+        let sourceApplication = try draft.sourceApplication.map(sourceApplicationSnapshot)
+        return Devices(
+            converter: converter,
+            recording: recording,
+            sources: sources,
+            soleSource: soleSource,
+            writer: writer,
+            sourceApplication: sourceApplication
+        )
     }
 
     /// The converting application's snapshot and its host's, which every record of the envelope shares.
@@ -190,15 +199,23 @@ extension ExchangeGraphAssembler {
         device.meta = Meta(profile: [profile])
         device.status = FHIRPrimitive(.active)
         device.deviceName = [DeviceDeviceName(name: name.asFHIRStringPrimitive(), type: FHIRPrimitive(.userFriendlyName))]
-        var versions = [DeviceVersion(
-            type: CodeableConcept(coding: [Coding(code: "531975", display: "MDC_ID_PROD_SPEC_SW", system: Canonicals.mdc)]),
-            value: version.asFHIRStringPrimitive()
-        )]
+        device.version = applicationVersions(version: version, build: build)
+        return device
+    }
+
+    /// The same source release/version representation for a converter or upstream writer.
+    static func applicationVersions(version: String?, build: String?) -> [DeviceVersion] {
+        var versions: [DeviceVersion] = []
+        if let version {
+            versions.append(DeviceVersion(
+                type: CodeableConcept(coding: [Coding(code: "531975", display: "MDC_ID_PROD_SPEC_SW", system: Canonicals.mdc)]),
+                value: version.asFHIRStringPrimitive()
+            ))
+        }
         if let build {
             versions.append(groveVersion("build", "Build", build))
         }
-        device.version = versions
-        return device
+        return versions
     }
 
     /// The body of a host Device snapshot as every record states it: the profile, the status, the name and model name,

@@ -69,6 +69,8 @@ enum ValueRule: Sendable {
     case protection(unknown: CodeableConcept, protected: CodeableConcept, unprotected: CodeableConcept)
     /// The panel's members, one component each, in the contract's component order, and no value.
     case bloodPressure([BloodPressureMember])
+    /// Ear/frequency components and source test details.
+    case audiogram(HealthKitAudiogramContent)
     /// A workout session's activity and statistics.
     case workout(HealthKitWorkoutContent)
     /// A reflection's valence and coded axes.
@@ -193,6 +195,8 @@ extension ValueRule {
         case .bloodPressure(let members):
             let correlation = try sample.cast(to: HKCorrelation.self)
             observation.component = try members.map { try $0.component(in: correlation) }
+        case .audiogram(let content):
+            try content.apply(to: &observation, sample: try sample.cast(to: HKAudiogramSample.self))
         case .workout(let content):
             try content.apply(to: &observation, workout: try sample.cast(to: HKWorkout.self))
         case .stateOfMind(let content):
