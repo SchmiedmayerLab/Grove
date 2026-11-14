@@ -402,11 +402,6 @@ extension HealthKitSampleMetadata {
 
 
 extension ExchangeOutputDraft {
-    /// Whether the output is an Observation.
-    var isObservation: Bool {
-        if case .observation = resource { true } else { false }
-    }
-
     /// Whether the output is an Observation stating the manual-entry recording method.
     fileprivate var statesManualEntry: Bool {
         if case .observation = resource { links.contains(.manualEntry) && wasUserEntered } else { false }
