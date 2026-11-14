@@ -183,9 +183,10 @@ enum HealthKitSampleProjection {
     /// panel's component the member's template codes, read in the member's unit and stating the correlation's zone.
     ///
     /// The members state the zone because HealthKit otherwise drops the correlation while the save reports success
-    /// (FB25571287; found on iOS 27.2, earlier versions not checked): healthd inserts the saved objects in groups keyed by
-    /// their zone, the device's own for an object that states none, in an order that varies by app, and links a correlation only to members it has already
-    /// inserted. Only the zone is shared; the sync identifier and version identify the correlation alone.
+    /// (FB25571287; found on iOS 27.2, earlier versions not checked): healthd inserts the saved objects in groups keyed
+    /// by their zone, the device's own for an object that states none, in an order that varies by app, and links a
+    /// correlation only to members it has already inserted. Only the zone is shared; the sync identifier and version
+    /// identify the correlation alone.
     private static func correlation(
         of observation: ModelsR4.Observation,
         members: [BloodPressureMember],
