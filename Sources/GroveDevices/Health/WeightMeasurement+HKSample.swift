@@ -34,7 +34,8 @@ extension WeightMeasurement {
             start: date,
             end: date,
             device: device,
-            metadata: HealthKitTimeZoneMetadata.current
+            // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
+            metadata: [HKMetadataKeyTimeZone: TimeZone.current.identifier]
         )
     }
 
@@ -64,7 +65,8 @@ extension WeightMeasurement {
             start: date,
             end: date,
             device: device,
-            metadata: HealthKitTimeZoneMetadata.current
+            // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
+            metadata: [HKMetadataKeyTimeZone: TimeZone.current.identifier]
         )
     }
 
@@ -91,7 +93,8 @@ extension WeightMeasurement {
             start: date,
             end: date,
             device: device,
-            metadata: HealthKitTimeZoneMetadata.current
+            // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
+            metadata: [HKMetadataKeyTimeZone: TimeZone.current.identifier]
         )
     }
 }

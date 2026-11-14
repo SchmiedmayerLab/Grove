@@ -15,9 +15,9 @@ import Testing
 
 /// Every sample a measurement converts to states the zone its time stamp is read in.
 @Suite
-struct HealthKitTimeZoneMetadataTests {
+struct HealthKitSampleTimeZoneTests {
     private static var currentZone: String {
-        Calendar.current.timeZone.identifier
+        TimeZone.current.identifier
     }
 
     /// HealthKit silently drops a correlation whose zone differs from its members' (FB25571287).

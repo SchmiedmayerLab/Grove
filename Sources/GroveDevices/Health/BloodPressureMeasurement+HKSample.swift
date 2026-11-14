@@ -34,8 +34,9 @@ extension BloodPressureMeasurement {
         let correlationType = HKCorrelationType(.bloodPressure)
 
         let date = timeStamp?.date ?? .now
+        // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
         // The correlation and its samples must state the same zone, or HealthKit may drop the correlation (FB25571287).
-        let metadata = HealthKitTimeZoneMetadata.current
+        let metadata: [String: Any] = [HKMetadataKeyTimeZone: TimeZone.current.identifier]
 
         let systolicSample = HKQuantitySample(type: systolicType, quantity: systolic, start: date, end: date, device: device, metadata: metadata)
         let diastolicSample = HKQuantitySample(type: diastolicType, quantity: diastolic, start: date, end: date, device: device, metadata: metadata)
@@ -82,7 +83,8 @@ extension BloodPressureMeasurement {
             start: date,
             end: date,
             device: device,
-            metadata: HealthKitTimeZoneMetadata.current
+            // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
+            metadata: [HKMetadataKeyTimeZone: TimeZone.current.identifier]
         )
     }
 }
