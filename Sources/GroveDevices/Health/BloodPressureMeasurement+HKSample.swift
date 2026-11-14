@@ -34,7 +34,7 @@ extension BloodPressureMeasurement {
         let correlationType = HKCorrelationType(.bloodPressure)
 
         let date = timeStamp?.date ?? .now
-        // The correlation and its samples must state the same zone, or HealthKit may drop the correlation.
+        // The correlation and its samples must state the same zone, or HealthKit may drop the correlation (FB25571287).
         let metadata = HealthKitTimeZoneMetadata.current
 
         let systolicSample = HKQuantitySample(type: systolicType, quantity: systolic, start: date, end: date, device: device, metadata: metadata)

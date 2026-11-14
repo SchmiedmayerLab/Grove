@@ -248,7 +248,7 @@ struct HealthKitSampleProjectionTests {
         #expect(correlation.metadata?[HKMetadataKeyWasUserEntered] as? Bool == true)
     }
 
-    /// HealthKit silently drops a correlation whose zone differs from its members' (seen on iOS 27.2).
+    /// HealthKit silently drops a correlation whose zone differs from its members' (FB25571287, seen on iOS 27.2).
     @Test("A blood pressure correlation's members state its zone, but not its sync identity")
     func bloodPressureMembersStateTheZone() throws {
         let observation = try Self.bloodPressureObservation()

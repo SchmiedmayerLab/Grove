@@ -183,7 +183,7 @@ enum HealthKitSampleProjection {
     /// panel's component the member's template codes, read in the member's unit and stating the correlation's zone.
     ///
     /// The members state the zone because HealthKit otherwise drops the correlation while the save reports success
-    /// (seen on iOS 27.2): healthd inserts the saved objects in groups keyed by their zone, the device's own for an object
+    /// (FB25571287, seen on iOS 27.2): healthd inserts the saved objects in groups keyed by their zone, the device's own for an object
     /// that states none, in an order that varies by app, and links a correlation only to members it has already
     /// inserted. Only the zone is shared; the sync identifier and version identify the correlation alone.
     private static func correlation(
@@ -568,7 +568,7 @@ extension Observation {
     /// start's zone `HKMetadataKeyTimeZone`, and the minted source-output identity
     /// `HKMetadataKeySyncIdentifier`, so a reading re-projected from any exchange graph replaces
     /// the earlier sample instead of duplicating it. A blood-pressure correlation's members state
-    /// its zone too: HealthKit silently drops a correlation whose zone differs from its members'.
+    /// its zone too: HealthKit silently drops a correlation whose zone differs from its members' (FB25571287).
     ///
     /// - Parameter syncIdentifier: A stable per-reading discriminator in place of the source-output identity.
     public func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {

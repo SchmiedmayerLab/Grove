@@ -20,7 +20,7 @@ struct HealthKitTimeZoneMetadataTests {
         Calendar.current.timeZone.identifier
     }
 
-    /// HealthKit silently drops a correlation whose zone differs from its members' (seen on iOS 27.2).
+    /// HealthKit silently drops a correlation whose zone differs from its members' (FB25571287, seen on iOS 27.2).
     @Test("A blood pressure correlation and both of its samples state the current zone")
     func bloodPressureStatesTheZone() {
         let correlation = HKCorrelation.mockBloodPressureSample
