@@ -15,7 +15,7 @@ public import HealthKit
 extension WeightMeasurement {
     /// Convert the weight measurement to the HealthKit representation.
     ///
-    /// Converts the weight measurement to a `HKQuantitySample`.
+    /// Converts the weight measurement to a `HKQuantitySample`, which states the current time zone (`HKMetadataKeyTimeZone`).
     /// - Parameters:
     ///   - device: The device information to reference with the `HKQuantitySample`.
     ///     You may use ``HealthDevice/hkDevice`` to retrieve the device information from a ``HealthDevice``.
@@ -34,13 +34,13 @@ extension WeightMeasurement {
             start: date,
             end: date,
             device: device,
-            metadata: nil
+            metadata: HealthKitTimeZoneMetadata.current
         )
     }
 
     /// Convert the BMI measurement to the HealthKit representation.
     ///
-    /// Converts the BMI measurement to a `HKQuantitySample`.
+    /// Converts the BMI measurement to a `HKQuantitySample`, which states the current time zone (`HKMetadataKeyTimeZone`).
     /// - Parameter device: The device information to reference with the `HKQuantitySample`.
     ///     You may use ``HealthDevice/hkDevice`` to retrieve the device information from a ``HealthDevice``.
     /// - Returns: Returns the `HKQuantitySample` with the BMI value. Returns `nil` if the measurement didn't contain a BMI value.
@@ -58,12 +58,19 @@ extension WeightMeasurement {
 
         let date = timeStamp?.date ?? .now
 
-        return HKQuantitySample(type: quantityType, quantity: quantity, start: date, end: date, device: device, metadata: nil)
+        return HKQuantitySample(
+            type: quantityType,
+            quantity: quantity,
+            start: date,
+            end: date,
+            device: device,
+            metadata: HealthKitTimeZoneMetadata.current
+        )
     }
 
     /// Convert the height measurement to the HealthKit representation.
     ///
-    /// Converts the height measurement to a `HKQuantitySample`.
+    /// Converts the height measurement to a `HKQuantitySample`, which states the current time zone (`HKMetadataKeyTimeZone`).
     /// - Parameters:
     ///   - device: The device information to reference with the `HKQuantitySample`.
     ///     You may use ``HealthDevice/hkDevice`` to retrieve the device information from a ``HealthDevice``.
@@ -78,7 +85,14 @@ extension WeightMeasurement {
         let quantity = HKQuantity(unit: unit.lengthUnit, doubleValue: height)
         let date = timeStamp?.date ?? .now
 
-        return HKQuantitySample(type: quantityType, quantity: quantity, start: date, end: date, device: device, metadata: nil)
+        return HKQuantitySample(
+            type: quantityType,
+            quantity: quantity,
+            start: date,
+            end: date,
+            device: device,
+            metadata: HealthKitTimeZoneMetadata.current
+        )
     }
 }
 

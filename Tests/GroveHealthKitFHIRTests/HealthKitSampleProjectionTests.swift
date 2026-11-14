@@ -119,6 +119,28 @@ struct HealthKitSampleProjectionTests {
         return cases
     }
 
+    /// A blood pressure panel of 118/76 mmHg.
+    private static func bloodPressureObservation() throws -> ModelsR4.Observation {
+        var observation = try Self.observation(contract: MeasurementCatalog.bloodPressure)
+        observation.component = MeasurementCatalog.bloodPressure.components.map { component in
+            ObservationComponent(
+                code: CodeableConcept(coding: [
+                    Coding(
+                        code: component.code.asFHIRStringPrimitive(),
+                        system: FHIRPrimitive(FHIRURI(stringLiteral: component.system))
+                    )
+                ]),
+                value: .quantity(Quantity(
+                    code: "mm[Hg]".asFHIRStringPrimitive(),
+                    system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org")),
+                    unit: "mmHg".asFHIRStringPrimitive(),
+                    value: FHIRPrimitive(FHIRDecimal(component.id == "systolic" ? 118 : 76))
+                ))
+            )
+        }
+        return observation
+    }
+
     @Test("A weight observation lands as a body-mass sample with its stated envelope")
     func weightProjectsWithEnvelope() throws {
         let observation = try Self.observation(contract: MeasurementCatalog.bodyWeight, value: 72.5)
@@ -218,28 +240,27 @@ struct HealthKitSampleProjectionTests {
 
     @Test("A blood pressure panel becomes one correlation with both readings")
     func bloodPressureBecomesACorrelation() throws {
-        var observation = try Self.observation(contract: MeasurementCatalog.bloodPressure)
-        observation.component = MeasurementCatalog.bloodPressure.components.map { component in
-            ObservationComponent(
-                code: CodeableConcept(coding: [
-                    Coding(
-                        code: component.code.asFHIRStringPrimitive(),
-                        system: FHIRPrimitive(FHIRURI(stringLiteral: component.system))
-                    )
-                ]),
-                value: .quantity(Quantity(
-                    code: "mm[Hg]".asFHIRStringPrimitive(),
-                    system: FHIRPrimitive(FHIRURI(stringLiteral: "http://unitsofmeasure.org")),
-                    unit: "mmHg".asFHIRStringPrimitive(),
-                    value: FHIRPrimitive(FHIRDecimal(component.id == "systolic" ? 118 : 76))
-                ))
-            )
-        }
+        let observation = try Self.bloodPressureObservation()
         let correlation = try #require(observation.healthKitSample() as? HKCorrelation)
         #expect(correlation.correlationType == HKCorrelationType(.bloodPressure))
         let readings = correlation.objects.compactMap { $0 as? HKQuantitySample }
         #expect(Set(readings.map { $0.quantity.doubleValue(for: .millimeterOfMercury()) }) == [118, 76])
         #expect(correlation.metadata?[HKMetadataKeyWasUserEntered] as? Bool == true)
+    }
+
+    /// HealthKit silently drops a correlation whose zone differs from its members' (seen on iOS 27.2).
+    @Test("A blood pressure correlation's members state its zone, but not its sync identity")
+    func bloodPressureMembersStateTheZone() throws {
+        let observation = try Self.bloodPressureObservation()
+        let correlation = try #require(observation.healthKitSample(syncIdentifier: "response-1|blood-pressure") as? HKCorrelation)
+        #expect(correlation.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
+        #expect(correlation.metadata?[HKMetadataKeySyncIdentifier] as? String == "response-1|blood-pressure")
+        #expect(correlation.objects.count == 2)
+        for member in correlation.objects {
+            #expect(member.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
+            #expect(member.metadata?[HKMetadataKeySyncIdentifier] == nil)
+            #expect(member.metadata?[HKMetadataKeySyncVersion] == nil)
+        }
     }
 
     @Test("A panel missing a reading refuses instead of writing half a correlation")
