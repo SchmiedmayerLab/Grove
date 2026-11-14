@@ -249,7 +249,7 @@ struct HealthKitSampleProjectionTests {
     }
 
     /// HealthKit silently drops a correlation whose zone differs from its members' (FB25571287).
-    @Test("A blood pressure correlation's members state its zone, but not its sync identity")
+    @Test("A blood pressure correlation's members state its zone and manual entry, but not its sync identity")
     func bloodPressureMembersStateTheZone() throws {
         let observation = try Self.bloodPressureObservation()
         let correlation = try #require(observation.healthKitSample(syncIdentifier: "response-1|blood-pressure") as? HKCorrelation)
@@ -258,8 +258,21 @@ struct HealthKitSampleProjectionTests {
         #expect(correlation.objects.count == 2)
         for member in correlation.objects {
             #expect(member.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
+            #expect(member.metadata?[HKMetadataKeyWasUserEntered] as? Bool == true)
             #expect(member.metadata?[HKMetadataKeySyncIdentifier] == nil)
             #expect(member.metadata?[HKMetadataKeySyncVersion] == nil)
+        }
+    }
+
+    @Test("A blood pressure panel that isn't a manual entry states no manual entry on its members either")
+    func bloodPressureMembersStateNoManualEntryUnlessStated() throws {
+        var observation = try Self.bloodPressureObservation()
+        observation.extension = nil
+        let correlation = try #require(observation.healthKitSample() as? HKCorrelation)
+        #expect(correlation.metadata?[HKMetadataKeyWasUserEntered] == nil)
+        for member in correlation.objects {
+            #expect(member.metadata?[HKMetadataKeyWasUserEntered] == nil)
+            #expect(member.metadata?[HKMetadataKeyTimeZone] as? String == "GMT-0700")
         }
     }
 
