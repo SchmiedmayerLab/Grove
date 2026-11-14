@@ -180,13 +180,20 @@ enum HealthKitSampleProjection {
     }
 
     /// The correlation a blood-pressure panel describes: one sample per member of the plan, in its order, each from the
-    /// panel's component the member's template codes, read in the member's unit.
+    /// panel's component the member's template codes, read in the member's unit and stating the correlation's zone.
+    ///
+    /// The members state the zone because HealthKit otherwise drops the correlation while the save reports success
+    /// (FB25571287; found on iOS 27.2, earlier versions not checked): healthd inserts the saved objects in groups keyed
+    /// by their zone, the device's own for an object that states none, in an order that varies by app, and links a
+    /// correlation only to members it has already inserted. Only the zone is shared; the sync identifier and version
+    /// identify the correlation alone.
     private static func correlation(
         of observation: ModelsR4.Observation,
         members: [BloodPressureMember],
         contract: MeasurementContract,
         envelope: SampleEnvelope
     ) throws(HealthKitSampleProjectionError) -> HKCorrelation {
+        let memberMetadata = envelope.metadata.filter { $0.key == HKMetadataKeyTimeZone }
         let samples = try members.map { member throws(HealthKitSampleProjectionError) -> HKSample in
             let declared = contract.components.first { $0.id == member.component }
             let stated = observation.component?.first { states($0.code, member.template.code) }
@@ -197,7 +204,8 @@ enum HealthKitSampleProjection {
                 type: HKQuantityType(member.quantityType),
                 quantity: try healthKitQuantity(quantity, contract: declared.quantity, read: .unit(member.binding), measurementID: contract.id),
                 start: envelope.start,
-                end: envelope.end
+                end: envelope.end,
+                metadata: memberMetadata.isEmpty ? nil : memberMetadata
             )
         }
         return HKCorrelation(
@@ -560,7 +568,8 @@ extension Observation {
     /// reason, a heart rate's motion context) its metadata key, the effective
     /// start's zone `HKMetadataKeyTimeZone`, and the minted source-output identity
     /// `HKMetadataKeySyncIdentifier`, so a reading re-projected from any exchange graph replaces
-    /// the earlier sample instead of duplicating it.
+    /// the earlier sample instead of duplicating it. A blood-pressure correlation's members state
+    /// its zone too: HealthKit silently drops a correlation whose zone differs from its members' (FB25571287).
     ///
     /// - Parameter syncIdentifier: A stable per-reading discriminator in place of the source-output identity.
     public func healthKitSample(syncIdentifier: String? = nil) throws(HealthKitSampleProjectionError) -> HKSample {
