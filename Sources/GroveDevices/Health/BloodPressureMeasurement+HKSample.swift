@@ -16,6 +16,7 @@ extension BloodPressureMeasurement {
     /// Convert the blood pressure measurement to the HealthKit representation.
     ///
     /// Converts the content of the blood pressure measurement to a `HKCorrelation`.
+    /// The correlation and both of its samples state the current time zone (`HKMetadataKeyTimeZone`).
     /// - Parameter device: The device information to reference with the `HKCorrelation`.
     ///     You may use ``HealthDevice/hkDevice`` to retrieve the device information from a ``HealthDevice``.
     /// - Returns: Returns the `HKCorrelation` with two samples for systolic and diastolic values. Returns `nil` if either of the blood pressure samples is non-finite.
@@ -33,9 +34,12 @@ extension BloodPressureMeasurement {
         let correlationType = HKCorrelationType(.bloodPressure)
 
         let date = timeStamp?.date ?? .now
+        // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
+        // The correlation and its samples must state the same zone, or HealthKit may drop the correlation (FB25571287).
+        let metadata: [String: Any] = [HKMetadataKeyTimeZone: TimeZone.current.identifier]
 
-        let systolicSample = HKQuantitySample(type: systolicType, quantity: systolic, start: date, end: date, device: device, metadata: nil)
-        let diastolicSample = HKQuantitySample(type: diastolicType, quantity: diastolic, start: date, end: date, device: device, metadata: nil)
+        let systolicSample = HKQuantitySample(type: systolicType, quantity: systolic, start: date, end: date, device: device, metadata: metadata)
+        let diastolicSample = HKQuantitySample(type: diastolicType, quantity: diastolic, start: date, end: date, device: device, metadata: metadata)
 
 
         let bloodPressure = HKCorrelation(
@@ -44,7 +48,7 @@ extension BloodPressureMeasurement {
             end: date,
             objects: [systolicSample, diastolicSample],
             device: device,
-            metadata: nil
+            metadata: metadata
         )
 
         return bloodPressure
@@ -56,7 +60,8 @@ extension BloodPressureMeasurement {
 extension BloodPressureMeasurement {
     /// Convert the heart rate measurement to the HealthKit representation.
     ///
-    /// Converts the hear rate measurement of the blood pressure measurement to a `HKQuantitySample`.
+    /// Converts the hear rate measurement of the blood pressure measurement to a `HKQuantitySample`,
+    /// which states the current time zone (`HKMetadataKeyTimeZone`).
     /// - Parameter device: The device information to reference with the `HKQuantitySample`.
     ///     You may use ``HealthDevice/hkDevice`` to retrieve the device information from a ``HealthDevice``.
     /// - Returns: Returns the `HKQuantitySample` with the heart rate value. Returns `nil` if no pulse rate is present or contains a non-finite value.
@@ -78,7 +83,8 @@ extension BloodPressureMeasurement {
             start: date,
             end: date,
             device: device,
-            metadata: nil
+            // `DateTime.date` reads the device's wall-clock time stamp, which states no zone, in the current time zone.
+            metadata: [HKMetadataKeyTimeZone: TimeZone.current.identifier]
         )
     }
 }
