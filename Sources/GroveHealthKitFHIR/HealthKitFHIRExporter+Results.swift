@@ -24,7 +24,12 @@ extension HealthKitFHIRExporter {
         case sample(HKSample)
         /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes a
         /// record of its own.
-        case electrocardiogram(HKElectrocardiogram, voltages: [HKElectrocardiogram.VoltageMeasurement], symptoms: [HKCategorySample])
+        ///
+        /// Pass `nil` symptoms when they could not be read: symptom samples need their own read authorization, and
+        /// HealthKit does not reveal a denied read. An ECG whose symptoms status is `present` then states its symptoms
+        /// as unknown instead of naming them; for any other status there are no symptoms to read.
+        case electrocardiogram(HKElectrocardiogram, voltages: [HKElectrocardiogram.VoltageMeasurement], symptoms: [HKCategorySample]?)
+        // swiftlint:disable:previous discouraged_optional_collection
         /// A heartbeat series with its beats, exported as a recording document.
         case heartbeatSeries(HKHeartbeatSeriesSample, beats: [Heartbeat])
         /// A workout route with its locations, exported as a recording document only under

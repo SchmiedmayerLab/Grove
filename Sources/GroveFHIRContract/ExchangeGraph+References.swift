@@ -123,7 +123,9 @@ extension ExchangeGraph {
         if let literal = observation.device?.reference?.value?.string, !context.recordingDeviceURLs.contains(literal) {
             throw .ruleViolation(.mobileExchangeReferenceTargetType)
         }
-        try validateReferences(observation.hasMember ?? [], expected: [.observation], context: context)
+        // A HealthKit ECG whose present symptoms could not be read states them with one member that names no target.
+        let members = (observation.hasMember ?? []).filter { !isDataAbsentMember($0, of: observation) }
+        try validateReferences(members, expected: [.observation], context: context)
         try validateReferences(
             observation.derivedFrom ?? [],
             expected: [.documentReference, .observation, .questionnaireResponse],
@@ -131,6 +133,20 @@ extension ExchangeGraph {
         )
         try validateReferences(observation.focus ?? [], expected: [.location], context: context)
         try validateReference(observation.specimen, expected: [.specimen], context: context)
+    }
+
+    /// Whether `reference` is the one member the guide admits without a target (its reference policy's data-absent
+    /// references): on a HealthKit ECG Observation, a Reference that carries only the data-absent reason `unknown`. The
+    /// profile's symptom-state invariant bounds where it occurs.
+    private static func isDataAbsentMember(_ reference: Reference, of observation: Observation) -> Bool {
+        guard observation.meta?.profile?.contains(Profile.healthkitEcgObservation) == true,
+              reference.reference == nil, reference.identifier == nil, reference.type == nil, reference.display == nil,
+              reference.id == nil, let extensions = reference.extension, extensions.count == 1, let reason = extensions.first,
+              reason.id == nil, reason.extension == nil, reason.url == Canonicals.dataAbsentReason,
+              case .code(let code)? = reason.value else {
+            return false
+        }
+        return code.value?.string == DataAbsentReason.unknown.rawValue
     }
 
     static func validateReferences(
