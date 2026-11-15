@@ -32,17 +32,17 @@ extension HealthKitSourceMetadata {
             HKBodyTemperatureSensorLocation.body: "Body",
             HKBodyTemperatureSensorLocation.ear: "Ear",
             HKBodyTemperatureSensorLocation.finger: "Finger",
-            HKBodyTemperatureSensorLocation.gastroIntestinal: "Gastro Intestinal",
+            HKBodyTemperatureSensorLocation.gastroIntestinal: "Gastrointestinal",
             HKBodyTemperatureSensorLocation.mouth: "Mouth",
             HKBodyTemperatureSensorLocation.rectum: "Rectum",
             HKBodyTemperatureSensorLocation.toe: "Toe",
-            HKBodyTemperatureSensorLocation.earDrum: "Ear Drum",
+            HKBodyTemperatureSensorLocation.earDrum: "Eardrum",
             HKBodyTemperatureSensorLocation.temporalArtery: "Temporal Artery",
             HKBodyTemperatureSensorLocation.forehead: "Forehead"
         ]),
         HKMetadataKeyCyclingFunctionalThresholdPowerTestType: codings(HKCyclingFunctionalThresholdPowerTestType.self, displays: [
-            HKCyclingFunctionalThresholdPowerTestType.maxExercise60Minute: "Max Exercise 60Minute",
-            HKCyclingFunctionalThresholdPowerTestType.maxExercise20Minute: "Max Exercise 20Minute",
+            HKCyclingFunctionalThresholdPowerTestType.maxExercise60Minute: "Max Exercise 60 Minute",
+            HKCyclingFunctionalThresholdPowerTestType.maxExercise20Minute: "Max Exercise 20 Minute",
             HKCyclingFunctionalThresholdPowerTestType.rampTest: "Ramp Test",
             HKCyclingFunctionalThresholdPowerTestType.predictionExercise: "Prediction Exercise"
         ]),
