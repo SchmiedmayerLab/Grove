@@ -95,6 +95,8 @@ struct ConformanceFixtureTests {
         "writer-non-ascii-name",
         "gad7-assessment",
         "device-metadata-facts",
+        "sync-identifier-disclosure",
+        "heartbeat-series-sync-identifier-disclosure",
         "exporter-default-apple-watch-heart-rate",
         "exporter-default-apple-watch-heart-rate-without-unit-token",
         "exporter-deployment-own-heart-rate",

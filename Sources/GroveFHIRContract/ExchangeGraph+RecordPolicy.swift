@@ -507,14 +507,49 @@ extension ExchangeGraph {
                 $0.system?.value?.url.absoluteString == roleSystem
             } != true
         }
+        let syncIdentifiers = nonGrove.filter(isSyncIdentifier)
+        let native = nonGrove.filter { !isSyncIdentifier($0) }
         guard all.count == typed.count + nonGrove.count,
-              nonGrove.count <= 1 else {
+              native.count <= 1,
+              syncIdentifiers.count <= 1 else {
             return false
         }
-        guard let governed = nonGrove.first else {
+        guard let governed = native.first else {
+            return syncIdentifiers.isEmpty
+        }
+        guard sourceDerivedOutputCount == 1, isGovernedSourceIdentifier(governed) else {
+            return false
+        }
+        guard let syncIdentifier = syncIdentifiers.first else {
             return true
         }
-        return sourceDerivedOutputCount == 1 && isGovernedSourceIdentifier(governed)
+        // A readable sync identifier travels only beside the native record identifier, the writer-record identity and
+        // its version, under a system of its own that names the writing application (healthkit mapping.md).
+        return typed.contains { $0.role == .writerRecord }
+            && document.extension?.filter { $0.url == Canonicals.writerRecordVersion }.count == 1
+            && isGovernedSourceIdentifier(syncIdentifier)
+            && syncIdentifier.type?.coding?.count == 1
+            && syncIdentifier.system != governed.system
+            && hasSyncIdentifierSystem(syncIdentifier)
+    }
+
+    /// Whether the identifier is typed as a readable HealthKit sync identifier.
+    private static func isSyncIdentifier(_ identifier: Identifier) -> Bool {
+        identifier.type?.coding?.contains {
+            $0.system == HealthKitContract.syncIdentifierTypeSystem
+                && $0.code?.value?.string == HealthKitContract.syncIdentifierTypeCode
+        } == true
+    }
+
+    /// Whether the system is a store scope, then the sync-identifier path segment, then one bundle identifier.
+    private static func hasSyncIdentifierSystem(_ identifier: Identifier) -> Bool {
+        let separator = "/\(HealthKitContract.syncIdentifierSystemPathSegment)/"
+        guard let system = identifier.system?.value?.url.absoluteString,
+              let range = system.range(of: separator, options: .backwards) else {
+            return false
+        }
+        return (try? IdentifierSystem(String(system[..<range.lowerBound]))) != nil
+            && GovernedSourceIdentifierDisclosurePolicy.isSyncIdentifierWriterSegment(String(system[range.upperBound...]))
     }
 
     private static func isGovernedSourceIdentifier(_ identifier: Identifier) -> Bool {

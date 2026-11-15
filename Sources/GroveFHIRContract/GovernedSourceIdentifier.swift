@@ -15,6 +15,9 @@ public enum GovernedSourceIdentifierDisclosurePolicy: Hashable, Sendable {
     /// Emit no clear source-store identifier.
     case omit
     /// Emit the exact source value under the caller-owned, store-scoped absolute system.
+    ///
+    /// For a HealthKit sample that carries a sync identifier, this also emits the exact sync identifier text under a
+    /// system derived from this one, which names the writing application's bundle identifier.
     case authorized(system: IdentifierSystem, type: IdentifierType? = nil)
 
     /// The disclosed identifier for one exact native record value, or nil when the deployment
@@ -45,6 +48,49 @@ public enum GovernedSourceIdentifierDisclosurePolicy: Hashable, Sendable {
             return nil
         }
         return try? BusinessIdentifier(system: system, value: value)
+    }
+}
+
+
+extension GovernedSourceIdentifierDisclosurePolicy {
+    /// Whether this policy discloses clear source identifiers.
+    package var isAuthorized: Bool {
+        if case .authorized = self { true } else { false }
+    }
+
+    /// What every readable sync identifier system under the store-scoped `system` starts with; the writing application's
+    /// segment follows.
+    package static func syncIdentifierSystemPrefix(in system: IdentifierSystem) -> String {
+        "\(system.rawValue)/\(HealthKitContract.syncIdentifierSystemPathSegment)/"
+    }
+
+    /// Whether `bundleIdentifier` can be the final segment of a readable sync identifier's system: nonempty, and only
+    /// ASCII letters, digits, hyphens and periods, the characters of an Apple bundle identifier.
+    package static func isSyncIdentifierWriterSegment(_ bundleIdentifier: String) -> Bool {
+        !bundleIdentifier.isEmpty && bundleIdentifier.utf8.allSatisfy { $0.isASCIIAlphaNumeric || $0 == 0x2D || $0 == 0x2E }
+    }
+
+    /// The readable HealthKit sync identifier of one writer record: the exact sync identifier text, typed
+    /// `healthkit-sync-id`, under the authorized store-scoped system followed by the `healthkit-sync-identifier` path
+    /// segment and the writing application's bundle identifier. Equal text from another writing application or another
+    /// store has another system (HealthKit guide `mapping.md`, readable sync identifier).
+    ///
+    /// It is nil when the deployment omits clear source identifiers, and when the bundle identifier is no writer segment:
+    /// it is never escaped, encoded or substituted.
+    package func syncIdentifier(for record: ExchangeOutputDraft.WriterRecord) -> Identifier? {
+        guard case let .authorized(system, _) = self, Self.isSyncIdentifierWriterSegment(record.writerApplication) else {
+            return nil
+        }
+        return Identifier(
+            system: FHIRPrimitive(FHIRURI(stringLiteral: Self.syncIdentifierSystemPrefix(in: system) + record.writerApplication)),
+            type: CodeableConcept(coding: [
+                Coding(
+                    code: HealthKitContract.syncIdentifierTypeCode.asFHIRStringPrimitive(),
+                    system: HealthKitContract.syncIdentifierTypeSystem
+                )
+            ]),
+            value: record.syncIdentifier.asFHIRStringPrimitive()
+        )
     }
 }
 

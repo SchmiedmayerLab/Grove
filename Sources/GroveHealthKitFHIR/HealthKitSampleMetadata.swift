@@ -343,7 +343,11 @@ extension HealthKitSampleMetadata {
             metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
         }
         // Generic metadata represents only its owner. It cannot make a same-named contained value disappear.
-        let own = values.filter { !preservedSampleKeys.contains($0.key) && !excludesSampleMetadata }
+        // The sync pair is never generic metadata, so an output without the writer record withholds it under every
+        // metadata disclosure.
+        let own = values.filter { key, _ in
+            HealthKitContract.metadataExcludedKeys.contains(key) || (!preservedSampleKeys.contains(key) && !excludesSampleMetadata)
+        }
         return Self.withheldKeys(record: own, contained: contained, carried: carried)
     }
 
@@ -351,9 +355,12 @@ extension HealthKitSampleMetadata {
     /// Conflicting device metadata remains here; a preferred HKDevice value cannot represent a different source value.
     func unmappedValues(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String: Any] {
         values.filter { key, value in
-            // A keyed identity cannot reproduce the original sync identifier. Likewise, absence of
-            // manual-entry coding cannot distinguish an explicit false from missing source metadata.
-            if key == HKMetadataKeySyncIdentifier || (key == HKMetadataKeyWasUserEntered && (value as? Bool) == false) {
+            // The writer-record identity, its version and the readable sync identifier alone represent the sync pair.
+            guard !HealthKitContract.metadataExcludedKeys.contains(key) else {
+                return false
+            }
+            // Absence of manual-entry coding cannot distinguish an explicit false from missing source metadata.
+            if key == HKMetadataKeyWasUserEntered, (value as? Bool) == false {
                 return true
             }
             return !carries(key, value: value, in: outputs, device: device)
@@ -371,8 +378,8 @@ extension HealthKitSampleMetadata {
     }
 
     /// Whether `outputs` and the recording `device` represent the sample's `value` for `key`:
-    /// - the sync pair as the writer-record identity and version, which only an Observation primary states, and only for
-    ///   an attributable writer (healthkit profiles.fsh, healthkit-writer-record-1);
+    /// - the sync pair as the writer-record identity and version, which the primary states only for an attributable
+    ///   writer (healthkit profiles.fsh, healthkit-writer-record-1);
     /// - manual entry, `false` by omission and `true` as an Observation's manual-entry recording method;
     /// - the time zone as a `timezone` extension on an Observation's effective time or a recording document's source period;
     /// - a device key as the very value the recording Device states in the element the guide gives it;

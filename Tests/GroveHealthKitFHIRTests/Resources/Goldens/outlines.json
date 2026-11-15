@@ -2244,6 +2244,72 @@
 
     ]
   },
+  "heartbeat-series-sync-identifier-disclosure" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
+        ],
+        "fullUrl" : "urn:uuid:eb2be06e-71fe-5ead-8b46-8f6fb6b71e9c",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:MhVFuA_AtXTUTExBjfN2UQFqIXUAc5ODlTLSksiNioA",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:MqEjfVxjJTBtH8TBv-6_MS-yBu8ec3GMrBTGsdUcLGM",
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:3GbC8Wf7xG3zEnKNHJ38Iu064ySJ8Grsf2YETbxj9iQ",
+          "-|https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record|3a7e5c10-0000-4000-8000-000000000039",
+          "healthkit-sync-id|https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record/healthkit-sync-identifier/org.example.writer|sync-abc",
+          "writer-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/writer-record/test/1|v0:test:1:O9AYcBz4ybGEothgxIPbvKk6Jb633ChGsPYgZ1cTXyo"
+        ],
+        "resourceType" : "DocumentReference"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:519ef5f3-8027-5799-b038-3abb51c7f1ae",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:JVp-petL6D9eh2ddxSt8Es86MYd7nt5rNZppFfWftEE",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:Dgt8X2JgcAIPWmoXXzSkQTSEKHqu_bjRqEh689AtHjQ",
+          "device-local-identifier|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-local-identifier|6C4B1D1E-0000-4000-8000-000000000001"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:eecd7aa5-3f56-57dc-85e3-75fb1d7747d6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:EtS_H7lbXColnb2cn4p55V4xPSYdwekyIKN1ZxhR1Sc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:12f291db-9efc-59f1-95f2-fc43d390ef2b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:aKPfjyYL_z9J-MBwJV2E4tguLthTq_nov6F3vgSwnJY",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
+        ],
+        "fullUrl" : "urn:uuid:293c3697-e03d-5134-b5f4-8d65a1a3ea59",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
   "high-heart-rate-threshold" : {
     "entries" : [
       {
@@ -2764,13 +2830,77 @@
 
     ]
   },
+  "sync-identifier-disclosure" : {
+    "entries" : [
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
+        ],
+        "fullUrl" : "urn:uuid:1d27ae26-6d0d-5360-9664-c241d7b10ab5",
+        "identifiers" : [
+          "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:K_t7vnf0dMAlfuUPfYaaqIohM-tk2aikjlBz4A8DPZw",
+          "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:A1eLtYJtrt_X7vrt9ny38kIFB7uHmTFU71LqvH7ULVU",
+          "-|https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record|3a7e5c10-0000-4000-8000-000000000038",
+          "healthkit-sync-id|https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record/healthkit-sync-identifier/org.example.writer|sync-abc",
+          "writer-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/writer-record/test/1|v0:test:1:O9AYcBz4ybGEothgxIPbvKk6Jb633ChGsPYgZ1cTXyo"
+        ],
+        "resourceType" : "Observation"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:519ef5f3-8027-5799-b038-3abb51c7f1ae",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:JVp-petL6D9eh2ddxSt8Es86MYd7nt5rNZppFfWftEE",
+          "recording-device|https://grovealliance.org/fhir/testing/identifiers/healthkit/recording-device/test/1|v0:test:1:Dgt8X2JgcAIPWmoXXzSkQTSEKHqu_bjRqEh689AtHjQ",
+          "device-local-identifier|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-local-identifier|6C4B1D1E-0000-4000-8000-000000000001"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:eecd7aa5-3f56-57dc-85e3-75fb1d7747d6",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:EtS_H7lbXColnb2cn4p55V4xPSYdwekyIKN1ZxhR1Sc"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+
+        ],
+        "fullUrl" : "urn:uuid:12f291db-9efc-59f1-95f2-fc43d390ef2b",
+        "identifiers" : [
+          "device-snapshot|https://grovealliance.org/fhir/testing/identifiers/healthkit/device-snapshot/test/1|v0:test:1:aKPfjyYL_z9J-MBwJV2E4tguLthTq_nov6F3vgSwnJY",
+          "apple-bundle-id|https://grovealliance.org/fhir/healthkit/NamingSystem/apple-bundle-id|org.grovealliance.test"
+        ],
+        "resourceType" : "Device"
+      },
+      {
+        "extensions" : [
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
+        ],
+        "fullUrl" : "urn:uuid:affc9ae0-98c2-58b6-bfcd-47293282b36c",
+        "identifiers" : [
+
+        ],
+        "resourceType" : "Provenance"
+      }
+    ],
+    "warnings" : [
+
+    ]
+  },
   "sync-identity" : {
     "entries" : [
       {
         "extensions" : [
           "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version",
-          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
         ],
         "fullUrl" : "urn:uuid:ecd979c9-a1e9-5edd-9297-4427ce7cad0f",
         "identifiers" : [
@@ -2838,7 +2968,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:4f05a56f-60a9-5935-af3a-c6285f43394b",
+        "fullUrl" : "urn:uuid:e8af3ff2-bf87-5776-b331-d155d236784c",
         "identifiers" : [
 
         ],
@@ -3415,8 +3545,7 @@
       {
         "extensions" : [
           "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version",
-          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+          "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-writer-record-version"
         ],
         "fullUrl" : "urn:uuid:4144d1e7-84d9-5f2b-a350-43608cf12bc7",
         "identifiers" : [
@@ -3463,7 +3592,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:bebe0e74-87ed-580d-bc83-40f2baea6a64",
+        "fullUrl" : "urn:uuid:0dbb28ee-6478-51d1-a24d-b4e40da18f66",
         "identifiers" : [
 
         ],
