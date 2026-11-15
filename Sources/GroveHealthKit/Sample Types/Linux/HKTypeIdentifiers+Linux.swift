@@ -35,6 +35,9 @@ public struct HKCategoryTypeIdentifier: Hashable, RawRepresentable, Sendable {
     /// A category type that records bladder incontinence as a symptom.
     public static let bladderIncontinence = Self(rawValue: "HKCategoryTypeIdentifierBladderIncontinence")
 
+    /// A category sample type that records bleeding after menopause.
+    public static let bleedingAfterMenopause = Self(rawValue: "HKCategoryTypeIdentifierBleedingAfterMenopause")
+
     /// A category type that records bleeding after pregnancy as a symptom.
     public static let bleedingAfterPregnancy = Self(rawValue: "HKCategoryTypeIdentifierBleedingAfterPregnancy")
 
@@ -110,6 +113,9 @@ public struct HKCategoryTypeIdentifier: Hashable, RawRepresentable, Sendable {
     /// A category type that records hot flashes as a symptom.
     public static let hotFlashes = Self(rawValue: "HKCategoryTypeIdentifierHotFlashes")
 
+    /// A category sample type that records a hypertension screening notification.
+    public static let hypertensionEvent = Self(rawValue: "HKCategoryTypeIdentifierHypertensionEvent")
+
     /// A category sample that indicates an infrequent menstrual cycle.
     public static let infrequentMenstrualCycles = Self(rawValue: "HKCategoryTypeIdentifierInfrequentMenstrualCycles")
 
@@ -142,6 +148,9 @@ public struct HKCategoryTypeIdentifier: Hashable, RawRepresentable, Sendable {
 
     /// A category type that records memory lapse as a symptom.
     public static let memoryLapse = Self(rawValue: "HKCategoryTypeIdentifierMemoryLapse")
+
+    /// A category sample type that records menopausal state.
+    public static let menopausalState = Self(rawValue: "HKCategoryTypeIdentifierMenopausalState")
 
     /// A category sample type that records menstrual cycles.
     public static let menstrualFlow = Self(rawValue: "HKCategoryTypeIdentifierMenstrualFlow")
@@ -546,6 +555,9 @@ public struct HKQuantityTypeIdentifier: Hashable, RawRepresentable, Sendable {
 
     /// A quantity sample that records the reduction in heart rate from the peak exercise rate to the rate one minute after exercising ended.
     public static let heartRateRecoveryOneMinute = Self(rawValue: "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute")
+
+    /// A quantity sample type that measures the root mean square of successive heartbeat interval differences.
+    public static let heartRateVariabilityRMSSD = Self(rawValue: "HKQuantityTypeIdentifierHeartRateVariabilityRMSSD")
 
     /// A quantity sample type that measures the standard deviation of heartbeat intervals.
     public static let heartRateVariabilitySDNN = Self(rawValue: "HKQuantityTypeIdentifierHeartRateVariabilitySDNN")

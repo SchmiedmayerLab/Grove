@@ -152,6 +152,7 @@ public enum Profile {
     public static let healthkitAudiogramPanel: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-audiogram-panel"
     public static let healthkitBiologicalSex: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-biological-sex"
     public static let healthkitBladderIncontinence: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bladder-incontinence"
+    public static let healthkitBleedingAfterMenopause: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bleeding-after-menopause"
     public static let healthkitBleedingAfterPregnancy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bleeding-after-pregnancy"
     public static let healthkitBleedingDuringPregnancy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bleeding-during-pregnancy"
     public static let healthkitBloodAlcoholContent: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-blood-alcohol-content"
@@ -186,6 +187,7 @@ public enum Profile {
     public static let healthkitLowCardioFitnessNotification: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-low-cardio-fitness-notification"
     public static let healthkitLowHeartRateNotification: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-low-heart-rate-notification"
     public static let healthkitMedicationDoseEvent: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-medication-dose-event"
+    public static let healthkitMenopausalState: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-menopausal-state"
     public static let healthkitNumberOfAlcoholicBeverages: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-number-of-alcoholic-beverages"
     public static let healthkitNumberOfTimesFallen: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-number-of-times-fallen"
     public static let healthkitObservation: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-observation"
@@ -1462,7 +1464,7 @@ package enum MeasurementCatalog {
         additionalResultBindings: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime,
+        effective: .dateTimeOrPeriod,
         category: nil
     )
 
@@ -2207,6 +2209,29 @@ package enum HealthKitMeasurementCatalog {
         category: nil
     )
 
+    package static let bleedingAfterMenopause = MeasurementContract(
+        id: "bleeding-after-menopause",
+        profile: Profile.healthkitBleedingAfterMenopause,
+        code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "bleeding-after-menopause", display: "Bleeding after menopause"),
+        requiredCodings: [],
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-bleeding-after-menopause",
+        allowedValues: ["unspecified", "light", "medium", "heavy", "none"],
+        resultCodes: [
+            ResultCodeContract(code: "unspecified", display: "Unspecified"),
+            ResultCodeContract(code: "light", display: "Light"),
+            ResultCodeContract(code: "medium", display: "Medium"),
+            ResultCodeContract(code: "heavy", display: "Heavy"),
+            ResultCodeContract(code: "none", display: "None"),
+        ],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTimeOrPeriod,
+        category: nil
+    )
+
     package static let bleedingAfterPregnancy = MeasurementContract(
         id: "bleeding-after-pregnancy",
         profile: Profile.healthkitBleedingAfterPregnancy,
@@ -2244,6 +2269,27 @@ package enum HealthKitMeasurementCatalog {
             ResultCodeContract(code: "light", display: "Light"),
             ResultCodeContract(code: "medium", display: "Medium"),
             ResultCodeContract(code: "heavy", display: "Heavy"),
+            ResultCodeContract(code: "none", display: "None"),
+        ],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let menopausalState = MeasurementContract(
+        id: "menopausal-state",
+        profile: Profile.healthkitMenopausalState,
+        code: CodingContract(system: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-measurement", code: "menopausal-state", display: "Menopausal state"),
+        requiredCodings: [],
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-menopausal-state",
+        allowedValues: ["menopause", "perimenopause", "none"],
+        resultCodes: [
+            ResultCodeContract(code: "menopause", display: "Menopause"),
+            ResultCodeContract(code: "perimenopause", display: "Perimenopause"),
             ResultCodeContract(code: "none", display: "None"),
         ],
         additionalResultBindings: [],
@@ -4069,8 +4115,10 @@ package enum HealthKitMeasurementCatalog {
         audiogramPanel,
         biologicalSex,
         bladderIncontinence,
+        bleedingAfterMenopause,
         bleedingAfterPregnancy,
         bleedingDuringPregnancy,
+        menopausalState,
         bloodAlcoholContent,
         bloodType,
         contraceptiveUse,
@@ -4633,6 +4681,14 @@ package enum HealthKitContract {
             requirement: nil
         ),
         HealthKitContractRow(
+            sourceTypeIdentifier: "HKCategoryTypeIdentifierBleedingAfterMenopause",
+            title: "Bleeding After Menopause",
+            measurementIDs: ["bleeding-after-menopause"],
+            profiles: [Profile.healthkitBleedingAfterMenopause],
+            implementationStatus: .supported,
+            requirement: nil
+        ),
+        HealthKitContractRow(
             sourceTypeIdentifier: "HKCategoryTypeIdentifierBleedingAfterPregnancy",
             title: "Bleeding After Pregnancy",
             measurementIDs: ["bleeding-after-pregnancy"],
@@ -4917,6 +4973,14 @@ package enum HealthKitContract {
             title: "Memory Lapse",
             measurementIDs: ["symptom-memory-lapse"],
             profiles: [Profile.healthkitSymptomMemoryLapse],
+            implementationStatus: .supported,
+            requirement: nil
+        ),
+        HealthKitContractRow(
+            sourceTypeIdentifier: "HKCategoryTypeIdentifierMenopausalState",
+            title: "Menopausal State",
+            measurementIDs: ["menopausal-state"],
+            profiles: [Profile.healthkitMenopausalState],
             implementationStatus: .supported,
             requirement: nil
         ),
@@ -5969,6 +6033,14 @@ package enum HealthKitContract {
             requirement: nil
         ),
         HealthKitContractRow(
+            sourceTypeIdentifier: "HKQuantityTypeIdentifierHeartRateVariabilityRMSSD",
+            title: "Heart Rate Variability RMSSD",
+            measurementIDs: ["heart-rate-variability-rmssd"],
+            profiles: [Profile.groveMobileHeartRateVariabilityRmssd],
+            implementationStatus: .supported,
+            requirement: nil
+        ),
+        HealthKitContractRow(
             sourceTypeIdentifier: "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
             title: "Heart Rate Variability SDNN",
             measurementIDs: ["heart-rate-variability-sdnn"],
@@ -6395,6 +6467,7 @@ package enum ProfileClaims {
         Profile.healthkitAudiogramPanel,
         Profile.healthkitBiologicalSex,
         Profile.healthkitBladderIncontinence,
+        Profile.healthkitBleedingAfterMenopause,
         Profile.healthkitBleedingAfterPregnancy,
         Profile.healthkitBleedingDuringPregnancy,
         Profile.healthkitBloodAlcoholContent,
@@ -6424,6 +6497,7 @@ package enum ProfileClaims {
         Profile.healthkitLactationStatus,
         Profile.healthkitLowCardioFitnessNotification,
         Profile.healthkitLowHeartRateNotification,
+        Profile.healthkitMenopausalState,
         Profile.healthkitNumberOfAlcoholicBeverages,
         Profile.healthkitNumberOfTimesFallen,
         Profile.healthkitPeakExpiratoryFlowRate,
@@ -6637,6 +6711,7 @@ package enum ProfileClaims {
         Profile.healthkitAudiogramPanel,
         Profile.healthkitBiologicalSex,
         Profile.healthkitBladderIncontinence,
+        Profile.healthkitBleedingAfterMenopause,
         Profile.healthkitBleedingAfterPregnancy,
         Profile.healthkitBleedingDuringPregnancy,
         Profile.healthkitBloodAlcoholContent,
@@ -6666,6 +6741,7 @@ package enum ProfileClaims {
         Profile.healthkitLactationStatus,
         Profile.healthkitLowCardioFitnessNotification,
         Profile.healthkitLowHeartRateNotification,
+        Profile.healthkitMenopausalState,
         Profile.healthkitNumberOfAlcoholicBeverages,
         Profile.healthkitNumberOfTimesFallen,
         Profile.healthkitPeakExpiratoryFlowRate,
@@ -6870,6 +6946,7 @@ package enum ProfileClaims {
             Profile.healthkitAudiogramPanel,
             Profile.healthkitBiologicalSex,
             Profile.healthkitBladderIncontinence,
+            Profile.healthkitBleedingAfterMenopause,
             Profile.healthkitBleedingAfterPregnancy,
             Profile.healthkitBleedingDuringPregnancy,
             Profile.healthkitBloodAlcoholContent,
@@ -6903,6 +6980,7 @@ package enum ProfileClaims {
             Profile.healthkitLowCardioFitnessNotification,
             Profile.healthkitLowHeartRateNotification,
             Profile.healthkitMedicationDoseEvent,
+            Profile.healthkitMenopausalState,
             Profile.healthkitNumberOfAlcoholicBeverages,
             Profile.healthkitNumberOfTimesFallen,
             Profile.healthkitObservation,

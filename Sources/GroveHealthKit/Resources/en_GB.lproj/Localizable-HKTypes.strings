@@ -15,6 +15,7 @@
 "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent" = "Walking Steadiness Notifications";
 "HKCategoryTypeIdentifierAudioExposureEvent" = "Noise Notifications";
 "HKCategoryTypeIdentifierBladderIncontinence" = "Bladder Incontinence";
+"HKCategoryTypeIdentifierBleedingAfterMenopause" = "Bleeding After Menopause";
 "HKCategoryTypeIdentifierBleedingAfterPregnancy" = "Bleeding After Pregnancy";
 "HKCategoryTypeIdentifierBleedingDuringPregnancy" = "Bleeding During Pregnancy";
 "HKCategoryTypeIdentifierBloating" = "Bloating";
@@ -39,6 +40,7 @@
 "HKCategoryTypeIdentifierHeartburn" = "Heartburn";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "High Heart Rate Notifications";
 "HKCategoryTypeIdentifierHotFlashes" = "Hot Flushes";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Hypertension Notifications";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Infrequent Periods";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Spotting";
 "HKCategoryTypeIdentifierIrregularHeartRhythmEvent" = "Irregular Rhythm Notifications";
@@ -50,6 +52,7 @@
 "HKCategoryTypeIdentifierLowHeartRateEvent" = "Low Heart Rate Notifications";
 "HKCategoryTypeIdentifierLowerBackPain" = "Lower Back Pain";
 "HKCategoryTypeIdentifierMemoryLapse" = "Memory Lapse";
+"HKCategoryTypeIdentifierMenopausalState" = "Menopause Stages";
 "HKCategoryTypeIdentifierMenstrualFlow" = "Menstruation";
 "HKCategoryTypeIdentifierMindfulSession" = "Mindful Minutes";
 "HKCategoryTypeIdentifierMoodChanges" = "Mood Changes";
@@ -178,6 +181,7 @@
 "HKQuantityTypeIdentifierHeadphoneAudioExposure" = "Headphone Audio Levels";
 "HKQuantityTypeIdentifierHeartRate" = "Heart Rate";
 "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute" = "Cardio Recovery";
+"HKQuantityTypeIdentifierHeartRateVariabilityRMSSD" = "Recovery HRV";
 "HKQuantityTypeIdentifierHeartRateVariabilitySDNN" = "Heart Rate Variability";
 "HKQuantityTypeIdentifierHeight" = "Height";
 "HKQuantityTypeIdentifierInhalerUsage" = "Inhaler Usage";

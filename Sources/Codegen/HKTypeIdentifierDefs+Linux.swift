@@ -1727,6 +1727,58 @@ extension SampleTypeIdentifierDefinition {
             )
         ),
     ]
+    + {
+        if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *) {
+            return [SampleTypeIdentifierDefinition.staticProperty(
+                parentStruct: "HKQuantityTypeIdentifier",
+                IdentifierConstDef(
+                    identifierName: "heartRateVariabilityRMSSD",
+                    rawValue: HKQuantityTypeIdentifier.heartRateVariabilityRMSSD.rawValue,
+                    docComment: "A quantity sample type that measures the root mean square of successive heartbeat interval differences."
+                )
+            )]
+        }
+        return []
+    }()
+    + {
+        if #available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *) {
+            return [SampleTypeIdentifierDefinition.staticProperty(
+                parentStruct: "HKCategoryTypeIdentifier",
+                IdentifierConstDef(
+                    identifierName: "hypertensionEvent",
+                    rawValue: HKCategoryTypeIdentifier.hypertensionEvent.rawValue,
+                    docComment: "A category sample type that records a hypertension screening notification."
+                )
+            )]
+        }
+        return []
+    }()
+    + {
+        if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *) {
+            return [SampleTypeIdentifierDefinition.staticProperty(
+                parentStruct: "HKCategoryTypeIdentifier",
+                IdentifierConstDef(
+                    identifierName: "bleedingAfterMenopause",
+                    rawValue: HKCategoryTypeIdentifier.bleedingAfterMenopause.rawValue,
+                    docComment: "A category sample type that records bleeding after menopause."
+                )
+            )]
+        }
+        return []
+    }()
+    + {
+        if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *) {
+            return [SampleTypeIdentifierDefinition.staticProperty(
+                parentStruct: "HKCategoryTypeIdentifier",
+                IdentifierConstDef(
+                    identifierName: "menopausalState",
+                    rawValue: HKCategoryTypeIdentifier.menopausalState.rawValue,
+                    docComment: "A category sample type that records menopausal state."
+                )
+            )]
+        }
+        return []
+    }()
 }
 
 #endif

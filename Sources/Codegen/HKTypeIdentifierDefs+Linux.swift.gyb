@@ -42,6 +42,8 @@ public enum SampleTypeIdentifierDefinition: Sendable {
 
 
 %{
+codegen_availability = Availability(iOS='18', macOS='15', watchOS='11', visionOS='2')
+
 struct_based_defs = [
     ('HKQuantityTypeIdentifier', quantity_types),
     ('HKCategoryTypeIdentifier', category_types),
@@ -55,7 +57,7 @@ extension SampleTypeIdentifierDefinition {
     @available(iOS 18, macOS 15, tvOS 18, watchOS 11, visionOS 2, *)
     public static let definitions: [SampleTypeIdentifierDefinition] = [
         % for (typename, types) in struct_based_defs:
-        % for type in types:
+        % for type in filter(lambda entry: not is_availability_restricted(entry.availability, codegen_availability), types):
         .staticProperty(
             parentStruct: "${typename}",
             IdentifierConstDef(
@@ -85,6 +87,23 @@ extension SampleTypeIdentifierDefinition {
         % end
         % end
     ]
+    % for (typename, types) in struct_based_defs:
+    % for type in filter(lambda entry: is_availability_restricted(entry.availability, codegen_availability), types):
+    + {
+        if #available(${', '.join(type.availability.components(codegen_availability))}, *) {
+            return [SampleTypeIdentifierDefinition.staticProperty(
+                parentStruct: "${typename}",
+                IdentifierConstDef(
+                    identifierName: "${type.identifier}",
+                    rawValue: ${typename}.${type.identifier}.rawValue,
+                    docComment: "${type.doc}"
+                )
+            )]
+        }
+        return []
+    }()
+    % end
+    % end
 }
 
 #endif

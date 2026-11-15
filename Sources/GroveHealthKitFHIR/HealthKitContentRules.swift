@@ -218,7 +218,19 @@ enum HealthKitContentRules {
 extension HealthKitContentRules {
     /// Every listed source type's rule, grouped; a type the groups do not list converts under the rule its row implies,
     /// else is refused.
-    static let groups: [RuleGroup] = categoryGroups + recordGroups
+    static let groups: [RuleGroup] = categoryGroups + recordGroups + currentPlatformGroups
+
+    private static let currentPlatformGroups: [RuleGroup] = {
+        guard #available(iOS 27, macOS 27, watchOS 27, *) else {
+            return []
+        }
+        let state = CodedTable(
+            HKCategoryValueMenopausalState.self,
+            sourceSystem: nil,
+            rows: [.menopause: .init("menopause"), .perimenopause: .init("perimenopause"), .none: .init("none")]
+        )
+        return [RuleGroup(.observation(.coded(state)), [.menopausalState])]
+    }()
 
     /// The category rules.
     private static let categoryGroups = [
@@ -237,7 +249,9 @@ extension HealthKitContentRules {
         RuleGroup(.observation(.coded(.contraceptive)), [.contraceptive]),
         RuleGroup(.observation(.coded(.ovulationTestResult)), [.ovulationTestResult]),
         RuleGroup(.observation(.coded(.testResult)), [.pregnancyTestResult, .progesteroneTestResult]),
-        RuleGroup(.observation(.coded(.vaginalBleeding)), [.bleedingAfterPregnancy, .bleedingDuringPregnancy, .menstrualFlow]),
+        RuleGroup(.observation(.coded(.vaginalBleeding)), [
+            .bleedingAfterMenopause, .bleedingAfterPregnancy, .bleedingDuringPregnancy, .menstrualFlow
+        ]),
         RuleGroup(.observation(.coded(.lowCardioFitness)), [.lowCardioFitnessEvent]),
         RuleGroup(.observation(.coded(.walkingSteadiness)), [.appleWalkingSteadinessEvent]),
         RuleGroup(.observation(.coded(.environmentalAudioExposure)), [.audioExposureEvent]),
@@ -272,6 +286,19 @@ extension HealthKitContentRules {
         RuleGroup(.clinicalRecord(typeCode: "procedure-record"), [.procedureRecord]),
         RuleGroup(.clinicalRecord(typeCode: "vital-sign-record"), [.vitalSignRecord])
     ]
+
+    /// A source introduced in platform 27 cannot be acquired on earlier systems.
+    static func isAvailable(_ type: HealthKitSourceType) -> Bool {
+        switch type {
+        case .bleedingAfterMenopause, .menopausalState, .heartRateVariabilityRMSSD:
+            if #available(iOS 27, macOS 27, watchOS 27, *) {
+                return true
+            }
+            return false
+        default:
+            return true
+        }
+    }
 }
 
 

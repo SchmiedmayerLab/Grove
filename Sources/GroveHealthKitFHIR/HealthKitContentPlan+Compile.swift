@@ -165,6 +165,9 @@ struct HealthKitContentCompiler {
     /// The plan of one inventory row: under its listed rule, else under the rule its row implies, else refused.
     private mutating func plan(_ row: HealthKitContractRow, type: HealthKitSourceType) -> HealthKitContentPlan {
         let entry = Self.entry(row)
+        guard HealthKitContentRules.isAvailable(type) else {
+            return HealthKitContentPlan(type, entry: entry, route: .refused(.platformExclusiveSourceType(type)))
+        }
         guard let rule = rules[type] ?? HealthKitContentRules.impliedRule(of: type, status: row.implementationStatus) else {
             if let missing = Self.missingRule(row, type: type) {
                 defects.append("\(type.rawValue): \(missing)")

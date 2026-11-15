@@ -15,6 +15,7 @@
 "HKCategoryTypeIdentifierAppleWalkingSteadinessEvent" = "Notifications « Stabilité de la marche »";
 "HKCategoryTypeIdentifierAudioExposureEvent" = "Notifications de bruit";
 "HKCategoryTypeIdentifierBladderIncontinence" = "Incontinence urinaire";
+"HKCategoryTypeIdentifierBleedingAfterMenopause" = "Saignements après la ménopause";
 "HKCategoryTypeIdentifierBleedingAfterPregnancy" = "Saignements après la grossesse";
 "HKCategoryTypeIdentifierBleedingDuringPregnancy" = "Saignements durant la grossesse";
 "HKCategoryTypeIdentifierBloating" = "Ballonnements";
@@ -39,6 +40,7 @@
 "HKCategoryTypeIdentifierHeartburn" = "Brûlures d’estomac";
 "HKCategoryTypeIdentifierHighHeartRateEvent" = "Notif. de fréquence cardiaque élevée";
 "HKCategoryTypeIdentifierHotFlashes" = "Bouffées de chaleur";
+"HKCategoryTypeIdentifierHypertensionEvent" = "Notifications d’hypertension";
 "HKCategoryTypeIdentifierInfrequentMenstrualCycles" = "Règles peu fréquentes";
 "HKCategoryTypeIdentifierIntermenstrualBleeding" = "Spotting";
 "HKCategoryTypeIdentifierIrregularHeartRhythmEvent" = "Notifications d’arythmie";
@@ -50,6 +52,7 @@
 "HKCategoryTypeIdentifierLowHeartRateEvent" = "Notif. de fréquence cardiaque faible";
 "HKCategoryTypeIdentifierLowerBackPain" = "Lombalgie";
 "HKCategoryTypeIdentifierMemoryLapse" = "Trous de mémoire";
+"HKCategoryTypeIdentifierMenopausalState" = "Stades de la ménopause";
 "HKCategoryTypeIdentifierMenstrualFlow" = "Menstruation";
 "HKCategoryTypeIdentifierMindfulSession" = "Pleine conscience";
 "HKCategoryTypeIdentifierMoodChanges" = "Changements de l’humeur";
@@ -178,6 +181,7 @@
 "HKQuantityTypeIdentifierHeadphoneAudioExposure" = "Niveaux sonores des écouteurs";
 "HKQuantityTypeIdentifierHeartRate" = "Fréquence cardiaque";
 "HKQuantityTypeIdentifierHeartRateRecoveryOneMinute" = "Récupération cardiaque";
+"HKQuantityTypeIdentifierHeartRateVariabilityRMSSD" = "VFC de récupération";
 "HKQuantityTypeIdentifierHeartRateVariabilitySDNN" = "Variabilité de la fréquence cardiaque";
 "HKQuantityTypeIdentifierHeight" = "Taille";
 "HKQuantityTypeIdentifierInhalerUsage" = "Utilisation de l’inhalateur";

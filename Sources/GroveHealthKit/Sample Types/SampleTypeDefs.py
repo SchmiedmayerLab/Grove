@@ -481,6 +481,13 @@ quantity_types: list[SampleType] = [
         doc='A quantity sample type that measures the standard deviation of heartbeat intervals.'
     ),
     quantity_type(
+        availability=Availability(iOS='27.0', macOS='27.0', watchOS='27.0', visionOS='27.0'),
+        identifier='heartRateVariabilityRMSSD',
+        canonical_title='Heart Rate Variability RMSSD',
+        unit='.secondUnit(with: .milli)',
+        doc='A quantity sample type that measures the root mean square of successive heartbeat interval differences.'
+    ),
+    quantity_type(
         identifier='heartRateRecoveryOneMinute',
         canonical_title='Heart Rate Recovery (1 min)',
         unit='.count() / .minute()', # might not be the correct unit; docs say count, but the health app seems to use BPM?
@@ -1366,6 +1373,24 @@ category_types: list[SampleType] = [
         identifier='bleedingAfterPregnancy',
         canonical_title='Bleeding After Pregnancy',
         doc='A category type that records bleeding after pregnancy as a symptom.'
+    ),
+    category_type(
+        availability=Availability(iOS='26.2', macOS='26.2', watchOS='26.2', visionOS='26.2'),
+        identifier='hypertensionEvent',
+        canonical_title='Hypertension Notification',
+        doc='A category sample type that records a hypertension screening notification.'
+    ),
+    category_type(
+        availability=Availability(iOS='27.0', macOS='27.0', watchOS='27.0', visionOS='27.0'),
+        identifier='bleedingAfterMenopause',
+        canonical_title='Bleeding After Menopause',
+        doc='A category sample type that records bleeding after menopause.'
+    ),
+    category_type(
+        availability=Availability(iOS='27.0', macOS='27.0', watchOS='27.0', visionOS='27.0'),
+        identifier='menopausalState',
+        canonical_title='Menopausal State',
+        doc='A category sample type that records menopausal state.'
     ),
     # Symptoms: Skin and Hair
     category_type(

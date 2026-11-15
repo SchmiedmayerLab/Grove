@@ -146,7 +146,7 @@ struct ContentInvariantTests {
         }
         // The 108 unit-read quantity rows, less body-mass index: its generated contract is `HealthKitContract.bodyMassIndex`,
         // which no catalog lists (the generator refuses one that does), so `contracts` holds none (see ContentCorpusGrid).
-        #expect(bound.count == 107, "\(bound.count) quantity rows convert through a unit binding")
+        #expect(bound.count == 108, "\(bound.count) quantity rows convert through a unit binding")
         for binding in HealthKitCatalog.unitBindings {
             let byCode = try #require(HealthKitCatalog.unit(forUCUMCode: binding.ucumCode))
             let bySpelling = try #require(HealthKitCatalog.unit(forUnitSpelling: binding.displayUnit))
