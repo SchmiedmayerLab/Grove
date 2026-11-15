@@ -143,7 +143,7 @@ struct HealthKitAssembly: Sendable {
             }
         }
         let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice)
-        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, disclosure: options.metadata)
+        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, policy: options.metadata)
         if let container = sourceMetadata.container {
             outputs[0].trailingExtensions.append(container)
         }
@@ -163,7 +163,7 @@ struct HealthKitAssembly: Sendable {
             in: outputs,
             device: facts.recordingDevice,
             preservedSampleKeys: sourceMetadata.preservedKeys,
-            excludesSampleMetadata: options.metadata == .omit
+            excludedSampleKeys: sourceMetadata.excludedKeys
         )
         if facts.withholdsSyncIdentifier {
             withheld = (withheld + [HKMetadataKeySyncIdentifier]).sorted()

@@ -41,6 +41,13 @@ extension HealthKitFHIRExporter {
         /// as a withheld key. While it is `.omit`, the sync identifier text reaches the wire in no element: only the
         /// keyed writer-record identity represents it. The authorized system is scoped to one participant's HealthKit
         /// store, which keeps equal sync identifiers of two participants apart.
+        ///
+        /// The authorized system must name an authority and have no query and no fragment, as an `https` URL without
+        /// them does, so the sync identifier's segments extend its path. ``HealthKitFHIRExporter`` refuses any other
+        /// system, a `urn:oid:` one included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
+        /// The authorized type, when stated, must not be the `healthkit-sync-id` coding, which types only the readable sync
+        /// identifier; ``HealthKitFHIRExporter`` refuses it with
+        /// ``HealthKitFHIRExporter/ConfigurationError/reservedNativeIdentifierType(_:)``.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
         /// Whether a workout route becomes a recording document; a route re-identifies readily.
         ///
@@ -51,9 +58,13 @@ extension HealthKitFHIRExporter {
         /// retracts a route only when the producer establishes that it disclosed it (HealthKit guide `implementation.md`,
         /// retracting a source record); keep one route policy for an installation to keep that true.
         public var route: Disclosure = .omit
-        /// Preserve supported sample metadata without a faithful structured mapping in its typed extension by default.
-        /// An explicit omission is reported separately from unsupported values and does not change clinical mappings.
-        public var metadata: Disclosure = .authorized
+        /// Which sample metadata without a faithful structured mapping the primary output preserves in its typed
+        /// extension. See ``MetadataPolicy``.
+        ///
+        /// A key the policy excludes is counted in ``HealthKitFHIRExporter/Export/MetadataSummary``, separately from
+        /// unsupported values, and never warned about. No policy changes a clinical mapping, the recording Device or the
+        /// writer record.
+        public var metadata: MetadataPolicy = .all
         /// At most how many child tasks build one call's records at once; `nil`, the default, builds on one per active
         /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports.
         public var maximumConcurrency: Int?
@@ -189,6 +200,66 @@ extension HealthKitFHIRExporter {
         case omit
         case authorized
     }
+
+    /// Which sample metadata the typed metadata extension preserves.
+    ///
+    /// Under every policy the sync identifier and version are identity, never metadata (see
+    /// ``Options/nativeIdentifier``), and the recording Device states the device metadata keys the guide maps to it.
+    public struct MetadataPolicy: Sendable {
+        /// A decision about a single metadata field
+        public enum Decision: Sendable {
+            /// The metadata field should be included in the export
+            case include
+            /// The metadata field should be omitted from the export
+            case omit
+        }
+        
+        private let _decide: @Sendable (_ key: String) -> Decision
+        
+        init(_ decide: @escaping @Sendable (_ key: String) -> Decision) {
+            self._decide = decide
+        }
+        
+        func evaluate(forEntryWithKey key: String) -> Decision {
+            _decide(key)
+        }
+    }
+}
+
+
+extension HealthKitFHIRExporter.MetadataPolicy {
+    /// Every supported key, custom and identifying keys included. The default.
+    public static let all = Self { _ in .include }
+    
+    /// Every supported key except the identifying Apple keys: `HKMetadataKeyExternalUUID`,
+    /// `HKMetadataKeyDeviceSerialNumber`, `HKMetadataKeyDeviceName`, `HKMetadataKeyUDIDeviceIdentifier`,
+    /// `HKMetadataKeyUDIProductionIdentifier` and `HKMetadataKeyDigitalSignature`. Custom keys are preserved.
+    public static let nonIdentifying = Self { key in
+        Self.identifyingKeys.contains(key) ? .omit : .include
+    }
+    
+    /// No key; the record states no metadata extension.
+    public static let omit = Self { _ in .omit }
+    
+    /// Creates a new metadata policy using a custom decision closure.
+    ///
+    /// - parameter decide: A closure that gets called once for each metadata key present in an `HKSample`.
+    public static func custom(_ decide: @escaping @Sendable (_ key: String) -> Decision) -> Self {
+        Self(decide)
+    }
+}
+
+
+extension HealthKitFHIRExporter.MetadataPolicy {
+    /// Well-known HealthKit metadata keys that map to values likely containing identifying information.
+    private static let identifyingKeys: Set<String> = [
+        HKMetadataKeyExternalUUID,
+        HKMetadataKeyDeviceSerialNumber,
+        HKMetadataKeyDeviceName,
+        HKMetadataKeyUDIDeviceIdentifier,
+        HKMetadataKeyUDIProductionIdentifier,
+        HKMetadataKeyDigitalSignature
+    ]
 }
 
 #endif
