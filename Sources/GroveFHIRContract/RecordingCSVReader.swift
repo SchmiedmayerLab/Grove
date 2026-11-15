@@ -134,6 +134,8 @@ public struct RecordingCSVReader: Sendable {
 
     /// Why a payload could not be read as the format it claims to be.
     public enum ReaderError: Error, Equatable {
+        /// A field violates its registered type, canonical number form, or absence rule.
+        case invalidColumnValue(column: String)
         /// The format publishes no column set, so it is not a tabular recording.
         case notTabular(RegisteredRecordingFormat)
         /// The payload is not the UTF-8 the registry requires.

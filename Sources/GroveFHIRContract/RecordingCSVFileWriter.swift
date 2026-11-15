@@ -25,6 +25,7 @@ public struct RecordingCSVFileWriter: ~Copyable {
     }
 
     private let columns: [String]
+    private let schema: [RecordingCSVColumn]
     private let limits: RecordingCSVReader.Limits
     private var storage: RecordingFile.Storage?
     private var pending = Data()
@@ -49,6 +50,7 @@ public struct RecordingCSVFileWriter: ~Copyable {
         var hasher = AttachmentHasher()
         hasher.update(header)
         self.columns = columns
+        self.schema = format.csvSchema ?? []
         self.limits = limits
         self.storage = storage
         self.writtenByteCount = header.count
@@ -69,7 +71,7 @@ public struct RecordingCSVFileWriter: ~Copyable {
         guard storage != nil else { throw FileWriterError.closed }
         do {
             try Task.checkCancellation()
-            try RecordingCSVRowEncoder.validate(fields, columns: columns)
+            try RecordingCSVRowEncoder.validate(fields, columns: columns, schema: schema)
             let count = try RecordingCSVRowEncoder.byteCount(fields, limits: limits)
             guard count <= limits.maximumByteCount - writtenByteCount - pending.count else { throw FileWriterError.payloadLimitExceeded }
             var bytes: [UInt8] = []

@@ -40,25 +40,30 @@ public struct RecordingCSVWriter: ~Copyable {
     }
 
     private let columns: [String]
+    private let schema: [RecordingCSVColumn]
     private var bytes: [UInt8] = []
 
-    /// Creates a writer for one closed column set, and writes the header row.
+    /// Creates a syntax-only writer for caller-supplied columns and writes the header row.
+    /// Use `init(format:)` to enforce registered column types and required values.
     public init(columns: [String]) {
         self.columns = columns
+        self.schema = []
         RecordingCSVRowEncoder.append(columns.map(Field.text), to: &bytes)
     }
 
-    /// Creates a writer for the exact column set the registry publishes for a tabular format.
+    /// Creates a writer enforcing the registry's exact columns, value types and nullability.
     public init(format: RegisteredRecordingFormat) throws(WriterError) {
         guard let columns = format.csvColumns else {
             throw .notTabular(format)
         }
-        self.init(columns: columns)
+        self.columns = columns
+        self.schema = format.csvSchema ?? []
+        RecordingCSVRowEncoder.append(columns.map(Field.text), to: &bytes)
     }
 
     /// Appends one source sample, in source order.
     public mutating func append(_ fields: [Field]) throws {
-        try RecordingCSVRowEncoder.validate(fields, columns: columns)
+        try RecordingCSVRowEncoder.validate(fields, columns: columns, schema: schema)
         RecordingCSVRowEncoder.append(fields, to: &bytes)
     }
 

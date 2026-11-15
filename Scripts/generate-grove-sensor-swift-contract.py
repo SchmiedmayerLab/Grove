@@ -306,11 +306,23 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
         "    /// A producer emits every declared column and no others; a reader requires the same",
         "    /// header. `nil` for a format that is not tabular.",
         "    public var csvColumns: [String]? {",
+        "        csvSchema?.map(\\.name)",
+        "    }",
+        "",
+        "    /// Exact types and absence rules from the same registry rows as the public header.",
+        "    var csvSchema: [RecordingCSVColumn]? {",
         "        switch self {",
     ])
     for code in sorted(csv_formats):
-        names = ", ".join(swift_string(column["name"]) for column in csv_formats[code]["columns"])
-        lines.append(f"        case .{swift_format_case(code)}: [{names}]")
+        columns = csv_formats[code]["columns"]
+        for column in columns:
+            if column.get("type") not in {"string", "integer", "number", "timestamp"} or not isinstance(column.get("nullable"), bool):
+                raise ValueError(f"{code}: invalid column type or nullability")
+        definitions = ", ".join(
+            f".init(name: {swift_string(column['name'])}, type: .{column['type']}, nullable: {str(column['nullable']).lower()})"
+            for column in columns
+        )
+        lines.append(f"        case .{swift_format_case(code)}: [{definitions}]")
     lines.extend([
         "        default: nil",
         "        }",

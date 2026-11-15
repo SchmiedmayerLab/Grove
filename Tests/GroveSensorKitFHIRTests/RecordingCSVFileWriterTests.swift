@@ -12,25 +12,12 @@ import Testing
 
 
 struct RecordingCSVFileWriterTests {
-    /// Rows covering every field kind, quoting, multibyte scalars and absence in each column position.
-    private static func row(columnCount: Int, variant: Int) -> [RecordingCSVWriter.Field] {
-        (0..<columnCount).map { index in
-            switch (index + variant) % 5 {
-            case 0: .absent
-            case 1: .text("é,\"quoted\"\nline \(variant)")
-            case 2: .integer(variant)
-            case 3: .number(Double(variant) + 0.125)
-            default: .timestamp(Date(timeIntervalSince1970: 1_800_000_000.125 + Double(variant)))
-            }
-        }
-    }
-
     @Test(arguments: RegisteredRecordingFormat.allCases.filter { $0.csvColumns != nil })
     func sameBytesAsDataWriter(format: RegisteredRecordingFormat) throws {
         var memory = try RecordingCSVWriter(format: format)
         var disk = try RecordingCSVFileWriter(format: format, maximumByteCount: 1_000_000)
         for variant in 0..<5 {
-            let row = Self.row(columnCount: try #require(format.csvColumns).count, variant: variant)
+            let row = RecordingCSVSchemaFixtures.row(format: format, variant: variant)
             try memory.append(row)
             try disk.append(row)
         }
@@ -73,7 +60,7 @@ struct RecordingCSVFileWriterTests {
 
     @Test
     func fieldAndEncodedRowBudgetsIncludeEscapingAndUTF8() throws {
-        // This format's header fits both budgets. The data row tests multibyte scalars and doubled quotes.
+        // This schema's header fits both budgets. The data row tests multibyte scalars and doubled quotes.
         let text = String(repeating: "é\"", count: 32)
         let fields: [RecordingCSVWriter.Field] = [.integer(1), .integer(1), .integer(1), .text(text)]
         let rowByteCount = text.utf8.count + 32 + 2 + 7

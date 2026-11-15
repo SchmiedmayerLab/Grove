@@ -14,7 +14,7 @@ enum RecordingCSVRowEncoder {
     typealias Field = RecordingCSVWriter.Field
     typealias WriterError = RecordingCSVWriter.WriterError
 
-    static func validate(_ fields: [Field], columns: [String]) throws {
+    static func validate(_ fields: [Field], columns: [String], schema: [RecordingCSVColumn] = []) throws {
         guard fields.count == columns.count else {
             throw WriterError.columnCountMismatch(expected: columns.count, actual: fields.count)
         }
@@ -31,6 +31,7 @@ enum RecordingCSVRowEncoder {
                 break
             }
         }
+        try RecordingCSVColumn.validateFields(zip(schema, fields.lazy.map(string)))
     }
 
     /// Measures before allocating a row, including quoting, delimiters, and its final LF.

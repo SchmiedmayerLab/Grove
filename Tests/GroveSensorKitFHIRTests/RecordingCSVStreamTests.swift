@@ -18,14 +18,12 @@ struct RecordingCSVStreamTests {
     @Test
     func everyFormatAndChunkBoundaryPreservesRows() throws {
         for format in RegisteredRecordingFormat.tabularFormats {
-            let columns = try #require(format.csvColumns)
-            var writer = RecordingCSVWriter(columns: columns)
-            let fields = columns.map { "\($0), \"wrist\"\n✓ 🫀" }
-            try writer.append(fields.map { .text($0) })
-            try writer.append(columns.map { _ in .absent })
+            var writer = try RecordingCSVWriter(format: format)
+            try writer.append(RecordingCSVSchemaFixtures.row(format: format, variant: 0))
+            try writer.append(RecordingCSVSchemaFixtures.row(format: format, variant: 1))
             let data = writer.data()
             let expected = try RecordingCSVReader(data, format: format).rows
-            #expect(expected.map(\.fields) == [fields, columns.map { _ in "" }])
+            #expect(expected.count == 2)
             // Every possible split covers quotes, escaped quotes, delimiters and multibyte scalars.
             for split in 0...data.count {
                 var stream = try RecordingCSVReader.Stream(format: format)

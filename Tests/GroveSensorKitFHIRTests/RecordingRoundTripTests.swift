@@ -18,44 +18,38 @@ struct RecordingRoundTripTests {
     func everyTabularFormatRoundTrips() throws {
         for format in RegisteredRecordingFormat.tabularFormats {
             let columns = try #require(format.csvColumns)
-            var writer = RecordingCSVWriter(columns: columns)
-            // One row exercising every field kind the writer admits, and one all-absent row.
-            try writer.append(columns.indices.map { index in
-                index.isMultiple(of: 2) ? .number(Double(index) + 0.5) : .text("v\(index)")
-            })
-            try writer.append(columns.map { _ in .absent })
+            var writer = try RecordingCSVWriter(format: format)
+            try writer.append(RecordingCSVSchemaFixtures.row(format: format, variant: 1))
+            try writer.append(RecordingCSVSchemaFixtures.row(format: format, variant: 2))
             let data = writer.data()
-
             let reader = try RecordingCSVReader(data, format: format)
             #expect(reader.columns == columns, "\(format.rawValue)")
             #expect(reader.rows.count == 2, "\(format.rawValue)")
-            for (index, column) in columns.enumerated() where index.isMultiple(of: 2) {
-                #expect(try reader.rows[0].number(column) == Double(index) + 0.5, "\(format.rawValue).\(column)")
+            var reencoded = try RecordingCSVWriter(format: format)
+            for row in reader.rows {
+                try reencoded.append(columns.map { column in row[column].map(RecordingCSVWriter.Field.text) ?? .absent })
             }
-            for column in columns {
-                #expect(reader.rows[1].isAbsent(column), "\(format.rawValue).\(column)")
-            }
+            #expect(reencoded.data() == data, "\(format.rawValue)")
         }
     }
 
     @Test("Absent fields remain optional while malformed fields fail closed")
     func optionalFieldsDoNotConflateAbsenceAndCorruption() throws {
-        let format = RegisteredRecordingFormat.heartRateSamples
+        let format = RegisteredRecordingFormat.wristTemperatureSamples
         let columns = try #require(format.csvColumns)
-        let absent = Data("\(columns.joined(separator: ","))\n1,60,,Watch\n".utf8)
+        let absent = Data("\(columns.joined(separator: ","))\n1,36.5,0.1,\n".utf8)
         let absentRow = try #require(RecordingCSVReader(absent, format: format).rows.first)
-        #expect(try absentRow.integer("confidence") == nil)
-        #expect(throws: RecordingCSVReader.RowValueError.absent("confidence")) {
-            _ = try absentRow.requiredInteger("confidence")
+        #expect(absentRow.isAbsent("condition"))
+        #expect(try absentRow.integer("condition") == nil)
+        #expect(throws: RecordingCSVReader.RowValueError.absent("condition")) {
+            _ = try absentRow.requiredInteger("condition")
         }
-
-        let malformed = Data("\(columns.joined(separator: ","))\n1,not-a-number,2,Watch\n".utf8)
-        let malformedRow = try #require(RecordingCSVReader(malformed, format: format).rows.first)
-        #expect(throws: RecordingCSVReader.RowValueError.malformedNumber(column: "value", value: "not-a-number")) {
-            _ = try malformedRow.number("value")
+        let malformed = Data("\(columns.joined(separator: ","))\n1,not-a-number,0.1,\n".utf8)
+        #expect(throws: RecordingCSVReader.ReaderError.invalidColumnValue(column: "value")) {
+            _ = try RecordingCSVReader(malformed, format: format)
         }
         #expect(throws: RecordingCSVReader.RowValueError.unknownColumn("unknown")) {
-            _ = try malformedRow.timestamp("unknown")
+            _ = try absentRow.timestamp("unknown")
         }
     }
 
