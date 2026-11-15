@@ -45,6 +45,10 @@ ${make_at_available(SAMPLE_TYPE_AVAILABILITY)}
 % end
 extension SampleType where Sample == ${hk_class} {
 % for ty in types:
+% guard = sdk_guard(ty.availability)
+% if guard:
+    #if ${guard}
+% end
     /// ${ty.doc}
 % if is_availability_restricted(ty.availability, SAMPLE_TYPE_AVAILABILITY):
     @available(${', '.join(ty.availability.components(SAMPLE_TYPE_AVAILABILITY))}, *)
@@ -62,6 +66,9 @@ extension SampleType where Sample == ${hk_class} {
             )
         )
     }
+% if guard:
+    #endif
+% end
 % end
 
     /// Returns the shared ${display_title} type for the specified ${hk_sampletype_class}.
@@ -72,9 +79,19 @@ extension SampleType where Sample == ${hk_class} {
 
     /// Returns the shared ${display_title} type for the specified identifier.
     public init?(_ identifier: ${hk_sampletype_class}Identifier) where Sample == ${hk_class} {
-        if ${make_hashtag_available(types[0].availability, trailing_comma=True, enclosing=SAMPLE_TYPE_AVAILABILITY)}identifier == .${types[0].identifier} {
-            self = .${types[0].property_name}
-        % for ty in types[1:]:
+        % # A compiler-guarded type cannot sit inside the `else if` chain, so it is matched ahead of it.
+        % for ty in [ty for ty in types if sdk_guard(ty.availability)]:
+        #if ${sdk_guard(ty.availability)}
+        if ${make_hashtag_available(ty.availability, trailing_comma=True, enclosing=SAMPLE_TYPE_AVAILABILITY)}identifier == .${ty.identifier} {
+            self = .${ty.property_name}
+            return
+        }
+        #endif
+        % end
+        % chain = [ty for ty in types if not sdk_guard(ty.availability)]
+        if ${make_hashtag_available(chain[0].availability, trailing_comma=True, enclosing=SAMPLE_TYPE_AVAILABILITY)}identifier == .${chain[0].identifier} {
+            self = .${chain[0].property_name}
+        % for ty in chain[1:]:
         } else if ${make_hashtag_available(ty.availability, trailing_comma=True, enclosing=SAMPLE_TYPE_AVAILABILITY)}identifier == .${ty.identifier} {
             self = .${ty.property_name}
         % end
@@ -142,12 +159,19 @@ extension ${hk_sampletype_class}Identifier {
         var identifiers = Set<${hk_sampletype_class}Identifier>()
         % for ty in types:
         % availability_check = make_hashtag_available(ty.availability, trailing_comma=False, enclosing=SAMPLE_TYPE_AVAILABILITY)
+        % guard = sdk_guard(ty.availability)
+        % if guard:
+        #if ${guard}
+        % end
         % if availability_check != '':
         if ${availability_check} {
             identifiers.insert(Self.${ty.identifier})
         }
         % else:
         identifiers.insert(Self.${ty.identifier})
+        % end
+        % if guard:
+        #endif
         % end
         % end
         return identifiers
