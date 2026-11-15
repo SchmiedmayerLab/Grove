@@ -44,10 +44,12 @@ extension SensorKitCatalog {
             sensors[.acousticSettings] = "SRSensor.acousticSettings"
             sensors[.sleepSessions] = "SRSensor.sleepSessions"
         }
+        #if compiler(>=6.4)
         if #available(iOS 27, *) {
             sensors[.headphoneMotion] = "SRSensor.headphoneMotion"
             sensors[.headphoneSettings] = "SRSensor.headphoneSettings"
         }
+        #endif
         return sensors
     }
 

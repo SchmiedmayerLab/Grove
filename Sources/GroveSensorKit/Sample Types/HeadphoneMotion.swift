@@ -14,6 +14,8 @@ public import GroveFoundation
 import SensorKit
 
 
+// `CMRecordedDeviceMotion` and the headphone motion sensor exist only in the iOS 27 SDK.
+#if compiler(>=6.4)
 @available(iOS 27, *)
 extension CMRecordedDeviceMotion: SensorKitSampleProtocol {
     /// Immutable public motion facts; the mutable CMAttitude object never crosses the fetch boundary.
@@ -119,5 +121,6 @@ extension Sensor where Sample == CMRecordedDeviceMotion {
         )
     }
 }
+#endif
 
 #endif

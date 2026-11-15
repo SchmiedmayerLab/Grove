@@ -44,10 +44,12 @@ extension SensorKit {
             if #available(iOS 26, *) {
                 Sensor.sleepSessions
             }
+            #if compiler(>=6.4)
             if #available(iOS 27, *) {
                 Sensor.headphoneMotion
                 Sensor.headphoneSettings
             }
+            #endif
             #endif
         }
     }
