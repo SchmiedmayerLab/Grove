@@ -144,10 +144,10 @@ func matchingFiles(in targetPath: String, skipping skippedExcludes: [String], wh
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/antlr/antlr4.git", from: "4.13.1"),
-    // 0.9.3 fixes the DSTU2 model regression and restores iOS 15/macOS 12 deployment support
-    // after 0.9.2 temporarily raised those floors. `.upToNextMinor` intentionally admits only
-    // compatible 0.9.x fixes; lowered watchOS 8 builds still exclude FHIRModels as documented above.
-    .package(url: "https://github.com/SchmiedmayerLab/FHIRModels.git", .upToNextMinor(from: "0.9.3")),
+    // 0.9.4 is the first release back on the iOS 15 / macOS 12 / watchOS 8 floors after 0.9.2 raised them.
+    // `.upToNextMinor` intentionally admits only compatible 0.9.x fixes; lowered watchOS 8 builds still
+    // exclude FHIRModels as documented above.
+    .package(url: "https://github.com/apple/FHIRModels.git", .upToNextMinor(from: "0.9.4")),
     .package(url: "https://github.com/PhoneNumberKit/PhoneNumberKit.git", from: "5.0.0"),
     .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.1.3"),
