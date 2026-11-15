@@ -189,15 +189,20 @@ struct MetadataComponentRule: Sendable {
 /// manual-entry flag decide when it states them; otherwise the members state the zone every member naming one names,
 /// and manual entry only when every member states it.
 @available(iOS 18, macOS 15, watchOS 11, *)
-struct HealthKitSampleMetadata: @unchecked Sendable { // The values are HealthKit's immutable property-list objects.
+struct HealthKitSampleMetadata: Sendable {
+    // NOTE: `values`, `memberValues`, and `containedValues` are all `nonisolated(unsafe)`.
+    // this is in fact safe, as the `Any` values contained within the 3 properties are
+    // all coming from HKObject.metadata dictionaries, which only allow certain types
+    // (NSString, NSNumber, NSDate, and HKQuantity) all of which are Sendable.
+    
     /// The sample's metadata, empty when it states none.
-    let values: [String: Any]
+    nonisolated(unsafe) let values: [String: Any]
     /// The metadata of each member of the correlation, in no particular order; empty unless the rule reads members.
-    let memberValues: [[String: Any]]
+    nonisolated(unsafe) let memberValues: [[String: Any]]
     /// The metadata of each object the sample contains that states some: a correlation's objects, a workout's events
     /// and activities, and each activity's events. Only the withheld keys read it; a blood-pressure correlation's
     /// zone and manual entry read ``memberValues``.
-    let containedValues: [[String: Any]]
+    nonisolated(unsafe) let containedValues: [[String: Any]]
     /// Whether the record states manual entry: `HKMetadataKeyWasUserEntered` is explicitly `true` on the sample or,
     /// when the sample states no Boolean, on each of its members, of which there is at least one.
     let wasUserEntered: Bool
@@ -329,7 +334,7 @@ extension HealthKitSampleMetadata {
         in outputs: [ExchangeOutputDraft],
         device: RecordingDevice?,
         preservedSampleKeys: Set<String> = [],
-        excludesSampleMetadata: Bool = false
+        excludedSampleKeys: Set<String> = []
     ) -> [String] {
         guard !values.isEmpty || !containedValues.isEmpty else {
             return []
@@ -343,10 +348,11 @@ extension HealthKitSampleMetadata {
             metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
         }
         // Generic metadata represents only its owner. It cannot make a same-named contained value disappear.
-        // The sync pair is never generic metadata, so an output without the writer record withholds it under every
-        // metadata disclosure.
+        // A key the extension preserves or the metadata policy excludes is not withheld. The sync pair is never generic
+        // metadata, so an output without the writer record withholds it under every metadata policy.
         let own = values.filter { key, _ in
-            HealthKitContract.metadataExcludedKeys.contains(key) || (!preservedSampleKeys.contains(key) && !excludesSampleMetadata)
+            HealthKitContract.metadataExcludedKeys.contains(key)
+                || !(preservedSampleKeys.contains(key) || excludedSampleKeys.contains(key))
         }
         return Self.withheldKeys(record: own, contained: contained, carried: carried)
     }
@@ -425,8 +431,6 @@ extension ExchangeOutputDraft {
             }
         case .document(let document):
             document.context?.period?.start?.namesZone == true || document.context?.period?.end?.namesZone == true
-        default:
-            false
         }
     }
 }

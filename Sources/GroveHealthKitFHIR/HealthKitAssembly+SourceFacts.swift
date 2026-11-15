@@ -197,4 +197,50 @@ extension HealthKitAssembly.SourceFacts {
     }
 }
 
+
+// MARK: - Readable sync identifier
+
+extension GovernedSourceIdentifierDisclosurePolicy {
+    /// Whether this policy discloses clear source identifiers.
+    var isAuthorized: Bool {
+        if case .authorized = self { true } else { false }
+    }
+
+    /// Whether path segments appended to `system` extend its path: it names an authority and has no query and no
+    /// fragment. A `urn:oid:` or `urn:uuid:` system has no path to extend, and after a query or fragment the segments
+    /// would land in it.
+    static func acceptsSyncIdentifierPath(_ system: IdentifierSystem) -> Bool {
+        guard let components = URLComponents(string: system.rawValue) else {
+            return false
+        }
+        return components.percentEncodedHost != nil
+            && components.percentEncodedQuery == nil
+            && components.percentEncodedFragment == nil
+    }
+
+    /// The readable HealthKit sync identifier of one writer record: the exact sync identifier text, typed
+    /// `healthkit-sync-id`, under the authorized store-scoped system followed by the `healthkit-sync-identifier` path
+    /// segment and the writing application's bundle identifier. Equal text from another writing application or another
+    /// store has another system (HealthKit guide `mapping.md`, readable sync identifier).
+    ///
+    /// It is nil when the deployment omits clear source identifiers, and when the bundle identifier is no writer segment:
+    /// it is never escaped, encoded or substituted.
+    func syncIdentifier(for record: ExchangeOutputDraft.WriterRecord) -> Identifier? {
+        guard case let .authorized(system, _) = self, HealthKitContract.isSyncIdentifierWriterSegment(record.writerApplication) else {
+            return nil
+        }
+        let syncIdentifierSystem = HealthKitContract.syncIdentifierSystemPrefix(in: system.rawValue) + record.writerApplication
+        return Identifier(
+            system: FHIRPrimitive(FHIRURI(stringLiteral: syncIdentifierSystem)),
+            type: CodeableConcept(coding: [
+                Coding(
+                    code: HealthKitContract.syncIdentifierTypeCode.asFHIRStringPrimitive(),
+                    system: HealthKitContract.syncIdentifierTypeSystem
+                )
+            ]),
+            value: record.syncIdentifier.asFHIRStringPrimitive()
+        )
+    }
+}
+
 #endif
