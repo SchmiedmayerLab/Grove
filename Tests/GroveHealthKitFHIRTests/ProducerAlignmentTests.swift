@@ -64,7 +64,8 @@ struct ProducerDefaultsTests {
             return
         }
         #expect(options.role == .assembler)
-        #expect(options.metadata == .authorized)
+        #expect(options.metadata.evaluate(forEntryWithKey: HKMetadataKeyExternalUUID) == .include)
+        #expect(options.metadata.evaluate(forEntryWithKey: "com.example.note") == .include)
         #expect(options.route == .omit)
         #expect(options.nativeIdentifier == .omit)
     }
