@@ -55,6 +55,10 @@ struct HealthKitECGContent: Sendable {
 
     /// The ECG's own metadata: its algorithm version, which the waveform states as its method.
     static let metadataRule = MetadataRule(contentFields: [.appleECGAlgorithmVersion])
+    /// The waveform's one member when its present symptoms could not be read: only the reason they are absent.
+    static let unreadableSymptoms = Reference(extension: [
+        Extension(url: Canonicals.dataAbsentReason, value: .code(DataAbsentReason.unknown.rawValue.asFHIRStringPrimitive()))
+    ])
 
     /// The waveform's output, which links everything.
     let waveformSlot: HealthKitOutputSlot
@@ -113,12 +117,18 @@ struct HealthKitECGContent: Sendable {
     /// An ECG's correlated symptoms in the order the waveform references them, by type and then lowercase UUID: as
     /// many as its symptoms status says (some when present, none otherwise), each of a type the claim admits, each
     /// sample once. Each symptom's value is checked when it converts as its own graph.
+    ///
+    /// `nil` symptoms could not be read. They stay `nil` when the status is present, which the waveform states as
+    /// unknown symptoms; any other status has no symptoms to read.
     static func validatedSymptoms(
-        _ symptoms: [HKCategorySample],
+        _ symptoms: [HKCategorySample]?, // swiftlint:disable:this discouraged_optional_collection
         status: HKElectrocardiogram.SymptomsStatus
-    ) throws(HealthKitConversionError) -> [HKCategorySample] {
+    ) throws(HealthKitConversionError) -> [HKCategorySample]? { // swiftlint:disable:this discouraged_optional_collection
         guard HealthKitElectrocardiogramClaim.symptomsStatusCodes[status] != nil else {
             throw .ecgEvidence(.unsupportedSymptomsStatus(status.rawValue))
+        }
+        guard let symptoms else {
+            return status == .present ? nil : []
         }
         guard status != .present || !symptoms.isEmpty else {
             throw .ecgEvidence(.symptomsRequired)
@@ -159,9 +169,11 @@ struct HealthKitECGContent: Sendable {
     }
 
     /// The waveform's draft, then the average heart rate's when the ECG states one. The waveform references each
-    /// symptom by its output identifier; the average heart rate states the waveform's effective Period. The assembly
-    /// states the ECG's entry method on both, as on every output of one record.
-    func outputs(_ evidence: Evidence, symptoms: [RoledIdentifier]) throws -> [ExchangeOutputDraft] {
+    /// symptom by its output identifier, or states unknown symptoms when they are `nil`, which only a present ECG's
+    /// unreadable symptoms are; the average heart rate states the waveform's effective Period. The assembly states the
+    /// ECG's entry method on both, as on every output of one record.
+    func outputs(_ evidence: Evidence, symptoms: [RoledIdentifier]?) throws -> [ExchangeOutputDraft] {
+        // swiftlint:disable:previous discouraged_optional_collection
         let ecg = evidence.electrocardiogram
         guard ecg.endDate >= ecg.startDate else {
             throw HealthKitConversionError.ecgEvidence(.invalidSourcePeriod)
@@ -184,11 +196,12 @@ struct HealthKitECGContent: Sendable {
 
     /// The waveform Observation: the voltages as SampledData over the effective Period, the symptoms status and the
     /// ECG's own period as extensions, the classification as interpretation, the algorithm version as method, and
-    /// each symptom as an identifier-only member.
+    /// each symptom as an identifier-only member, or, for unreadable symptoms, one member that states only that they
+    /// are unknown.
     private func waveformObservation(
         _ evidence: Evidence,
         effective: Period,
-        symptoms: [RoledIdentifier]
+        symptoms: [RoledIdentifier]? // swiftlint:disable:this discouraged_optional_collection
     ) throws(HealthKitConversionError) -> Observation {
         let ecg = evidence.electrocardiogram
         guard let status = HealthKitElectrocardiogramClaim.symptomsStatusCodes[ecg.symptomsStatus] else {
@@ -218,8 +231,12 @@ struct HealthKitECGContent: Sendable {
             period: FHIRPrimitive(FHIRDecimal(evidence.waveform.period))
         )
         observation.component = [ObservationComponent(code: lead, value: .sampledData(voltages))]
-        observation.hasMember = symptoms.isEmpty ? nil : symptoms.map { symptom in
-            Reference(identifier: symptom.fhirIdentifier, type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.observation.rawValue)))
+        observation.hasMember = if let symptoms {
+            symptoms.isEmpty ? nil : symptoms.map { symptom in
+                Reference(identifier: symptom.fhirIdentifier, type: FHIRPrimitive(FHIRURI(stringLiteral: ResourceType.observation.rawValue)))
+            }
+        } else {
+            [Self.unreadableSymptoms]
         }
         return observation
     }

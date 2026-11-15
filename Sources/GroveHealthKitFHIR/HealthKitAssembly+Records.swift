@@ -39,10 +39,10 @@ extension HealthKitAssembly {
     /// Converts an ECG whose evidence is read and validated (``HealthKitContentPlan/ecgEvidence(_:voltages:)``) and every
     /// correlated symptom as independently exchangeable source records, each symptom under the request keyed by its
     /// sample's UUID: the symptoms are validated first, each converting as its own record, then the waveform and its
-    /// average heart rate are built.
+    /// average heart rate are built. `nil` symptoms could not be read; a present ECG then states them as unknown.
     func convertECG(
         _ evidence: HealthKitECGContent.Evidence,
-        symptoms: [HKCategorySample],
+        symptoms: [HKCategorySample]?, // swiftlint:disable:this discouraged_optional_collection
         plan: HealthKitContentPlan = HealthKitContentPlan[.electrocardiogram],
         request: Request,
         symptomRequests: [UUID: Request]
@@ -52,19 +52,22 @@ extension HealthKitAssembly {
         }
         let ecg = evidence.electrocardiogram
         let companions = try symptomConversions(symptoms, status: ecg.symptomsStatus, symptomRequests: symptomRequests)
-        let outputs = try content.outputs(evidence, symptoms: companions.map(\.identifiers.primaryOutput))
+        let outputs = try content.outputs(evidence, symptoms: companions.map { $0.map(\.identifiers.primaryOutput) })
         let primary = try graph(for: ecg, type: plan.sourceType, metadata: evidence.metadata, outputs: outputs, request: request)
-        return [primary] + companions
+        return [primary] + (companions ?? [])
     }
 
-    /// Each correlated symptom as its own record, in the deterministic order the ECG references them.
+    /// Each correlated symptom as its own record, in the deterministic order the ECG references them; `nil` when the
+    /// present symptoms could not be read.
     private func symptomConversions(
-        _ correlatedSymptoms: [HKCategorySample],
+        _ correlatedSymptoms: [HKCategorySample]?, // swiftlint:disable:this discouraged_optional_collection
         status: HKElectrocardiogram.SymptomsStatus,
         symptomRequests: [UUID: Request]
-    ) throws -> [Conversion] {
+    ) throws -> [Conversion]? { // swiftlint:disable:this discouraged_optional_collection
         // Validation comes first, so an unsupported or duplicated symptom is refused as such.
-        let symptoms = try HealthKitECGContent.validatedSymptoms(correlatedSymptoms, status: status)
+        guard let symptoms = try HealthKitECGContent.validatedSymptoms(correlatedSymptoms, status: status) else {
+            return nil
+        }
         return try symptoms.flatMap { symptom in
             guard let request = symptomRequests[symptom.uuid] else {
                 // The exporter keys every symptom of a registered type, and validation admits only registered types.

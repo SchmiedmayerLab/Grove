@@ -104,6 +104,7 @@ extension HealthKitConversionError {
         case samplingFrequencyMismatch
         case unsupportedClassification(Int)
         case unsupportedSymptomsStatus(Int)
+        /// A present symptoms status with no symptom; pass `nil` symptoms when they could not be read.
         case symptomsRequired
         case unexpectedSymptoms
         case unsupportedSymptomType(String)
