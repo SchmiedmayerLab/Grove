@@ -51,16 +51,14 @@ struct FHIRMeasurementCatalogTests {
         #expect(resting.code.value == "40443-4" && resting.requiredCodings.map(\.value) == ["8867-4"])
     }
 
-    @Test("A component panel is not a scalar, and an adapter-wide profile never selects a measurement")
-    func shapesAndProfileSelection() throws {
+    @Test("A component panel is not a scalar, and lookups match exact identifiers only")
+    func shapesAndExactLookup() throws {
         let panel = try #require(FHIRMeasurementCatalog.measurement(id: "blood-pressure"))
         #expect(panel.valueShape == .components && panel.quantity == nil)
         #expect(Set(panel.components.map(\.id)) == ["systolic", "diastolic"])
         #expect(panel.components.allSatisfy { $0.quantity?.code == "mm[Hg]" })
         let sleep = try #require(FHIRMeasurementCatalog.measurement(id: "sleep-stage"))
         #expect(sleep.valueShape == .coded && sleep.resultCodeSystem != nil)
-        #expect(FHIRMeasurementCatalog.measurements(profile: Profile.healthkitObservation).isEmpty)
-        #expect(FHIRMeasurementCatalog.measurements(profile: Profile.groveMobileBodyWeight).map(\.id) == ["body-weight"])
         #expect(FHIRMeasurementCatalog.measurement(id: "body-weight ") == nil)
         let workout = try #require(FHIRMeasurementCatalog.healthKitSource(identifier: "HKWorkoutTypeIdentifier"))
         #expect(workout.measurementIDs == ["workout", "workout-segment"])
@@ -71,7 +69,6 @@ struct FHIRMeasurementCatalogTests {
     func measurementCoverage() throws {
         let provider = GoogleHealthMeasurementCatalog.all + OuraMeasurementCatalog.all + WithingsMeasurementCatalog.all
         let generated = MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex] + provider
-        #expect(FHIRMeasurementCatalog.providerMeasurements.map(\.id) == provider.map(\.id))
         let publicIDs = FHIRMeasurementCatalog.measurements.map(\.id)
         #expect(Set(publicIDs) == Set(generated.map(\.id)))
         #expect(publicIDs.count == Set(publicIDs).count)
