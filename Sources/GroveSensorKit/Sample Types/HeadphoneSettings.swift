@@ -13,6 +13,8 @@ public import GroveFoundation
 public import SensorKit
 
 
+// `SRHeadphoneSettings` exists only in the iOS 27 SDK.
+#if compiler(>=6.4)
 @available(iOS 27, *)
 extension SRHeadphoneSettings: SensorKitSampleProtocol {
     /// Immutable typed settings, including explicit unsupported/disabled states and optional hearing assistance.
@@ -86,5 +88,6 @@ extension Sensor where Sample == SRHeadphoneSettings {
         )
     }
 }
+#endif
 
 #endif

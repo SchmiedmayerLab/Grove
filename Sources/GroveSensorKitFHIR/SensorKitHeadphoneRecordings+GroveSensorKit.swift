@@ -14,6 +14,8 @@ public import GroveSensorKit
 public import SensorKit
 
 
+// `CMRecordedDeviceMotion` and `SRHeadphoneSettings` exist only in the iOS 27 SDK.
+#if compiler(>=6.4)
 @available(iOS 27, *)
 extension CMRecordedDeviceMotion.SafeRepresentation: SensorKitTabularSample {
     public static var groveSourceToken: String { "SRSensor.headphoneMotion" }
@@ -62,5 +64,6 @@ extension SRHeadphoneSettings.SafeRepresentation: SensorKitTabularSample {
         ]
     }
 }
+#endif
 
 #endif

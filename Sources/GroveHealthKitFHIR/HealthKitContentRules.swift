@@ -225,6 +225,7 @@ extension HealthKitContentRules {
     static let groups: [RuleGroup] = categoryGroups + recordGroups + currentPlatformGroups
 
     private static let currentPlatformGroups: [RuleGroup] = {
+        #if compiler(>=6.4)
         guard #available(iOS 27, macOS 27, watchOS 27, *) else {
             return []
         }
@@ -234,6 +235,10 @@ extension HealthKitContentRules {
             rows: [.menopause: .init("menopause"), .perimenopause: .init("perimenopause"), .none: .init("none")]
         )
         return [RuleGroup(.observation(.coded(state)), [.menopausalState])]
+        #else
+        // Before the iOS 27 SDK, HealthKit has no menopausal state values; `isAvailable(_:)` refuses the type.
+        return []
+        #endif
     }()
 
     /// The category rules.
@@ -293,13 +298,15 @@ extension HealthKitContentRules {
         RuleGroup(.clinicalRecord(typeCode: "vital-sign-record"), [.vitalSignRecord])
     ]
 
-    /// A source introduced in platform 27 cannot be acquired on earlier systems.
+    /// A source introduced in platform 27 cannot be acquired on earlier systems, nor by code built with an earlier SDK.
     static func isAvailable(_ type: HealthKitSourceType) -> Bool {
         switch type {
         case .bleedingAfterMenopause, .menopausalState, .heartRateVariabilityRMSSD:
+            #if compiler(>=6.4)
             if #available(iOS 27, macOS 27, watchOS 27, *) {
                 return true
             }
+            #endif
             return false
         default:
             return true
