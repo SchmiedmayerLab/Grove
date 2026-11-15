@@ -129,6 +129,24 @@ public struct ExchangeBundlePacker: Sendable {
         return unpacked
     }
 
+    /// The exact serialized Bundle size without allocating or validating its complete payload.
+    /// Includes the header, entry separators and optional transport identifier.
+    /// Use this while selecting a batch; ``bundle(packedAt:transportIdentifier:)`` still validates the completed graph.
+    public func bundleByteCount(
+        packedAt: Date,
+        transportIdentifier: BusinessIdentifier? = nil
+    ) throws(ExchangeGraphError) -> Int {
+        guard (try? ExchangeInstant.fhirInstant(packedAt)) != nil else {
+            throw .invalidEntries("A Bundle's packing instant has no FHIR instant")
+        }
+        let header = kind.graphKind.bundleBytes(
+            entries: [],
+            timestamp: ExchangeInstant.utcLexeme(packedAt),
+            transportIdentifier: transportIdentifier
+        )
+        return header.json.count + byteCount + max(0, entries.count - 1)
+    }
+
     /// The Bundle of every packed record, validated as ``ExchangeGraph/init(validating:kind:)`` validates stored bytes.
     ///
     /// - Parameters:
