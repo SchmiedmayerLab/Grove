@@ -6,7 +6,6 @@
 // SPDX-License-Identifier: MIT
 //
 
-public import CoreMotion
 public import Foundation
 public import SensorKit
 
@@ -56,27 +55,4 @@ extension SRWristTemperatureSession: SensorKitSampleProtocol {
 @available(iOS 17.4, *)
 extension SRPhotoplethysmogramSample: SensorKitSampleProtocol {
     public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRPhotoplethysmogramSample>
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension SRSpeechMetrics: SensorKitSampleProtocol {
-    public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRSpeechMetrics>
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension SRMediaEvent: SensorKitSampleProtocol {
-    public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRMediaEvent>
-}
-
-
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension SRFaceMetrics: SensorKitSampleProtocol {
-    public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<SRFaceMetrics>
-}
-
-
-extension CMOdometerData: SensorKitSampleProtocol {
-    public typealias SafeRepresentation = DefaultSensorKitSampleSafeRepresentation<CMOdometerData>
 }

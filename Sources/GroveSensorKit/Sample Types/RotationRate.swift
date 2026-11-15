@@ -21,6 +21,12 @@ extension CMRecordedRotationRateData: SensorKitSampleProtocol {
             timestamp..<timestamp
         }
         
+        /// Creates a rotation-rate sample.
+        public init(timestamp: Date, rotationRate: CMRotationRate) {
+            self.timestamp = timestamp
+            self.rotationRate = rotationRate
+        }
+
         @inlinable
         init(_ sample: CMRecordedRotationRateData) {
             timestamp = sample.startDate

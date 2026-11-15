@@ -61,6 +61,10 @@ The safe representation retains the source session identifier, every observed pr
 the per-point flags, and the waveform values. This lets downstream persistence preserve the complete
 native evidence instead of reconstructing it from the clinical waveform alone.
 
+A keyboard-metrics report, a face-metrics sample, a media event, a speech-metrics sample and an odometer record are each copied field by field, so the value you receive holds no SensorKit object.
+An odometer record's ``SensorKitSampleSafeRepresentation/timeRange`` is the interval the record covers, and a keyboard-metrics report's the interval the report spans.
+A face-metrics sample leaves out `SRFaceMetrics.faceAnchor`, which exists only in device builds and carries the face's complete geometry.
+
 
 #### Fetching Data: Standalone One-Off Queries
 Use ``Sensor/fetch(from:timeRange:)`` and ``Sensor/fetch(from:mostRecentAvailable:)`` to perform one-off queries:
