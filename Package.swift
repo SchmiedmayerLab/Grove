@@ -965,7 +965,8 @@ var targets: [Target] = [
         name: "GroveFoundationTests",
         dependencies: [
             .target(name: "GroveFoundation"),
-            .target(name: "GroveLegacyIdentifiers")
+            .target(name: "GroveLegacyIdentifiers"),
+            .product(name: "libzstd", package: "zstd")
         ],
         exclude: testTargetExcludes("GroveFoundationTests", additional: ["UITests"]),
         swiftSettings: defaultSwiftSettings,
