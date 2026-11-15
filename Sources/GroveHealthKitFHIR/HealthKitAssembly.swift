@@ -134,14 +134,12 @@ struct HealthKitAssembly: Sendable {
         for index in outputs.indices {
             outputs[index].wasUserEntered = facts.wasUserEntered
         }
-        // A writer-record identity travels only with its version, and only an Observation carries the version
-        // extension; a document states neither, though the pair is still validated.
-        if case .observation = outputs[0].resource {
-            outputs[0].writerRecord = facts.writerRecord
-            if type == .workout {
-                for index in outputs.indices.dropFirst() {
-                    outputs[index].writerRecord = facts.writerRecord
-                }
+        // The primary, an Observation or the record's sole document, states the writer-record identity and its version;
+        // a workout's segments restate them. The readable sync identifier travels on the primary alone.
+        outputs[0].writerRecord = facts.writerRecord
+        if type == .workout {
+            for index in outputs.indices.dropFirst() {
+                outputs[index].writerRecord = facts.writerRecord
             }
         }
         let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice)
@@ -161,12 +159,15 @@ struct HealthKitAssembly: Sendable {
         var validation = Swift.Duration.zero
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts))
             .assemble(draft, onValidation: options.measuresThroughput ? { validation += $0 } : nil)
-        let withheld = metadata.withheldKeys(
+        var withheld = metadata.withheldKeys(
             in: outputs,
             device: facts.recordingDevice,
             preservedSampleKeys: sourceMetadata.preservedKeys,
             excludesSampleMetadata: options.metadata == .omit
         )
+        if facts.withholdsSyncIdentifier {
+            withheld = (withheld + [HKMetadataKeySyncIdentifier]).sorted()
+        }
         return Conversion(
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,

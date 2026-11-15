@@ -120,6 +120,7 @@ let enrollment = try StudyEnrollment(
 
 Every disclosure policy defaults to omission.
 ``GovernedSourceIdentifierDisclosurePolicy/authorized(system:type:)`` discloses the clear native record identifier under a system you own; each adapter's exporter options state the rest, such as HealthKit's workout route.
+For a HealthKit sample that carries a sync identifier, the same policy discloses its exact text as a second identifier typed `healthkit-sync-id`, whose system extends the authorized one with `healthkit-sync-identifier` and the writing application's bundle identifier.
 
 The exporters assign no resource id.
 A ``RepositoryID`` is a logical id your repository already assigned, which `GroveQuestionnaireFHIR` states on a Questionnaire or QuestionnaireResponse it builds when you pass one.

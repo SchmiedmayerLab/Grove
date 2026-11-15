@@ -115,9 +115,33 @@ Grove carries every source fact, and a deployment that shares data applies its o
 Workout routes and clear native identifiers default to omission and are emitted only under an explicit authorized option. An omission an option chose never warns. Supported sample metadata is preserved by default, as described below.
 ``HealthKitFHIRExporter/Options/nativeIdentifier`` governs both paths: the primary output of an export and the target of a retraction carry the HealthKit UUID under the same authorized system.
 
+### Sync identifiers
+
+A sample's `HKMetadataKeySyncIdentifier` and `HKMetadataKeySyncVersion` name one logical record of its writing application and that record's version.
+Under every option, the primary output carries them as the keyed `writer-record` identifier, scoped to the subject and the source's bundle identifier, and the Grove Writer Record Version extension: an Observation, or the document of a heartbeat series, workout route, clinical record or CDA document. A workout's segments restate both.
+The keyed identifier links the versions of one logical record without revealing the sync identifier.
+
+``HealthKitFHIRExporter/Options/nativeIdentifier`` also discloses the exact sync identifier text; no separate option exists.
+While it authorizes a system, the primary output carries a second readable identifier beside the HealthKit UUID:
+
+| Element | Content |
+|---|---|
+| `Identifier.type` | the `healthkit-sync-id` coding of the HealthKit identifier types |
+| `Identifier.system` | the authorized system, then `healthkit-sync-identifier`, then the source's bundle identifier |
+| `Identifier.value` | the exact sync identifier text |
+
+Authorize a system that is scoped to one participant's HealthKit store, so that equal sync identifiers of two participants, like those of two writing applications, have different systems.
+Authorizing it discloses the bundle identifier of the application that wrote such a sample, even where ``HealthKitFHIRExporter/Options/writer`` states no writer.
+A bundle identifier that contains anything but ASCII letters, digits, hyphens and periods cannot name the system: the readable identifier is then withheld, and the record reports `HKMetadataKeySyncIdentifier` as a withheld key.
+While the option is `.omit`, the sync identifier text is exported in no element, and only the keyed `writer-record` identifier represents it.
+
+The sync pair is never an entry of the metadata extension. A sample whose source states no bundle identifier has no writer record, so its record reports both keys as withheld.
+The readable identifier is traceability, not identity: source-record and source-output identities, Bundle entry keys, deduplication, receipts and retractions do not read it, and disclosing or omitting it changes only the record version.
+A malformed pair refuses the record under every option.
+
 ## Preserving source metadata
 
-``HealthKitFHIRExporter/Options/metadata`` defaults to `.authorized`, preserving otherwise unmapped sample metadata on the primary output. Values faithfully represented by clinical elements, recording Devices or other IG-defined constructs are not duplicated. When an `HKDevice` fact conflicts with sample metadata, the device fact takes precedence and the different metadata value remains in the typed extension. Set it to `.omit` for an explicit deployment exclusion. Strings, finite numbers, Booleans, dates, known SDK enumerations and quantities with supported compatible units retain their types. Custom keys are preserved; arrays, nested dictionaries, binary values and unsupported quantity dimensions remain observable omissions. The native UUID option remains independent.
+``HealthKitFHIRExporter/Options/metadata`` defaults to `.authorized`, preserving otherwise unmapped sample metadata on the primary output. Values faithfully represented by clinical elements, recording Devices or other IG-defined constructs are not duplicated. When an `HKDevice` fact conflicts with sample metadata, the device fact takes precedence and the different metadata value remains in the typed extension. Set it to `.omit` for an explicit deployment exclusion. Strings, finite numbers, Booleans, dates, known SDK enumerations and quantities with supported compatible units retain their types. Custom keys are preserved; arrays, nested dictionaries, binary values and unsupported quantity dimensions remain observable omissions. The sync identifier and version are identity rather than metadata, as <doc:ConfiguringTheExporter#Sync-identifiers> describes, and the native identifier option remains independent.
 
 The container uses `https://grovealliance.org/fhir/core/StructureDefinition/metadata`. Each `entry` has a `key` child containing the exact runtime key and a `value` child containing its typed value. Metadata participates in record versioning: changing the exported metadata changes the record version while source and output identifiers remain stable. Preserve staged records verbatim for retries.
 

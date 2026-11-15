@@ -1117,6 +1117,18 @@ def generate(catalog_directory: Path) -> str:
     metadata = healthkit_catalog["metadataExtension"]
     if metadata["valueElements"] != ["valueString", "valueDecimal", "valueBoolean", "valueDateTime", "valueCoding", "valueQuantity"]:
         raise ValueError("HealthKit metadata must preserve the six supported typed values")
+    sync_identifier = healthkit_catalog["identity"]["writerRecord"]["revision"]["readableIdentifier"]
+    if (
+        sync_identifier["writerSegment"] != "bundle-identifier"
+        or sync_identifier["writerSegmentPattern"] != "^[A-Za-z0-9.-]+$"
+        or sync_identifier["resourceTypes"] != ["Observation", "DocumentReference"]
+        or sync_identifier["sourceField"] not in metadata["excludedKeys"]
+    ):
+        raise ValueError(
+            "HealthKit readable sync identifier must be an excluded metadata key that Observation and "
+            "DocumentReference outputs state under the writer's bundle identifier of ASCII letters, digits, hyphens "
+            "and periods"
+        )
     source_type_extension = healthkit_catalog["sourceTypeExtension"]
     if (
         source_type_extension["valueElement"] != "valueCode"
@@ -1191,6 +1203,15 @@ def generate(catalog_directory: Path) -> str:
         raise ValueError("body-mass-index is a standard adapter claim, not a catalog measurement")
     lines.extend([
         f"    package static let metadataExtensionURL = {swift_string(metadata['url'])}",
+        "    /// The metadata keys the typed extension never carries: the writer-record identity represents them.",
+        "    package static let metadataExcludedKeys: Set<String> = ["
+        + ", ".join(swift_string(key) for key in metadata["excludedKeys"]) + "]",
+        "    package static let syncIdentifierTypeSystem: FHIRPrimitive<FHIRURI> = "
+        f"{swift_string(sync_identifier['typeSystem'])}",
+        f"    package static let syncIdentifierTypeCode = {swift_string(sync_identifier['typeCode'])}",
+        "    /// The path segment between the store scope and the writing application in a readable sync identifier's system.",
+        "    package static let syncIdentifierSystemPathSegment = "
+        f"{swift_string(sync_identifier['systemPathSegment'])}",
         "    package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "
         f"{swift_string(source_type_extension['url'])}",
         "    package static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = "

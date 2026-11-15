@@ -258,6 +258,25 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                 "metadataExtension": {
                     "url": "https://grovealliance.org/fhir/core/StructureDefinition/metadata",
                     "valueElements": ["valueString", "valueDecimal", "valueBoolean", "valueDateTime", "valueCoding", "valueQuantity"],
+                    "excludedKeys": ["HKMetadataKeySyncIdentifier", "HKMetadataKeySyncVersion"],
+                },
+                "identity": {
+                    "writerRecord": {
+                        "revision": {
+                            "readableIdentifier": {
+                                "sourceField": "HKMetadataKeySyncIdentifier",
+                                "typeSystem": (
+                                    "https://grovealliance.org/fhir/healthkit/CodeSystem/"
+                                    "healthkit-identifier-type"
+                                ),
+                                "typeCode": "healthkit-sync-id",
+                                "resourceTypes": ["Observation", "DocumentReference"],
+                                "systemPathSegment": "healthkit-sync-identifier",
+                                "writerSegment": "bundle-identifier",
+                                "writerSegmentPattern": "^[A-Za-z0-9.-]+$",
+                            },
+                        },
+                    },
                 },
                 "sourceTypeExtension": {
                     "url": (
@@ -741,6 +760,11 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn("package static let electrocardiogramProfiles", generated)
         self.assertIn("package static let sourceTypeExtension", generated)
         self.assertIn('metadataExtensionURL = "https://grovealliance.org/fhir/core/StructureDefinition/metadata"', generated)
+        self.assertIn(
+            'metadataExcludedKeys: Set<String> = ["HKMetadataKeySyncIdentifier", "HKMetadataKeySyncVersion"]', generated
+        )
+        self.assertIn('package static let syncIdentifierTypeCode = "healthkit-sync-id"', generated)
+        self.assertIn('package static let syncIdentifierSystemPathSegment = "healthkit-sync-identifier"', generated)
         # Members no Swift code reads are not generated.
         for unread in ("catalogVersion", "sourceTypeCodeSystem", "electrocardiogramSourceTypeIdentifier", "bodyMassIndexProfiles"):
             self.assertNotIn(unread, generated)
@@ -790,6 +814,21 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "must be sorted"):
             self.generate(catalogs)
+
+    def test_rejects_a_readable_sync_identifier_it_does_not_emit(self):
+        cases = [
+            ("writerSegment", "base64url"),
+            ("writerSegmentPattern", "^.+$"),
+            ("resourceTypes", ["Observation"]),
+            ("sourceField", "HKMetadataKeyExternalUUID"),
+        ]
+        for field, value in cases:
+            catalogs = self.catalogs()
+            identity = catalogs["healthkit-adapter.json"]["identity"]["writerRecord"]["revision"]
+            identity["readableIdentifier"][field] = value
+
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "readable sync identifier"):
+                self.generate(catalogs)
 
     def test_rejects_mismatched_clinical_release_representation(self):
         catalogs = self.catalogs()

@@ -137,6 +137,7 @@ let producer = try ExchangeProducer(
 
 Every device and source fact HealthKit supplies travels, a serial number and a name a person gave the device included: a consumer filters what it does not need, and a deployment that shares data applies its own policy to the sensitive ones.
 The disclosures in ``HealthKitFHIRExporter/Options`` default to omission: a workout route needs `route` `.authorized`, and the clear HealthKit UUID needs `nativeIdentifier` to authorize a system you own.
+Authorizing `nativeIdentifier` also discloses the exact sync identifier of a sample that carries one, under a system that names the writing application's bundle identifier; <doc:ConfiguringTheExporter#Sync-identifiers> describes it.
 
 ```swift
 var options = HealthKitFHIRExporter.Options()
@@ -164,7 +165,7 @@ A sample that cannot be exported is refused in place with a ``HealthKitConversio
 ``HealthKitFHIRExporter/Export/warnings`` lists what a record does not carry although its sample did, each a registered `ProducerDiagnostic`; log them with that record.
 `mobile-omission.source-offset` is located at the effective element, such as `Observation.effectiveDateTime`, that is in UTC because the sample named no time zone; a blood-pressure correlation that names none takes the zone its systolic and diastolic members agree on.
 `mobile-omission.unmodeled-metadata` is located at `HKSample.metadata`: the sample, or a correlation member, workout event or workout activity it contains, carried metadata its record does not represent.
-A source-sample key is represented by its clinical mapping or by the typed source-metadata extension on the primary output. The extension also preserves supported custom keys, a document's time zone and available device metadata even when no recording Device carries it. This preservation does not invent a clinical interpretation or change a mapped value.
+A source-sample key is represented by its clinical mapping or by the typed source-metadata extension on the primary output. The sync identifier and version are represented only by the writer record of the primary output, never by the extension, and are withheld when the source states no bundle identifier. The extension also preserves supported custom keys, a document's time zone and available device metadata even when no recording Device carries it. This preservation does not invent a clinical interpretation or change a mapped value.
 Contained metadata remains associated with its owner: a parent key does not represent a same-named key on a correlation member, workout event or activity. A blood-pressure member's zone or manual entry follows the guide's correlation rules; other unrepresented contained keys remain omissions.
 ``HealthKitFHIRExporter/Export/metadata`` reports counts of preserved, unsupported and intentionally excluded source-sample keys without exposing their values. Unsupported classes and quantities without a supported compatible unit remain observable; no value is silently stringified.
 An omission an option chose, such as a route under `.omit`, is never a warning. Setting the metadata option to `.omit` reports excluded keys in the metadata summary separately from conversion failures.

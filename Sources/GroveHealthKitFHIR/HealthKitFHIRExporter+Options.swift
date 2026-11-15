@@ -31,6 +31,16 @@ extension HealthKitFHIRExporter {
         public var role: RolePolicy = .assembler
         /// Discloses the clear HealthKit UUID as an identifier under a system the deployment owns, on the primary
         /// output and on retraction targets. This is the only way it reaches the wire.
+        ///
+        /// For a sample that carries a sync identifier and version, authorizing it also discloses the exact
+        /// `HKMetadataKeySyncIdentifier` text on the primary output, as a second identifier whose system is the
+        /// authorized system, then `healthkit-sync-identifier`, then the writing source's bundle identifier. Authorizing
+        /// it therefore discloses the bundle identifier of the application that wrote such a sample, even where
+        /// ``writer`` states no writer. A bundle identifier that contains anything but ASCII letters, digits, hyphens
+        /// and periods cannot name that system: the text is then withheld and `HKMetadataKeySyncIdentifier` is reported
+        /// as a withheld key. While it is `.omit`, the sync identifier text reaches the wire in no element: only the
+        /// keyed writer-record identity represents it. The authorized system is scoped to one participant's HealthKit
+        /// store, which keeps equal sync identifiers of two participants apart.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
         /// Whether a workout route becomes a recording document; a route re-identifies readily.
         ///
@@ -64,8 +74,7 @@ extension HealthKitFHIRExporter {
     /// says. A sample's sync identifier and version likewise
     /// travel as its writer-record identity, scoped to the source's bundle identifier, under every policy; a
     /// malformed pair (a half pair, a blank or non-text identifier, a version that is not a non-negative integral
-    /// number) refuses the record, a recording document too, although a document carries no writer-record identity
-    /// (HealthKit guide `mapping.md`, logical identity and revisions).
+    /// number) refuses the record (HealthKit guide `mapping.md`, logical identity and revisions).
     public enum WriterPolicy: Sendable {
         /// No writer is stated, and the Provenance names no author. The default.
         case omit

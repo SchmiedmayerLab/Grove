@@ -38,9 +38,12 @@ public final class HealthKitFHIRExporter: Sendable {
         repositoryScope: BusinessIdentifier,
         options: Options = Options()
     ) throws(ConfigurationError) {
-        if case .authorized(let system, _) = options.nativeIdentifier,
-           producer.identityScope.systems.all.contains(system) {
-            throw .reservedNativeIdentifierSystem(system)
+        // Neither the native record identifier nor a readable sync identifier derived from it may use a Grove system.
+        if case .authorized(let system, _) = options.nativeIdentifier {
+            let syncIdentifierPrefix = GovernedSourceIdentifierDisclosurePolicy.syncIdentifierSystemPrefix(in: system)
+            guard !producer.identityScope.systems.all.contains(where: { $0 == system || $0.rawValue.hasPrefix(syncIdentifierPrefix) }) else {
+                throw .reservedNativeIdentifierSystem(system)
+            }
         }
         self.producer = producer
         self.options = options

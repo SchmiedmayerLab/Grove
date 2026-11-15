@@ -46,6 +46,15 @@ extension GoldenCase {
             )
             return try await GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)))
         },
+        // A document states the writer record, its version and the readable sync identifier as an Observation does.
+        GoldenCase("heartbeat-series-sync-identifier-disclosure") {
+            var facts = seriesFacts(uuid: 57, duration: 2)
+            facts.metadata = syncMetadata
+            let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
+            var inputs = ExportInputs()
+            inputs.options.nativeIdentifier = .authorized(system: ExporterGolden.deploymentNativeIdentifierSystem)
+            return try await GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)), inputs)
+        },
         GoldenCase("workout-route") {
             let route = try StoredSampleFixtures.seriesSample(
                 HKWorkoutRoute.self,

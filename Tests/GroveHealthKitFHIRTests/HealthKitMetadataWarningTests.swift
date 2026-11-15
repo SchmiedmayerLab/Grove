@@ -20,7 +20,7 @@ import Testing
 /// Unsupported values and unrepresented contained-object metadata remain visible as omissions.
 @Suite
 struct HealthKitMetadataWarningTests {
-    /// A valid sync pair, which an attributable writer's Observation carries and a document never does.
+    /// A valid sync pair, which the primary output of an attributable writer's record carries.
     static let syncPair: [String: any Sendable] = [HKMetadataKeySyncIdentifier: "sync-abc", HKMetadataKeySyncVersion: 3]
 
     /// The warning a graph that withholds metadata keys reports, whichever keys they are.
@@ -85,7 +85,7 @@ struct HealthKitMetadataWarningTests {
         try convert(StoredSampleFixtures.quantitySample(HKQuantityType(.stepCount), value: 120, unit: .count(), facts: facts(0xF7, duration: 60, metadata: metadata)))
     }
 
-    @Test("A recording document preserves metadata without inventing writer identity")
+    @Test("A recording document preserves metadata and states the writer record of its sync pair")
     func documentsPreserveTheirMetadata() throws {
         let metadata = GoldenFixtures.timeZoneMetadata.merging(Self.syncPair) { $1 }
             .merging([HKMetadataKeyWasUserEntered: true, "com.example.note": "x"]) { $1 }
@@ -109,7 +109,7 @@ struct HealthKitMetadataWarningTests {
             #expect(conversion.warnings.isEmpty, "\(conversion.source.typeIdentifier)")
             let documents = conversion.record.bundle.entry?.compactMap { $0.resource?.get(if: DocumentReference.self) } ?? []
             let roles = try documents.flatMap { try ($0.identifier ?? []).map { try RoledIdentifier($0).role } }
-            #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact], "\(conversion.source.typeIdentifier)")
+            #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact, .writerRecord], "\(conversion.source.typeIdentifier)")
             #expect(try HealthKitWriterRecordPairingTests.unpairedWriterRecords(in: LosslessJSONValue(parsing: conversion.record.json)).isEmpty)
         }
     }
@@ -174,12 +174,12 @@ struct HealthKitMetadataWarningTests {
         #expect(!String(decoding: entered.record.json, as: UTF8.self).contains("grove-recording-method"))
     }
 
-    @Test("A valid sync pair remains metadata without asserting an unattributable writer identity")
-    func unattributablePairRemainsMetadata() throws {
+    @Test("A valid sync pair is withheld rather than asserting an unattributable writer identity")
+    func unattributablePairIsWithheld() throws {
         let metadata = GoldenFixtures.timeZoneMetadata.merging(Self.syncPair) { $1 }
         let conversion = try Self.heartRate(metadata: metadata, writer: .unattributed)
-        #expect(conversion.withheldMetadataKeys.isEmpty)
-        #expect(conversion.warnings.isEmpty)
+        #expect(conversion.withheldMetadataKeys == [HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion])
+        #expect(conversion.warnings == [Self.unmodeled])
         #expect(!String(decoding: conversion.record.json, as: UTF8.self).contains("writer-record"))
         #expect(try Self.heartRate(metadata: metadata).warnings.isEmpty, "an attributable writer's Observation carries the pair")
     }

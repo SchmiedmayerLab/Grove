@@ -25,6 +25,9 @@ extension HealthKitAssembly {
         let sourceRevision: Extension?
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
+        /// Whether the deployment discloses readable identifiers but the writing source's bundle identifier cannot name
+        /// the system of the record's sync identifier, so its text is not exported.
+        let withholdsSyncIdentifier: Bool
         let wasUserEntered: Bool
 
         /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it.
@@ -45,8 +48,13 @@ extension HealthKitAssembly {
             }
             self.writer = try Self.writer(revision, classification: policies.writer)
             self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision) : nil
-            self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
-            self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
+            let writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
+            self.writerRecord = writerRecord
+            // One setting discloses both readable identifiers: the object's UUID, and the sync identifier of a writer record.
+            let syncIdentifier = writerRecord.flatMap(options.nativeIdentifier.syncIdentifier)
+            let uuid = options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())
+            self.nativeIdentifiers = [uuid, syncIdentifier].compactMap(\.self)
+            self.withholdsSyncIdentifier = options.nativeIdentifier.isAuthorized && writerRecord != nil && syncIdentifier == nil
             self.wasUserEntered = metadata.wasUserEntered
         }
     }

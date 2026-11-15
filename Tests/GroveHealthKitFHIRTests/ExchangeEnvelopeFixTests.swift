@@ -85,8 +85,8 @@ struct ExchangeEnvelopeFixTests {
     }
 
     #if !os(watchOS)
-    @Test("A document carries no writer-record identifier: the version that must travel with it has no carrier there")
-    func documentsCarryNoWriterRecord() async throws {
+    @Test("A document carries its writer-record identifier and the version that travels with it")
+    func documentsCarryTheirWriterRecord() async throws {
         var metadata = GoldenFixtures.timeZoneMetadata
         metadata[HKMetadataKeySyncIdentifier] = "document-1"
         metadata[HKMetadataKeySyncVersion] = 3
@@ -99,13 +99,13 @@ struct ExchangeEnvelopeFixTests {
         let stored = try StoredSampleFixtures.stored(document, uuid: GoldenFixtures.uuid(91), writer: GoldenFixtures.foreignWriter)
         let conversion = try await ExporterFixtures.export(stored)
         let roles = try conversion.document.identifier?.map { try RoledIdentifier($0).role } ?? []
-        #expect(!roles.contains(.writerRecord))
-        #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact])
+        #expect(roles == [.sourceRecord, .sourceOutput, .sourceArtifact, .writerRecord])
+        #expect(conversion.document.extension?.first { $0.url == Canonicals.writerRecordVersion }?.value == .string("3"))
     }
     #endif
 
     /// The guide requires the pair be rejected on every HealthKit source record (mapping.md, logical identity and
-    /// revisions), so a document refuses a malformed pair although it would not state the identity.
+    /// revisions), so a document refuses a malformed pair as an Observation does.
     @Test("A document refuses a malformed sync pair, as every HealthKit source record does")
     func documentsRefuseAMalformedSyncPair() async throws {
         let malformed: [[String: any Sendable]] = [
