@@ -163,15 +163,12 @@ struct HealthKitAssembly: Sendable {
         var validation = Swift.Duration.zero
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts))
             .assemble(draft, onValidation: options.measuresThroughput ? { validation += $0 } : nil)
-        var withheld = metadata.withheldKeys(
+        let withheld = (metadata.withheldKeys(
             in: outputs,
             device: facts.recordingDevice,
             preservedSampleKeys: sourceMetadata.preservedKeys.union(sourceEvidence.metadataKeys),
             excludedSampleKeys: sourceMetadata.excludedKeys
-        )
-        if facts.withholdsSyncIdentifier {
-            withheld = (withheld + [HKMetadataKeySyncIdentifier]).sorted()
-        }
+        ) + (facts.withholdsSyncIdentifier ? [HKMetadataKeySyncIdentifier] : [])).sorted()
         return Conversion(
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
