@@ -72,7 +72,7 @@ extension SensorKitTabularRecording {
         }
 
         /// Builds the same structured summary or raw document, referencing the file at an archive-relative path.
-        /// File and summary-storage failures propagate; they must not be treated as clinical record refusals.
+        /// File and batch-limit failures propagate; they must not be treated as clinical record refusals.
         public func sensorKitRecord(
             sourceRecordID: SensorKitSourceRecordID,
             title: String,

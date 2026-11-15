@@ -11,6 +11,7 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
+public import GroveFHIRContract
 
 
 /// A content-free SensorKit messages-usage interval summary: counts only, never content or identities.
@@ -160,14 +161,14 @@ public struct SensorKitAccelerometerRecord: Sendable {
         private init(readRows: (_ onRow: (RecordingCSVReader.Row) throws -> Void) throws -> Void) throws {
             var earliest = Double.infinity
             var latest = -Double.infinity
-            let batches = try RecordingBatchCounter()
+            var batches = RecordingBatchCounter()
             var sampleCount = 0
             try readRows { row in
                 let timestamp = try row.requiredNumber("timestamp")
                 _ = try row.requiredNumber("x")
                 _ = try row.requiredNumber("y")
                 _ = try row.requiredNumber("z")
-                guard let identifier = row["identifier"], UInt64(identifier) != nil else {
+                guard let identifier = row["identifier"].flatMap(UInt64.init) else {
                     throw RecordingCSVReader.RowValueError.malformedInteger(
                         column: "identifier",
                         value: row["identifier"] ?? ""

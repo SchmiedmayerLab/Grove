@@ -68,7 +68,7 @@ struct RecordingFileMemoryTests {
         let validated = try footprint()
         let summary = try SensorKitAccelerometerRecord(sourceRecordID: .init(UUID()), nativeRecording: input)
         let summarized = try footprint()
-        #expect(summary.sampleCount == size.rows && summary.batchCount == size.rows)
+        #expect(summary.sampleCount == size.rows && summary.batchCount == (size.rows + 49) / 50)
         let record = try await SensorKitExporterFixtures.record(.accelerometer(summary))
         #expect(record.json.count < 32 * 1024)
         let exported = try footprint()
@@ -78,7 +78,7 @@ struct RecordingFileMemoryTests {
         let measurement = Measurement(
             payloadBytes: file.byteCount,
             compressedBytes: compressedByteCount,
-            distinctBatches: size.rows,
+            distinctBatches: summary.batchCount,
             baselineBytes: baseline.current,
             lifetimePeakBytes: end.peak,
             excessBytes: excess,
@@ -108,7 +108,7 @@ struct RecordingFileMemoryTests {
         return compressed.byteCount
     }
 
-    /// Every row has a distinct batch key, so a retained Set would grow with the workload.
+    /// Fifty rows share a batch key, one second of a 50 Hz recording, so the batch index grows with the workload.
     private func generateCSV(at url: URL, minimumBytes: Int) throws -> (bytes: Int, rows: Int) {
         let handle = try FileHandle(forWritingTo: url)
         defer { try? handle.close() }
@@ -116,7 +116,7 @@ struct RecordingFileMemoryTests {
         var written = 0
         var rows = 0
         while written + buffer.count < minimumBytes {
-            buffer.append(contentsOf: "1787009400,\(rows),0.1,0.2,0.3,Watch\n".utf8)
+            buffer.append(contentsOf: "1787009400,\(rows / 50),0.1,0.2,0.3,Watch\n".utf8)
             rows += 1
             if buffer.count >= 64 * 1024 {
                 try autoreleasepool { try handle.write(contentsOf: buffer) }

@@ -272,7 +272,7 @@ If the source payload already is a complete R4 `collection` Bundle, declare the 
 
 ### File-backed sidecars
 
-The shared `GroveFHIRContract.RecordingCSVFileWriter` creates registered CSV bytes directly in an owned file. Use ``RecordingFile`` when a recording is already stored in a file. Staging makes an owned snapshot; validation, hashing, conversion and subsequent readers use that same snapshot even if the original changes or is removed.
+The shared `GroveFHIRContract.RecordingCSVFileWriter` creates registered CSV bytes directly in an owned file. Use `GroveFHIRContract.RecordingFile` when a recording is already stored in a file. Staging makes an owned snapshot; validation, hashing, conversion and subsequent readers use that same snapshot even if the original changes or is removed.
 
 ```swift
 func prepareRotationRecording(
@@ -292,19 +292,19 @@ func prepareRotationRecording(
 
 The file payload emits the same relative URL, size and SHA-1 attachment checksum as a Data sidecar. It embeds neither payload bytes nor local filesystem paths. SHA-1 is the FHIR R4 attachment checksum, not a signature or authorization mechanism.
 
-Staging, file reading and accelerometer summarization perform synchronous disk operations; call them from a background executor, including when summarizing Data-backed input. Staging rejects missing, empty, unreadable, symlinked and nonregular sources, applies the caller's byte limit during copying, and verifies that the source did not change during the copy. The limit cannot exceed the R4 attachment size bound of `Int32.max` bytes.
+Staging and file reading perform synchronous disk operations, and a summary reads every row; call them from a background executor, including when summarizing Data-backed input. Staging rejects missing, empty, unreadable, symlinked and nonregular sources, applies the caller's byte limit during copying, and verifies that the source did not change during the copy. The limit cannot exceed the R4 attachment size bound of `Int32.max` bytes.
 
-``RecordingFile/readChunks(_:)`` supplies chunks of at most 64 KiB. Readers have independent offsets and payload copies share ownership. The private staged file has no filesystem name and is reclaimed when its final owner releases it or the process exits. The next staging operation recovers empty abandoned creation files under a directory lock; it leaves nonempty files, unknown names, links and directories untouched. The original source is never removed or modified.
+`RecordingFile.readChunks(_:)` supplies chunks of at most 64 KiB. Readers have independent offsets and payload copies share ownership. The private staged file has no filesystem name and is reclaimed when its final owner releases it or the process exits. The next staging operation recovers empty abandoned creation files under a directory lock; it leaves nonempty files, unknown names, links and directories untouched. The original source is never removed or modified.
 
 This snapshot is temporary. Before acknowledging a batch, copy its chunks into your upload queue's durable storage and persist the retry evidence. Keeping a `RecordingFile` value does not make a queue survive process termination.
 
 | Payload | Validation and summary memory |
 | --- | --- |
-| Registered CSV | Incremental UTF-8 and CSV parsing; at most 4 MiB per encoded row and 1 MiB per decoded field, including the header. Accelerometer distinct-batch counts use a temporary disk index with a 1 MiB page-cache target and an explicit spill threshold. |
+| Registered CSV | Incremental UTF-8 and CSV parsing; at most 4 MiB per encoded row and 1 MiB per decoded field, including the header. Accelerometer summaries count distinct batches in memory, at most 1,000,000 per recording (about 17 MiB); a recording that states more is refused. |
 | JSON and PPG | Complete decoding, limited to 64 MiB before allocation. Larger payloads are refused. |
 | Clinical documents | Byte-preserved; Grove does not decode the issuing document format. |
 
-The limits apply to Data and file payloads. No path truncates bytes or splits a logical recording to satisfy a limit. ``RecordingCSVReader`` retains its resulting rows for callers that need an array; use ``RecordingCSVReader/Stream`` for incremental consumption. A stream's delivered rows remain provisional until `finish()` succeeds.
+The limits apply to Data and file payloads. No path truncates bytes or splits a logical recording to satisfy a limit. `RecordingCSVReader` retains its resulting rows for callers that need an array; use `RecordingCSVReader.Stream` for incremental consumption. A stream's delivered rows remain provisional until `finish()` succeeds.
 
 ### Generate a tabular recording directly into a file
 
@@ -328,11 +328,11 @@ let record = try recording.sensorKitRecord(
 try recording.file.readChunks { try destination.write(contentsOf: $0) }
 ```
 
-`readRetryEvidenceChunks` includes the algorithm-version prefix for wrist-temperature sessions; hashing only their CSV is not equivalent. The file's bytes are the sidecar content, without that prefix. Clinical summaries read the immutable recording and retain required-value checks. Disk, summary-index, byte-budget and cancellation failures must abort publication and leave the batch available for retry; they are not deterministic clinical refusals. A digest alone is not durable storage: complete queue staging before acknowledging collection.
+`readRetryEvidenceChunks` includes the algorithm-version prefix for wrist-temperature sessions; hashing only their CSV is not equivalent. The file's bytes are the sidecar content, without that prefix. Clinical summaries read the immutable recording and retain required-value checks. Disk, batch-limit, byte-budget and cancellation failures must abort publication and leave the batch available for retry; they are not deterministic clinical refusals. A digest alone is not durable storage: complete queue staging before acknowledging collection.
 
 ### Measure recording memory
 
-`RecordingFileMemoryTests` measures the process's physical-memory peak while generating, staging, validating, summarizing, exporting and compressing a file-backed accelerometer recording. Every row has a distinct batch identifier, so the workload exercises index growth as well as byte streaming. Run each size in a fresh process, with no other test suites selected:
+`RecordingFileMemoryTests` measures the process's physical-memory peak while generating, staging, validating, summarizing, exporting and compressing a file-backed accelerometer recording. Fifty rows share a batch identifier, one second at 50 Hz, so the workload exercises the batch index as well as byte streaming. Run each size in a fresh process, with no other test suites selected:
 
 ```sh
 GROVE_LOWERED_DEPLOYMENT_TARGETS=0 \
@@ -348,7 +348,7 @@ xcodebuild test -scheme Grove-Tests -testPlan GroveSensorKitFHIR \
 
 Repeat with `TEST_RUNNER_GROVE_RECORDING_MEMORY_MIB=8`. The test logs payload size, distinct batches, baseline, lifetime peak and per-stage measurements, and requires additional memory to stay below 64 MiB. This is a working-memory regression check, not a throughput benchmark or a guarantee for consumers that retain delivered chunks.
 
-On macOS 27.2 (26B123), using Xcode 27.2 (27B52) in Debug, the 8 MiB workload contained 236,103 distinct batches and used 11.7 MiB above baseline; the 128 MiB workload contained 3,657,536 distinct batches and used 11.3 MiB above baseline. These measurements cover CSV sidecars, streaming summaries and a Zstandard round trip with the default 8 MiB window; whole JSON/PPG decoding and inline payload encoding have separate memory costs.
+On macOS 27.2 (26B123), using Xcode 27.2 (27B52) in Debug, the 8 MiB workload contained 4,968 distinct batches and used 11.6 MiB above baseline; the 128 MiB workload contained 77,014 distinct batches and used 13.3 MiB above baseline. These measurements cover CSV sidecars, streaming summaries and a Zstandard round trip with the default 8 MiB window; whole JSON/PPG decoding and inline payload encoding have separate memory costs.
 
 ### What converts
 
@@ -384,7 +384,6 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitRecord``
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
-- ``RecordingFile``
 - ``SensorRawPayloadAdmission``
 
 ### Preparing fetched batches
@@ -397,7 +396,6 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 
 ### Recording payloads
 
-- ``RecordingCSVReader``
 - ``RecordingBinaryReader``
 - ``RecordingBinaryWriter``
 - ``SensorKitPPGRecording``
