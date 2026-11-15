@@ -150,6 +150,8 @@ extension SensorKit {
     /// Reuse the namespace when restoring the same source. Switching sources does not reset or
     /// acknowledge another source's pending batch. Acquisition-coordinate identity is unchanged.
     /// `initialStartDate` applies only to an empty time-interval cursor; established cursors are never reset.
+    /// A namespace's cursors and pending batches cannot be reset or discarded: ``resetQueryAnchors(for:)`` and
+    /// ``discardPendingBatches(for:)`` act only on the unscoped cursors, and a namespace's cursors stay stored after its source ends.
     @available(iOS 18, *)
     public func fetchAnchored<Sample>(
         _ sensor: Sensor<Sample>,
@@ -200,6 +202,7 @@ extension SensorKit {
     ///
     /// This will cause subsequent calls to ``fetchAnchored(_:batchSize:)`` to potentially re-fetch already-processed samples.
     /// A batch that was delivered but never acknowledged is abandoned along with the cursor.
+    /// Cursors of an acquisition namespace are not affected.
     public func resetQueryAnchors(for sensor: any AnySensor) async throws {
         try await forEachQueryAnchor(of: sensor) { try $0.reset() }
     }
@@ -210,7 +213,7 @@ extension SensorKit {
     /// promise to replay a pending batch exactly, and the fetcher refuses to continue until the pending batch is
     /// resolved. After discarding, the next ``fetchAnchored(_:batchSize:)`` fetches the same range again under a
     /// new reset generation, so its records get fresh acquisition coordinates and never collide with records the
-    /// consumer may already have published from the abandoned batch.
+    /// consumer may already have published from the abandoned batch. Pending batches of an acquisition namespace are not affected.
     public func discardPendingBatches(for sensor: any AnySensor) async throws {
         try await forEachQueryAnchor(of: sensor) { try $0.discardPendingBatch() }
     }
