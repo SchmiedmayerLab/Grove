@@ -4198,6 +4198,12 @@ package struct HealthKitContractRow: Sendable {
 /// Machine-generated HealthKit producer contract and complete source inventory.
 package enum HealthKitContract {
     package static let metadataExtensionURL = "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+    /// The metadata keys the typed extension never carries: the writer-record identity represents them.
+    package static let metadataExcludedKeys: Set<String> = ["HKMetadataKeySyncIdentifier", "HKMetadataKeySyncVersion"]
+    package static let syncIdentifierTypeSystem: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
+    package static let syncIdentifierTypeCode = "healthkit-sync-id"
+    /// The path segment between the store scope and the writing application in a readable sync identifier's system.
+    package static let syncIdentifierSystemPathSegment = "healthkit-sync-identifier"
     package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
     package static let conversionProvenanceProfile: FHIRPrimitive<Canonical> = Profile.healthkitConversionProvenance
     package static let applicationDeviceProfile: FHIRPrimitive<Canonical> = Profile.healthkitApplicationDevice
