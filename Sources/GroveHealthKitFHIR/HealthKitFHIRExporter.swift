@@ -73,20 +73,25 @@ public final class HealthKitFHIRExporter: Sendable {
     nonisolated(nonsending) public func export<Samples: Collection>(
         _ samples: Samples,
         at instant: Date = .now,
+        conversionInstants: [UUID: Date] = [:],
         receive: (Export) throws -> Void
     ) async throws where Samples.Element: HKSample {
-        try await export(records: samples.map { Record.sample($0) }, at: instant, receive: receive)
+        try await export(records: samples.map { Record.sample($0) }, at: instant, conversionInstants: conversionInstants, receive: receive)
     }
 
-    /// ``export(_:at:receive:)`` for records that carry companion data.
+    /// ``export(_:at:conversionInstants:receive:)`` for records that carry companion data.
     ///
     /// The records are planned first, then built and handed to `receive` in input order, on the calling task.
+    /// Explicit conversion instants apply to each source UUID, including independent food members and ECG symptoms.
+    /// Missing entries use `instant`; these dates describe conversion Provenance, not clinical or source acquisition time.
     nonisolated(nonsending) public func export(
         records: some Collection<Record>,
         at instant: Date = .now,
+        conversionInstants: [UUID: Date] = [:],
         receive: (Export) throws -> Void
     ) async throws {
-        guard (try? ExchangeInstant.fhirInstant(instant)) != nil else {
+        guard (try? ExchangeInstant.fhirInstant(instant)) != nil,
+              conversionInstants.values.allSatisfy({ (try? ExchangeInstant.fhirInstant($0)) != nil }) else {
             throw ExchangeIdentityError.invalidInstant
         }
         // `nil` unless this exporter measures its throughput; then every phase below is timed.
@@ -108,7 +113,7 @@ public final class HealthKitFHIRExporter: Sendable {
             }
         }
         try await ConcurrentBuild.forEach(plans, width: width) { plan in
-            self.build(plan, at: instant, measuring: measuring)
+            self.build(plan, at: instant, conversionInstants: conversionInstants, measuring: measuring)
         } hand: { plan, delivery in
             try hand(delivery, of: plan, measurement: measurement, receive: receive)
         }
@@ -139,6 +144,9 @@ extension HealthKitFHIRExporter {
         let primary: ResolvedPolicies?
         /// One entry per correlated symptom, in the record's order; `nil` for a symptom of an unregistered type.
         let symptoms: [ResolvedPolicies?]
+        /// Each food member retains its own writer and recording-device policy.
+        let foodMembers: [HKSample]
+        let foodPolicies: [ResolvedPolicies]
 
         var source: Export.Source {
             Export.Source(uuid: record.sample.uuid, typeIdentifier: record.sample.sampleType.identifier)
@@ -160,6 +168,14 @@ extension HealthKitFHIRExporter {
             self.omitted = omitted
             let primary = omitted || content == nil ? nil : ResolvedPolicies(sample, options: exporter.options)
             self.primary = primary
+            let foodMembers: [HKSample]
+            if case .food? = content?.route, let correlation = sample as? HKCorrelation {
+                foodMembers = correlation.objects.sorted { $0.uuid.uuidString < $1.uuid.uuidString }
+            } else {
+                foodMembers = []
+            }
+            self.foodMembers = foodMembers
+            self.foodPolicies = foodMembers.map { ResolvedPolicies($0, options: exporter.options) }
             self.symptoms = primary == nil ? [] : record.symptoms.map { symptom in
                 HealthKitContentPlan.plan(for: symptom) == nil ? nil : ResolvedPolicies(symptom, options: exporter.options)
             }
@@ -184,7 +200,7 @@ extension HealthKitFHIRExporter {
     }
 
     /// The exports of one planned record, built without the caller: refusals in place, records otherwise.
-    private func build(_ plan: Plan, at instant: Date, measuring: Bool) -> Delivery {
+    private func build(_ plan: Plan, at instant: Date, conversionInstants: [UUID: Date], measuring: Bool) -> Delivery {
         let start = measuring ? ContinuousClock.now : nil
         func delivery(_ exports: [Export], validation: Swift.Duration = .zero) -> Delivery {
             Delivery(exports: exports, building: start.map { ContinuousClock.now - $0 } ?? .zero, validation: validation)
@@ -197,7 +213,7 @@ extension HealthKitFHIRExporter {
             return delivery([Export(source: plan.source, outcome: .refused(refusal), warnings: [])])
         }
         do {
-            let conversions = try convert(plan, content: content, primary: primary, at: instant)
+            let conversions = try convert(plan, content: content, primary: primary, at: instant, conversionInstants: conversionInstants)
             return delivery(conversions.map(\.export), validation: conversions.reduce(.zero) { $0 + $1.validation })
         } catch {
             let failure = HealthKitConversionError(conversionFailure: error, source: plan.source.sourceType)
@@ -230,11 +246,18 @@ extension HealthKitFHIRExporter {
         _ plan: Plan,
         content: HealthKitContentPlan,
         primary: ResolvedPolicies,
-        at instant: Date
+        at instant: Date,
+        conversionInstants: [UUID: Date]
     ) throws -> [HealthKitAssembly.Conversion] {
-        let request = assemblyRequest(for: plan.record.sample, policies: primary, at: instant)
+        let request = assemblyRequest(for: plan.record.sample, policies: primary, at: conversionInstants[plan.source.uuid] ?? instant)
         switch plan.record {
         case .sample(let sample):
+            if case .food(let food) = content.route, let correlation = sample as? HKCorrelation {
+                let requests = zip(plan.foodMembers, plan.foodPolicies).map { member, policies in
+                    assemblyRequest(for: member, policies: policies, at: conversionInstants[member.uuid] ?? instant)
+                }
+                return try assembly.convertFood(correlation, content: food, members: plan.foodMembers, requests: requests, request: request)
+            }
             return try assembly.convert(sample, plan: content, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             // An ECG whose evidence did not validate when it was planned is refused now, for the same reason.
@@ -244,7 +267,7 @@ extension HealthKitFHIRExporter {
                 symptoms: symptoms,
                 plan: content,
                 request: request,
-                symptomRequests: symptomRequests(plan, at: instant)
+                symptomRequests: symptomRequests(plan, at: instant, conversionInstants: conversionInstants)
             )
         case let .heartbeatSeries(series, _):
             return try assembly.convertHeartbeatSeries(series, recording: plan.recordingPayload(), plan: content, request: request)
@@ -261,13 +284,13 @@ extension HealthKitFHIRExporter {
     }
 
     /// Each registered symptom's request, keyed by its sample's UUID.
-    private func symptomRequests(_ plan: Plan, at instant: Date) -> [UUID: HealthKitAssembly.Request] {
+    private func symptomRequests(_ plan: Plan, at instant: Date, conversionInstants: [UUID: Date]) -> [UUID: HealthKitAssembly.Request] {
         var requests: [UUID: HealthKitAssembly.Request] = [:]
         for (symptom, policies) in zip(plan.record.symptoms, plan.symptoms) {
             guard let policies, requests[symptom.uuid] == nil else {
                 continue
             }
-            requests[symptom.uuid] = assemblyRequest(for: symptom, policies: policies, at: instant)
+            requests[symptom.uuid] = assemblyRequest(for: symptom, policies: policies, at: conversionInstants[symptom.uuid] ?? instant)
         }
         return requests
     }

@@ -193,7 +193,7 @@ struct HealthKitFHIRAggregateConversionTests {
     @Test("Every registered type a bare sample cannot convert is refused for what its catalog row states")
     func unconvertibleRowsFailClosedWithTheirCatalogReason() throws {
         let notYetConvertible: Set<HealthKitSourceType> = [
-            .food, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse,
+            .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse,
             .visionPrescription, .medicationDoseEvent, .userAnnotatedMedicationConcept
         ]
         let recordingDocuments: Set<HealthKitSourceType> = [
@@ -221,7 +221,10 @@ struct HealthKitFHIRAggregateConversionTests {
                 nil
             }
             guard let expected else {
-                let converts = if case .observation = HealthKitContentPlan[type].route { true } else { false }
+                let converts = switch HealthKitContentPlan[type].route {
+                case .observation, .food: true
+                default: false
+                }
                 #expect(converts && !HealthKitContentPlan[type].outputs.isEmpty, "\(type) converts no sample of its own")
                 continue
             }

@@ -864,10 +864,11 @@ struct HealthKitFHIRConverterTests {
         .allSatisfy { $0.requirement?.isEmpty == false })
 
         // Supported rows that convert through no Observation of their sample: the ECG, which its record entry point
-        // serves, and the rows this producer does not emit yet (the characteristics are no HKSample at all). Every
-        // other row converts its own sample; a row of another status never does.
-        let servedByRecordEntryPoint: Set<HealthKitSourceType> = [.electrocardiogram]
-        let notYetEmitted: Set<HealthKitSourceType> = [.food, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse]
+        // serves, the food correlation, which converts with its members, and the rows this producer does not emit yet
+        // (the characteristics are no HKSample at all). Every other row converts its own sample; a row of another
+        // status never does.
+        let servedByRecordEntryPoint: Set<HealthKitSourceType> = [.electrocardiogram, .food]
+        let notYetEmitted: Set<HealthKitSourceType> = [.biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse]
         for row in rows {
             let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier)
             let plan = type.map { HealthKitContentPlan[$0] }
@@ -976,21 +977,20 @@ struct HealthKitFHIRConverterTests {
     @Test
     func batchReportsEveryFailureWithoutDroppingRecords() async throws {
         let supported = quantitySample(.bodyMass, unit: .gramUnit(with: .kilo), value: 68.4)
-        let deferred = HKCorrelation(
-            type: HKCorrelationType(.food),
-            start: timestamp,
-            end: timestamp,
-            objects: [quantitySample(.dietaryEnergyConsumed, unit: .kilocalorie(), value: 320)]
+        let deferred = try StoredSampleFixtures.seriesSample(
+            HKVisionPrescription.self,
+            sampleType: HKObjectType.visionPrescriptionType(),
+            facts: GoldenCase.seriesFacts(uuid: 0xF6, duration: 0)
         )
         let exporter = try ExporterFixtures.exporter(inputs)
-        let exports = try await ExporterFixtures.collect(exporter, samples: [supported, deferred], at: timestamp)
+        let exports = try await ExporterFixtures.collect(exporter, samples: [supported, deferred] as [HKSample], at: timestamp)
         #expect(exports.compactMap(\.record).count == 1)
         guard exports.count == 2, case .refused(let error) = exports[1].outcome else {
             Issue.record("The refused record keeps its source identity and typed reason")
             return
         }
         #expect(exports[1].source.uuid == deferred.uuid)
-        #expect(error == .notYetConvertible(.food))
+        #expect(error == .notYetConvertible(.visionPrescription))
         #expect(error.diagnostic.code == "mobile-input.not-yet-convertible")
     }
 }

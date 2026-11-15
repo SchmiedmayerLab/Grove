@@ -104,7 +104,9 @@ try commitAnchor()
 
 `receive` is called once per record or refusal, as soon as it is ready: once for most inputs, once plus once per registered symptom for an ECG, and never for a workout route while `route` is `.omit`, which emits nothing and is not a refusal.
 Exporting a sample again at another instant is a new version of the same source record, so feed the exporter from anchored queries, which deliver each sample once, not from overlapping date windows.
-`export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way is refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
+`export(_:at:conversionInstants:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way is refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
+
+`conversionInstants` supplies retained conversion dates by HealthKit UUID for primary samples and their independent food members or ECG symptoms. Missing entries use the call's `at` date. Reusing each source's date preserves its immutable record version when the same sample is collected separately or through a grouping. These dates describe conversion Provenance; they do not change clinical effective times or source acquisition dates.
 A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
 
 To upload, add the staged records to an `ExchangeBundlePacker` and send the `json` of the `ExchangeGraph` that `bundle(packedAt:)` returns.

@@ -78,9 +78,9 @@ enum ContentCorpusInvariants {
 /// corpus reproducing across processes; Mobile milliseconds rounding from 1970 is `HealthKitEffectiveTimeTests`.)
 @Suite
 struct ContentInvariantTests {
-    /// Supported rows the adapter does not convert yet: food and five characteristics.
+    /// Supported rows the adapter does not convert yet: five characteristics.
     private static let notYetConvertible: Set<String> = [
-        "HKCorrelationTypeIdentifierFood", "HKCharacteristicTypeIdentifierBiologicalSex",
+        "HKCharacteristicTypeIdentifierBiologicalSex",
         "HKCharacteristicTypeIdentifierBloodType", "HKCharacteristicTypeIdentifierDateOfBirth",
         "HKCharacteristicTypeIdentifierFitzpatrickSkinType", "HKCharacteristicTypeIdentifierWheelchairUse"
     ]
