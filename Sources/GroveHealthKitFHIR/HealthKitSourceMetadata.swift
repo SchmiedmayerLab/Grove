@@ -32,18 +32,23 @@ struct HealthKitSourceMetadata {
     }
 
     init(sample: HKSample, values: [String: Any], policy: HealthKitFHIRExporter.MetadataPolicy) {
-        let excluded: Set<String> = switch policy {
-        case .all: []
-        case .nonIdentifying: Set(values.keys).intersection(HealthKitFHIRExporter.MetadataPolicy.identifyingKeys)
-        case .omit: Set(values.keys)
+        let allKeys = values.keys
+        excludedKeys = allKeys.reduce(into: []) { result, key in
+            switch policy.evaluate(forEntryWithKey: key) {
+            case .include:
+                break // we include the key, ie we dont omit it, ie we dont insert it into the set of omitted keys
+            case .omit:
+                result.insert(key)
+            }
         }
         var entries: [Extension] = []
         var preserved: Set<String> = []
         // Swift's default String ordering normalizes Unicode. The wire key is its exact UTF-8 spelling, so entries are
         // ordered by its bytes, as Grove's canonical JSON orders members.
-        for key in values.keys.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) where !excluded.contains(key) {
-            guard !key.isEmpty,
-                  let value = values[key], let encodedValue = Self.value(value, key: key, sample: sample) else {
+        for key in allKeys.lazy
+            .filter({ [excludedKeys] in !$0.isEmpty && !excludedKeys.contains($0) })
+            .sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
+            guard let value = values[key], let encodedValue = Self.value(value, key: key, sample: sample) else {
                 continue
             }
             entries.append(Extension(
@@ -60,8 +65,7 @@ struct HealthKitSourceMetadata {
             url: FHIRPrimitive(FHIRURI(stringLiteral: Self.url))
         )
         preservedKeys = preserved
-        excludedKeys = excluded
-        unsupportedCount = values.count - preserved.count - excluded.count
+        unsupportedCount = values.count - preserved.count - excludedKeys.count
     }
 
     /// Encode supported values with their FHIR types; unsupported values remain observable omissions.

@@ -196,6 +196,19 @@ struct HealthKitSourceMetadataTests {
         #expect(omitted.summary == .init(preservedSampleKeys: 0, unsupportedSampleKeys: 0, excludedSampleKeys: 4))
     }
 
+    @Test("A custom policy decides each key, and what it omits is counted as excluded")
+    func customPolicy() {
+        let policy = HealthKitFHIRExporter.MetadataPolicy.custom { $0.hasPrefix("com.example.") ? .include : .omit }
+        let metadata = HealthKitSourceMetadata(
+            sample: Self.sample(),
+            values: ["com.example.note": "kept", "org.other.note": "dropped", HKMetadataKeyExternalUUID: "remote-1"],
+            policy: policy
+        )
+        #expect(metadata.preservedKeys == ["com.example.note"])
+        #expect(metadata.excludedKeys == ["org.other.note", HKMetadataKeyExternalUUID])
+        #expect(metadata.summary == .init(preservedSampleKeys: 1, unsupportedSampleKeys: 0, excludedSampleKeys: 2))
+    }
+
     @Test("A key the non-identifying policy excludes is counted, never withheld, and reaches the wire in no element")
     func excludedIdentifyingKey() throws {
         let sample = try StoredSampleFixtures.quantitySample(

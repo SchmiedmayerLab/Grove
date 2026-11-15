@@ -198,26 +198,61 @@ extension HealthKitFHIRExporter {
     ///
     /// Under every policy the sync identifier and version are identity, never metadata (see
     /// ``Options/nativeIdentifier``), and the recording Device states the device metadata keys the guide maps to it.
-    public enum MetadataPolicy: Hashable, Sendable {
-        /// Every supported key, custom and identifying keys included. The default.
-        case all
-        /// Every supported key except the identifying Apple keys: `HKMetadataKeyExternalUUID`,
-        /// `HKMetadataKeyDeviceSerialNumber`, `HKMetadataKeyDeviceName`, `HKMetadataKeyUDIDeviceIdentifier`,
-        /// `HKMetadataKeyUDIProductionIdentifier` and `HKMetadataKeyDigitalSignature`. Custom keys are preserved.
-        case nonIdentifying
-        /// No key; the record states no metadata extension.
-        case omit
-
-        /// The keys ``nonIdentifying`` excludes.
-        static let identifyingKeys: Set<String> = [
-            HKMetadataKeyExternalUUID,
-            HKMetadataKeyDeviceSerialNumber,
-            HKMetadataKeyDeviceName,
-            HKMetadataKeyUDIDeviceIdentifier,
-            HKMetadataKeyUDIProductionIdentifier,
-            HKMetadataKeyDigitalSignature
-        ]
+    public struct MetadataPolicy: Sendable {
+        /// A decision about a single metadata field
+        public enum Decision: Sendable {
+            /// The metadata field should be included in the export
+            case include
+            /// The metadata field should be omitted from the export
+            case omit
+        }
+        
+        private let _decide: @Sendable (_ key: String) -> Decision
+        
+        init(_ decide: @escaping @Sendable (_ key: String) -> Decision) {
+            self._decide = decide
+        }
+        
+        func evaluate(forEntryWithKey key: String) -> Decision {
+            _decide(key)
+        }
     }
+}
+
+
+extension HealthKitFHIRExporter.MetadataPolicy {
+    /// Every supported key, custom and identifying keys included. The default.
+    public static let all = Self { _ in .include }
+    
+    /// Every supported key except the identifying Apple keys: `HKMetadataKeyExternalUUID`,
+    /// `HKMetadataKeyDeviceSerialNumber`, `HKMetadataKeyDeviceName`, `HKMetadataKeyUDIDeviceIdentifier`,
+    /// `HKMetadataKeyUDIProductionIdentifier` and `HKMetadataKeyDigitalSignature`. Custom keys are preserved.
+    public static let nonIdentifying = Self { key in
+        Self.identifyingKeys.contains(key) ? .omit : .include
+    }
+    
+    /// No key; the record states no metadata extension.
+    public static let omit = Self { _ in .omit }
+    
+    /// Creates a new metadata policy using a custom decision closure.
+    ///
+    /// - parameter decide: A closure that gets called once for each metadata key present in an `HKSample`.
+    public static func custom(_ decide: @escaping @Sendable (_ key: String) -> Decision) -> Self {
+        Self(decide)
+    }
+}
+
+
+extension HealthKitFHIRExporter.MetadataPolicy {
+    /// Well-known HealthKit metadata keys that map to values likely containing identifying information.
+    private static let identifyingKeys: Set<String> = [
+        HKMetadataKeyExternalUUID,
+        HKMetadataKeyDeviceSerialNumber,
+        HKMetadataKeyDeviceName,
+        HKMetadataKeyUDIDeviceIdentifier,
+        HKMetadataKeyUDIProductionIdentifier,
+        HKMetadataKeyDigitalSignature
+    ]
 }
 
 #endif
