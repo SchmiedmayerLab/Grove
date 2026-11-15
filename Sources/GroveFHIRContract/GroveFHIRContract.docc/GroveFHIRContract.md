@@ -188,6 +188,18 @@ FHIR attachment size and checksum describe the original recording bytes. A trans
 
 Use ``RecordingCSVReader/Stream`` to read the same grammar without retaining every row. Delivered rows remain provisional until `finish()` validates the complete payload. Clinical converters separately enforce required measurements and sample counts; a syntactically valid CSV is not itself a clinical validation result.
 
+## Inspect collection contracts
+
+``FHIRMeasurementCatalog`` exposes the pinned guide's measurement and HealthKit inventory facts on Apple platforms and Linux.
+Use ``FHIRMeasurementCatalog/measurement(id:)`` to inspect a measurement's temporal shape, canonical quantity unit and components.
+``FHIRMeasurementCatalog/healthKitSource(identifier:)`` retains all declared measurement IDs and profile alternatives; a workout row names both its session and segments.
+Apple callers can pass a typed `HealthKitSourceType`'s `rawValue` without building another source-name table.
+
+Guide admission does not establish converter availability, participant permission or receiver capability.
+For example, a supported food-correlation row can still lack an implemented producer, and a missing value-shape descriptor never admits arbitrary content.
+Adapters choose their implemented source semantics for a `dateTimeOrPeriod` contract, and receivers still validate the complete graph against its profiles.
+The read-only descriptors use the generated contracts; they do not perform conversion or unit arithmetic.
+
 ## Topics
 
 ### Identities
@@ -230,3 +242,9 @@ Use ``RecordingCSVReader/Stream`` to read the same grammar without retaining eve
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+
+### Collection contracts
+
+- ``FHIRMeasurementCatalog``
+- ``FHIRMeasurementDefinition``
+- ``HealthKitSourceDefinition``

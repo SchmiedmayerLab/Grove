@@ -113,6 +113,18 @@ MEASUREMENT_CATALOGS = {
         "HealthKitMeasurementCatalog",
         "Machine-generated HealthKit-exclusive measurement contracts owned by the HealthKit adapter.",
     ),
+    "google-health": (
+        "GoogleHealthMeasurementCatalog",
+        "Machine-generated Google Health measurement contracts.",
+    ),
+    "oura": (
+        "OuraMeasurementCatalog",
+        "Machine-generated Oura measurement contracts.",
+    ),
+    "withings": (
+        "WithingsMeasurementCatalog",
+        "Machine-generated Withings measurement contracts.",
+    ),
 }
 # The output roles of the HealthKit ECG claim: the waveform's and the average heart rate's.
 ELECTROCARDIOGRAM_OUTPUT_ROLES = ("electrocardiogram", "average-heart-rate")
