@@ -151,8 +151,8 @@ struct WithingsFHIRTests {
         try ProviderFixtures.write(results, provider: "withings")
     }
 
-    @Test("Conflicting source definitions and undocumented units stay visible without fabricated clinical values")
-    func sourceContractConflicts() throws {
+    @Test("A supported type without a converter and a type missing its evidence stay visible without fabricated values")
+    func unconvertedTypesAreOmitted() throws {
         let results = try WithingsFHIR.convert(
             .init(
                 id: "group",
@@ -165,7 +165,8 @@ struct WithingsFHIRTests {
             context: Self.context()
         )
         #expect(results.allSatisfy { $0.record == nil })
-        #expect(results.first { $0.sourceToken == "getmeas:196" }?.omissions.first?.reason == .sourceDefinitionConflict)
+        #expect(results.first { $0.sourceToken == "getmeas:196" }?.omissions.first?.reason == .notYetImplemented)
+        #expect(ProviderCapabilities.sources(for: .withings).first { $0.token == "getmeas:196" }?.conversionSupport == .notYetImplemented)
         #expect(results.first { $0.sourceToken == "getmeas:135" }?.omissions.first?.reason == .missingRequiredEvidence)
     }
 }

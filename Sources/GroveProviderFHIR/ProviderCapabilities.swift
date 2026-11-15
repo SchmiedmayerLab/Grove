@@ -24,7 +24,6 @@ public enum ProviderCapabilities {
         case notYetImplemented
         case notAdmitted
         case requiresSourceEvidence
-        case sourceDefinitionConflict
     }
 
     public struct Element: Sendable {
@@ -105,7 +104,6 @@ public enum ProviderCapabilities {
     }
 
     // The catalog's scalar, atomic-panel and native-recording branches retain distinct outcomes.
-    // swiftlint:disable:next cyclomatic_complexity
     private static func withings(_ token: String) -> Support {
         if token == "getmeas:9+10" {
             return .structured
@@ -119,7 +117,6 @@ public enum ProviderCapabilities {
             }
             switch WithingsFHIR.omissionReason(type) {
             case .missingRequiredEvidence: return .requiresSourceEvidence
-            case .sourceDefinitionConflict: return .sourceDefinitionConflict
             case .notAdmitted: return .notAdmitted
             case .notYetImplemented: return .notYetImplemented
             }

@@ -112,11 +112,15 @@ public enum WithingsFHIR {
 
 
 extension WithingsFHIR {
+    /// The reason a measure type without a converter is omitted. A type the guide supports is not yet implemented.
     static func omissionReason(_ type: Int) -> ProviderConversionResult.Omission.Reason {
         switch type {
-        case 130, 139, 135...138: .missingRequiredEvidence
-        case 196: .sourceDefinitionConflict
-        default: .notAdmitted
+        case 130, 139, 135...138:
+            return .missingRequiredEvidence
+        default:
+            let token = "getmeas:\(type)"
+            let supported = ProviderContract.sources.contains { $0.provider == "withings" && $0.token == token && $0.status == "supported" }
+            return supported ? .notYetImplemented : .notAdmitted
         }
     }
 

@@ -22,7 +22,7 @@ Withings, Oura and Google Health inputs use the shared Grove identity, Device an
 
 ``ProviderConversionContext`` supplies a stable identity scope, participant, application, source time zone and persisted conversion instant. Withings and Google Health records use an account scope; Oura documents use their global document scope. Keep the scope and native record identifier stable across reconnects and retries. A new retrieval time must not replace a measurement's source time or an existing conversion instant.
 
-Stage each returned exchange record's exact bytes before advancing the acquisition checkpoint. A result without a record includes an explicit omission. Missing evidence, conflicting definitions and unimplemented conversions require resolution; they are not permission to discard a source record or advance past it.
+Stage each returned exchange record's exact bytes before advancing the acquisition checkpoint. A result without a record includes an explicit omission. Missing evidence and unimplemented conversions require resolution; they are not permission to discard a source record or advance past it.
 
 ## Structured values
 

@@ -16,7 +16,6 @@ public struct ProviderConversionResult: Sendable {
             case notYetImplemented
             case notAdmitted
             case missingRequiredEvidence
-            case sourceDefinitionConflict
         }
 
         public let sourceToken: String
