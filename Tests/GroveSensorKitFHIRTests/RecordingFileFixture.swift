@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GroveFHIRContract
 
 
 /// Owns caller files. Retain the fixture through file operations; its URLs do not retain it.
