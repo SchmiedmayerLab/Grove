@@ -255,13 +255,13 @@ struct HealthKitSyncIdentifierTests {
         }
     }
 
-    @Test("The metadata extension never carries the sync pair, under either setting and either metadata disclosure")
+    @Test("The metadata extension never carries the sync pair, under either setting and every metadata policy")
     func metadataNeverCarriesTheSyncPair() throws {
         let custom = Self.metadata.merging(["com.example.note": "kept"]) { $1 }
         for system in [nil, Self.store] {
-            for disclosure in [HealthKitFHIRExporter.Disclosure.authorized, .omit] {
+            for policy in [HealthKitFHIRExporter.MetadataPolicy.all, .nonIdentifying, .omit] {
                 var inputs = Self.inputs(disclosing: system)
-                inputs.options.metadata = disclosure
+                inputs.options.metadata = policy
                 let conversions = try [Self.heartRate(inputs, metadata: custom)] + Self.documents(inputs, metadata: custom)
                 // The same records without the pair: the pair adds nothing to what the extension preserves or excludes.
                 let unpaired = custom.filter { !Self.syncKeys.contains($0.key) }
@@ -279,9 +279,9 @@ struct HealthKitSyncIdentifierTests {
 
     @Test("A sync pair of a source without a bundle identifier is reported as withheld and exported in no element")
     func unattributablePairIsWithheld() throws {
-        for disclosure in [HealthKitFHIRExporter.Disclosure.authorized, .omit] {
+        for policy in [HealthKitFHIRExporter.MetadataPolicy.all, .nonIdentifying, .omit] {
             var inputs = Self.inputs()
-            inputs.options.metadata = disclosure
+            inputs.options.metadata = policy
             let conversion = try Self.heartRate(inputs, writer: .unattributed)
             let json = String(decoding: conversion.record.json, as: UTF8.self)
             #expect(conversion.withheldMetadataKeys == Self.syncKeys)
@@ -332,6 +332,36 @@ struct HealthKitSyncIdentifierTests {
         _ = try ExporterFixtures.exporter(inputs)
     }
 
+    @Test("A native identifier system the sync identifier's path cannot extend is refused at configuration")
+    func nonExtensibleSystemIsRefused() throws {
+        let systems: [IdentifierSystem] = [
+            "urn:oid:2.16.840.1.113883.3.1",
+            "urn:uuid:6f1b2c4e-8a7d-4b3f-9c2e-1d5a7b9e3f20",
+            "https://study.example.org/store?participant=42",
+            "https://study.example.org/store#participant-42"
+        ]
+        for system in systems {
+            #expect(throws: HealthKitFHIRExporter.ConfigurationError.nativeIdentifierSystemNotExtensible(system)) {
+                try ExporterFixtures.exporter(Self.inputs(disclosing: system))
+            }
+        }
+        _ = try ExporterFixtures.exporter(Self.inputs(disclosing: "https://study.example.org/store/participant-42"))
+    }
+
+    @Test("A native identifier typed as a readable sync identifier is refused at configuration")
+    func syncIdentifierTypeIsReserved() throws {
+        let typeSystem: IdentifierSystem = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
+        let reserved = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "healthkit-sync-id")
+        var inputs = Self.inputs()
+        inputs.options.nativeIdentifier = .authorized(system: Self.store, type: reserved)
+        #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierType(reserved)) {
+            try ExporterFixtures.exporter(inputs)
+        }
+        let other = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "healthkit-uuid")
+        inputs.options.nativeIdentifier = .authorized(system: Self.store, type: other)
+        _ = try ExporterFixtures.exporter(inputs)
+    }
+
     @Test("A document's readable sync identifier is valid only beside the UUID, the writer record and its version")
     func graphValidationGovernsTheDocumentIdentifier() throws {
         let conversion = try #require(try Self.documents(Self.inputs()).first)
@@ -364,6 +394,7 @@ struct HealthKitSyncIdentifierTests {
                 document.identifier?.append(sync)
             }),
             ("under the UUID's system", resystem(store)),
+            ("under another store's system", resystem("https://other.example.org/store/healthkit-sync-identifier/org.example")),
             ("without a writer segment", resystem("\(store)/healthkit-sync-identifier/")),
             ("with an escaped writer segment", resystem("\(store)/healthkit-sync-identifier/org.example%2Fwriter")),
             ("with a writer segment outside the bundle identifier grammar", resystem("\(store)/healthkit-sync-identifier/org.example_writer")),
@@ -379,6 +410,48 @@ struct HealthKitSyncIdentifierTests {
         for (description, edit) in edits {
             #expect(throws: ExchangeGraphError.ruleViolation(.sensorRecordingDocumentIdentityAndContent), "a sync identifier \(description)") {
                 try validate(edit)
+            }
+        }
+    }
+
+    @Test("An Observation's readable sync identifier is valid only beside the UUID, the writer record and its version")
+    func graphValidationGovernsTheObservationIdentifier() throws {
+        let conversion = try Self.heartRate(Self.inputs())
+
+        /// Validates the record after `edit` changed its Observation.
+        func validate(_ edit: (inout Observation) throws -> Void) throws {
+            var bundle = try JSONDecoder().decode(ModelsR4.Bundle.self, from: conversion.record.json)
+            let index = try #require(bundle.entry?.firstIndex { $0.resource?.get(if: Observation.self) != nil })
+            var observation = try #require(bundle.entry?[index].resource?.get(if: Observation.self))
+            try edit(&observation)
+            bundle.entry?[index].resource = .observation(observation)
+            _ = try ExchangeGraph(kind: .active, bundle: bundle)
+        }
+        let store = Self.store.rawValue
+        try validate { _ in }
+
+        let edits: [(String, (inout Observation) throws -> Void)] = [
+            ("without the UUID", { $0.identifier?.removeAll { $0.system?.value?.url.absoluteString == store } }),
+            ("without the writer record", { $0.identifier?.removeAll { (try? RoledIdentifier($0).role) == .writerRecord } }),
+            ("without the version", { $0.extension?.removeAll { $0.url == Canonicals.writerRecordVersion } }),
+            ("twice", { observation in
+                let sync = try #require(observation.identifier?.first(where: Self.isSyncIdentifier))
+                observation.identifier?.append(sync)
+            }),
+            ("under another store's system", { observation in
+                let index = try #require(observation.identifier?.firstIndex(where: Self.isSyncIdentifier))
+                let identifier = try #require(observation.identifier?[index])
+                let system = "https://other.example.org/store/healthkit-sync-identifier/org.example"
+                observation.identifier?[index] = Identifier(system: FHIRPrimitive(FHIRURI(stringLiteral: system)), type: identifier.type, value: identifier.value)
+            })
+        ]
+        for (description, edit) in edits {
+            let error = #expect(throws: ExchangeGraphError.self, "a sync identifier \(description)") {
+                try validate(edit)
+            }
+            guard case .invalidEntries? = error else {
+                Issue.record("a sync identifier \(description) failed as \(String(describing: error))")
+                continue
             }
         }
     }

@@ -147,7 +147,7 @@ struct HealthKitAssembly: Sendable {
         }
         let sourceEvidence = try facts.sourceEvidence(sample, metadata: metadata)
         let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice).filter { !sourceEvidence.metadataKeys.contains($0.key) }
-        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, disclosure: options.metadata)
+        let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, policy: options.metadata)
         if let container = sourceMetadata.container {
             outputs[0].trailingExtensions.append(container)
         }
@@ -167,7 +167,7 @@ struct HealthKitAssembly: Sendable {
             in: outputs,
             device: facts.recordingDevice,
             preservedSampleKeys: sourceMetadata.preservedKeys.union(sourceEvidence.metadataKeys),
-            excludesSampleMetadata: options.metadata == .omit
+            excludedSampleKeys: sourceMetadata.excludedKeys
         )
         if facts.withholdsSyncIdentifier {
             withheld = (withheld + [HKMetadataKeySyncIdentifier]).sorted()
