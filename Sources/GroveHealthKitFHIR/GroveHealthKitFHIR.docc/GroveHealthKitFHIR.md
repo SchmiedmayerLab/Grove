@@ -120,6 +120,28 @@ What to persist, and why:
 > Important: Never change the key or the epoch without deriving new systems.
 > It breaks the promise that one identifier means one thing.
 
+## File-backed recordings
+
+``HealthKitRecordingFile`` converts a complete workout route or heartbeat series directly from an asynchronous sequence into an immutable temporary file. It uses the same registered CSV encoding as the array-based recording inputs, without retaining all samples or the complete encoded payload in memory.
+
+```swift
+let recording = try await HealthKitRecordingFile.workoutRoute(
+    route,
+    locations: HKWorkoutRouteQueryDescriptor(route).results(for: healthStore),
+    relativePath: "recordings/route.csv",
+    maximumByteCount: recordingByteLimit
+)
+try await exporter.export(records: [.fileRecording(recording)], at: conversionInstant) { result in
+    // Retain the record and recording.file together in the application's durable queue.
+}
+```
+
+The DocumentReference carries the relative attachment URL, decoded byte count and SHA-1 hash. Its source identifiers, device facts, metadata and conversion Provenance follow the same policies as inline recordings. Workout routes still require `options.route = .authorized`; authorize collection before querying their locations.
+
+Both factories require the complete native series count. Query errors, cancellation, invalid rows and byte-limit failures throw instead of returning a partial recording. Supply a demand-driven sequence: the converter cannot bound memory already retained by its producer.
+
+The file is temporary and disappears when its last owner releases it. Copy it into durable queue storage before advancing the HealthKit query anchor. Send its bytes through the receiving service's attachment-transfer contract; the relative URL alone does not upload them. Use `recording.file.readChunks` or `makeChunkReader()` to read bounded chunks without materializing the complete payload.
+
 ## Beyond the minimum
 
 <doc:ConfiguringTheExporter> explains every input in depth and <doc:TheExchangeGraph> what a record and its Bundle contain.
@@ -232,6 +254,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 
 - ``HealthKitFHIRExporter``
 - ``HealthKitSourceType``
+- ``HealthKitRecordingFile``
 
 ### Refusals
 
