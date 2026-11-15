@@ -28,6 +28,9 @@ public final class HealthKitFHIRExporter: Sendable {
         /// The disclosed native identifier's system cannot name readable sync identifiers: it names no authority, such as
         /// a `urn:oid:` system, or it has a query or a fragment.
         case nativeIdentifierSystemNotExtensible(IdentifierSystem)
+        /// The disclosed native identifier's type is the `healthkit-sync-id` coding, which types readable sync identifiers
+        /// alone.
+        case reservedNativeIdentifierType(GovernedSourceIdentifierDisclosurePolicy.IdentifierType)
     }
 
     let producer: ExchangeProducer
@@ -41,9 +44,13 @@ public final class HealthKitFHIRExporter: Sendable {
         repositoryScope: BusinessIdentifier,
         options: Options = Options()
     ) throws(ConfigurationError) {
-        // Neither the native record identifier nor a readable sync identifier derived from it may use a Grove system, and
-        // the readable sync identifier's system extends the native one's path.
-        if case .authorized(let system, _) = options.nativeIdentifier {
+        // Neither the native record identifier nor a readable sync identifier derived from it may use a Grove system, the
+        // readable sync identifier's system extends the native one's path, and only a readable sync identifier is typed as one.
+        if case let .authorized(system, type) = options.nativeIdentifier {
+            if let type, type.system.rawValue == HealthKitContract.syncIdentifierTypeSystem.value?.url.absoluteString,
+               type.code == HealthKitContract.syncIdentifierTypeCode {
+                throw .reservedNativeIdentifierType(type)
+            }
             let syncIdentifierPrefix = HealthKitContract.syncIdentifierSystemPrefix(in: system.rawValue)
             guard !producer.identityScope.systems.all.contains(where: { $0 == system || $0.rawValue.hasPrefix(syncIdentifierPrefix) }) else {
                 throw .reservedNativeIdentifierSystem(system)

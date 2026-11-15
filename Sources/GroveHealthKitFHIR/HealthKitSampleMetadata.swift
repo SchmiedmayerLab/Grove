@@ -431,8 +431,6 @@ extension ExchangeOutputDraft {
             }
         case .document(let document):
             document.context?.period?.start?.namesZone == true || document.context?.period?.end?.namesZone == true
-        default:
-            false
         }
     }
 }

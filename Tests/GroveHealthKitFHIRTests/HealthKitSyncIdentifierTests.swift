@@ -348,6 +348,20 @@ struct HealthKitSyncIdentifierTests {
         _ = try ExporterFixtures.exporter(Self.inputs(disclosing: "https://study.example.org/store/participant-42"))
     }
 
+    @Test("A native identifier typed as a readable sync identifier is refused at configuration")
+    func syncIdentifierTypeIsReserved() throws {
+        let typeSystem: IdentifierSystem = "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-identifier-type"
+        let reserved = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "healthkit-sync-id")
+        var inputs = Self.inputs()
+        inputs.options.nativeIdentifier = .authorized(system: Self.store, type: reserved)
+        #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierType(reserved)) {
+            try ExporterFixtures.exporter(inputs)
+        }
+        let other = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "healthkit-uuid")
+        inputs.options.nativeIdentifier = .authorized(system: Self.store, type: other)
+        _ = try ExporterFixtures.exporter(inputs)
+    }
+
     @Test("A document's readable sync identifier is valid only beside the UUID, the writer record and its version")
     func graphValidationGovernsTheDocumentIdentifier() throws {
         let conversion = try #require(try Self.documents(Self.inputs()).first)

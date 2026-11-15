@@ -45,6 +45,9 @@ extension HealthKitFHIRExporter {
         /// The authorized system must name an authority and have no query and no fragment, as an `https` URL without
         /// them does, so the sync identifier's segments extend its path. ``HealthKitFHIRExporter`` refuses any other
         /// system, a `urn:oid:` one included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
+        /// The authorized type, when stated, must not be the `healthkit-sync-id` coding, which types only the readable sync
+        /// identifier; ``HealthKitFHIRExporter`` refuses it with
+        /// ``HealthKitFHIRExporter/ConfigurationError/reservedNativeIdentifierType(_:)``.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
         /// Whether a workout route becomes a recording document; a route re-identifies readily.
         ///
