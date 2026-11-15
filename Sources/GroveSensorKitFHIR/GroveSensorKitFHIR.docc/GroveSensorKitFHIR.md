@@ -186,10 +186,12 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 `SensorKit.fetchAnchored(_:batchSize:)` in `GroveSensorKit` delivers each batch with its `info`, whose acquisition coordinate survives a restart, and advances its query anchor only when you call `acknowledge()`.
 One batch becomes records in one of two ways:
 
-- **One record per batch.** A tabular stream (accelerometer, ambient light, ambient pressure, heart rate, pedometer) becomes one ``SensorKitTabularRecording`` from all its samples, and a photoplethysmogram batch one ``SensorKitPreparedPPGRecording`` from `SensorKitPPGRecording(samples:).prepared()`. A rotation-rate batch becomes one ``SensorKitRotationRateRecord`` from its samples, which exposes no `retryEvidence`, so digest the samples you pass. The record's ordinal is 0.
-- **One record per sample.** A visit, an on-wrist event, a device-usage report and an ECG session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal.
+- **One record per batch.** A tabular stream (accelerometer, ambient light, ambient pressure, heart rate, odometer, pedometer, rotation rate) becomes one ``SensorKitTabularRecording`` from all its samples, and a photoplethysmogram batch one ``SensorKitPreparedPPGRecording`` from `SensorKitPPGRecording(samples:).prepared()`. The record's ordinal is 0.
+- **One record per sample.** A visit, an on-wrist event, a device-usage report, an ECG session, a messages- or phone-usage report, a keyboard-metrics report, a face-metrics sample, a media event, a speech-metrics sample and a sleep session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal.
 
-The other record cases, such as messages or phone usage, keyboard metrics, sleep sessions and a raw recording, take values you assemble; digest exactly what you pass.
+A rotation-rate recording keeps every sample's own instant in a row, so it represents the timestamps a device delivers whatever their spacing. ``SensorKitRotationRateRecord`` is the sampled-data form of the same samples: the contract admits it only for a batch whose timestamps prove one exact uniform period, it refuses every other batch, and it exposes no `retryEvidence`, so digest the samples you pass.
+
+A raw recording you encode yourself takes a ``SensorKitRawRecord`` you assemble; digest exactly what you pass.
 
 ``SensorKitSourceRecordID/derived(acquisitionBatch:sourceToken:deviceProductType:recordOrdinal:)`` names each record from the batch's coordinate, the stream's catalog token (`SensorKitCatalog.sourceToken(for:)`), the batch's device product type and that ordinal, never from its content.
 A fresh query anchor starts a random stream partition of its own, which the coordinate states, so a reinstall names no record of an earlier installation although its cursor restarts at the same place.
@@ -239,7 +241,21 @@ try stage(packer.bundle(packedAt: conversionInstant).json)
 try await batch.acknowledge()
 ```
 
-A structured stream prepares each sample instead, such as `try SensorKitPreparedStructuredRecord(visit: sample)` with the sample's position as its ordinal; a preparation whose `nativePayload` is non-nil (a device-usage report or an ECG session) carries native bytes and takes the `sensorKitRecord(sourceRecordID:title:location:admission:)` form, every other one `sensorKitRecord(sourceRecordID:)`.
+A structured stream prepares each sample instead, such as `try SensorKitPreparedStructuredRecord(visit: sample)` with the sample's position as its ordinal; a preparation whose `nativePayload` is non-nil carries native bytes and takes the `sensorKitRecord(sourceRecordID:title:location:admission:)` form, every other one `sensorKitRecord(sourceRecordID:)`.
+
+Native bytes are JSON Grove encodes, so every client states one source the same way:
+
+| Sample | Preparation | Native recording |
+| --- | --- | --- |
+| Device-usage report | `init(deviceUsage:)` | The complete report, beside its summary. |
+| ECG session | `init(electrocardiogram:)` | The session identifier, states and flagged voltages, beside its waveform. |
+| Keyboard-metrics report | `init(keyboardMetrics:)` | Every member of the report under the name of its `SRKeyboardMetrics` property, lengths in meters and durations in seconds, beside its content-free summary. |
+| Face-metrics sample | `init(faceMetrics:)` | The algorithm version, session identifier, context and expressions. It does not carry `SRFaceMetrics.faceAnchor`. |
+| Media event | `init(mediaEvent:)` | The media identifier and event type. |
+| Speech-metrics sample | `init(speechMetrics:sensor:)` | The session facts, audio level, speech recognition, sound classification and speech expression SensorKit delivered, under the Siri or telephony source of the sensor you fetched from. |
+
+A speech-metrics recording carries whatever transcription SensorKit delivers, including its text, and a face-metrics recording describes a face: both need the explicit ``SensorRawPayloadAdmission`` and the consent their content calls for.
+`SensorKitPreparedStructuredFile(_:maximumByteCount:)` stages any of these preparations as a file with the same bytes and retry evidence.
 `receive` is called exactly once per record, in input order, with its record or its refusal; a refused record is skipped, and the batch goes on.
 
 A sidecar keeps large bytes out of the record: the DocumentReference states the path you chose as `Attachment.url`, verbatim, with the bytes' size and SHA-1, and never fetches or carries them.
@@ -352,8 +368,8 @@ On macOS 27.2 (26B123), using Xcode 27.2 (27B52) in Debug, the 8 MiB workload co
 
 ### What converts
 
-The structured Grove FHIR mappings are rotation-rate SampledData, a hybrid ECG waveform plus its linked native recording, on-wrist state, device-usage summary plus its linked native recording, and visit summary.
-Other catalog-admitted Grove SensorKit streams use an exact native RecordingDocument.
+The structured Grove FHIR mappings are rotation-rate SampledData for an exactly uniform batch, a hybrid ECG waveform plus its linked native recording, on-wrist state, the device-usage and keyboard-metrics summaries plus their linked native recordings, the messages- and phone-usage summaries, the sleep session, the accelerometer, photoplethysmogram and wrist-temperature recording summaries, and visit summary.
+Other catalog-admitted Grove SensorKit streams use an exact native RecordingDocument: ambient light, ambient pressure, heart rate, odometer, pedometer and rotation rate in their registered tabular formats, and face metrics, media events and Siri and telephony speech metrics as native JSON.
 ``SensorKitCatalog`` is generated from the IG and records implemented, deferred, and unavailable platform streams without claiming unsupported structure.
 On iOS, typed initializers map Grove's already-fetched safe representations into these records; no initializer performs fetching.
 
@@ -393,6 +409,7 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
+- ``SensorKitPreparedStructuredFile``
 - ``SensorKitRecordingLocation``
 
 ### Recording payloads

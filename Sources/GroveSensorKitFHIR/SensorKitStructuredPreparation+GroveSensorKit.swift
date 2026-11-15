@@ -31,6 +31,17 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
     public let retryEvidenceSupplement: Data
     public let nativePayload: Data?
 
+    /// A preparation whose retry evidence is exactly its generated native JSON.
+    init(
+        nativePayload: Data,
+        makeRecord: @escaping @Sendable (SensorKitSourceRecordID, SensorKitNativeRecording?) throws -> SensorKitRecord
+    ) {
+        self.makeRecord = makeRecord
+        self.retryEvidence = nativePayload
+        self.retryEvidenceSupplement = Data()
+        self.nativePayload = nativePayload
+    }
+
     public init(visit: SRVisit.SafeRepresentation) throws {
         var writer = RecordingBinaryWriter()
         try writer.writeFloat64(visit.timestamp.timeIntervalSince1970)
@@ -222,7 +233,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         )
     }
 
-    private static func encodeJSON(_ value: some Encodable) throws -> Data {
+    static func encodeJSON(_ value: some Encodable) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .secondsSince1970
