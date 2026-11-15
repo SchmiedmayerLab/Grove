@@ -323,12 +323,12 @@ extension HealthKitFHIRExporter.Record {
         }
     }
 
-    /// The correlated symptoms, each a record of its own.
+    /// The correlated symptoms, each a record of its own; none when they could not be read.
     var symptoms: [HKCategorySample] {
         guard case .electrocardiogram(_, _, let symptoms) = self else {
             return []
         }
-        return symptoms
+        return symptoms ?? []
     }
 
     /// What the recording document of a heartbeat series or a workout route carries under `content`, the plan of the

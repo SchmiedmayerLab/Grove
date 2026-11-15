@@ -361,7 +361,7 @@ struct HealthKitECGContentTests {
         )
 
         #expect(first.uuid != second.uuid)
-        #expect(validated.map(\.uuid) == [first.uuid, second.uuid].sorted {
+        #expect(validated?.map(\.uuid) == [first.uuid, second.uuid].sorted {
             $0.uuidString.lowercased() < $1.uuidString.lowercased()
         })
     }
@@ -390,7 +390,52 @@ struct HealthKitECGContentTests {
             repeatedTypeSamples,
             status: .present
         )
-        #expect(repeatedTypeValidated.count == repeatedTypeSamples.count)
+        #expect(repeatedTypeValidated?.count == repeatedTypeSamples.count)
+    }
+
+    @Test("Unreadable symptoms stay unknown for a present symptoms status and are none otherwise")
+    func unreadableSymptomsAreUnknownOnlyWhenPresent() throws {
+        #expect(try HealthKitECGContent.validatedSymptoms(nil, status: .present) == nil)
+        #expect(try HealthKitECGContent.validatedSymptoms(nil, status: .none)?.isEmpty == true)
+        #expect(try HealthKitECGContent.validatedSymptoms(nil, status: .notSet)?.isEmpty == true)
+    }
+
+    /// Symptom samples need their own read authorization, which HealthKit does not reveal: an ECG whose present symptoms
+    /// cannot be read still converts, keeps its status and states its symptoms as unknown.
+    @Test("A present ECG whose symptoms cannot be read states them as unknown; readable ones are named")
+    func unreadableSymptomsAreStatedAsUnknown() async throws {
+        let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD5))
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xD4, symptoms: [symptom])
+        let unreadable = try await ExporterFixtures.export(
+            .electrocardiogram(record.electrocardiogram, voltages: record.voltageMeasurements, symptoms: nil)
+        )
+        let readable = try await ExporterFixtures.export(ExporterFixtures.electrocardiogram(record, symptoms: [symptom]))
+        #expect(unreadable.companions.isEmpty)
+        #expect(readable.companions.count == 1)
+
+        let observations = unreadable.primary.graph.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) } ?? []
+        #expect(observations.count == 2)
+        let waveform = try #require(observations.first { $0.component != nil })
+        let status = waveform.extension?.first { $0.url == Canonicals.healthKitECGSymptomsStatusExtension }
+        guard case .code(let code)? = status?.value else {
+            Issue.record("The waveform states no symptoms status")
+            return
+        }
+        #expect(code.value?.string == "present")
+        let members = try #require(waveform.hasMember)
+        #expect(members == [HealthKitECGContent.unreadableSymptoms])
+        let member = try #require(members.first)
+        #expect(member.reference == nil && member.type == nil && member.identifier == nil && member.display == nil)
+        let reason = try #require(member.extension?.first)
+        #expect(member.extension?.count == 1 && reason.url == Canonicals.dataAbsentReason)
+        #expect(reason.value == .code("unknown"))
+
+        let readableWaveform = readable.primary.graph.bundle.entry?
+            .compactMap { $0.resource?.get(if: Observation.self) }
+            .first { $0.component != nil }
+        let readableMembers = try #require(readableWaveform?.hasMember)
+        #expect(readableMembers.count == 1)
+        #expect(readableMembers.allSatisfy { $0.extension == nil && $0.identifier != nil })
     }
 
     @Test("The symptom check admits exactly the claim's symptom source types among every category type")

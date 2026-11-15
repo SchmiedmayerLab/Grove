@@ -79,6 +79,8 @@ public enum Canonicals {
 
     // MARK: Standard R4 extensions and terminology
 
+    public static let dataAbsentReason: FHIRPrimitive<FHIRURI> = "http://hl7.org/fhir/StructureDefinition/data-absent-reason"
+
     public static let gatewayDevice: FHIRPrimitive<FHIRURI> =
         "http://hl7.org/fhir/StructureDefinition/observation-gatewayDevice"
     public static let researchStudy: FHIRPrimitive<FHIRURI> =

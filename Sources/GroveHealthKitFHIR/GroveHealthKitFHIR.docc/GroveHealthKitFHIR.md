@@ -174,6 +174,7 @@ Heartbeat series, workout route, clinical record and CDA records state no gatewa
 
 Some samples keep what their record needs outside the sample, and HealthKit makes you query it separately.
 Pass them as a ``HealthKitFHIRExporter/Record`` with that companion data: an `HKElectrocardiogram` with its voltages and correlated symptoms, each symptom a record of its own; an `HKHeartbeatSeriesSample` with its ``HealthKitFHIRExporter/Record/Heartbeat``s; an `HKWorkoutRoute` with its locations.
+Symptom samples need their own read authorization, and HealthKit does not reveal a denied read: pass `nil` symptoms when an ECG states symptoms present but none can be read. The ECG then keeps its `present` status and states its symptoms as unknown, with no symptom record.
 A symptom exported with its ECG has the identities it has when a category query exports it as a plain sample, so exporting it both ways at one instant repeats one record, and at two instants states two versions of one source record. Export each symptom one way, such as with its ECG, to avoid that.
 A clinical record and a CDA document carry their bytes in the sample, so they export as ``HealthKitFHIRExporter/Record/sample(_:)``.
 
