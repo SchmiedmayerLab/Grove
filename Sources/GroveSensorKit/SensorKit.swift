@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 public import Grove
 import GroveFoundation
 @_spi(Internal) import GroveLocalStorage
@@ -27,6 +28,7 @@ import SwiftUI
 ///
 /// ## Anchored Querying
 /// - ``fetchAnchored(_:batchSize:)``
+/// - ``fetchAnchored(_:acquisitionNamespace:batchSize:)``
 /// - ``resetQueryAnchors(for:)``
 /// - ``discardPendingBatches(for:)``
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -48,12 +50,26 @@ public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable
         }
     }
     
+    struct ScopedQueryAnchorKey: Hashable {
+        let namespace: UUID
+        let query: QueryAnchorKey
+
+        var storageIdentifier: String {
+            "\(SensorKit.queryAnchorKeyPrefix).scoped.\(namespace.uuidString.lowercased())."
+                + "\(query.sensor.id).\(query.deviceProductType)"
+        }
+    }
+
     static let queryAnchorKeyPrefix = "SensorKit.queryAnchors"
     
     @ObservationIgnored @Dependency(LocalStorage.self) private var localStorage
     
     private let queryAnchorKeys = LocalStorageKeysStore<QueryAnchorKey, QueryAnchor> { key in
         LocalStorageKey("\(SensorKit.queryAnchorKeyPrefix).\(key.sensor.id).\(key.deviceProductType)")
+    }
+
+    private let scopedQueryAnchorKeys = LocalStorageKeysStore<ScopedQueryAnchorKey, QueryAnchor> { key in
+        LocalStorageKey(key.storageIdentifier)
     }
     
     /// Creates a new instance of the `SensorKit` module.
@@ -121,10 +137,31 @@ extension SensorKit {
     @available(iOS 18, *)
     public func fetchAnchored<Sample>(
         _ sensor: Sensor<Sample>,
-        batchSize: BatchSize? = nil
+        batchSize: BatchSize? = nil,
+        ecgProcessingLimits: SensorKitECGProcessingLimits? = nil
     ) async throws -> some AsyncSequence<SensorKit.AnchoredBatch<Sample.SafeRepresentation>, any Error> {
-        try await AnchoredFetcher(sensor: sensor, batchSize: batchSize) { queryAnchorKey in
+        try await AnchoredFetcher(sensor: sensor, batchSize: batchSize, ecgProcessingLimits: ecgProcessingLimits) { queryAnchorKey in
             let storageKey = self.queryAnchorKeys.storageKey(for: queryAnchorKey)
+            return ManagedQueryAnchor(storageKey: storageKey, in: self.localStorage)
+        }
+    }
+
+    /// Performs an anchored fetch with durable cursors isolated to one caller-owned source namespace.
+    /// Reuse the namespace when restoring the same source. Switching sources does not reset or
+    /// acknowledge another source's pending batch. Acquisition-coordinate identity is unchanged.
+    /// `initialStartDate` applies only to an empty time-interval cursor; established cursors are never reset.
+    @available(iOS 18, *)
+    public func fetchAnchored<Sample>(
+        _ sensor: Sensor<Sample>,
+        acquisitionNamespace: UUID,
+        batchSize: BatchSize? = nil,
+        initialStartDate: Date? = nil,
+        ecgProcessingLimits: SensorKitECGProcessingLimits? = nil
+    ) async throws -> some AsyncSequence<SensorKit.AnchoredBatch<Sample.SafeRepresentation>, any Error> {
+        try await AnchoredFetcher(
+            sensor: sensor, batchSize: batchSize, initialStartDate: initialStartDate, ecgProcessingLimits: ecgProcessingLimits
+        ) { query in
+            let storageKey = self.scopedQueryAnchorKeys.storageKey(for: ScopedQueryAnchorKey(namespace: acquisitionNamespace, query: query))
             return ManagedQueryAnchor(storageKey: storageKey, in: self.localStorage)
         }
     }

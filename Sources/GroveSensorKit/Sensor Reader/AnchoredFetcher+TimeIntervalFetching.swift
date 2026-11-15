@@ -41,6 +41,7 @@ extension AnchoredFetcher {
         private let quarantineCutoff: Date
         private let batchSize: TimeInterval
         private let device: SRDevice
+        private let initialStartDate: Date?
         private let fetchOperation: FetchOperation
         private var state: State = .initial
         
@@ -50,11 +51,13 @@ extension AnchoredFetcher {
             quarantineCutoff: Date,
             batchSize: TimeInterval,
             device: SRDevice,
+            initialStartDate: Date? = nil,
             fetchOperation: @escaping FetchOperation = { sensor, device, timeRange in
                 try await sensor.fetchNamingSourceDevices(from: device, timeRange: timeRange)
             }
         ) {
             self.sensor = sensor
+            self.initialStartDate = initialStartDate
             self.anchor = anchor
             self.quarantineCutoff = quarantineCutoff
             self.batchSize = Swift::max(batchSize, Self.minAllowedBatchSize)
@@ -89,7 +92,7 @@ extension AnchoredFetcher {
                 if currentAnchor.timestamp == .distantPast {
                     // first time
                     let initialAnchor = currentAnchor.advancedPastEmptyRange(
-                        to: quarantineCutoff.addingTimeInterval(-Duration.days(7).timeInterval)
+                        to: Swift.min(initialStartDate ?? quarantineCutoff.addingTimeInterval(-Duration.days(7).timeInterval), quarantineCutoff)
                     )
                     guard try anchor.update(from: currentAnchor, to: initialAnchor) else {
                         throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
@@ -229,7 +232,10 @@ extension AnchoredFetcher {
                 device: SensorKit.DeviceInfo(device),
                 sourceDevices: results.sourceDevices,
                 sourceDevicesSuppliedEverySample: results.sourceDevicesSuppliedEverySample,
-                acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate
+                acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate,
+                replayToken: try SensorKit.BatchReplayToken(
+                    sensorIdentifier: sensor.id, deviceProductType: device.productType, anchor: pendingAnchor
+                )
             )
             let anchor = self.anchor
             let acknowledgement = SensorKit.QueryAnchorAcknowledgement {
