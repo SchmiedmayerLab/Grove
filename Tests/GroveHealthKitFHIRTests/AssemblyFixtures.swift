@@ -30,7 +30,7 @@ enum AssemblyFixtures {
             return try exporter.assembly.convert(sample, plan: plan, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             var symptomRequests: [UUID: HealthKitAssembly.Request] = [:]
-            for symptom in symptoms {
+            for symptom in symptoms ?? [] {
                 symptomRequests[symptom.uuid] = Self.request(for: symptom, exporter: exporter, inputs: inputs)
             }
             let evidence = try plan.ecgEvidence(ecg, voltages: voltages)
