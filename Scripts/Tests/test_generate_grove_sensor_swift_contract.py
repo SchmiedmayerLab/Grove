@@ -134,9 +134,10 @@ class SensorSwiftContractTests(unittest.TestCase):
             projected_registry = MODULE.generate_registry(sensor, registry)
 
             self.assertLess(
-                generated.index("case callerAuthorizedOpaquePayload"),
-                generated.index("case verifiedSanitizedInput"),
+                projected_registry.index("case callerAuthorizedOpaquePayload"),
+                projected_registry.index("case verifiedSanitizedInput"),
             )
+            self.assertIn("public typealias SensorRawPayloadAdmission = RecordingPayloadAdmission", generated)
             self.assertIn("sourceToken: \"SRSensor.accelerometer\"", generated)
             self.assertIn("status: .mappedStandard", generated)
             self.assertIn("conversionProvenanceProfile", generated)

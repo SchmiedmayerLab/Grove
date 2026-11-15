@@ -17,6 +17,11 @@ public import ModelsR4
 /// extensions, terminology, and adapter identity systems that are also normative but are not listed as profiles in
 /// the package graph catalog.
 public enum Canonicals {
+    // MARK: Connected sources
+
+    public static let providerExtension = ProviderContract.providerExtension
+    public static let providerSourceTypeExtension = ProviderContract.sourceTypeExtension
+
     // MARK: Mobile
 
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")
@@ -78,6 +83,8 @@ public enum Canonicals {
     public static let healthKitECGSourcePeriodExtension = uri("/healthkit/StructureDefinition/healthkit-ecg-source-period")
 
     // MARK: Standard R4 extensions and terminology
+
+    public static let dataAbsentReason: FHIRPrimitive<FHIRURI> = "http://hl7.org/fhir/StructureDefinition/data-absent-reason"
 
     public static let gatewayDevice: FHIRPrimitive<FHIRURI> =
         "http://hl7.org/fhir/StructureDefinition/observation-gatewayDevice"

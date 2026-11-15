@@ -42,6 +42,7 @@ package struct ExchangeGraphAssembler: Sendable {
         /// The record's one peripheral, when it names exactly one and that one isn't ``recording``.
         let soleSource: IdentifiedDevice?
         let writer: WriterSnapshots?
+        let sourceApplication: IdentifiedDevice?
 
         /// Every Device entry, in its fixed order.
         var entries: [IdentifiedDevice] {
@@ -54,7 +55,11 @@ package struct ExchangeGraphAssembler: Sendable {
             if let gateway = converter.gateway {
                 entries.append(gateway)
             }
-            return entries + (writer?.entries ?? [])
+            entries += writer?.entries ?? []
+            if let sourceApplication, !entries.contains(where: { $0.identity == sourceApplication.identity }) {
+                entries.append(sourceApplication)
+            }
+            return entries
         }
 
         /// The recording Device that recorded the peripherals' samples, which the source entity names as the composer so the
@@ -113,7 +118,7 @@ package struct ExchangeGraphAssembler: Sendable {
             targetURLs: outputs.map(\.url),
             assemblerURL: devices.converter.application.url,
             // The writer application is the Provenance author; without one the Provenance names none.
-            authorURL: devices.writer?.application.url,
+            authorURL: devices.sourceApplication?.url ?? devices.writer?.application.url,
             sourceDeviceURLs: devices.sources.map(\.url),
             composerURL: devices.composerURL,
             sourceExtensions: draft.sourceExtensions,
@@ -142,7 +147,7 @@ package struct ExchangeGraphAssembler: Sendable {
                 childOutputs: outputs.dropFirst().map(\.identity),
                 sourceArtifact: outputs[0].artifact,
                 recordingDeviceSnapshot: devices.recording?.identity,
-                writerSnapshot: devices.writer?.application.identity,
+                writerSnapshot: devices.sourceApplication?.identity ?? devices.writer?.application.identity,
                 writerHostSnapshot: devices.writer?.entries.isEmpty == false ? devices.writer?.host.identity : nil
             )
         )

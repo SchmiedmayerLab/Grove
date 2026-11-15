@@ -1,0 +1,115 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+import Foundation
+@testable import GroveFHIRContract
+import GroveProviderFHIR
+import ModelsR4
+import Testing
+
+
+@Suite
+struct ProviderRecordingFHIRTests {
+    private static func file(_ bytes: Data) async throws -> RecordingFile {
+        let chunks = AsyncStream<Data> { continuation in
+            continuation.yield(bytes.prefix(3))
+            continuation.yield(bytes.dropFirst(3))
+            continuation.finish()
+        }
+        return try await RecordingFile.stage(chunks: chunks, maximumByteCount: Int64(bytes.count))
+    }
+
+    @Test("Every native provider stream preserves its exact payload and artifact identity", arguments: ProviderNativeRecording.Source.allCases)
+    func bytePreservation(source: ProviderNativeRecording.Source) async throws {
+        let bytes = Data(" {\"samples\": [{\"value\": 71.00, \"timestamp\": 1800000000}]}\n".utf8)
+        let file = try await Self.file(bytes)
+        let input = try ProviderNativeRecording(
+            id: "native-one",
+            source: source,
+            title: "Provider fixture",
+            file: file,
+            attachmentPath: "recordings/native.json",
+            admission: .callerAuthorizedOpaquePayload
+        )
+        let context = try source == .ouraHeartRate ? OuraFHIRTests.context() : WithingsFHIRTests.context()
+        let result = try ProviderRecordingFHIR.convert(input, context: context)
+        try ProviderFixtures.write([result], provider: "recordings")
+        let record = try #require(result.record)
+        let bundle = try JSONDecoder().decode(ModelsR4.Bundle.self, from: record.json)
+        let document = try #require(bundle.entry?.compactMap { $0.resource?.get() as? DocumentReference }.first)
+        let attachment = try #require(document.content.first?.attachment)
+        #expect(attachment.data == nil)
+        #expect(attachment.url?.value?.url.absoluteString == "recordings/native.json")
+        #expect(attachment.size?.value?.integer == Int32(bytes.count))
+        #expect(attachment.hash?.value?.data() == file.attachmentSHA1)
+        #expect(document.meta?.profile == [Profile.groveSensorRecordingDocument, Profile.providersRecordingDocument])
+        #expect(document.identifier?.count == 3)
+        #expect(try ProviderRecordingFHIR.convert(input, context: context).record?.json == record.json)
+        var retained = Data()
+        try file.readChunks { retained.append($0) }
+        #expect(retained == bytes)
+    }
+
+    @Test("Malformed opaque JSON, duplicate members, traversal and capacity overflow refuse before emission")
+    func admissionBounds() async throws {
+        let valid = try await Self.file(Data("{\"value\": 1}".utf8))
+        #expect(throws: ProviderNativeRecording.ValidationError.payloadTooLarge) {
+            try ProviderNativeRecording(
+                id: "one",
+                source: .ouraHeartRate,
+                title: "Fixture",
+                file: valid,
+                attachmentPath: "recording.json",
+                maximumByteCount: 2,
+                admission: .verifiedSanitizedInput
+            )
+        }
+        #expect(throws: ProviderNativeRecording.ValidationError.invalidPath) {
+            try ProviderNativeRecording(
+                id: "one",
+                source: .ouraHeartRate,
+                title: "Fixture",
+                file: valid,
+                attachmentPath: "../recording.json",
+                admission: .verifiedSanitizedInput
+            )
+        }
+        for invalid in ["{\"value\":1,\"value\":2}", "{\"value\":NaN}", "[1,", "123", "\u{FEFF}{}"] {
+            let file = try await Self.file(Data(invalid.utf8))
+            #expect(throws: ProviderNativeRecording.ValidationError.invalidJSON) {
+                try ProviderNativeRecording(
+                    id: "one",
+                    source: .withingsActivity,
+                    title: "Fixture",
+                    file: file,
+                    attachmentPath: "recording.json",
+                    admission: .verifiedSanitizedInput
+                )
+            }
+        }
+    }
+
+    @Test("File-backed transport compression preserves the FHIR source checksum")
+    func compression() async throws {
+        let bytes = Data(("{\"padding\":\"" + String(repeating: "x", count: 32_768) + "\"}").utf8)
+        let file = try await Self.file(bytes)
+        let compressed = try #require(try file.zstandardCompressedIfSmaller(maximumByteCount: bytes.count))
+        #expect(compressed.byteCount < file.byteCount)
+        let decoded = try compressed.zstandardDecompressed(byteCount: file.byteCount)
+        #expect(decoded.attachmentSHA1 == file.attachmentSHA1)
+        let input = try ProviderNativeRecording(
+            id: "one",
+            source: .withingsSleep,
+            title: "Fixture",
+            file: decoded,
+            attachmentPath: "recording.json",
+            admission: .verifiedSanitizedInput
+        )
+        #expect(try ProviderRecordingFHIR.convert(input, context: WithingsFHIRTests.context()).record != nil)
+    }
+}
