@@ -41,6 +41,10 @@ extension HealthKitFHIRExporter {
         /// as a withheld key. While it is `.omit`, the sync identifier text reaches the wire in no element: only the
         /// keyed writer-record identity represents it. The authorized system is scoped to one participant's HealthKit
         /// store, which keeps equal sync identifiers of two participants apart.
+        ///
+        /// The authorized system must name an authority and have no query and no fragment, as an `https` URL without
+        /// them does, so the sync identifier's segments extend its path. ``HealthKitFHIRExporter`` refuses any other
+        /// system, a `urn:oid:` one included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
         public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
         /// Whether a workout route becomes a recording document; a route re-identifies readily.
         ///

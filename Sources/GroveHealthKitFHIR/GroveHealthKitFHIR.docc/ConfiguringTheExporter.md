@@ -131,6 +131,7 @@ While it authorizes a system, the primary output carries a second readable ident
 | `Identifier.value` | the exact sync identifier text |
 
 Authorize a system that is scoped to one participant's HealthKit store, so that equal sync identifiers of two participants, like those of two writing applications, have different systems.
+The system must name an authority and have no query and no fragment, as an `https` URL does, so that the two segments extend its path; the exporter refuses any other, a `urn:oid:` system included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
 Authorizing it discloses the bundle identifier of the application that wrote such a sample, even where ``HealthKitFHIRExporter/Options/writer`` states no writer.
 A bundle identifier that contains anything but ASCII letters, digits, hyphens and periods cannot name the system: the readable identifier is then withheld, and the record reports `HKMetadataKeySyncIdentifier` as a withheld key.
 While the option is `.omit`, the sync identifier text is exported in no element, and only the keyed `writer-record` identifier represents it.

@@ -25,6 +25,9 @@ public final class HealthKitFHIRExporter: Sendable {
     public enum ConfigurationError: Error, Equatable, Sendable {
         /// The disclosed native identifier's system is one of the deployment's own identity systems.
         case reservedNativeIdentifierSystem(IdentifierSystem)
+        /// The disclosed native identifier's system cannot name readable sync identifiers: it names no authority, such as
+        /// a `urn:oid:` system, or it has a query or a fragment.
+        case nativeIdentifierSystemNotExtensible(IdentifierSystem)
     }
 
     let producer: ExchangeProducer
@@ -38,11 +41,15 @@ public final class HealthKitFHIRExporter: Sendable {
         repositoryScope: BusinessIdentifier,
         options: Options = Options()
     ) throws(ConfigurationError) {
-        // Neither the native record identifier nor a readable sync identifier derived from it may use a Grove system.
+        // Neither the native record identifier nor a readable sync identifier derived from it may use a Grove system, and
+        // the readable sync identifier's system extends the native one's path.
         if case .authorized(let system, _) = options.nativeIdentifier {
-            let syncIdentifierPrefix = GovernedSourceIdentifierDisclosurePolicy.syncIdentifierSystemPrefix(in: system)
+            let syncIdentifierPrefix = HealthKitContract.syncIdentifierSystemPrefix(in: system.rawValue)
             guard !producer.identityScope.systems.all.contains(where: { $0 == system || $0.rawValue.hasPrefix(syncIdentifierPrefix) }) else {
                 throw .reservedNativeIdentifierSystem(system)
+            }
+            guard GovernedSourceIdentifierDisclosurePolicy.acceptsSyncIdentifierPath(system) else {
+                throw .nativeIdentifierSystemNotExtensible(system)
             }
         }
         self.producer = producer
