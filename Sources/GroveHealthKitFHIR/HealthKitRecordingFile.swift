@@ -14,7 +14,8 @@ public import GroveFHIRContract
 public import HealthKit
 
 
-/// A complete HealthKit recording produced without retaining its samples or entire CSV in memory.
+/// A complete HealthKit recording or original document staged in an immutable file.
+/// Series writers stream their samples; clinical APIs already supply their payload as Data.
 /// The temporary immutable file must be copied into durable queue storage before acknowledging collection.
 @available(iOS 18, macOS 15, watchOS 11, *)
 public struct HealthKitRecordingFile: Sendable {
@@ -26,13 +27,24 @@ public struct HealthKitRecordingFile: Sendable {
     public let file: RecordingFile
     public let relativePath: String
     public let format: RegisteredRecordingFormat
-    let sample: HKSeriesSample
+    let sample: HKSample
+    let attachmentTitle: String?
+    let attachmentContentType: String?
 
-    private init(file: RecordingFile, relativePath: String, format: RegisteredRecordingFormat, sample: HKSeriesSample) {
+    init(
+        file: RecordingFile,
+        relativePath: String,
+        format: RegisteredRecordingFormat,
+        sample: HKSample,
+        attachmentTitle: String? = nil,
+        attachmentContentType: String? = nil
+    ) {
         self.file = file
         self.relativePath = relativePath
         self.format = format
         self.sample = sample
+        self.attachmentTitle = attachmentTitle
+        self.attachmentContentType = attachmentContentType
     }
 
     /// Pulls each fix into the registered location-track encoding and requires the complete native sample count.

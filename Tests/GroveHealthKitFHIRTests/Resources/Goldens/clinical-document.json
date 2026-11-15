@@ -45,24 +45,6 @@
           {
             "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
             "valueCode" : "HKDocumentTypeIdentifierCDA"
-          },
-          {
-            "extension" : [
-              {
-                "extension" : [
-                  {
-                    "url" : "key",
-                    "valueString" : "HKTimeZone"
-                  },
-                  {
-                    "url" : "value",
-                    "valueString" : "America/Los_Angeles"
-                  }
-                ],
-                "url" : "entry"
-              }
-            ],
-            "url" : "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
           }
         ],
         "identifier" : [
@@ -285,11 +267,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:p6Oup7iCmEVaZy6ZNUu5K2qLW51wjvvk34Nf1dlxCYA"
+            "value" : "v0:test:1:WtYkqBhV-de_LQ-Wy9VlpsI7qge17WU873Htaj_OXD4"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:371a97ef-739e-5980-acd9-339c4d327037",
+      "fullUrl" : "urn:uuid:f3aa77be-d0ad-505d-b08d-0d054c89ba1f",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -318,6 +300,40 @@
         ],
         "entity" : [
           {
+            "extension" : [
+              {
+                "extension" : [
+                  {
+                    "url" : "basis",
+                    "valueCode" : "cda-source-document-period"
+                  },
+                  {
+                    "url" : "period",
+                    "valuePeriod" : {
+                      "_end" : {
+                        "extension" : [
+                          {
+                            "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                            "valueCode" : "America/Los_Angeles"
+                          }
+                        ]
+                      },
+                      "_start" : {
+                        "extension" : [
+                          {
+                            "url" : "http://hl7.org/fhir/StructureDefinition/timezone",
+                            "valueCode" : "America/Los_Angeles"
+                          }
+                        ]
+                      },
+                      "end" : "2026-08-17T08:30:00-07:00",
+                      "start" : "2026-08-17T08:30:00-07:00"
+                    }
+                  }
+                ],
+                "url" : "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-document-time"
+              }
+            ],
             "role" : "source",
             "what" : {
               "identifier" : {
@@ -348,7 +364,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:p6Oup7iCmEVaZy6ZNUu5K2qLW51wjvvk34Nf1dlxCYA"
+              "value" : "v0:test:1:WtYkqBhV-de_LQ-Wy9VlpsI7qge17WU873Htaj_OXD4"
             }
           }
         ],

@@ -295,8 +295,7 @@
     "entries" : [
       {
         "extensions" : [
-          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
         ],
         "fullUrl" : "urn:uuid:522e0b85-6287-5760-9cdb-8cbe87ee4011",
         "identifiers" : [
@@ -331,7 +330,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:371a97ef-739e-5980-acd9-339c4d327037",
+        "fullUrl" : "urn:uuid:f3aa77be-d0ad-505d-b08d-0d054c89ba1f",
         "identifiers" : [
 
         ],
@@ -614,8 +613,7 @@
     "entries" : [
       {
         "extensions" : [
-          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
         ],
         "fullUrl" : "urn:uuid:8a294dd6-c351-54b4-87aa-81ea07206c74",
         "identifiers" : [
@@ -662,7 +660,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:e3cf08f5-0daa-5d11-aefb-04a20067ab05",
+        "fullUrl" : "urn:uuid:8d45f285-e3b1-575d-b7cf-3982c6ea5e99",
         "identifiers" : [
 
         ],
@@ -677,8 +675,7 @@
     "entries" : [
       {
         "extensions" : [
-          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type",
-          "https://grovealliance.org/fhir/core/StructureDefinition/metadata"
+          "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-source-type"
         ],
         "fullUrl" : "urn:uuid:83ea8a42-ca57-5036-9396-5371a81d42f2",
         "identifiers" : [
@@ -725,7 +722,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:e187d4ee-2680-5d77-b551-29c3d24559e9",
+        "fullUrl" : "urn:uuid:5938410d-d202-5880-b17d-fc1d84afe20e",
         "identifiers" : [
 
         ],

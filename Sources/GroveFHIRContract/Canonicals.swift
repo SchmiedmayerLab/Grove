@@ -56,6 +56,7 @@ public enum Canonicals {
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
     public static let healthKitSourceTypeExtension = HealthKitContract.sourceTypeExtension
     public static let healthKitAudiogramTestDetails = uri("/healthkit/StructureDefinition/healthkit-audiogram-test-details")
+    public static let healthKitSourceMetadata = FHIRPrimitive(FHIRURI(stringLiteral: HealthKitContract.metadataExtensionURL))
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")
     public static let healthKitSleepAnalysis = uri("/healthkit/CodeSystem/healthkit-sleep-analysis")

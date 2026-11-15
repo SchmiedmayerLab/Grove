@@ -120,10 +120,10 @@ struct DocumentPlan: Sendable {
             throw HealthKitConversionError.ValueFailure.shapeInvalid
         }
         let attachment = Attachment(
-            contentType: format.registeredContentType?.asFHIRStringPrimitive(),
+            contentType: (recording.attachmentContentType ?? format.registeredContentType)?.asFHIRStringPrimitive(),
             hash: FHIRPrimitive(Base64Binary(with: recording.file.attachmentSHA1)),
             size: FHIRPrimitive(FHIRUnsignedInteger(size)),
-            title: title.asFHIRStringPrimitive(),
+            title: (recording.attachmentTitle ?? title).asFHIRStringPrimitive(),
             url: FHIRPrimitive(FHIRURI(stringLiteral: recording.relativePath))
         )
         var document = skeleton
@@ -153,6 +153,12 @@ struct DocumentPlan: Sendable {
 #if !os(watchOS)
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension DocumentPlan {
+    struct ClinicalPayload: Sendable {
+        let data: Data
+        let title: String
+        let contentType: String?
+    }
+
     /// The release code of a FHIR release the guide may admit, or `nil` for any other.
     private static func releaseCode(_ release: HKFHIRRelease) -> String? {
         switch release {
@@ -162,12 +168,26 @@ extension DocumentPlan {
         }
     }
 
+    private static func validatePayloadSize(_ data: Data, maximumByteCount: Int) throws {
+        try _Concurrency.Task.checkCancellation()
+        guard (1...Int(Int32.max)).contains(maximumByteCount) else { throw RecordingFile.FileError.invalidByteLimit }
+        guard !data.isEmpty else { throw HealthKitConversionError.clinicalRecord(.empty) }
+        guard data.count <= maximumByteCount else { throw RecordingFile.FileError.byteLimitExceeded }
+    }
+
     /// The document carrying a clinical record's provider-issued FHIR resource: one JSON resource of an admitted
     /// release, typed by that release's media type. Grove never converts or claims conformance over it.
     func document(_ record: HKClinicalRecord) throws -> DocumentReference {
+        let payload = try clinicalPayload(record, maximumByteCount: Int(Int32.max))
+        return try document(payload.data, title: payload.title, contentType: payload.contentType)
+    }
+
+
+    func clinicalPayload(_ record: HKClinicalRecord, maximumByteCount: Int) throws -> ClinicalPayload {
         guard let resource = record.fhirResource else {
             throw HealthKitConversionError.clinicalRecord(.empty)
         }
+        try Self.validatePayloadSize(resource.data, maximumByteCount: maximumByteCount)
         guard let release = Self.releaseCode(resource.fhirVersion.fhirRelease),
               HealthKitContract.admittedClinicalFHIRReleaseCodes.contains(release) else {
             throw HealthKitConversionError.clinicalRecord(.unsupportedRelease)
@@ -177,17 +197,22 @@ extension DocumentPlan {
         } catch {
             throw HealthKitConversionError.clinicalRecord(.undecodable)
         }
-        return try document(resource.data, title: title, contentType: HealthKitContract.clinicalFHIRContentTypeByRelease[release])
+        return ClinicalPayload(data: resource.data, title: title, contentType: HealthKitContract.clinicalFHIRContentTypeByRelease[release])
     }
 
-    /// The document carrying a CDA document, under the title it states, else the plan's. Only an `HKDocumentQuery`
-    /// that asked for document data fills one in, so a sample from any other query is refused as empty.
+    /// Only an authorized document query requesting data provides the CDA bytes.
     func document(_ sample: HKCDADocumentSample) throws -> DocumentReference {
+        let payload = try clinicalPayload(sample, maximumByteCount: Int(Int32.max))
+        return try document(payload.data, title: payload.title, contentType: payload.contentType)
+    }
+
+    func clinicalPayload(_ sample: HKCDADocumentSample, maximumByteCount: Int) throws -> ClinicalPayload {
         guard let document = sample.document, let data = document.documentData, !data.isEmpty else {
             throw HealthKitConversionError.clinicalRecord(.empty)
         }
+        try Self.validatePayloadSize(data, maximumByteCount: maximumByteCount)
         let stated = document.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return try self.document(data, title: stated.isEmpty ? title : stated, contentType: format.registeredContentType)
+        return ClinicalPayload(data: data, title: stated.isEmpty ? title : stated, contentType: format.registeredContentType)
     }
 }
 #endif

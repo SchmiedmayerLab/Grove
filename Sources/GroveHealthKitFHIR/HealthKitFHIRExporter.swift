@@ -277,7 +277,7 @@ extension HealthKitFHIRExporter {
             return try assembly.documentGraph(
                 for: recording.sample,
                 plan: content,
-                document: content.recordingDocument().document(recording: recording),
+                document: content.fileDocument().document(recording: recording),
                 request: request
             )
         }
