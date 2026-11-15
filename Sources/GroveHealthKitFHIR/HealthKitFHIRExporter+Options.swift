@@ -51,9 +51,13 @@ extension HealthKitFHIRExporter {
         /// retracts a route only when the producer establishes that it disclosed it (HealthKit guide `implementation.md`,
         /// retracting a source record); keep one route policy for an installation to keep that true.
         public var route: Disclosure = .omit
-        /// Preserve supported sample metadata without a faithful structured mapping in its typed extension by default.
-        /// An explicit omission is reported separately from unsupported values and does not change clinical mappings.
-        public var metadata: Disclosure = .authorized
+        /// Which sample metadata without a faithful structured mapping the primary output preserves in its typed
+        /// extension. See ``MetadataPolicy``.
+        ///
+        /// A key the policy excludes is counted in ``HealthKitFHIRExporter/Export/MetadataSummary``, separately from
+        /// unsupported values, and never warned about. No policy changes a clinical mapping, the recording Device or the
+        /// writer record.
+        public var metadata: MetadataPolicy = .all
         /// At most how many child tasks build one call's records at once; `nil`, the default, builds on one per active
         /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports.
         public var maximumConcurrency: Int?
@@ -188,6 +192,31 @@ extension HealthKitFHIRExporter {
     public enum Disclosure: Hashable, Sendable {
         case omit
         case authorized
+    }
+
+    /// Which sample metadata the typed metadata extension preserves.
+    ///
+    /// Under every policy the sync identifier and version are identity, never metadata (see
+    /// ``Options/nativeIdentifier``), and the recording Device states the device metadata keys the guide maps to it.
+    public enum MetadataPolicy: Hashable, Sendable {
+        /// Every supported key, custom and identifying keys included. The default.
+        case all
+        /// Every supported key except the identifying Apple keys: `HKMetadataKeyExternalUUID`,
+        /// `HKMetadataKeyDeviceSerialNumber`, `HKMetadataKeyDeviceName`, `HKMetadataKeyUDIDeviceIdentifier`,
+        /// `HKMetadataKeyUDIProductionIdentifier` and `HKMetadataKeyDigitalSignature`. Custom keys are preserved.
+        case nonIdentifying
+        /// No key; the record states no metadata extension.
+        case omit
+
+        /// The keys ``nonIdentifying`` excludes.
+        static let identifyingKeys: Set<String> = [
+            HKMetadataKeyExternalUUID,
+            HKMetadataKeyDeviceSerialNumber,
+            HKMetadataKeyDeviceName,
+            HKMetadataKeyUDIDeviceIdentifier,
+            HKMetadataKeyUDIProductionIdentifier,
+            HKMetadataKeyDigitalSignature
+        ]
     }
 }
 

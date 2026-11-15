@@ -255,13 +255,13 @@ struct HealthKitSyncIdentifierTests {
         }
     }
 
-    @Test("The metadata extension never carries the sync pair, under either setting and either metadata disclosure")
+    @Test("The metadata extension never carries the sync pair, under either setting and every metadata policy")
     func metadataNeverCarriesTheSyncPair() throws {
         let custom = Self.metadata.merging(["com.example.note": "kept"]) { $1 }
         for system in [nil, Self.store] {
-            for disclosure in [HealthKitFHIRExporter.Disclosure.authorized, .omit] {
+            for policy in [HealthKitFHIRExporter.MetadataPolicy.all, .nonIdentifying, .omit] {
                 var inputs = Self.inputs(disclosing: system)
-                inputs.options.metadata = disclosure
+                inputs.options.metadata = policy
                 let conversions = try [Self.heartRate(inputs, metadata: custom)] + Self.documents(inputs, metadata: custom)
                 // The same records without the pair: the pair adds nothing to what the extension preserves or excludes.
                 let unpaired = custom.filter { !Self.syncKeys.contains($0.key) }
@@ -279,9 +279,9 @@ struct HealthKitSyncIdentifierTests {
 
     @Test("A sync pair of a source without a bundle identifier is reported as withheld and exported in no element")
     func unattributablePairIsWithheld() throws {
-        for disclosure in [HealthKitFHIRExporter.Disclosure.authorized, .omit] {
+        for policy in [HealthKitFHIRExporter.MetadataPolicy.all, .nonIdentifying, .omit] {
             var inputs = Self.inputs()
-            inputs.options.metadata = disclosure
+            inputs.options.metadata = policy
             let conversion = try Self.heartRate(inputs, writer: .unattributed)
             let json = String(decoding: conversion.record.json, as: UTF8.self)
             #expect(conversion.withheldMetadataKeys == Self.syncKeys)

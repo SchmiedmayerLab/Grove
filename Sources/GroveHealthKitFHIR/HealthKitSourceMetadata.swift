@@ -23,25 +23,25 @@ struct HealthKitSourceMetadata {
 
     let container: Extension?
     let preservedKeys: Set<String>
+    /// The keys the metadata policy excluded: counted, never reported as withheld.
+    let excludedKeys: Set<String>
     let unsupportedCount: Int
-    let excludedCount: Int
 
     var summary: HealthKitFHIRExporter.Export.MetadataSummary {
-        .init(preservedSampleKeys: preservedKeys.count, unsupportedSampleKeys: unsupportedCount, excludedSampleKeys: excludedCount)
+        .init(preservedSampleKeys: preservedKeys.count, unsupportedSampleKeys: unsupportedCount, excludedSampleKeys: excludedKeys.count)
     }
 
-    init(sample: HKSample, values: [String: Any], disclosure: HealthKitFHIRExporter.Disclosure) {
-        guard disclosure == .authorized else {
-            container = nil
-            preservedKeys = []
-            unsupportedCount = 0
-            excludedCount = values.count
-            return
+    init(sample: HKSample, values: [String: Any], policy: HealthKitFHIRExporter.MetadataPolicy) {
+        let excluded: Set<String> = switch policy {
+        case .all: []
+        case .nonIdentifying: Set(values.keys).intersection(HealthKitFHIRExporter.MetadataPolicy.identifyingKeys)
+        case .omit: Set(values.keys)
         }
         var entries: [Extension] = []
         var preserved: Set<String> = []
-        // Swift's default String ordering normalizes Unicode. The wire key is its exact UTF-8 spelling.
-        for key in values.keys.sorted(by: { $0.utf16.lexicographicallyPrecedes($1.utf16) }) {
+        // Swift's default String ordering normalizes Unicode. The wire key is its exact UTF-8 spelling, so entries are
+        // ordered by its bytes, as Grove's canonical JSON orders members.
+        for key in values.keys.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) where !excluded.contains(key) {
             guard !key.isEmpty,
                   let value = values[key], let encodedValue = Self.value(value, key: key, sample: sample) else {
                 continue
@@ -60,8 +60,8 @@ struct HealthKitSourceMetadata {
             url: FHIRPrimitive(FHIRURI(stringLiteral: Self.url))
         )
         preservedKeys = preserved
-        unsupportedCount = values.count - preserved.count
-        excludedCount = 0
+        excludedKeys = excluded
+        unsupportedCount = values.count - preserved.count - excluded.count
     }
 
     /// Encode supported values with their FHIR types; unsupported values remain observable omissions.
@@ -76,6 +76,12 @@ struct HealthKitSourceMetadata {
             }
             if let coding = metadataCoding(number, key: key) {
                 return .coding(coding)
+            }
+            // A binary floating-point value travels as its shortest round-trip decimal, as every other Grove decimal
+            // does; `decimalValue` would print 72.4 as 72.40000000000001. An integer or an `NSDecimalNumber` stays exact,
+            // as a 64-bit integer has no exact binary64.
+            if CFNumberIsFloatType(number as CFNumber), !(number is NSDecimalNumber) {
+                return (try? GroveFHIRDecimal(number.doubleValue)).map { Extension.ValueX.decimal($0.primitive) }
             }
             let decimal = number.decimalValue
             return decimal.isNaN ? nil : .decimal(FHIRPrimitive(FHIRDecimal(decimal)))

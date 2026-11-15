@@ -329,7 +329,7 @@ extension HealthKitSampleMetadata {
         in outputs: [ExchangeOutputDraft],
         device: RecordingDevice?,
         preservedSampleKeys: Set<String> = [],
-        excludesSampleMetadata: Bool = false
+        excludedSampleKeys: Set<String> = []
     ) -> [String] {
         guard !values.isEmpty || !containedValues.isEmpty else {
             return []
@@ -343,10 +343,11 @@ extension HealthKitSampleMetadata {
             metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
         }
         // Generic metadata represents only its owner. It cannot make a same-named contained value disappear.
-        // The sync pair is never generic metadata, so an output without the writer record withholds it under every
-        // metadata disclosure.
+        // A key the extension preserves or the metadata policy excludes is not withheld. The sync pair is never generic
+        // metadata, so an output without the writer record withholds it under every metadata policy.
         let own = values.filter { key, _ in
-            HealthKitContract.metadataExcludedKeys.contains(key) || (!preservedSampleKeys.contains(key) && !excludesSampleMetadata)
+            HealthKitContract.metadataExcludedKeys.contains(key)
+                || !(preservedSampleKeys.contains(key) || excludedSampleKeys.contains(key))
         }
         return Self.withheldKeys(record: own, contained: contained, carried: carried)
     }
