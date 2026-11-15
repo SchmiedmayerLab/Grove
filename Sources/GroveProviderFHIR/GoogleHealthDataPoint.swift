@@ -9,7 +9,8 @@
 public import Foundation
 
 
-/// Typed consumed fields of one Google Health API data point. Preserve the provider data-point identifier.
+/// Typed consumed fields of one Google Health API data point. Preserve the provider data-point identifier,
+/// or supply a previously persisted import key when the API exposes no durable native identifier.
 public struct GoogleHealthDataPoint: Sendable {
     public enum Value: Sendable {
         case steps(count: Int, interval: DateInterval)
