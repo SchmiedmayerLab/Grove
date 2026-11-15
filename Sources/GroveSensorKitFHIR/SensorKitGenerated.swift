@@ -128,6 +128,30 @@ enum SensorKitGenerated {
                 requirement: "The Grove FHIR contracts publish no structured profile for the heterogeneous face metrics."
             ),
             SensorKitCatalogEntry(
+                sourceToken: "SRSensor.headphoneMotion",
+                sourceTypeCode: "headphone-motion",
+                minimumIOS: "27.0",
+                scope: .stableAddition,
+                status: .mappedStandard,
+                structuredContract: nil,
+                structuredProfiles: [],
+                rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
+                rawFormats: [.deviceMotionSamples],
+                requirement: "The source includes orientation, multiple motion vectors, calibration facts and native batch timing; the typed recording preserves them without inventing one scalar clinical meaning."
+            ),
+            SensorKitCatalogEntry(
+                sourceToken: "SRSensor.headphoneSettings",
+                sourceTypeCode: "headphone-settings",
+                minimumIOS: "27.0",
+                scope: .stableAddition,
+                status: .mappedStandard,
+                structuredContract: nil,
+                structuredProfiles: [],
+                rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
+                rawFormats: [.headphoneSettingsSamples],
+                requirement: "The source describes device configuration, explicit setting availability and optional hearing-assistance settings; the typed recording does not infer a clinical finding."
+            ),
+            SensorKitCatalogEntry(
                 sourceToken: "SRSensor.heartRate",
                 sourceTypeCode: "heart-rate",
                 minimumIOS: "17.0",

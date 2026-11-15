@@ -9,7 +9,7 @@
 // This validator intentionally keeps the closed payload grammar in one exhaustive switch.
 // swiftlint:disable cyclomatic_complexity function_body_length
 
-import Foundation
+public import Foundation
 public import GroveFHIRContract
 import ModelsR4
 
@@ -44,6 +44,24 @@ extension RegisteredRecordingFormat {
 
     private var requiresWholePayloadDecoding: Bool {
         csvColumns == nil && self != .clinicalDocument
+    }
+
+    /// Validates an immutable file against this registered grammar after enforcing the caller's byte budget.
+    /// CSV validation reads bounded chunks and retains one bounded row. JSON, FHIR and PPG additionally
+    /// enforce `maximumDecodedPayloadByteCount` before whole-payload decoding; they are not streaming parsers.
+    /// The caller independently verifies source hashes, media type, consent and the clinical graph.
+    public func validatePayload(_ file: RecordingFile, maximumByteCount: Int) throws {
+        guard maximumByteCount > 0, file.byteCount <= maximumByteCount else {
+            throw RegisteredRecordingPayloadError.payloadLimitExceeded
+        }
+        try validatePayload(file)
+    }
+
+    /// Validates already-retained bytes without temporary-file I/O, enforcing the caller's budget first.
+    /// Whole-payload grammars retain the same additional 64 MiB limit as file validation.
+    public func validatePayload(_ bytes: Data, maximumByteCount: Int) throws(RegisteredRecordingPayloadError) {
+        guard maximumByteCount > 0, bytes.count <= maximumByteCount else { throw .payloadLimitExceeded }
+        try validatePayload(bytes)
     }
 
     func validatePayloadSize(_ byteCount: Int) throws(RegisteredRecordingPayloadError) {
@@ -100,7 +118,7 @@ extension RegisteredRecordingFormat {
             } catch {
                 throw .invalidPhotoplethysmogramPayload
             }
-        case .ambientLightSamples, .ambientPressureSamples, .beatIntervalSeries, .heartRateSamples,
+        case .ambientLightSamples, .ambientPressureSamples, .beatIntervalSeries, .deviceMotionSamples, .headphoneSettingsSamples, .heartRateSamples,
              .locationTrackSamples, .odometerSamples, .pedometerSamples, .triaxialAccelerationSamples,
              .triaxialRotationSamples, .wristTemperatureSamples:
             do {

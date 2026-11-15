@@ -74,6 +74,9 @@ enum SensorKitConverter {
             throw SensorKitConversionError.invalidIdentity("record has no catalog-admitted output")
         }
         outputs[0].clearIdentifiers = nativeIdentifier.map { [$0] } ?? []
+        if case .sleepSession(let sleep) = record, let identifier = sleep.nativeSessionIdentifier {
+            outputs[0].clearIdentifiers.append(identifier.fhirIdentifier)
+        }
         return outputs
     }
 

@@ -172,6 +172,10 @@ extension SensorKitFHIRExporter {
         init(_ record: SensorKitRecord, content context: SensorKitConverter.ContentContext, exporter: SensorKitFHIRExporter) {
             self.source = record.sourceRecordID
             do {
+                if case .sleepSession(let sleep) = record, let native = sleep.nativeSessionIdentifier,
+                   exporter.producer.identityScope.systems.all.contains(native.system) {
+                    throw SensorKitConversionError.invalidIdentity("native sleep identifier uses a reserved Grove identity system")
+                }
                 let sourceRecord = try exporter.scope.sourceRecord(sourceType: record.sourceToken, nativeRecordID: record.sourceRecordID.value)
                 let outputs = try SensorKitConverter.outputs(
                     of: record,

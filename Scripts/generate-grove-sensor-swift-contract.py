@@ -318,8 +318,12 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
         for column in columns:
             if column.get("type") not in {"string", "integer", "number", "timestamp"} or not isinstance(column.get("nullable"), bool):
                 raise ValueError(f"{code}: invalid column type or nullability")
+            group = column.get("nullableGroup")
+            if group is not None and (not isinstance(group, str) or not group.strip() or not column["nullable"]):
+                raise ValueError(f"{code}: invalid nullable group")
         definitions = ", ".join(
-            f".init(name: {swift_string(column['name'])}, type: .{column['type']}, nullable: {str(column['nullable']).lower()})"
+            f".init(name: {swift_string(column['name'])}, type: .{column['type']}, nullable: {str(column['nullable']).lower()}"
+            + (f", nullableGroup: {swift_string(column['nullableGroup'])}" if "nullableGroup" in column else "") + ")"
             for column in columns
         )
         lines.append(f"        case .{swift_format_case(code)}: [{definitions}]")

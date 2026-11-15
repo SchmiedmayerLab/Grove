@@ -52,18 +52,18 @@ struct GroveSensorKitBridgeTests {
     }
 
     @Test("Every sensor the catalog lists resolves to its own entry")
-    @available(iOS 26, *)
+    @available(iOS 27, *)
     func everyCatalogedSensorResolvesToItsEntry() {
         let sensors: [SRSensor] = [
             .accelerometer, .acousticSettings, .ambientLightSensor, .ambientPressure, .deviceUsageReport, .electrocardiogram,
             .faceMetrics, .heartRate, .keyboardMetrics, .mediaEvents, .messagesUsageReport, .odometer, .onWristState,
             .pedometerData, .phoneUsageReport, .photoplethysmogram, .rotationRate, .siriSpeechMetrics, .sleepSessions,
-            .telephonySpeechMetrics, .visits, .wristTemperature
+            .telephonySpeechMetrics, .visits, .wristTemperature, .headphoneMotion, .headphoneSettings
         ]
         let tokens = sensors.compactMap(SensorKitCatalog.sourceToken(for:))
         #expect(tokens.count == sensors.count)
         #expect(Set(tokens) == Set(SensorKitCatalog.current.entries.map(\.sourceToken)))
-        // The sensors with a record case that once resolved to no token.
+        // Stable source tokens are independent of the native runtime identifier.
         let named: [(SRSensor, String)] = [
             (.rotationRate, "SRSensor.rotationRate"),
             (.keyboardMetrics, "SRSensor.keyboardMetrics"),

@@ -53,4 +53,36 @@ struct RecordingCSVSchemaValidationTests {
             Issue.record("Invalid typed recording produced a successful prefix")
         } catch { #expect(error as? RecordingCSVFileWriter.FileWriterError == .closed) }
     }
+
+    @Test(arguments: ["hearingAidEnabled", "ambientNoiseReduction"])
+    func partialOptionalSourceObjectsAreRejectedByReadersAndWriters(missing: String) throws {
+        let format = RegisteredRecordingFormat.headphoneSettingsSamples
+        let columns = try #require(format.csvColumns)
+        let index = try #require(columns.firstIndex(of: missing))
+        var fields = RecordingCSVSchemaFixtures.row(format: format, variant: 1)
+        fields[index] = .absent
+        var registered = try RecordingCSVWriter(format: format)
+        #expect(throws: RecordingCSVReader.ReaderError.incompleteNullableGroup("hearingAssistance")) {
+            try registered.append(fields)
+        }
+        var syntax = RecordingCSVWriter(columns: columns)
+        try syntax.append(fields)
+        let data = syntax.data()
+        var stream = try RecordingCSVReader.Stream(format: format)
+        #expect(throws: RecordingCSVReader.ReaderError.incompleteNullableGroup("hearingAssistance")) {
+            try stream.read(data) { _ in Issue.record("Partial source object escaped validation") }
+        }
+    }
+
+    @Test
+    func absentHearingAssistanceRetainsRequiredSettings() throws {
+        var writer = try RecordingCSVWriter(format: .headphoneSettingsSamples)
+        let fields: [RecordingCSVWriter.Field] = [.integer(0)] + Array(repeating: .integer(0), count: 6)
+            + Array(repeating: .absent, count: 10) + [.text("Phone")]
+        try writer.append(fields)
+        let row = try #require(RecordingCSVReader(writer.data(), format: .headphoneSettingsSamples).rows.first)
+        #expect(row["personalizedVolumeEnabled"] == "0")
+        #expect(row.isAbsent("hearingAidEnabled"))
+        #expect(row.isAbsent("ambientNoiseReduction"))
+    }
 }

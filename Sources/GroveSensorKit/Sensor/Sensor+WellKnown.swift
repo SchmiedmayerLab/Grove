@@ -14,11 +14,10 @@ public import SensorKit
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
     /// All ``Sensor``s currently known to the `SensorKit` module.
-    public static let allKnownSensors: [any AnySensor] = {
-        guard SensorKit.isAvailable else {
-            return []
-        }
-        return Array {
+    public static let allKnownSensors: [any AnySensor] = SensorKit.isAvailable ? knownSensors : []
+
+    private static var knownSensors: [any AnySensor] {
+        Array {
             Sensor.onWrist
             Sensor.ambientLight
             Sensor.ambientPressure
@@ -41,8 +40,17 @@ extension SensorKit {
             Sensor.mediaEvents
             Sensor.faceMetrics
             Sensor.odometer
+            #if os(iOS)
+            if #available(iOS 26, *) {
+                Sensor.sleepSessions
+            }
+            if #available(iOS 27, *) {
+                Sensor.headphoneMotion
+                Sensor.headphoneSettings
+            }
+            #endif
         }
-    }()
+    }
 }
 
 

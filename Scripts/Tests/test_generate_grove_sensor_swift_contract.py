@@ -209,6 +209,21 @@ class SensorSwiftContractTests(unittest.TestCase):
                     MODULE.generate_registry(sensor, registry)
                 column.update({"type": "number", "nullable": True})
 
+    def test_csv_optional_groups_are_typed_and_nullable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sensor, _, registry = self.write_catalogs(directory)
+            value = json.loads(registry.read_text())
+            column = {"name": "value", "type": "number", "nullable": True, "nullableGroup": "sourceObject"}
+            value["formats"]["grove-csv-1"].update({"encoding": "csv", "columns": [column]})
+            registry.write_text(json.dumps(value))
+            self.assertIn('nullableGroup: "sourceObject"', MODULE.generate_registry(sensor, registry))
+            for invalid in [{"nullableGroup": ""}, {"nullableGroup": 1}, {"nullable": False}]:
+                column.update(invalid)
+                registry.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, "invalid nullable group"):
+                    MODULE.generate_registry(sensor, registry)
+                column.update({"nullableGroup": "sourceObject", "nullable": True})
+
     def test_rejects_duplicate_assertions(self):
         with tempfile.TemporaryDirectory() as directory:
             sensor, adapter, registry = self.write_catalogs(

@@ -12,10 +12,23 @@ struct RecordingCSVColumn: Sendable {
     let name: String
     let type: ValueType
     let nullable: Bool
+    let nullableGroup: String?
+
+    init(name: String, type: ValueType, nullable: Bool, nullableGroup: String? = nil) {
+        self.name = name
+        self.type = type
+        self.nullable = nullable
+        self.nullableGroup = nullableGroup
+    }
 
     static func validateFields(_ fields: some Sequence<(RecordingCSVColumn, String)>) throws {
+        var emptyGroups: [String: Bool] = [:]
         for (column, value) in fields {
             try column.validate(value)
+            if let group = column.nullableGroup,
+               let previous = emptyGroups.updateValue(value.isEmpty, forKey: group), previous != value.isEmpty {
+                throw RecordingCSVReader.ReaderError.incompleteNullableGroup(group)
+            }
         }
     }
 
