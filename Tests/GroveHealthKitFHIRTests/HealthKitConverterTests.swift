@@ -867,7 +867,7 @@ struct HealthKitFHIRConverterTests {
         // serves, and the rows this producer does not emit yet (the characteristics are no HKSample at all). Every
         // other row converts its own sample; a row of another status never does.
         let servedByRecordEntryPoint: Set<HealthKitSourceType> = [.electrocardiogram]
-        let notYetEmitted: Set<HealthKitSourceType> = [.food, .audiogram, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse]
+        let notYetEmitted: Set<HealthKitSourceType> = [.food, .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse]
         for row in rows {
             let type = HealthKitSourceType(rawValue: row.sourceTypeIdentifier)
             let plan = type.map { HealthKitContentPlan[$0] }

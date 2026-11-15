@@ -356,6 +356,8 @@ extension HealthKitContentCompiler {
             return try Self.protection(contract)
         case .bloodPressure:
             return .bloodPressure(try Self.bloodPressureMembers(contract))
+        case .audiogram:
+            return .audiogram(try HealthKitAudiogramContent(contract))
         case .workout:
             return .workout(try HealthKitWorkoutContent(contract))
         case .stateOfMind:

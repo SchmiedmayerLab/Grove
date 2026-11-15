@@ -2167,7 +2167,7 @@ package enum HealthKitMeasurementCatalog {
         additionalResultBindings: [],
         method: nil,
         methodChoice: [],
-        effective: .dateTime,
+        effective: .dateTimeOrPeriod,
         category: nil
     )
 

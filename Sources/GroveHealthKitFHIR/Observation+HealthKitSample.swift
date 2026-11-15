@@ -152,7 +152,7 @@ enum HealthKitSampleProjection {
             let type = HKCategoryType(HKCategoryTypeIdentifier(rawValue: projection.sourceType))
             let envelope = try envelope(of: observation, contract: contract, sampleType: type, syncIdentifier: syncIdentifier)
             return try category(of: observation, type: type, plan: projection.plan, contract: contract, envelope: envelope)
-        case .workout, .stateOfMind:
+        case .workout, .stateOfMind, .audiogram:
             throw .measurementNotMappable(id: contract.id)
         }
     }
@@ -161,7 +161,7 @@ enum HealthKitSampleProjection {
     private static func inverts(_ rule: ValueRule) -> Bool {
         switch rule {
         case .quantity(_, .unit), .quantity(_, .percent), .quantity(_, .platformRate), .coded, .duration, .protection, .bloodPressure: true
-        case .quantity(_, .score), .workout, .stateOfMind: false
+        case .quantity(_, .score), .workout, .stateOfMind, .audiogram: false
         }
     }
 
@@ -380,7 +380,7 @@ extension HealthKitSampleProjection {
         case let .protection(unknown, protected, unprotected):
             protection = try protectionMetadata(of: observation, unknown: unknown, protected: protected, unprotected: unprotected, contract: contract)
             value = HKCategoryValue.notApplicable.rawValue
-        case .quantity, .bloodPressure, .workout, .stateOfMind:
+        case .quantity, .bloodPressure, .workout, .stateOfMind, .audiogram:
             throw .measurementNotMappable(id: contract.id)
         }
         let metadata = try metadata(of: observation, envelope: envelope, rule: plan.metadataComponent, contract: contract)

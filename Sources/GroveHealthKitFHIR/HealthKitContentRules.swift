@@ -49,6 +49,8 @@ enum HealthKitContentRules {
         case protection
         /// The blood-pressure correlation's members, one component each.
         case bloodPressure
+        /// An air-conduction hearing test, preserving each ear and frequency.
+        case audiogram
         /// The workout's activity, totals and heart-rate statistics.
         case workout
         /// The reflection's valence and its coded axes.
@@ -92,7 +94,7 @@ enum HealthKitContentRules {
 
     /// Supported rows the adapter declares it does not convert yet; any other supported row without a rule is a defect.
     static let notYetConvertible: Set<HealthKitSourceType> = [
-        .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .food, .audiogram
+        .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .food
     ]
 
     /// The correlation members, by contract component id; a member type alone converts only inside its correlation.
@@ -270,6 +272,7 @@ extension HealthKitContentRules {
     private static let recordGroups = [
         RuleGroup(.observation(.quantity(.platformRate)), [.appleSleepingBreathingDisturbances]),
         RuleGroup(.observation(.bloodPressure), [.bloodPressure]),
+        RuleGroup(.observation(.audiogram), [.audiogram]),
         RuleGroup(.observation(.workout), [.workout]),
         RuleGroup(.observation(.stateOfMind), [.stateOfMind]),
         RuleGroup(.electrocardiogram, [.electrocardiogram]),
