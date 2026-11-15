@@ -21,6 +21,10 @@ import ThreadLocal
 /// - ``decompress(_:)``
 /// - ``decompress(_:maximumDecompressedSize:)``
 ///
+/// ### Streaming
+/// - ``StreamCompressor``
+/// - ``StreamDecompressor``
+///
 /// ### Supporting Types
 /// - ``CompressionOptions``
 /// - ``CompressionError``
@@ -161,7 +165,7 @@ public enum Zstd: CompressionAlgorithm {
                 // likely not compressed by Zstd
                 return .failure(.invalidInput)
             case ZSTD_CONTENTSIZE_UNKNOWN:
-                // could try to use streaming decompression for this at some point in the future
+                // Frames without a declared size require StreamDecompressor and an explicit output budget.
                 return .failure(.invalidInput)
             case let contentSize:
                 guard let contentSize = Int(exactly: contentSize), contentSize <= maximumDecompressedSize else {

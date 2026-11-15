@@ -252,7 +252,7 @@ The exporter has no retraction: it takes no input that names a record to take ba
 
 Opaque native bytes can carry identifying or sensitive provider content.
 Creating ``SensorKitNativeRecording`` therefore requires one explicit ``SensorRawPayloadAdmission``: caller-authorized opaque disclosure or verified sanitized input.
-Grove does not inspect or sanitize those bytes, and the admission choice is never serialized.
+Grove validates the registered payload grammar but does not sanitize sensitive content. The admission choice is never serialized.
 The registered format determines the media types that the payload is allowed to use, and formats with one representation derive their media type automatically:
 
 ```swift
@@ -269,6 +269,86 @@ Some registry formats admit more than one exact media type.
 A producer can use such a format only when its generated adapter row admits that format, and it must then supply one of the registered media types explicitly.
 Construction rejects an unregistered media type and does not infer a FHIR release from payload bytes.
 If the source payload already is a complete R4 `collection` Bundle, declare the registry's `fhir-collection-bundle` format; its initializer validates that envelope before conversion.
+
+### File-backed sidecars
+
+The shared `GroveFHIRContract.RecordingCSVFileWriter` creates registered CSV bytes directly in an owned file. Use ``RecordingFile`` when a recording is already stored in a file. Staging makes an owned snapshot; validation, hashing, conversion and subsequent readers use that same snapshot even if the original changes or is removed.
+
+```swift
+func prepareRotationRecording(
+    from sourceURL: URL,
+    maximumByteCount: Int64,
+    admission: SensorRawPayloadAdmission
+) throws -> SensorKitNativeRecording {
+    let file = try RecordingFile.stage(copying: sourceURL, maximumByteCount: maximumByteCount)
+    return try SensorKitNativeRecording(
+        title: "Rotation recording",
+        format: .triaxialRotationSamples,
+        payload: .file(path: "recordings/rotation.csv", contents: file),
+        admission: admission
+    )
+}
+```
+
+The file payload emits the same relative URL, size and SHA-1 attachment checksum as a Data sidecar. It embeds neither payload bytes nor local filesystem paths. SHA-1 is the FHIR R4 attachment checksum, not a signature or authorization mechanism.
+
+Staging, file reading and accelerometer summarization perform synchronous disk operations; call them from a background executor, including when summarizing Data-backed input. Staging rejects missing, empty, unreadable, symlinked and nonregular sources, applies the caller's byte limit during copying, and verifies that the source did not change during the copy. The limit cannot exceed the R4 attachment size bound of `Int32.max` bytes.
+
+``RecordingFile/readChunks(_:)`` supplies chunks of at most 64 KiB. Readers have independent offsets and payload copies share ownership. The private staged file has no filesystem name and is reclaimed when its final owner releases it or the process exits. The next staging operation recovers empty abandoned creation files under a directory lock; it leaves nonempty files, unknown names, links and directories untouched. The original source is never removed or modified.
+
+This snapshot is temporary. Before acknowledging a batch, copy its chunks into your upload queue's durable storage and persist the retry evidence. Keeping a `RecordingFile` value does not make a queue survive process termination.
+
+| Payload | Validation and summary memory |
+| --- | --- |
+| Registered CSV | Incremental UTF-8 and CSV parsing; at most 4 MiB per encoded row and 1 MiB per decoded field, including the header. Accelerometer distinct-batch counts use a temporary disk index with a 1 MiB page-cache target and an explicit spill threshold. |
+| JSON and PPG | Complete decoding, limited to 64 MiB before allocation. Larger payloads are refused. |
+| Clinical documents | Byte-preserved; Grove does not decode the issuing document format. |
+
+The limits apply to Data and file payloads. No path truncates bytes or splits a logical recording to satisfy a limit. ``RecordingCSVReader`` retains its resulting rows for callers that need an array; use ``RecordingCSVReader/Stream`` for incremental consumption. A stream's delivered rows remain provisional until `finish()` succeeds.
+
+### Generate a tabular recording directly into a file
+
+``SensorKitTabularRecording/File`` consumes a sample sequence once and applies the same source field mapping as ``SensorKitTabularRecording``. It tracks the effective period without retaining a separate interval array. Wrist-temperature sessions use the same temperature, error, condition and algorithm-version mapping. The resulting CSV, retry evidence and exported FHIR are independent of whether preparation used Data or a file.
+
+```swift
+let recording = try SensorKitTabularRecording.File(
+    samples: batch.samples,
+    deviceProductType: batch.info.device.productType,
+    maximumByteCount: recordingByteBudget
+)
+var retryHasher = SHA256()
+try recording.readRetryEvidenceChunks { retryHasher.update(data: $0) }
+try retryLog.verifyOrRecord(sourceRecordID, digest: retryHasher.finalize())
+let record = try recording.sensorKitRecord(
+    sourceRecordID: sourceRecordID,
+    title: "Accelerometer",
+    sidecarPath: sidecarPath,
+    admission: .callerAuthorizedOpaquePayload
+)
+try recording.file.readChunks { try destination.write(contentsOf: $0) }
+```
+
+`readRetryEvidenceChunks` includes the algorithm-version prefix for wrist-temperature sessions; hashing only their CSV is not equivalent. The file's bytes are the sidecar content, without that prefix. Clinical summaries read the immutable recording and retain required-value checks. Disk, summary-index, byte-budget and cancellation failures must abort publication and leave the batch available for retry; they are not deterministic clinical refusals. A digest alone is not durable storage: complete queue staging before acknowledging collection.
+
+### Measure recording memory
+
+`RecordingFileMemoryTests` measures the process's physical-memory peak while generating, staging, validating, summarizing, exporting and compressing a file-backed accelerometer recording. Every row has a distinct batch identifier, so the workload exercises index growth as well as byte streaming. Run each size in a fresh process, with no other test suites selected:
+
+```sh
+GROVE_LOWERED_DEPLOYMENT_TARGETS=0 \
+GROVE_ENABLE_DEFAULT_PACKAGE_TRAITS=1 \
+GROVE_EXCLUDE_DOCC_CATALOGS=1 \
+TEST_RUNNER_GROVE_RECORDING_MEMORY_MIB=128 \
+xcodebuild test -scheme Grove-Tests -testPlan GroveSensorKitFHIR \
+  -only-testing:GroveSensorKitFHIRTests/RecordingFileMemoryTests \
+  -destination 'platform=macOS,arch=arm64' \
+  -skipMacroValidation -skipPackagePluginValidation \
+  ARCHS=arm64 MACOSX_DEPLOYMENT_TARGET=26.0
+```
+
+Repeat with `TEST_RUNNER_GROVE_RECORDING_MEMORY_MIB=8`. The test logs payload size, distinct batches, baseline, lifetime peak and per-stage measurements, and requires additional memory to stay below 64 MiB. This is a working-memory regression check, not a throughput benchmark or a guarantee for consumers that retain delivered chunks.
+
+On macOS 27.2 (26B123), using Xcode 27.2 (27B52) in Debug, the 8 MiB workload contained 236,103 distinct batches and used 11.7 MiB above baseline; the 128 MiB workload contained 3,657,536 distinct batches and used 11.3 MiB above baseline. These measurements cover CSV sidecars, streaming summaries and a Zstandard round trip with the default 8 MiB window; whole JSON/PPG decoding and inline payload encoding have separate memory costs.
 
 ### What converts
 
@@ -304,11 +384,13 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitRecord``
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
+- ``RecordingFile``
 - ``SensorRawPayloadAdmission``
 
 ### Preparing fetched batches
 
 - ``SensorKitTabularRecording``
+- ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
 - ``SensorKitRecordingLocation``
