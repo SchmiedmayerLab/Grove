@@ -52,7 +52,7 @@ struct HealthKitSourceMetadataTests {
         for item in cases {
             let key = try #require(item["key"] as? String)
             let source = try Self.sourceValue(item)
-            let encoded = HealthKitSourceMetadata(sample: Self.sample(), values: [key: source], disclosure: .authorized)
+            let encoded = HealthKitSourceMetadata(sample: Self.sample(), values: [key: source], policy: .all)
             #expect(encoded.preservedKeys == [key])
             #expect(encoded.unsupportedCount == 0)
             let container = try #require(encoded.container)
@@ -81,7 +81,7 @@ struct HealthKitSourceMetadataTests {
             "boolean": NSNumber(value: true), "zero": NSNumber(value: 0), "one": NSNumber(value: 1),
             "empty": "", "array": ["private"], "infinite": NSNumber(value: Double.infinity)
             ],
-            disclosure: .authorized
+            policy: .all
         )
         #expect(metadata.preservedKeys == ["boolean", "zero", "one"])
         #expect(metadata.unsupportedCount == 3)
@@ -99,7 +99,7 @@ struct HealthKitSourceMetadataTests {
             values: [
             "a/b": HKQuantity(unit: .mile(), doubleValue: 1), "a%2Fb": "literal"
             ],
-            disclosure: .authorized
+            policy: .all
         )
         let entries = try #require(metadata.container?.extension)
         let keys = entries.compactMap { entry -> String? in
@@ -115,6 +115,43 @@ struct HealthKitSourceMetadataTests {
         }
         #expect(quantity.code?.value?.string == "m")
         #expect(quantity.value?.value?.decimal == Decimal(string: "1609.344"))
+    }
+
+    @Test("A floating-point number travels as its shortest decimal; an integer or decimal number stays exact")
+    func numberSpellings() throws {
+        let metadata = HealthKitSourceMetadata(
+            sample: Self.sample(),
+            values: [
+                "a.double": NSNumber(value: 72.4),
+                "b.integer": NSNumber(value: Int64(9_007_199_254_740_993)),
+                "c.decimal": NSDecimalNumber(string: "0.1")
+            ],
+            policy: .all
+        )
+        let decimals = try #require(metadata.container?.extension).compactMap { entry -> String? in
+            guard case .decimal(let decimal)? = entry.extension?.last?.value else {
+                return nil
+            }
+            return decimal.value?.decimal.description
+        }
+        #expect(decimals == ["72.4", "9007199254740993", "0.1"])
+    }
+
+    @Test("Entries follow the UTF-8 byte order of their keys")
+    func entryOrder() throws {
+        // U+FF01 precedes U+1F600 in UTF-8 but follows it in UTF-16, whose surrogates precede U+E000.
+        let metadata = HealthKitSourceMetadata(
+            sample: Self.sample(),
+            values: ["\u{1F600}": "grin", "\u{FF01}": "bang"],
+            policy: .all
+        )
+        let keys = try #require(metadata.container?.extension).compactMap { entry -> String? in
+            guard case .string(let key)? = entry.extension?.first?.value else {
+                return nil
+            }
+            return key.value?.string
+        }
+        #expect(keys == ["\u{FF01}", "\u{1F600}"])
     }
 
     @Test("Preservation changes record version while source/output identities remain stable; exclusion is explicit")
@@ -139,6 +176,57 @@ struct HealthKitSourceMetadataTests {
         #expect(omitted.export.metadata?.unsupportedSampleKeys == 0)
     }
 
+    @Test("The non-identifying policy excludes the identifying Apple keys and keeps custom keys; omission excludes every key")
+    func policies() {
+        let values: [String: Any] = [
+            HKMetadataKeyExternalUUID: "remote-1",
+            HKMetadataKeyDeviceSerialNumber: "SN-1",
+            "com.example.note": "after exercise",
+            "array": ["private"]
+        ]
+        let all = HealthKitSourceMetadata(sample: Self.sample(), values: values, policy: .all)
+        #expect(all.preservedKeys == [HKMetadataKeyExternalUUID, HKMetadataKeyDeviceSerialNumber, "com.example.note"])
+        #expect(all.summary == .init(preservedSampleKeys: 3, unsupportedSampleKeys: 1, excludedSampleKeys: 0))
+        let nonIdentifying = HealthKitSourceMetadata(sample: Self.sample(), values: values, policy: .nonIdentifying)
+        #expect(nonIdentifying.preservedKeys == ["com.example.note"])
+        #expect(nonIdentifying.excludedKeys == [HKMetadataKeyExternalUUID, HKMetadataKeyDeviceSerialNumber])
+        #expect(nonIdentifying.summary == .init(preservedSampleKeys: 1, unsupportedSampleKeys: 1, excludedSampleKeys: 2))
+        let omitted = HealthKitSourceMetadata(sample: Self.sample(), values: values, policy: .omit)
+        #expect(omitted.container == nil)
+        #expect(omitted.summary == .init(preservedSampleKeys: 0, unsupportedSampleKeys: 0, excludedSampleKeys: 4))
+    }
+
+    @Test("A custom policy decides each key, and what it omits is counted as excluded")
+    func customPolicy() {
+        let policy = HealthKitFHIRExporter.MetadataPolicy.custom { $0.hasPrefix("com.example.") ? .include : .omit }
+        let metadata = HealthKitSourceMetadata(
+            sample: Self.sample(),
+            values: ["com.example.note": "kept", "org.other.note": "dropped", HKMetadataKeyExternalUUID: "remote-1"],
+            policy: policy
+        )
+        #expect(metadata.preservedKeys == ["com.example.note"])
+        #expect(metadata.excludedKeys == ["org.other.note", HKMetadataKeyExternalUUID])
+        #expect(metadata.summary == .init(preservedSampleKeys: 1, unsupportedSampleKeys: 0, excludedSampleKeys: 2))
+    }
+
+    @Test("A key the non-identifying policy excludes is counted, never withheld, and reaches the wire in no element")
+    func excludedIdentifyingKey() throws {
+        let sample = try StoredSampleFixtures.quantitySample(
+            HKQuantityType(.heartRate),
+            value: 72,
+            unit: .count().unitDivided(by: .minute()),
+            facts: HealthKitMetadataWarningTests.facts(0xD8, metadata: [HKMetadataKeyExternalUUID: "remote-1", "com.example.note": "kept"])
+        )
+        var inputs = ExportInputs()
+        inputs.options.metadata = .nonIdentifying
+        let conversion = try AssemblyFixtures.conversion(sample, inputs)
+        let json = String(decoding: conversion.record.json, as: UTF8.self)
+        #expect(conversion.withheldMetadataKeys.isEmpty)
+        #expect(conversion.export.metadata == .init(preservedSampleKeys: 1, unsupportedSampleKeys: 0, excludedSampleKeys: 1))
+        #expect(!json.contains("remote-1"))
+        #expect(json.contains("com.example.note"))
+    }
+
     @Test("SDK codings preserve the step-test case and never truncate fractional values")
     func enumerationValues() throws {
         #expect(HealthKitSourceMetadata.metadataCoding(NSNumber(value: 2.5), key: HKMetadataKeyHeartRateMotionContext) == nil)
@@ -159,7 +247,7 @@ struct HealthKitSourceMetadataTests {
                 HKMetadataKeyWeatherTemperature: HKQuantity(unit: .meter(), doubleValue: 1),
                 HKMetadataKeySessionEstimate: HKQuantity(unit: .meter(), doubleValue: 1)
             ],
-            disclosure: .authorized
+            policy: .all
         )
         #expect(metadata.container == nil)
         #expect(metadata.unsupportedCount == 2)
@@ -174,7 +262,7 @@ struct HealthKitSourceMetadataTests {
         let metadata = HealthKitSourceMetadata(
             sample: Self.sample(),
             values: [key: HKQuantity(unit: .percent(), doubleValue: value.fraction)],
-            disclosure: .authorized
+            policy: .all
         )
         let encoded = try #require(metadata.container?.extension?.first?.extension?.last?.value)
         guard case .quantity(let quantity) = encoded else {

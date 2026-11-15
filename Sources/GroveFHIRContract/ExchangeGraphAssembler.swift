@@ -288,14 +288,18 @@ extension ExchangeGraphAssembler {
         case .observation(var observation):
             observation.identifier = identifiers
             decorate(&observation, links: output.links, wasUserEntered: output.wasUserEntered, surroundings: surroundings)
-            writerVersion.map { observation.extension.append($0) }
+            if let writerVersion {
+                observation.extension.append(writerVersion)
+            }
             output.trailingExtensions.forEach { observation.extension.append($0) }
             resource = .observation(observation)
         case .document(var document):
             document.identifier = identifiers
             document.date = FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant))
             decorate(&document, links: output.links, surroundings: surroundings)
-            writerVersion.map { document.extension.append($0) }
+            if let writerVersion {
+                document.extension.append(writerVersion)
+            }
             output.trailingExtensions.forEach { document.extension.append($0) }
             resource = .document(document)
         }
