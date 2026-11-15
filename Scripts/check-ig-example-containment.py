@@ -105,6 +105,8 @@ CORPUS_PREFIX = "guide-example/"
 IDENTIFIER_ROLE_SYSTEM = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-identifier-role"
 # The example resource types an adapter emits as its outputs, each of whose examples must be paired or listed.
 OUTPUT_TYPES = {"Observation", "DocumentReference"}
+# The IG Publisher of grove-fhir 0.8.1 and later packs examples into `examples/`; earlier releases used `example/`.
+EXAMPLE_FOLDERS = ("package/example/", "package/examples/")
 
 
 def load_examples(guides: Path, guide: str) -> dict[str, dict[str, Any]]:
@@ -115,7 +117,7 @@ def load_examples(guides: Path, guide: str) -> dict[str, dict[str, Any]]:
     examples: dict[str, dict[str, Any]] = {}
     with tarfile.open(package) as archive:
         for member in archive.getmembers():
-            if not (member.isfile() and member.name.startswith("package/example/") and member.name.endswith(".json")):
+            if not (member.isfile() and member.name.startswith(EXAMPLE_FOLDERS) and member.name.endswith(".json")):
                 continue
             handle = archive.extractfile(member)
             if handle is None:
