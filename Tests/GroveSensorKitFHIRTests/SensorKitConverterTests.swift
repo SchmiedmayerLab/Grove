@@ -28,7 +28,7 @@ struct GroveSensorKitFHIRConverterTests {
     }
 
     private static func native(
-        admission: SensorRawPayloadAdmission = .verifiedSanitizedInput,
+        admission: RecordingPayloadAdmission = .verifiedSanitizedInput,
         format: RegisteredRecordingFormat = .nativeRecording
     ) throws -> SensorKitNativeRecording {
         let payload: Data
@@ -425,8 +425,8 @@ struct GroveSensorKitFHIRConverterTests {
         }
     }
 
-    @Test(arguments: SensorRawPayloadAdmission.allCases)
-    func rawAdmissionIsConsumedButNeverSerialized(_ admission: SensorRawPayloadAdmission) async throws {
+    @Test(arguments: RecordingPayloadAdmission.allCases)
+    func rawAdmissionIsConsumedButNeverSerialized(_ admission: RecordingPayloadAdmission) async throws {
         let record = try SensorKitRawRecord(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.heartRate",
@@ -436,7 +436,7 @@ struct GroveSensorKitFHIRConverterTests {
         let graph = try await SensorKitExporterFixtures.graph(.raw(record))
         let json = try #require(String(data: JSONEncoder().encode(graph.bundle), encoding: .utf8))
 
-        for value in SensorRawPayloadAdmission.allCases {
+        for value in RecordingPayloadAdmission.allCases {
             #expect(!json.contains(value.rawValue))
         }
         #expect(graph.observations.isEmpty)

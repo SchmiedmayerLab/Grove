@@ -380,14 +380,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         claims["recordingDocument"]["adapterProfile"],
     ]
     lines = [HEADER.rstrip(), ""]
-    lines.extend([
-        "public import GroveFHIRContract",
-        "",
-        "/// The producer-side assertion that admits an opaque SensorKit payload.",
-        "public typealias SensorRawPayloadAdmission = RecordingPayloadAdmission",
-        "",
-        "",
-    ])
 
     constants = {
         "canonicalRoot": canonical,

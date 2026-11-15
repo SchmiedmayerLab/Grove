@@ -10,12 +10,6 @@
 
 // swiftlint:disable all
 
-public import GroveFHIRContract
-
-/// The producer-side assertion that admits an opaque SensorKit payload.
-public typealias SensorRawPayloadAdmission = RecordingPayloadAdmission
-
-
 /// Generated canonical constants for the SensorKit producer.
 public enum SensorKitContract {
     public static let canonicalRoot = "https://grovealliance.org/fhir/sensorkit"

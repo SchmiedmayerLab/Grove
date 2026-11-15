@@ -137,7 +137,7 @@ class SensorSwiftContractTests(unittest.TestCase):
                 projected_registry.index("case callerAuthorizedOpaquePayload"),
                 projected_registry.index("case verifiedSanitizedInput"),
             )
-            self.assertIn("public typealias SensorRawPayloadAdmission = RecordingPayloadAdmission", generated)
+            self.assertNotIn("RecordingPayloadAdmission", generated)
             self.assertIn("sourceToken: \"SRSensor.accelerometer\"", generated)
             self.assertIn("status: .mappedStandard", generated)
             self.assertIn("conversionProvenanceProfile", generated)

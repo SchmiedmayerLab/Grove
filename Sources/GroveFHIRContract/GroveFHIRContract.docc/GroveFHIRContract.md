@@ -242,6 +242,7 @@ The read-only descriptors use the generated contracts; they do not perform conve
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+- ``RecordingPayloadAdmission``
 
 ### Collection contracts
 

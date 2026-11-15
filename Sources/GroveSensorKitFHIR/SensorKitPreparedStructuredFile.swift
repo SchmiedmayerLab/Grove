@@ -58,7 +58,7 @@ public struct SensorKitPreparedStructuredFile: Sendable {
 
     /// Uses already-validated generated JSON without decoding the full file a second time.
     public func sensorKitRecord(
-        sourceRecordID: SensorKitSourceRecordID, title: String, sidecarPath: String, admission: SensorRawPayloadAdmission
+        sourceRecordID: SensorKitSourceRecordID, title: String, sidecarPath: String, admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         let native = try SensorKitNativeRecording(
             title: title, format: .nativeRecording, payload: .file(path: sidecarPath, contents: file), admission: admission

@@ -9,6 +9,7 @@
 #if os(iOS)
 public import CoreMotion
 import Foundation
+public import GroveFHIRContract
 public import GroveSensorKit
 public import SensorKit
 
@@ -277,7 +278,7 @@ extension SensorKitPPGRecording {
         sourceRecordID: SensorKitSourceRecordID,
         title: String,
         location: SensorKitRecordingLocation,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         try prepared().sensorKitRecord(
             sourceRecordID: sourceRecordID,

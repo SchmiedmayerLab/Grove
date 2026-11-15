@@ -205,7 +205,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         sourceRecordID: SensorKitSourceRecordID,
         title: String,
         location: SensorKitRecordingLocation,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         guard let nativePayload else {
             throw SensorKitRecordError.invalidRecordingFormat
