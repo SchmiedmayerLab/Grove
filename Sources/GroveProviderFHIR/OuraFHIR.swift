@@ -85,12 +85,7 @@ public enum OuraFHIR {
         let outputs = try [
             scalar(activity.steps.map { Decimal($0) }, contract: MeasurementCatalog.stepCount, effective: effective, context: context),
             scalar(activity.activeCalories, contract: MeasurementCatalog.activeEnergy, effective: effective, context: context),
-            scalar(
-                activity.equivalentWalkingDistance,
-                contract: OuraMeasurementCatalog.ouraEquivalentWalkingDistance,
-                effective: effective,
-                context: context
-            )
+            scalar(activity.equivalentWalkingDistance, contract: MeasurementCatalog.distance, effective: effective, context: context)
         ].compactMap { $0 }
         return try assemble(id: activity.id, token: "daily_activity", outputs: outputs, context: context)
     }

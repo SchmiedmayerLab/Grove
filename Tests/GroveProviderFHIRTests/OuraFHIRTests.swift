@@ -61,8 +61,7 @@ struct OuraFHIRTests {
         #expect(Set(results.map(\.sourceToken)) == Set(advertised.map(\.token)))
         #expect(results.allSatisfy { $0.record != nil && $0.omissions.isEmpty })
         let activityOutputs = try Self.observations(results[0])
-        #expect(activityOutputs.contains { $0.meta?.profile?.contains(Profile.ouraEquivalentWalkingDistance) == true })
-        #expect(!activityOutputs.contains { $0.meta?.profile?.contains(Profile.groveMobileDistance) == true })
+        #expect(activityOutputs.contains { $0.meta?.profile?.contains(Profile.groveMobileDistance) == true })
         try ProviderFixtures.write(results, provider: "oura")
     }
 

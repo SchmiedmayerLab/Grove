@@ -26,7 +26,7 @@ Stage each returned exchange record's exact bytes before advancing the acquisiti
 
 ## Structured values
 
-The converters preserve source units through checked decimal scaling, complete session intervals and civil-day boundaries in the source time zone. They do not substitute retrieval time for missing source timestamps. Blood pressure requires both components from the same Withings group. Oura sleep duration, minimum heart rate and mean respiratory rate remain distinct outputs with their own clinical mappings. Oura activity totals span 04:00 on the named source date to 04:00 on the next date in the evidenced source zone. Its equivalent walking distance uses a separate provider measurement because it expresses an energy estimate rather than measured travel.
+The converters preserve source units through checked decimal scaling, complete session intervals and civil-day boundaries in the source time zone. They do not substitute retrieval time for missing source timestamps. Blood pressure requires both components from the same Withings group. Oura sleep duration, minimum heart rate and mean respiratory rate remain distinct outputs with their own clinical mappings. Oura activity totals span 04:00 on the named source date to 04:00 on the next date in the evidenced source zone. Its equivalent walking distance converts, in metres, under the shared distance measurement over the same period.
 
 Every structured output directly claims its semantic profile and concrete provider Observation profile. The conversion Provenance targets every emitted output. Provider availability is not inferred, so these Observations omit `issued`.
 
