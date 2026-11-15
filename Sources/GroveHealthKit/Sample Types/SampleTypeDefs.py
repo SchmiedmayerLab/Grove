@@ -117,6 +117,20 @@ class Availability(object):
         return components
 
 
+def sdk_guard(availability: Optional[Availability]) -> Optional[str]:
+    """The compiler condition that code naming a platform 27 symbol compiles under, or `None` for earlier symbols.
+
+    Only the platform 27 SDKs declare these symbols, and they ship with Swift 6.4. Guarding the code with the compiler
+    version keeps the package building with an earlier SDK (Xcode 26), where the symbol does not exist at all.
+    """
+    if availability is None:
+        return None
+    versions = (availability.iOS, availability.macOS, availability.watchOS, availability.visionOS)
+    if any(version is not None and _parse_version(version)[0] >= 27 for version in versions):
+        return 'compiler(>=6.4)'
+    return None
+
+
 def is_availability_restricted(availability: Optional[Availability], enclosing: Optional[Availability] = None) -> bool:
     """True iff `availability` still constrains at least one platform beyond the floor in effect — the
     deployment target, raised by any enclosing `@available` gate (see `Availability.components`)."""

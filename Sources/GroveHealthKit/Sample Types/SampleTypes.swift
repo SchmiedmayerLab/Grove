@@ -478,6 +478,7 @@ extension SampleType where Sample == HKQuantitySample {
             )
         )
     }
+    #if compiler(>=6.4)
     /// A quantity sample type that measures the root mean square of successive heartbeat interval differences.
     @available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *)
     @inlinable public static var heartRateVariabilityRMSSD: SampleType<HKQuantitySample> {
@@ -492,6 +493,7 @@ extension SampleType where Sample == HKQuantitySample {
             )
         )
     }
+    #endif
     /// A quantity sample that records the reduction in heart rate from the peak exercise rate to the rate one minute after exercising ended.
     @inlinable public static var heartRateRecoveryOneMinute: SampleType<HKQuantitySample> {
         SampleTypeCache.get(
@@ -1617,6 +1619,12 @@ extension SampleType where Sample == HKQuantitySample {
 
     /// Returns the shared Quantity type for the specified identifier.
     public init?(_ identifier: HKQuantityTypeIdentifier) where Sample == HKQuantitySample {
+        #if compiler(>=6.4)
+        if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *), identifier == .heartRateVariabilityRMSSD {
+            self = .heartRateVariabilityRMSSD
+            return
+        }
+        #endif
         if identifier == .stepCount {
             self = .stepCount
         } else if identifier == .distanceWalkingRunning {
@@ -1687,8 +1695,6 @@ extension SampleType where Sample == HKQuantitySample {
             self = .walkingHeartRateAverage
         } else if identifier == .heartRateVariabilitySDNN {
             self = .heartRateVariabilitySDNN
-        } else if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *), identifier == .heartRateVariabilityRMSSD {
-            self = .heartRateVariabilityRMSSD
         } else if identifier == .heartRateRecoveryOneMinute {
             self = .heartRateRecoveryOneMinute
         } else if identifier == .atrialFibrillationBurden {
@@ -1930,9 +1936,11 @@ extension HKQuantityTypeIdentifier {
         identifiers.insert(Self.restingHeartRate)
         identifiers.insert(Self.walkingHeartRateAverage)
         identifiers.insert(Self.heartRateVariabilitySDNN)
+        #if compiler(>=6.4)
         if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *) {
             identifiers.insert(Self.heartRateVariabilityRMSSD)
         }
+        #endif
         identifiers.insert(Self.heartRateRecoveryOneMinute)
         identifiers.insert(Self.atrialFibrillationBurden)
         identifiers.insert(Self.oxygenSaturation)
@@ -2731,6 +2739,7 @@ extension SampleType where Sample == HKCategorySample {
             )
         )
     }
+    #if compiler(>=6.4)
     /// A category sample type that records bleeding after menopause.
     @available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *)
     @inlinable public static var bleedingAfterMenopause: SampleType<HKCategorySample> {
@@ -2743,6 +2752,8 @@ extension SampleType where Sample == HKCategorySample {
             )
         )
     }
+    #endif
+    #if compiler(>=6.4)
     /// A category sample type that records menopausal state.
     @available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *)
     @inlinable public static var menopausalState: SampleType<HKCategorySample> {
@@ -2755,6 +2766,7 @@ extension SampleType where Sample == HKCategorySample {
             )
         )
     }
+    #endif
     /// A category type that records acne as a symptom.
     @inlinable public static var acne: SampleType<HKCategorySample> {
         SampleTypeCache.get(
@@ -2842,6 +2854,18 @@ extension SampleType where Sample == HKCategorySample {
 
     /// Returns the shared Category type for the specified identifier.
     public init?(_ identifier: HKCategoryTypeIdentifier) where Sample == HKCategorySample {
+        #if compiler(>=6.4)
+        if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *), identifier == .bleedingAfterMenopause {
+            self = .bleedingAfterMenopause
+            return
+        }
+        #endif
+        #if compiler(>=6.4)
+        if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *), identifier == .menopausalState {
+            self = .menopausalState
+            return
+        }
+        #endif
         if identifier == .appleStandHour {
             self = .appleStandHour
         } else if identifier == .lowCardioFitnessEvent {
@@ -2966,10 +2990,6 @@ extension SampleType where Sample == HKCategorySample {
             self = .bleedingAfterPregnancy
         } else if #available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *), identifier == .hypertensionEvent {
             self = .hypertensionEvent
-        } else if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *), identifier == .bleedingAfterMenopause {
-            self = .bleedingAfterMenopause
-        } else if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *), identifier == .menopausalState {
-            self = .menopausalState
         } else if identifier == .acne {
             self = .acne
         } else if identifier == .drySkin {
@@ -3088,12 +3108,16 @@ extension HKCategoryTypeIdentifier {
         if #available(iOS 26.2, macOS 26.2, watchOS 26.2, visionOS 26.2, *) {
             identifiers.insert(Self.hypertensionEvent)
         }
+        #if compiler(>=6.4)
         if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *) {
             identifiers.insert(Self.bleedingAfterMenopause)
         }
+        #endif
+        #if compiler(>=6.4)
         if #available(iOS 27.0, macOS 27.0, watchOS 27.0, visionOS 27.0, *) {
             identifiers.insert(Self.menopausalState)
         }
+        #endif
         identifiers.insert(Self.acne)
         identifiers.insert(Self.drySkin)
         identifiers.insert(Self.hairLoss)
