@@ -55,25 +55,15 @@ public enum FHIRMeasurementCatalog {
     /// Every HealthKit source row, including guide-admitted inputs the current producer cannot convert.
     public static let healthKitSources: [HealthKitSourceDefinition] = HealthKitContract.rows.map(HealthKitSourceDefinition.init)
 
-    /// Provider-owned semantics remain separately selectable from native platform measurements.
-    public static let providerMeasurements = generatedProviderMeasurements.map(FHIRMeasurementDefinition.init)
-
-    private static let generatedProviderMeasurements =
-        GoogleHealthMeasurementCatalog.all + OuraMeasurementCatalog.all + WithingsMeasurementCatalog.all
-    private static let generatedMeasurements =
-        MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex] + generatedProviderMeasurements
+    private static let generatedMeasurements = MeasurementCatalog.all + HealthKitMeasurementCatalog.all
+        + [HealthKitContract.bodyMassIndex]
+        + GoogleHealthMeasurementCatalog.all + OuraMeasurementCatalog.all + WithingsMeasurementCatalog.all
     private static let byID = Dictionary(uniqueKeysWithValues: measurements.map { ($0.id, $0) })
     private static let sourcesByID = Dictionary(uniqueKeysWithValues: healthKitSources.map { ($0.sourceTypeIdentifier, $0) })
 
     /// The declared measurement with this exact identifier, or `nil` for an unknown identifier.
     public static func measurement(id: String) -> FHIRMeasurementDefinition? {
         byID[id]
-    }
-
-    /// Every measurement directly declaring this profile, without choosing one when a profile is shared.
-    /// Adapter-wide and inherited profile claims do not select a measurement through this lookup.
-    public static func measurements(profile: FHIRPrimitive<Canonical>) -> [FHIRMeasurementDefinition] {
-        measurements.filter { $0.profile == profile }
     }
 
     /// The exact HealthKit inventory row. Apple callers can pass their typed source identifier's `rawValue`.

@@ -38,7 +38,7 @@ struct HealthKitAudiogramContent: Sendable {
 
     private let templates: [Coordinate: ComponentTemplate]
     private let sensitivity: QuantityTemplate
-    private let frequency = QuantityTemplate(.init(system: "http://unitsofmeasure.org", code: "Hz", unit: "Hz", valueDomain: nil))
+    private let frequency = QuantityTemplate(.init(system: Canonicals.ucumSystem, code: "Hz", unit: "Hz", valueDomain: nil))
 
     init(_ contract: MeasurementContract) throws(HealthKitContentDefect) {
         var templates: [Coordinate: ComponentTemplate] = [:]

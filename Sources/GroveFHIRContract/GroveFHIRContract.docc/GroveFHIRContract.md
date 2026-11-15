@@ -196,7 +196,7 @@ Use ``FHIRMeasurementCatalog/measurement(id:)`` to inspect a measurement's tempo
 Apple callers can pass a typed `HealthKitSourceType`'s `rawValue` without building another source-name table.
 
 Guide admission does not establish converter availability, participant permission or receiver capability.
-For example, a supported food-correlation row can still lack an implemented producer, and a missing value-shape descriptor never admits arbitrary content.
+A supported row can still lack an implemented producer, and a missing value-shape descriptor never admits arbitrary content.
 Adapters choose their implemented source semantics for a `dateTimeOrPeriod` contract, and receivers still validate the complete graph against its profiles.
 The read-only descriptors use the generated contracts; they do not perform conversion or unit arithmetic.
 
