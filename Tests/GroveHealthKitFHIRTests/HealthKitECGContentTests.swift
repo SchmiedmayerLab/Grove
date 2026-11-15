@@ -438,6 +438,49 @@ struct HealthKitECGContentTests {
         #expect(readableMembers.allSatisfy { $0.extension == nil && $0.identifier != nil })
     }
 
+    /// The exchange graph admits a member without a target only as the unknown symptoms of a HealthKit ECG waveform.
+    @Test("A data-absent member is refused on another Observation and with a reason other than unknown")
+    func dataAbsentMemberOutsideTheECGCaseIsRefused() async throws {
+        let symptom = try GoldenCase.symptom(uuid: GoldenFixtures.uuid(0xD7))
+        let record = try GoldenCase.electrocardiogramRecord(uuid: 0xD6, symptoms: [symptom])
+        let graph = try await ExporterFixtures.export(
+            .electrocardiogram(record.electrocardiogram, voltages: record.voltageMeasurements, symptoms: nil)
+        ).primary.graph
+
+        /// Validates the graph after `change` replaced the `hasMember` of the waveform or of the other Observation.
+        func validate(waveform: Bool, _ change: (_ members: [[String: Any]]) -> [[String: Any]]) throws {
+            var root = try #require(try JSONSerialization.jsonObject(with: graph.json) as? [String: Any])
+            var entries = try #require(root["entry"] as? [[String: Any]])
+            let resources = entries.map { $0["resource"] as? [String: Any] ?? [:] }
+            let waveformMembers = try #require(resources.lazy.compactMap { $0["hasMember"] as? [[String: Any]] }.first)
+            let index = try #require(resources.firstIndex {
+                $0["resourceType"] as? String == "Observation" && ($0["component"] != nil) == waveform
+            })
+            var resource = resources[index]
+            resource["hasMember"] = change(waveformMembers)
+            entries[index]["resource"] = resource
+            root["entry"] = entries
+            _ = try ExchangeGraph(validating: JSONSerialization.data(withJSONObject: root), kind: graph.kind)
+        }
+
+        try validate(waveform: true) { $0 }
+        let otherReason = #expect(throws: ExchangeGraphError.self) {
+            try validate(waveform: true) { members in
+                members.map { member in
+                    var member = member
+                    member["extension"] = (member["extension"] as? [[String: Any]])?.map { $0.merging(["valueCode": "masked"]) { $1 } }
+                    return member
+                }
+            }
+        }
+        let otherObservation = #expect(throws: ExchangeGraphError.self) {
+            try validate(waveform: false) { $0 }
+        }
+        for error in [otherReason, otherObservation] {
+            #expect(error?.diagnostic.code == ExchangeGraphRule.mobileExchangeReferenceShape.rawValue)
+        }
+    }
+
     @Test("The symptom check admits exactly the claim's symptom source types among every category type")
     func correlatedSymptomTypesAreTheClaims() throws {
         let start = GoldenFixtures.sampleStart
