@@ -275,16 +275,17 @@ extension ExchangeGraphAssembler {
         if let writerRecord {
             identifiers.append(writerRecord.identity.fhirIdentifier)
         }
+        // The version travels beside the writer-record identity on every output that states one.
+        let writerVersion = writerRecord.map { writerRecord in
+            Extension(url: Canonicals.writerRecordVersion, value: .string(writerRecord.version.asFHIRStringPrimitive()))
+        }
         let resource: ExchangeOutputDraft.Resource
         switch output.resource {
         case .observation(var observation):
             observation.identifier = identifiers
             decorate(&observation, links: output.links, wasUserEntered: output.wasUserEntered, surroundings: surroundings)
-            if let writerRecord {
-                observation.extension.append(Extension(
-                    url: Canonicals.writerRecordVersion,
-                    value: .string(writerRecord.version.asFHIRStringPrimitive())
-                ))
+            if let writerVersion {
+                observation.extension.append(writerVersion)
             }
             output.trailingExtensions.forEach { observation.extension.append($0) }
             resource = .observation(observation)
@@ -292,6 +293,9 @@ extension ExchangeGraphAssembler {
             document.identifier = identifiers
             document.date = FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant))
             decorate(&document, links: output.links, surroundings: surroundings)
+            if let writerVersion {
+                document.extension.append(writerVersion)
+            }
             output.trailingExtensions.forEach { document.extension.append($0) }
             resource = .document(document)
         }

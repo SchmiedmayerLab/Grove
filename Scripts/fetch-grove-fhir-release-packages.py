@@ -3,7 +3,7 @@
 
 Building the grove-fhir implementation guides renders and link-checks thousands of pages, to produce one package.tgz
 each. A release attaches those packages already. This checks each against the release's SHA256SUMS, and the release's
-build provenance against the grove-fhir commit checked out, then installs it where a guide build puts it. A marker
+recorded source revision against the grove-fhir commit checked out, then installs it where a guide build puts it. A marker
 beside it records the download, so a later build or comparison never takes it for a build; a build replaces the whole
 output directory, marker included.
 
@@ -104,7 +104,11 @@ def fetch_release(fetch: Fetch, release: str, commit: str, guides: list[str], di
         return data
 
     # The checksums only vouch for the bytes; the conformance checks read their catalogs from the commit checked out.
-    provenance = json.loads(verified(f"build-provenance-{release}.json"))
+    # Releases from 0.8.1 record their source in the publication manifest; earlier ones in a build provenance file.
+    record = f"publication-manifest-{release}.json"
+    if record not in checksums:
+        record = f"build-provenance-{release}.json"
+    provenance = json.loads(verified(record))
     if provenance.get("releaseVersion") != release or provenance.get("sourceRevision") != commit:
         raise ReleaseError(
             f"the grove-fhir {release} release records version {provenance.get('releaseVersion')} built from "

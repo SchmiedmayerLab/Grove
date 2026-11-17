@@ -23,9 +23,18 @@ status=$?
 set -e
 
 if [ "$status" -eq 0 ]; then
-    printf '%s\n' "$matches"
-    echo "error: retired FHIR canonical found; the Grove FHIR Implementation Guides have no alias or fallback layer" >&2
-    exit 1
+    # The HealthKit package owns this one retained canonical. Strip only an exact URI
+    # followed by a token delimiter; a suffix or a second retired URI still fails.
+    matches="$(printf '%s\n' "$matches" | sed -E 's#https://grovealliance\.org/fhir/core/StructureDefinition/metadata(["`[:space:]]|$)#\1#g')"
+    set +e
+    matches="$(printf '%s\n' "$matches" | grep -E "$retired_fhir_canonicals")"
+    status=$?
+    set -e
+    if [ "$status" -eq 0 ]; then
+        printf '%s\n' "$matches"
+        echo "error: retired FHIR canonical found outside the retained HealthKit metadata definition" >&2
+        exit 1
+    fi
 fi
 
 # 1 means "searched, found nothing". Anything else means the search itself failed.
@@ -34,4 +43,4 @@ if [ "$status" -ne 1 ]; then
     exit 1
 fi
 
-echo "OK — no retired Grove, Stanford, or Spezi FHIR canonicals are present."
+echo "OK — no retired FHIR canonicals outside the retained HealthKit metadata definition."

@@ -72,9 +72,9 @@ Only snapshots of equal content are one entry: the writer's host is the converte
 A source that states no writer carries the five facts of its `HKSourceRevision` on the Provenance's source entity instead, in the `healthkit-source-revision` extension.
 A sample the store never held has no revision, so it states neither.
 
-Every non-nil `HKDevice` is a recording Device that `Observation.device` references.
+Every non-nil `HKDevice` is a recording Device. Recognizable device metadata also creates a recording Device when `HKDevice` is absent. Observations reference it through `Observation.device`; documents include it in `DocumentReference.author`.
 It states every fact HealthKit supplies: `HKDevice.name` as the user-friendly `deviceName`, `manufacturer`, `model` as `modelNumber`, the hardware, firmware and software versions under their MDC codes, `localIdentifier` as a clear identifier of type `device-local-identifier` under the deployment's own system, and the UDI device identifier in `udiCarrier`.
-A record with an Observation output also takes the sample's device metadata keys: the serial number, and the UDI production identifier in the Grove extension on `udiCarrier`, come only from their keys, and the device name, manufacturer and UDI device identifier keys fill what `HKDevice` leaves absent.
+Every record also takes the sample's device metadata keys: the serial number, and the UDI production identifier in the Grove extension on `udiCarrier`, come only from their keys, and the device name, manufacturer and UDI device identifier keys fill what `HKDevice` leaves absent.
 
 Every recording Device carries `device-snapshot`, the keyed digest of its complete content, which is the selected Bundle node and fullUrl key.
 Equal content is one snapshot, and a snapshot proves no physical unit.

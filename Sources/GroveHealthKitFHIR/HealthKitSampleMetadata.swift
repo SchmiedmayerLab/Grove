@@ -16,7 +16,8 @@ import ModelsR4
 
 /// The metadata keys a source type's own content carries, and whether its record holds its correlation's members'
 /// metadata. The keys every path can carry (the time zone, manual entry, the sync pair and the device keys) are carried as
-/// the graph's outputs and recording Device show; every other key is withheld and reported.
+/// the graph's outputs and recording Device show. Source-sample keys can also be preserved in the typed metadata
+/// extension; unrepresented keys remain observable omissions.
 @available(iOS 18, macOS 15, watchOS 11, *)
 struct MetadataRule: Sendable {
     /// The rule of a type whose content reads no metadata key of its own.
@@ -188,15 +189,20 @@ struct MetadataComponentRule: Sendable {
 /// manual-entry flag decide when it states them; otherwise the members state the zone every member naming one names,
 /// and manual entry only when every member states it.
 @available(iOS 18, macOS 15, watchOS 11, *)
-struct HealthKitSampleMetadata: @unchecked Sendable { // The values are HealthKit's immutable property-list objects.
+struct HealthKitSampleMetadata: Sendable {
+    // NOTE: `values`, `memberValues`, and `containedValues` are all `nonisolated(unsafe)`.
+    // this is in fact safe, as the `Any` values contained within the 3 properties are
+    // all coming from HKObject.metadata dictionaries, which only allow certain types
+    // (NSString, NSNumber, NSDate, and HKQuantity) all of which are Sendable.
+    
     /// The sample's metadata, empty when it states none.
-    let values: [String: Any]
+    nonisolated(unsafe) let values: [String: Any]
     /// The metadata of each member of the correlation, in no particular order; empty unless the rule reads members.
-    let memberValues: [[String: Any]]
+    nonisolated(unsafe) let memberValues: [[String: Any]]
     /// The metadata of each object the sample contains that states some: a correlation's objects, a workout's events
     /// and activities, and each activity's events. Only the withheld keys read it; a blood-pressure correlation's
     /// zone and manual entry read ``memberValues``.
-    let containedValues: [[String: Any]]
+    nonisolated(unsafe) let containedValues: [[String: Any]]
     /// Whether the record states manual entry: `HKMetadataKeyWasUserEntered` is explicitly `true` on the sample or,
     /// when the sample states no Boolean, on each of its members, of which there is at least one.
     let wasUserEntered: Bool
@@ -321,10 +327,15 @@ extension HealthKitSampleMetadata {
     /// method and writer record.
     ///
     /// A key is carried only through the representation the guide publishes for it, on an output that has that
-    /// representation: "There is no generic metadata extension." (healthkit mapping.md, Supported HealthKit metadata)
+    /// representation, or the typed metadata extension on its source output.
     /// A blood-pressure member's zone or manual entry that the record takes, because the correlation states none,
     /// is carried as the record's own would be.
-    func withheldKeys(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String] {
+    func withheldKeys(
+        in outputs: [ExchangeOutputDraft],
+        device: RecordingDevice?,
+        preservedSampleKeys: Set<String> = [],
+        excludedSampleKeys: Set<String> = []
+    ) -> [String] {
         guard !values.isEmpty || !containedValues.isEmpty else {
             return []
         }
@@ -336,7 +347,30 @@ extension HealthKitSampleMetadata {
         let contained = memberValues.isEmpty ? containedValues : containedValues.map { metadata in
             metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
         }
-        return Self.withheldKeys(record: values, contained: contained, carried: carried)
+        // Generic metadata represents only its owner. It cannot make a same-named contained value disappear.
+        // A key the extension preserves or the metadata policy excludes is not withheld. The sync pair is never generic
+        // metadata, so an output without the writer record withholds it under every metadata policy.
+        let own = values.filter { key, _ in
+            HealthKitContract.metadataExcludedKeys.contains(key)
+                || !(preservedSampleKeys.contains(key) || excludedSampleKeys.contains(key))
+        }
+        return Self.withheldKeys(record: own, contained: contained, carried: carried)
+    }
+
+    /// Source-sample values without a faithful representation in the mapped content or supporting graph.
+    /// Conflicting device metadata remains here; a preferred HKDevice value cannot represent a different source value.
+    func unmappedValues(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String: Any] {
+        values.filter { key, value in
+            // The writer-record identity, its version and the readable sync identifier alone represent the sync pair.
+            guard !HealthKitContract.metadataExcludedKeys.contains(key) else {
+                return false
+            }
+            // Absence of manual-entry coding cannot distinguish an explicit false from missing source metadata.
+            if key == HKMetadataKeyWasUserEntered, (value as? Bool) == false {
+                return true
+            }
+            return !carries(key, value: value, in: outputs, device: device)
+        }
     }
 
     /// Whether a blood-pressure correlation or one of its members states manual entry `true` that `outputs` do not
@@ -350,13 +384,11 @@ extension HealthKitSampleMetadata {
     }
 
     /// Whether `outputs` and the recording `device` represent the sample's `value` for `key`:
-    /// - the sync pair as the writer-record identity and version, which only an Observation primary states, and only for
-    ///   an attributable writer (healthkit profiles.fsh, healthkit-writer-record-1);
+    /// - the sync pair as the writer-record identity and version, which the primary states only for an attributable
+    ///   writer (healthkit profiles.fsh, healthkit-writer-record-1);
     /// - manual entry, `false` by omission and `true` as an Observation's manual-entry recording method;
-    /// - the time zone as a `timezone` extension on an Observation's effective time (mapping.md: "Map an available
-    ///   IANA time-zone name to the standard FHIR `timezone` extension"), which a document has no element for;
-    /// - a device key as the very value the Device an Observation references states in the element the guide gives it, so
-    ///   a value an `HKDevice` property replaced is withheld, and so is every device key of a sample with no `HKDevice`;
+    /// - the time zone as a `timezone` extension on an Observation's effective time or a recording document's source period;
+    /// - a device key as the very value the recording Device states in the element the guide gives it;
     /// - a key of the type's own content when its reader accepts the value.
     private func carries(_ key: String, value: Any, in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> Bool {
         switch key {
@@ -368,10 +400,10 @@ extension HealthKitSampleMetadata {
             }
             return !entered || outputs.contains(where: \.statesManualEntry)
         case HKMetadataKeyTimeZone:
-            return outputs.contains(where: \.namesEffectiveZone)
+            return outputs.contains(where: \.namesMeasurementZone)
         case HKMetadataKeyDeviceSerialNumber, HKMetadataKeyDeviceName, HKMetadataKeyDeviceManufacturerName,
             HKMetadataKeyUDIDeviceIdentifier, HKMetadataKeyUDIProductionIdentifier:
-            guard let stated = value as? String, outputs.contains(where: \.isObservation) else {
+            guard let stated = value as? String, outputs.contains(where: { $0.links.contains(.recordingDevice) }) else {
                 return false
             }
             return device?.statedFact(forMetadataKey: key) == stated
@@ -383,25 +415,22 @@ extension HealthKitSampleMetadata {
 
 
 extension ExchangeOutputDraft {
-    /// Whether the output is an Observation.
-    var isObservation: Bool {
-        if case .observation = resource { true } else { false }
-    }
-
     /// Whether the output is an Observation stating the manual-entry recording method.
     fileprivate var statesManualEntry: Bool {
         if case .observation = resource { links.contains(.manualEntry) && wasUserEntered } else { false }
     }
 
-    /// Whether the output is an Observation naming the zone of its effective time in a `timezone` extension.
-    fileprivate var namesEffectiveZone: Bool {
-        guard case .observation(let observation) = resource else {
-            return false
-        }
-        return switch observation.effective {
-        case .dateTime(let instant): instant.namesZone
-        case .period(let period): period.start?.namesZone == true || period.end?.namesZone == true
-        case .instant, .timing, nil: false
+    /// Whether the output names the zone of its measurement time in a `timezone` extension.
+    fileprivate var namesMeasurementZone: Bool {
+        switch resource {
+        case .observation(let observation):
+            switch observation.effective {
+            case .dateTime(let instant): instant.namesZone
+            case .period(let period): period.start?.namesZone == true || period.end?.namesZone == true
+            case .instant, .timing, nil: false
+            }
+        case .document(let document):
+            document.context?.period?.start?.namesZone == true || document.context?.period?.end?.namesZone == true
         }
     }
 }
