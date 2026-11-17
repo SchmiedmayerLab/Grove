@@ -19,6 +19,7 @@ import ModelsR4
 typealias FHIRJSONObject = [String: Any]
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 enum PairRules {
     enum URL {
         static let variable = "http://hl7.org/fhir/StructureDefinition/variable"
@@ -218,6 +219,7 @@ enum PairRules {
     }
 }
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 struct PairContext {
     let allDefinitionIDs: Set<String>
     let allAnswers: [String: [Any]]

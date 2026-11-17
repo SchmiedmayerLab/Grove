@@ -114,6 +114,7 @@ extension HealthKitCatalog {
 }
 
 
+@available(macOS 13, *)
 extension HealthKitSourceType {
     /// The inventory row of a sample type, such as the one a deletion was reported for.
     public init?(_ sampleType: HKSampleType) {

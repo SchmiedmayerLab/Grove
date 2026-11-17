@@ -12,6 +12,7 @@ import Foundation
 // The constraint matrix stays explicit so each R4 answer family fails closed at its own boundary.
 // swiftlint:disable cyclomatic_complexity large_tuple
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairContext {
     // Every family in the IG's deterministic answer checker is handled in one pass.
     // swiftlint:disable:next cyclomatic_complexity function_body_length

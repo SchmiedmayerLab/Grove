@@ -8,6 +8,7 @@
 
 import Foundation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairRules {
     static func validateSubjectType(
         questionnaire: FHIRJSONObject,

@@ -240,6 +240,7 @@ public enum HealthKitSourceType: String, CaseIterable, Sendable {
     case workout = "HKWorkoutTypeIdentifier"
 
     /// The inventory row of a sample's type, or `nil` for a type the inventory does not list.
+    @available(macOS 13, *)
     public init?(_ sample: HKSample) {
         self.init(rawValue: sample.sampleType.identifier)
     }
