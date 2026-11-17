@@ -188,10 +188,10 @@ public final class AccountConfiguration {
         }
 
         // collect all values that cannot be handled by the account service
-        let unmappedAccountKeys: [any AccountKeyConfiguration] = service.configuration
-            .unsupportedAccountKeys(basedOn: configuration)
+        let unsupportedKeyConfigurations: [any AccountKeyConfiguration] = service.configuration
+            .unsupportedKeyConfigurations(basedOn: configuration)
 
-        guard !unmappedAccountKeys.isEmpty else {
+        guard !unsupportedKeyConfigurations.isEmpty else {
             return // we are fine, nothing unsupported
         }
 
@@ -200,7 +200,7 @@ public final class AccountConfiguration {
             // we are also fine, we have a standard that can store any unsupported account values
             logger.debug("""
                          The storage provider \(type(of: storageProvider)) is used to store the following account values that \
-                         are unsupported by the Account Service \(service.description): \(unmappedAccountKeys.debugDescription).
+                         are unsupported by the Account Service \(service.description): \(unsupportedKeyConfigurations.debugDescription).
                          """)
             return
         }
@@ -209,7 +209,7 @@ public final class AccountConfiguration {
         // Note: AnyAccountValueConfigurationEntry has a nice `debugDescription` that pretty prints the KeyPath property name
         preconditionFailure(
             """
-            Your `AccountConfiguration` lists the following account values "\(unmappedAccountKeys.debugDescription)" which are
+            Your `AccountConfiguration` lists the following account values "\(unsupportedKeyConfigurations.debugDescription)" which are
             not supported by the Account Service \(service.description)!
 
             The Account Service \(service.description) indicated that it cannot store the above-listed account values.

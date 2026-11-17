@@ -353,7 +353,7 @@ public final class InMemoryAccountService: AccountService {
         }
 
         guard let accountId = UUID(uuidString: details.accountId) else {
-            preconditionFailure("Invalid accountId format \(details.accountId)")
+            preconditionFailure("The account identifier of the current account is not a valid UUID.")
         }
 
         guard var storage = registeredUsers[accountId] else {
@@ -546,7 +546,7 @@ extension InMemoryAccountService.UserStorage {
 extension String {
     var assumeUUID: UUID {
         guard let id = UUID(uuidString: self) else {
-            preconditionFailure("Invalid uuid format \(self)")
+            preconditionFailure("The account identifier is not a valid UUID.")
         }
         return id
     }
