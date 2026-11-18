@@ -27,24 +27,41 @@ struct ECGAssemblyTests {
             SensorKitECGSession.InputGroup(identifier: active.identifier, state: .active, guidance: active.guidance, readings: [$0])
         }
         for fragment in fragments { #expect(try assembly.append([fragment]).isEmpty) }
-        #expect(throws: SensorKitECGSession.ProcessingError.incompleteSession) { try assembly.finish() }
+        #expect(assembly.hasPendingSession)
         let completed = try assembly.append([groups[2]])
         #expect(completed == (try SensorKitECGSession.process(groups)))
         #expect(!assembly.hasPendingSession)
-        try assembly.finish()
+        #expect(assembly.finish().sessions.isEmpty)
         var restarted = SensorKitECGAssembly()
         #expect(try restarted.append(groups) == completed)
     }
 
     @Test
     @available(iOS 18, *)
-    func anotherIncompleteSessionPreventsAnAcknowledgedBoundary() throws {
+    func fetchEndSkipsASessionWithoutVoltageSamples() throws {
         let groups = ECGProcessingTests.groups()
         let pending = SensorKitECGSession.InputGroup(identifier: "other-session", state: .begin, guidance: .guided, readings: groups[0].readings)
         var assembly = SensorKitECGAssembly()
         #expect(try assembly.append(groups + [pending]).count == 1)
         #expect(assembly.hasPendingSession)
-        #expect(throws: SensorKitECGSession.ProcessingError.incompleteSession) { try assembly.finish() }
+        let finished = assembly.finish()
+        #expect(finished.sessions.isEmpty)
+        #expect(finished.skippedSessionCount == 1)
+        #expect(!assembly.hasPendingSession)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func fetchEndKeepsASessionWithoutItsEndState() throws {
+        let groups = Array(ECGProcessingTests.groups().prefix(2))
+        var assembly = SensorKitECGAssembly()
+        #expect(try assembly.append(groups).isEmpty)
+        #expect(assembly.hasPendingSession)
+        let finished = assembly.finish()
+        #expect(finished.sessions == SensorKitECGSession.processLeniently(groups))
+        #expect(finished.sessions.map(\.sessionStates) == [[.begin, .active]])
+        #expect(finished.skippedSessionCount == 0)
+        #expect(!assembly.hasPendingSession)
     }
 
     @Test
@@ -55,7 +72,6 @@ struct ECGAssemblyTests {
         #expect(try assembly.append([groups[0]]).isEmpty)
         #expect(throws: SensorKitECGSession.ProcessingError.assemblyCapacityExceeded) { try assembly.append([groups[1]]) }
         #expect(assembly.hasPendingSession)
-        #expect(throws: SensorKitECGSession.ProcessingError.incompleteSession) { try assembly.finish() }
     }
 
     @Test
@@ -66,7 +82,6 @@ struct ECGAssemblyTests {
         #expect(try assembly.append([empty, empty]).isEmpty)
         #expect(throws: SensorKitECGSession.ProcessingError.assemblyCapacityExceeded) { try assembly.append([empty]) }
         #expect(assembly.hasPendingSession)
-        #expect(throws: SensorKitECGSession.ProcessingError.incompleteSession) { try assembly.finish() }
     }
 
     @Test

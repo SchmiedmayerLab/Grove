@@ -10,7 +10,9 @@ import Foundation
 import SensorKit
 
 
-/// Holds only immutable public ECG facts between native callbacks. No acquisition cursor can cross an unfinished session.
+/// Holds only immutable public ECG facts between native callbacks.
+///
+/// No batch is delivered while a session is unfinished; ``finish()`` ends every pending session when the fetch completes.
 @available(iOS 17.4, *)
 struct SensorKitECGAssembly {
     private let maximumVoltageSamples: Int
@@ -43,22 +45,42 @@ struct SensorKitECGAssembly {
             guard let groups = pending[identifier],
                   groups.contains(where: { $0.state == .begin }), groups.contains(where: { $0.state == .active }),
                   groups.contains(where: { $0.state == .end }) else { continue }
-            let merged = try Dictionary(grouping: groups, by: \.state).map { state, parts in
-                guard let first = parts.first, parts.allSatisfy({ $0.guidance == first.guidance }) else {
-                    throw SensorKitECGSession.ProcessingError.inconsistentSession
-                }
-                let readings = parts.flatMap(\.readings)
-                return SensorKitECGSession.InputGroup(identifier: identifier, state: state, guidance: first.guidance, readings: readings)
-            }
-            output.append(contentsOf: try SensorKitECGSession.process(merged))
+            output.append(contentsOf: try SensorKitECGSession.process(Self.merged(groups, identifier: identifier)))
             pending.removeValue(forKey: identifier)
             completed.insert(identifier)
         }
         return output.sorted { ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier) }
     }
 
-    func finish() throws {
-        guard pending.isEmpty else { throw SensorKitECGSession.ProcessingError.incompleteSession }
+    /// Ends assembly when the fetch completes, so no unfinished session can hold the acquisition cursor.
+    ///
+    /// Every pending session is assembled as a time-range fetch assembles it: one without its end state is returned,
+    /// and one without its begin state or voltage samples, or with inconsistent facts, is skipped and counted.
+    mutating func finish() -> (sessions: [SensorKitECGSession], skippedSessionCount: Int) {
+        var sessions: [SensorKitECGSession] = []
+        for (identifier, groups) in pending {
+            if let merged = try? Self.merged(groups, identifier: identifier) {
+                sessions += SensorKitECGSession.processLeniently(merged)
+            }
+            completed.insert(identifier)
+        }
+        let skippedSessionCount = pending.count - sessions.count
+        pending.removeAll()
+        return (sessions.sorted { ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier) }, skippedSessionCount)
+    }
+
+    private static func merged(
+        _ groups: [SensorKitECGSession.InputGroup],
+        identifier: String
+    ) throws -> [SensorKitECGSession.InputGroup] {
+        try Dictionary(grouping: groups, by: \.state).map { state, parts in
+            guard let first = parts.first, parts.allSatisfy({ $0.guidance == first.guidance }) else {
+                throw SensorKitECGSession.ProcessingError.inconsistentSession
+            }
+            return SensorKitECGSession.InputGroup(
+                identifier: identifier, state: state, guidance: first.guidance, readings: parts.flatMap(\.readings)
+            )
+        }
     }
 
     mutating func resetCompletedBoundary() {
