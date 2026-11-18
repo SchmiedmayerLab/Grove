@@ -19,6 +19,9 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
     /// None of these failures advances the acquisition cursor, so the batch remains available for a retry.
     public enum ProcessingError: Error, Equatable, Sendable {
         /// A session lacks its begin, active or end state, or its voltage samples.
+        ///
+        /// Only sessions assembled across the callbacks of an anchored, sample-count fetch are refused for this;
+        /// time-range fetches skip such a session instead.
         case incompleteSession
         /// A session states one state more than once, mixes frequencies, leads or guidance, or has no identifier.
         case inconsistentSession
@@ -127,7 +130,8 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
     public static func processIntoSafeRepresentation(
         _ samples: some Sequence<(timestamp: Date, sample: SRElectrocardiogramSample)>
     ) throws -> [SensorKitECGSession] {
-        try SensorKitECGSession.process(inputGroups(samples))
+        // A time-range fetch skips sessions without their begin state or voltage samples, and keeps one without its end state.
+        SensorKitECGSession.processLeniently(inputGroups(samples))
     }
 
     static func inputGroups(
