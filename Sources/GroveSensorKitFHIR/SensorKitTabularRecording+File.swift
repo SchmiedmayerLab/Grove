@@ -77,7 +77,7 @@ extension SensorKitTabularRecording {
             sourceRecordID: SensorKitSourceRecordID,
             title: String,
             sidecarPath: String,
-            admission: SensorRawPayloadAdmission
+            admission: RecordingPayloadAdmission
         ) throws -> SensorKitRecord {
             // The shared writer already validated the exact registered grammar. Summary constructors
             // read the immutable file for clinical facts and enforce every required-value check.

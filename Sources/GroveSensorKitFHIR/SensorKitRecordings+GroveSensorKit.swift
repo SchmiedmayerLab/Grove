@@ -92,7 +92,7 @@ public struct SensorKitTabularRecording: Sendable {
         sourceRecordID: SensorKitSourceRecordID,
         title: String,
         location: SensorKitRecordingLocation,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         // `init` validated exactly these bytes as `format`'s, so they are not parsed a second time here.
         let nativeRecording = try SensorKitNativeRecording(

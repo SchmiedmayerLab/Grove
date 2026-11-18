@@ -1,0 +1,101 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+public import Foundation
+public import GroveFHIRContract
+
+
+/// The application, host and source-device facts first used to convert one SensorKit batch.
+///
+/// Persist the encoded snapshot before the first conversion and convert a retry with the decoded snapshot, so both
+/// state the same facts. Account authority, study policy and identity secrets remain the caller's responsibility.
+public struct SensorKitBatchSnapshot: Hashable, Sendable {
+    /// Why a snapshot could not be created, decoded or encoded.
+    public enum SnapshotError: Error, Equatable, Sendable {
+        /// The encoded snapshot has a version this release doesn't read.
+        case unsupportedVersion
+        /// A fact is invalid, such as an unknown time zone or a conversion instant outside the FHIR range.
+        case invalidFacts
+        /// The snapshot exceeds a byte limit, more than 128 source devices or 2,048 UTF-8 bytes in one string.
+        case capacityExceeded
+    }
+
+    /// The application that converts the batch.
+    public let application: ApplicationDevice
+    /// The device that runs the application.
+    public let host: HostDevice
+    /// The device that recorded the batch, if known.
+    public let recordingDevice: RecordingDevice?
+    /// The source devices SensorKit named for the batch's samples.
+    public let sourceDevices: [RecordingDevice]
+    /// Whether SensorKit named a source device for every sample.
+    public let sourceDevicesSuppliedEverySample: Bool
+    /// The time zone of the source.
+    public let sourceTimeZone: TimeZone
+    /// The instant of the first conversion.
+    public let conversionInstant: Date
+
+    /// Creates a snapshot of the facts of a batch's first conversion.
+    public init(
+        application: ApplicationDevice,
+        host: HostDevice,
+        recordingDevice: RecordingDevice?,
+        sourceDevices: [RecordingDevice] = [],
+        sourceDevicesSuppliedEverySample: Bool = false,
+        sourceTimeZone: TimeZone,
+        conversionInstant: Date
+    ) throws {
+        guard sourceDevices.count <= 128,
+              (0...253_402_300_799).contains(conversionInstant.timeIntervalSince1970),
+              !sourceDevicesSuppliedEverySample || !sourceDevices.isEmpty,
+              let zone = TimeZone(identifier: sourceTimeZone.identifier) else {
+            throw SnapshotError.invalidFacts
+        }
+        self.application = application
+        self.host = host
+        self.recordingDevice = recordingDevice
+        self.sourceDevices = sourceDevices
+        self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample
+        self.sourceTimeZone = zone
+        self.conversionInstant = conversionInstant
+        try representation.validateStringBounds()
+    }
+
+    /// Decodes a snapshot that ``encoded(maximumByteCount:)`` encoded.
+    ///
+    /// The byte limit is checked before decoding, and the application and host are validated as their initializers
+    /// validate them.
+    public init(encoded data: Data, maximumByteCount: Int) throws {
+        guard maximumByteCount > 0, !data.isEmpty, data.count <= maximumByteCount else {
+            throw SnapshotError.capacityExceeded
+        }
+        let value = try JSONDecoder().decode(Representation.self, from: data)
+        guard value.version == 1 else { throw SnapshotError.unsupportedVersion }
+        try value.validateStringBounds()
+        guard let zone = TimeZone(identifier: value.timeZone) else { throw SnapshotError.invalidFacts }
+        try self.init(
+            application: value.application.value(),
+            host: value.host.value(),
+            recordingDevice: value.recording?.value,
+            sourceDevices: value.sources.map(\.value),
+            sourceDevicesSuppliedEverySample: value.sourcesSuppliedEverySample,
+            sourceTimeZone: zone,
+            conversionInstant: value.instant
+        )
+    }
+
+    /// Encodes the exact retained facts, without any device lookup or current-time fallback.
+    public func encoded(maximumByteCount: Int) throws -> Data {
+        guard maximumByteCount > 0 else { throw SnapshotError.capacityExceeded }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        let data = try encoder.encode(representation)
+        guard data.count <= maximumByteCount else { throw SnapshotError.capacityExceeded }
+        return data
+    }
+}

@@ -10,16 +10,6 @@
 
 // swiftlint:disable all
 
-/// The producer-side assertion that admits an opaque native sensor payload.
-/// Grove consumes this value during preflight and never serializes it into FHIR.
-public enum SensorRawPayloadAdmission: String, CaseIterable, Hashable, Sendable {
-    /// The caller explicitly authorizes disclosure of exact opaque bytes; Grove does not inspect or sanitize them.
-    case callerAuthorizedOpaquePayload = "caller-authorized-opaque-payload"
-    /// The producer independently verified that the supplied bytes are sanitized.
-    case verifiedSanitizedInput = "verified-sanitized-input"
-}
-
-
 /// Generated canonical constants for the SensorKit producer.
 public enum SensorKitContract {
     public static let canonicalRoot = "https://grovealliance.org/fhir/sensorkit"

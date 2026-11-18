@@ -187,9 +187,9 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 One batch becomes records in one of two ways:
 
 - **One record per batch.** A tabular stream (accelerometer, ambient light, ambient pressure, heart rate, pedometer) becomes one ``SensorKitTabularRecording`` from all its samples, and a photoplethysmogram batch one ``SensorKitPreparedPPGRecording`` from `SensorKitPPGRecording(samples:).prepared()`. A rotation-rate batch becomes one ``SensorKitRotationRateRecord`` from its samples, which exposes no `retryEvidence`, so digest the samples you pass. The record's ordinal is 0.
-- **One record per sample.** A visit, an on-wrist event, a device-usage report and an ECG session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal.
+- **One record per sample.** A visit, an on-wrist event, a messages-usage or phone-usage report, a device-usage report and an ECG session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal. ``SensorKitPreparedStructuredFile`` writes the native evidence of a device-usage report or an ECG session directly into a recording file.
 
-The other record cases, such as messages or phone usage, keyboard metrics, sleep sessions and a raw recording, take values you assemble; digest exactly what you pass.
+The other record cases, such as keyboard metrics, sleep sessions and a raw recording, take values you assemble; digest exactly what you pass.
 
 ``SensorKitSourceRecordID/derived(acquisitionBatch:sourceToken:deviceProductType:recordOrdinal:)`` names each record from the batch's coordinate, the stream's catalog token (`SensorKitCatalog.sourceToken(for:)`), the batch's device product type and that ordinal, never from its content.
 A fresh query anchor starts a random stream partition of its own, which the coordinate states, so a reinstall names no record of an earlier installation although its cursor restarts at the same place.
@@ -197,7 +197,9 @@ A fresh query anchor starts a random stream partition of its own, which the coor
 Your digest keeps one name meaning one content.
 Each preparation exposes `retryEvidence`, the bytes Grove derives the record from.
 Digest them, persist the digest beside the record's id, and on a redelivery of the batch fail the batch when a digest differs: SensorKit may change records inside an unacknowledged boundary, and only this digest stops an id from naming other content.
-An ECG session's evidence covers its identifier, states and waveform; its start, sampling frequency, lead and guidance enter its record too, so digest them beside it.
+An ECG session's evidence covers its identifier, states and waveform, followed by its start, sampling frequency, lead and guidance, which its record states too.
+
+Persist a ``SensorKitBatchSnapshot`` of the application, host and source devices, the time zone and the conversion instant before the first conversion of a batch, and convert a redelivery with the decoded snapshot, so the retry states the same facts.
 
 Failing a batch means throwing before `acknowledge()`: the anchor stays, and the batch is reissued after a restart under the same coordinate and ids.
 A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:acquisitionNamespace:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
@@ -251,7 +253,7 @@ The exporter has no retraction: it takes no input that names a record to take ba
 ### Declare native recording bytes
 
 Opaque native bytes can carry identifying or sensitive provider content.
-Creating ``SensorKitNativeRecording`` therefore requires one explicit ``SensorRawPayloadAdmission``: caller-authorized opaque disclosure or verified sanitized input.
+Creating ``SensorKitNativeRecording`` therefore requires one explicit `GroveFHIRContract.RecordingPayloadAdmission`: caller-authorized opaque disclosure or verified sanitized input.
 Grove validates the registered payload grammar but does not sanitize sensitive content. The admission choice is never serialized.
 The registered format determines the media types that the payload is allowed to use, and formats with one representation derive their media type automatically:
 
@@ -278,7 +280,7 @@ A recording that is already stored in a file is attached as a `GroveFHIRContract
 func prepareRotationRecording(
     from sourceURL: URL,
     maximumByteCount: Int,
-    admission: SensorRawPayloadAdmission
+    admission: RecordingPayloadAdmission
 ) throws -> SensorKitNativeRecording {
     let file = try RecordingFile.stage(copying: sourceURL, maximumByteCount: maximumByteCount)
     return try SensorKitNativeRecording(
@@ -357,7 +359,6 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitRecord``
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
-- ``SensorRawPayloadAdmission``
 
 ### Preparing fetched batches
 
@@ -365,7 +366,9 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
+- ``SensorKitPreparedStructuredFile``
 - ``SensorKitRecordingLocation``
+- ``SensorKitBatchSnapshot``
 
 ### Recording payloads
 
@@ -378,3 +381,4 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 
 - ``SensorKitCatalog``
 - ``SensorKitCatalogEntry``
+- ``SensorKitOutputDefinition``

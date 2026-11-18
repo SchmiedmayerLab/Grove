@@ -307,7 +307,7 @@ public struct SensorKitPreparedPPGRecording: Sendable {
         sourceRecordID: SensorKitSourceRecordID,
         title: String,
         location: SensorKitRecordingLocation,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         // One strict decode is both the payload check the native recording runs and the source of the summary.
         var decoded: SensorKitPPGRecording?
