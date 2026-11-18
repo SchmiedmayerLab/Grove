@@ -309,16 +309,16 @@ public struct SensorKitPreparedPPGRecording: Sendable {
         location: SensorKitRecordingLocation,
         admission: SensorRawPayloadAdmission
     ) throws -> SensorKitRecord {
-        // One strict decode is both the payload check the native recording runs and the source of the summary.
+        // One strict decode of the attached bytes is both the payload check and the source of the summary.
         var decoded: SensorKitPPGRecording?
         let nativeRecording = try SensorKitNativeRecording(
             title: title,
             format: format,
             payload: location.payload(bytes: data),
             admission: admission
-        ) { bytes throws(RegisteredRecordingPayloadError) in
+        ) { _ throws(RegisteredRecordingPayloadError) in
             do {
-                decoded = try SensorKitPPGRecording(data: bytes)
+                decoded = try SensorKitPPGRecording(data: data)
             } catch {
                 throw .invalidPhotoplethysmogramPayload
             }

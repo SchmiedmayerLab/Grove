@@ -11,7 +11,8 @@
 /// A batch key is the exact (device, identifier) pair. CoreMotion assigns one identifier to a whole batch of
 /// samples and increases it for each new batch, so a recording states far fewer batches than rows. The registered
 /// format does not require a batch's rows to be contiguous, so the identifiers are retained in a set per device. A set
-/// keeps at most half of its 8-byte buckets empty, so the identifiers take at most about 16 MiB at the limit.
+/// fills at most three quarters of its 8-byte buckets and doubles them when it grows, so it stays at least three
+/// eighths full, and the identifiers take at most about 21 MiB at the limit.
 struct RecordingBatchCounter {
     /// The limit was reached; the recording cannot be summarized, which says nothing about its clinical content.
     enum Failure: Error {

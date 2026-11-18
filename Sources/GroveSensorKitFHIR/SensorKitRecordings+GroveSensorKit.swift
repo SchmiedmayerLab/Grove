@@ -144,10 +144,11 @@ public struct SensorKitTabularRecording: Sendable {
     }
 
     private static func writer(for format: RegisteredRecordingFormat) throws -> RecordingCSVWriter {
-        guard let columns = format.csvColumns else {
+        do {
+            return try RecordingCSVWriter(format: format)
+        } catch {
             throw SensorKitRecordError.invalidRecordingFormat
         }
-        return RecordingCSVWriter(columns: columns)
     }
 
     @available(iOS 17, *)
