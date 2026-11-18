@@ -19,6 +19,8 @@ extension AnchoredFetcher {
     /// Async iterator that fetches samples batched by #samples.
     final class SampleCountBasedFetcher: AsyncIteratorProtocol {
         private let anchor: ManagedQueryAnchor
+        private let sensorIdentifier: String
+        private let initialStartDate: Date?
         private let reader: SRSensorReader
         private let delegate: FetchDelegate<Sample> // swiftlint:disable:this weak_delegate
         private let device: SRDevice
@@ -32,18 +34,23 @@ extension AnchoredFetcher {
             batchSize: Int,
             anchor: ManagedQueryAnchor,
             device: SRDevice,
+            initialStartDate: Date? = nil,
+            ecgProcessingLimits: SensorKitECGProcessingLimits = .init(),
             startFetch: @escaping (SRSensorReader, SRFetchRequest) -> Void = { reader, request in
                 reader.fetch(request)
             }
         ) {
             self.anchor = anchor
+            self.initialStartDate = initialStartDate
+            self.sensorIdentifier = sensor.id
             self.device = device
             self.startFetch = startFetch
             self.reader = SRSensorReader(sensor)
             self.delegate = FetchDelegate(
                 sensor: sensor,
                 deviceInfo: SensorKit.DeviceInfo(device),
-                batchSize: batchSize
+                batchSize: batchSize,
+                ecgProcessingLimits: ecgProcessingLimits
             )
             self.reader.delegate = self.delegate
         }
@@ -87,7 +94,9 @@ extension AnchoredFetcher {
                 throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
             }
             if let deliveredAnchor {
-                let desiredAnchor = fetchCursor.advancedPastEmptyRange(to: deliveredAnchor.timestamp)
+                let desiredAnchor = fetchCursor.advancedPastEmptyRange(
+                    to: deliveredAnchor.timestamp, nativeTimestamp: deliveredAnchor.nativeTimestamp
+                )
                 guard try anchor.update(from: fetchCursor, to: desiredAnchor) else {
                     throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
                 }
@@ -103,11 +112,12 @@ extension AnchoredFetcher {
         ) throws -> Element {
             let pendingBatch = QueryAnchor.PendingBatch.sampleCount(
                 deliveryTimestamp: deliveredAnchor.timestamp,
-                sampleCount: rawElement.samples.count
+                sampleCount: rawElement.samples.count,
+                nativeTimestamp: deliveredAnchor.nativeTimestamp
             )
             let pendingAnchor: QueryAnchor
             if let persistedPending = fetchCursor.pendingBatch {
-                guard persistedPending == pendingBatch else {
+                guard persistedPending.matchesSampleCountDelivery(pendingBatch) else {
                     throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
                 }
                 pendingAnchor = fetchCursor
@@ -131,7 +141,10 @@ extension AnchoredFetcher {
                     device: rawElement.device,
                     sourceDevices: rawElement.sourceDevices,
                     sourceDevicesSuppliedEverySample: rawElement.sourceDevicesSuppliedEverySample,
-                    acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate
+                    acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate,
+                    replayToken: try SensorKit.BatchReplayToken(
+                        sensorIdentifier: sensorIdentifier, deviceProductType: device.productType, anchor: pendingAnchor
+                    )
                 ),
                 samples: rawElement.samples,
                 acknowledgement: acknowledgement
@@ -142,7 +155,22 @@ extension AnchoredFetcher {
             guard !isFetching else {
                 return
             }
-            let fetchCursor = try anchor.value
+            var fetchCursor = try anchor.value
+            if fetchCursor.pendingBatch == nil {
+                let start = fetchCursor.timestamp == .distantPast ? initialStartDate ?? .distantPast : fetchCursor.timestamp
+                let native = fetchCursor.nativeTimestamp ?? SRAbsoluteTime(start).rawValue
+                let reference = SRAbsoluteTime.current()
+                let clock = QueryNativeClock(nativeReferenceBits: reference.rawValue.bitPattern, wallReference: Date(reference))
+                guard native.isFinite, clock.isValid else {
+                    throw SensorKit.AnchoredFetchError.invalidNativeClock
+                }
+                let retained = fetchCursor.retainingNativeTimestamp(native, clock: clock)
+                guard try anchor.update(from: fetchCursor, to: retained) else {
+                    throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
+                }
+                fetchCursor = retained
+            }
+            delegate.configureNativeClock(fetchCursor.nativeClock)
             if let pendingBatch = fetchCursor.pendingBatch {
                 guard pendingBatch.mode == .sampleCount,
                       pendingBatch.sampleCount > 0 else {
@@ -154,7 +182,7 @@ extension AnchoredFetcher {
             isFetching = true
             let fetchRequest = SRFetchRequest()
             fetchRequest.device = device
-            fetchRequest.from = SRAbsoluteTime(fetchCursor.timestamp)
+            fetchRequest.from = fetchCursor.nativeTimestamp.map(SRAbsoluteTime.init(rawValue:)) ?? SRAbsoluteTime(fetchCursor.timestamp)
             fetchRequest.to = .current()
             startFetch(reader, fetchRequest)
         }
@@ -172,6 +200,14 @@ extension AnchoredFetcher {
             sourceDevice: SensorKit.SourceDeviceInfo? = nil
         ) -> Bool {
             delegate.process(sample: object, timestamp: timestamp, sourceDevice: sourceDevice)
+        }
+
+        func processECGGroupsForTesting(_ groups: [SensorKitECGSession.InputGroup], timestamp: SRAbsoluteTime) -> Bool {
+            delegate.processECGGroups(groups, timestamp: timestamp)
+        }
+
+        func completeFetchForTesting() {
+            delegate.sensorReader(reader, didCompleteFetch: SRFetchRequest())
         }
 
         func startNativeFetchForTesting() throws {
@@ -209,6 +245,12 @@ extension AnchoredFetcher {
 private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate, Sendable {
     typealias RawElement = SampleCountRawElement<Sample>
     typealias Delivery = (element: RawElement?, anchor: QueryAnchor?)
+    private struct PreparedCallback {
+        let samples: [Sample.SafeRepresentation]
+        let sourceDevice: SensorKit.SourceDeviceInfo?
+        let containsNativeSamples: Bool
+    }
+
     private let logger: Logger
     private let sensor: Sensor<Sample>
     private let deviceInfo: SensorKit.DeviceInfo
@@ -243,6 +285,8 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         }
     }
     
+    nonisolated(unsafe) private var nativeClock: QueryNativeClock?
+    nonisolated(unsafe) private var ecgAssembly = SensorKitECGAssembly()
     nonisolated(unsafe) private(set) var samples: [Sample.SafeRepresentation] = []
     /// The peripherals that supplied `samples`, in the order SensorKit first named them.
     nonisolated(unsafe) private(set) var sourceDevices: [SensorKit.SourceDeviceInfo] = []
@@ -256,7 +300,10 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     /// Creates a new instance
     ///
     /// - parameter batchSize: Must be greater than zero.
-    init(sensor: Sensor<Sample>, deviceInfo: SensorKit.DeviceInfo, batchSize: Int) {
+    init(
+        sensor: Sensor<Sample>, deviceInfo: SensorKit.DeviceInfo, batchSize: Int, ecgProcessingLimits: SensorKitECGProcessingLimits
+    ) {
+        self.ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
         self.logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "\(Self.self)")
         self.sensor = sensor
         self.deviceInfo = deviceInfo
@@ -267,6 +314,8 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             state = .terminated
         }
     }
+
+    func configureNativeClock(_ clock: QueryNativeClock?) { lock.withLock { nativeClock = clock } }
 
     /// Reinstates the exact delivery boundary persisted before a previously yielded batch.
     func configureBatchSize(_ batchSize: Int) {
@@ -318,6 +367,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     func stop() {
         lock.lock()
         samples.removeAll()
+        ecgAssembly = SensorKitECGAssembly()
         sourceDevices.removeAll()
         hasSamplesWithoutSourceDevice = false
         lastSeenTimestamp = nil
@@ -411,8 +461,11 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             // above, so `stop()`'s own resume is a no-op and cannot resume anything under the lock.
             stop()
         }
-        let deliveredAnchor = lastSeenTimestamp.map { QueryAnchor(timestamp: Date($0)) }
+        let deliveredAnchor = lastSeenTimestamp.map {
+            QueryAnchor(timestamp: nativeClock?.date(for: $0.rawValue) ?? Date($0), nativeTimestampBits: $0.rawValue.bitPattern)
+        }
         lastSeenTimestamp = nil
+        ecgAssembly.resetCompletedBoundary()
         samples.removeAll(keepingCapacity: true)
         sourceDevices.removeAll()
         hasSamplesWithoutSourceDevice = false
@@ -438,22 +491,32 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         timestamp: SRAbsoluteTime,
         fetchResult: () throws -> SensorKit.FetchResult<Sample>
     ) -> Bool {
+        processPrepared(timestamp: timestamp) {
+            let fetchResult = try fetchResult()
+            let clock = lock.withLock { nativeClock }
+            let newSamples = SensorKit.FetchResultsIterator(fetchResult).map {
+                (timestamp: clock?.date(for: timestamp.rawValue) ?? $0,
+                 sample: unsafeDowncast($1, to: Sample.SafeRepresentationProcessingInput.self))
+            }
+            return try PreparedCallback(
+                samples: processSamples(newSamples), sourceDevice: fetchResult.sourceDevice, containsNativeSamples: !newSamples.isEmpty
+            )
+        }
+    }
+
+    private func processPrepared(timestamp: SRAbsoluteTime, prepare: () throws -> PreparedCallback) -> Bool {
         guard lock.withLock({ state.isFetching }) else {
             return false
         }
         do {
-            let fetchResult = try fetchResult()
-            let newSamples = SensorKit.FetchResultsIterator(fetchResult).map {
-                (timestamp: $0, sample: unsafeDowncast($1, to: Sample.SafeRepresentationProcessingInput.self))
-            }
-            let processed = try Sample.processIntoSafeRepresentation(newSamples)
+            let processed = try prepare()
             lock.lock()
             // re-check under the lock: a deinit-triggered `stop()` may have interleaved since the
             // check above, in which case the batch must be dropped (post-stop, `samples` stays empty).
             if state.isFetching {
-                self.samples.append(contentsOf: processed)
-                if !processed.isEmpty {
-                    if let sourceDevice = fetchResult.sourceDevice {
+                self.samples.append(contentsOf: processed.samples)
+                if processed.containsNativeSamples {
+                    if let sourceDevice = processed.sourceDevice {
                         if !sourceDevices.contains(sourceDevice) {
                             sourceDevices.append(sourceDevice)
                         }
@@ -472,7 +535,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             return false
         }
         let batchIsFull = lock.withLock {
-            samples.count >= batchSize
+            samples.count >= batchSize && !ecgAssembly.hasPendingSession
         }
         if batchIsFull {
             processCurrentSamples()
@@ -512,6 +575,13 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         lock.lock()
         switch state {
         case .fetching:
+            do {
+                try ecgAssembly.finish()
+            } catch {
+                lock.unlock()
+                fail(error)
+                return
+            }
             state = .flushing
             lock.unlock()
             processCurrentSamples()
@@ -525,5 +595,36 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         // stop() is idempotent and terminal-state-preserving (its switch keeps `.failed`);
         // calling it unconditionally keeps the cleanup guarantee local to this function.
         stop()
+    }
+}
+
+
+@available(iOS 18, *)
+extension FetchDelegate {
+    fileprivate func processECGGroups(_ groups: [SensorKitECGSession.InputGroup], timestamp: SRAbsoluteTime) -> Bool {
+        processPrepared(timestamp: timestamp) {
+            let completed = try lock.withLock { try ecgAssembly.append(groups) }
+            guard Sample.self == SRElectrocardiogramSample.self, let samples = completed as? [Sample.SafeRepresentation] else {
+                throw SensorKitECGSession.ProcessingError.inconsistentSession
+            }
+            return PreparedCallback(samples: samples, sourceDevice: nil, containsNativeSamples: !groups.isEmpty)
+        }
+    }
+
+    fileprivate func processSamples(
+        _ samples: [(timestamp: Date, sample: Sample.SafeRepresentationProcessingInput)]
+    ) throws -> [Sample.SafeRepresentation] {
+        guard Sample.self == SRElectrocardiogramSample.self else {
+            return try Sample.processIntoSafeRepresentation(samples)
+        }
+        guard let native = samples as? [(timestamp: Date, sample: SRElectrocardiogramSample)] else {
+            throw SensorKitECGSession.ProcessingError.inconsistentSession
+        }
+        let groups = SRElectrocardiogramSample.inputGroups(native)
+        let completed = try lock.withLock { try ecgAssembly.append(groups) }
+        guard let result = completed as? [Sample.SafeRepresentation] else {
+            throw SensorKitECGSession.ProcessingError.inconsistentSession
+        }
+        return result
     }
 }

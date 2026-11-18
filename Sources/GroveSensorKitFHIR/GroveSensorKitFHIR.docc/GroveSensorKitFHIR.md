@@ -183,7 +183,7 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 
 ### Publish an anchored batch
 
-`SensorKit.fetchAnchored(_:batchSize:)` in `GroveSensorKit` delivers each batch with its `info`, whose acquisition coordinate survives a restart, and advances its query anchor only when you call `acknowledge()`.
+`SensorKit.fetchAnchored(_:acquisitionNamespace:batchSize:initialStartDate:ecgProcessingLimits:)` in `GroveSensorKit` delivers each batch with its `info`, whose acquisition coordinate survives a restart, and advances its query anchor only when you call `acknowledge()`.
 One batch becomes records in one of two ways:
 
 - **One record per batch.** A tabular stream (accelerometer, ambient light, ambient pressure, heart rate, pedometer) becomes one ``SensorKitTabularRecording`` from all its samples, and a photoplethysmogram batch one ``SensorKitPreparedPPGRecording`` from `SensorKitPPGRecording(samples:).prepared()`. A rotation-rate batch becomes one ``SensorKitRotationRateRecord`` from its samples, which exposes no `retryEvidence`, so digest the samples you pass. The record's ordinal is 0.
@@ -200,7 +200,7 @@ Digest them, persist the digest beside the record's id, and on a redelivery of t
 An ECG session's evidence covers its identifier, states and waveform; its start, sampling frequency, lead and guidance enter its record too, so digest them beside it.
 
 Failing a batch means throwing before `acknowledge()`: the anchor stays, and the batch is reissued after a restart under the same coordinate and ids.
-A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
+A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:acquisitionNamespace:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
 
 A tabular batch, with `retryLog` standing for your app's durable store of each batch's digests, time zone and conversion instant, and `stageSidecar` for your upload of the bytes:
 

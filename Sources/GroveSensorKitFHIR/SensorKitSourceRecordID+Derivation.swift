@@ -15,6 +15,12 @@ public import GroveSensorKit
 
 @available(iOS 18, *)
 extension SensorKitSourceRecordID {
+    /// Why a slice identity can't be derived.
+    public enum SliceIdentityError: Error, Equatable, Sendable {
+        /// The range of rows is empty.
+        case invalidRange
+    }
+
     /// Derives the identity of one record at a durable SensorKit acquisition coordinate.
     ///
     /// SensorKit publishes no durable record identifier. Its anchored fetcher instead allocates an
@@ -40,14 +46,50 @@ extension SensorKitSourceRecordID {
         deviceProductType: String,
         recordOrdinal: UInt64
     ) -> SensorKitSourceRecordID {
-        var framed = Data()
-        for component in [
+        framedIdentity([
             "org.grovealliance.sensorkit.source-record.v0",
             sourceToken,
             deviceProductType,
             acquisitionBatch.stableValue,
             String(recordOrdinal)
-        ] {
+        ])
+    }
+
+    /// Derives the identity of a range of rows within a retained acquisition batch.
+    ///
+    /// One large batch can then be published as several recordings, each of an immutable row range. The identities
+    /// live in a namespace separate from the whole-record identities of ``derived(acquisitionBatch:sourceToken:deviceProductType:recordOrdinal:)``.
+    /// Reproducing an identity on a replay requires the batch's retained source state and its original ordered source
+    /// digest; the guarantee doesn't extend to independent first fetches or reinstalls.
+    ///
+    /// - Parameters:
+    ///   - acquisitionBatch: The persisted coordinate supplied by `AnchoredBatch.info`.
+    ///   - sourceToken: The stream's closed SensorKit catalog token.
+    ///   - deviceProductType: The device partition supplied by `AnchoredBatch.info.device`.
+    ///   - rows: The zero-based, non-empty range of rows in the batch.
+    public static func derivedSlice(
+        acquisitionBatch: SensorKit.AcquisitionBatchCoordinate,
+        sourceToken: String,
+        deviceProductType: String,
+        rows: Range<UInt64>
+    ) throws(SliceIdentityError) -> SensorKitSourceRecordID {
+        guard !rows.isEmpty else {
+            throw .invalidRange
+        }
+        return framedIdentity([
+            "org.grovealliance.sensorkit.source-slice.v0",
+            sourceToken,
+            deviceProductType,
+            acquisitionBatch.stableValue,
+            String(rows.lowerBound),
+            String(rows.upperBound)
+        ])
+    }
+
+    /// The identity whose UUID carries the SHA-256 digest of `components`, each framed by its big-endian byte count.
+    private static func framedIdentity(_ components: [String]) -> SensorKitSourceRecordID {
+        var framed = Data()
+        for component in components {
             let bytes = Data(component.utf8)
             var byteCount = UInt64(bytes.count).bigEndian
             Swift.withUnsafeBytes(of: &byteCount) { framed.append(contentsOf: $0) }
@@ -57,7 +99,7 @@ extension SensorKitSourceRecordID {
     }
 
     /// An RFC 9562 version-8 UUID carrying the leading bits of the framed SHA-256 digest.
-    private static func version8UUID(from digest: Data) -> UUID {
+    static func version8UUID(from digest: Data) -> UUID {
         var bytes = Array(digest.prefix(16))
         bytes[6] = (bytes[6] & 0x0F) | 0x80
         bytes[8] = (bytes[8] & 0x3F) | 0x80
