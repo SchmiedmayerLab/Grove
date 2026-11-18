@@ -19,7 +19,6 @@ import Foundation
 /// Any error or cancellation closes the writer, so a failed recording can't be finished as a successful prefix. The
 /// resulting file is a temporary snapshot; copy its chunks into durable storage before relying on them.
 public struct RecordingCSVFileWriter: ~Copyable {
-    private let columns: [String]
     private let schema: [RecordingCSVColumn]
     private let limits: RecordingCSVReader.Limits
     private var builder: RecordingFile.Builder?
@@ -36,11 +35,9 @@ public struct RecordingCSVFileWriter: ~Copyable {
         guard let schema = format.csvSchema else {
             throw RecordingCSVWriter.WriterError.notTabular(format)
         }
-        let columns = schema.map(\.name)
         let limits = RecordingCSVReader.Limits(maximumByteCount: maximumByteCount)
         var builder = try RecordingFile.Builder(maximumByteCount: maximumByteCount)
-        try Self.append(columns.map(RecordingCSVWriter.Field.text), limits: limits, to: &builder)
-        self.columns = columns
+        try Self.append(schema.map { .text($0.name) }, limits: limits, to: &builder)
         self.schema = schema
         self.limits = limits
         self.builder = consume builder
@@ -55,7 +52,7 @@ public struct RecordingCSVFileWriter: ~Copyable {
         guard var builder = builder.take() else {
             throw RecordingCSVWriter.WriterError.closed
         }
-        try RecordingCSVWriter.validate(fields, columns: columns, schema: schema)
+        try RecordingCSVWriter.validate(fields, schema: schema)
         try Self.append(fields, limits: limits, to: &builder)
         self.builder = consume builder
     }
