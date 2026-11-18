@@ -97,17 +97,22 @@ public struct RecordingCSVReader: Sendable {
         }
     }
 
+    /// Why a row's field could not be read as the requested value.
     public enum RowValueError: Error, Equatable, Sendable {
+        /// The format publishes no column with this name.
         case unknownColumn(String)
+        /// The required column carries no value.
         case absent(String)
+        /// The field is not a canonical finite number.
         case malformedNumber(column: String, value: String)
+        /// The field is not a canonical integer that fits `Int`.
         case malformedInteger(column: String, value: String)
     }
 
     /// Why a payload could not be read as the format it claims to be.
     public enum ReaderError: Error, Equatable {
         /// A field violates its registered type, canonical number form, or absence rule.
-        case invalidColumnValue(column: String)
+        case invalidColumnValue(row: Int, column: String)
         /// The format publishes no column set, so it is not a tabular recording.
         case notTabular(RegisteredRecordingFormat)
         /// The payload is not the UTF-8 the registry requires.
@@ -151,10 +156,17 @@ public struct RecordingCSVReader: Sendable {
     ///   - data: The exact payload bytes.
     ///   - format: The registry format the carrying document declares.
     ///   - limits: The limits on the bytes the reader retains while it parses the payload.
-    public init(_ data: Data, format: RegisteredRecordingFormat, limits: Limits = .default) throws {
+    public init(_ data: Data, format: RegisteredRecordingFormat, limits: Limits = .default) throws(ReaderError) {
         var stream = try Stream(format: format, limits: limits)
         var rows: [Row] = []
-        try stream.read(data) { rows.append($0) }
+        do {
+            try stream.read(data) { rows.append($0) }
+        } catch let error as ReaderError {
+            throw error
+        } catch {
+            // The row consumer above doesn't throw, so the stream reports only reader errors.
+            preconditionFailure("A recording stream reported an error that is not a ReaderError: \(error)")
+        }
         try stream.finish()
         self.columns = stream.columns
         self.rows = rows

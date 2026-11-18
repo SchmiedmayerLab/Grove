@@ -19,14 +19,23 @@ extension SensorKitTabularRecording {
     /// materializing the sample sequence, all intervals, or the complete CSV. Synchronous disk work
     /// belongs on the caller's background executor. Copy into durable queue storage before acknowledging collection.
     public struct File: Sendable {
+        /// The SensorKit source token of the recorded samples, such as `SRSensor.accelerometer`.
         public let sourceToken: String
+        /// The tabular registry format the file is written in.
         public let format: RegisteredRecordingFormat
+        /// The complete recording: the header row and one row per sample, in source order.
         public let file: RecordingFile
+        /// The interval from the earliest sample start to the latest sample end.
         public let effectivePeriod: DateInterval
         private let projection: StructuredProjection
         private let retryEvidencePrefix: Data
 
         /// Encodes a homogeneous fetched sequence once, with an explicit total recording byte budget.
+        ///
+        /// - Parameters:
+        ///   - samples: The fetched samples, in source order; at least one is required.
+        ///   - deviceProductType: The product type of the device that recorded the samples.
+        ///   - maximumByteCount: The most bytes of the complete recording, between 1 and `Int32.max`.
         public init<Samples: Sequence>(
             samples: Samples,
             deviceProductType: String,
@@ -47,6 +56,10 @@ extension SensorKitTabularRecording {
         }
 
         /// Encodes a wrist-temperature session, retaining its algorithm version in the retry evidence.
+        ///
+        /// - Parameters:
+        ///   - session: The session; it must contain at least one temperature.
+        ///   - maximumByteCount: The most bytes of the complete recording, between 1 and `Int32.max`.
         @available(iOS 17, *)
         public init(wristTemperature session: SRWristTemperatureSession, maximumByteCount: Int) throws {
             var writer = try RecordingCSVFileWriter(format: .wristTemperatureSamples, maximumByteCount: maximumByteCount)
@@ -73,14 +86,24 @@ extension SensorKitTabularRecording {
 
         /// Builds the same structured summary or raw document, referencing the file at an archive-relative path.
         /// File and batch-limit failures propagate; they must not be treated as clinical record refusals.
+        ///
+        /// The file was validated while it was written, so the recording is not parsed again to check it; an
+        /// accelerometer summary reads it once for its facts.
+        ///
+        /// - Parameters:
+        ///   - sourceRecordID: The identity of the source batch.
+        ///   - title: The attachment title.
+        ///   - sidecarPath: The archive-relative path the file is stored at.
+        ///   - admission: The caller's authorization to attach the raw recording.
         public func sensorKitRecord(
             sourceRecordID: SensorKitSourceRecordID,
             title: String,
             sidecarPath: String,
             admission: SensorRawPayloadAdmission
         ) throws -> SensorKitRecord {
-            // The shared writer already validated the exact registered grammar. Summary constructors
-            // read the immutable file for clinical facts and enforce every required-value check.
+            // The file writer already validated the exact registered grammar, so the override skips a second
+            // parse. Summary constructors read the immutable file for clinical facts and enforce every
+            // required-value check.
             let native = try SensorKitNativeRecording(
                 title: title,
                 format: format,
