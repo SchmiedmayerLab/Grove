@@ -59,6 +59,7 @@ public enum Canonicals {
     public static let writerRecordIdentifierSystem = "\(root)/mobile/NamingSystem/grove-writer-record-id"
     public static let writerRecordVersion = uri("/mobile/StructureDefinition/grove-writer-record-version")
     public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
+    static let healthKitMetadataKeyValue = "\(root)/healthkit/CodeSystem/healthkit-metadata-key"
     public static let healthKitSourceTypeExtension = HealthKitContract.sourceTypeExtension
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")
     public static let healthKitInsulinDeliveryReason = uri("/healthkit/CodeSystem/healthkit-insulin-delivery-reason")

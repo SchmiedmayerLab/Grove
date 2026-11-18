@@ -15,27 +15,26 @@ import Testing
 struct RecordingCSVWriterTests {
     @Test
     func headerAndEveryRowEndInLineFeed() throws {
-        var writer = RecordingCSVWriter(columns: ["timestamp", "value"])
-        try writer.append([.timestamp(Date(timeIntervalSince1970: 0)), .number(1.5)])
+        var writer = try RecordingCSVWriter(format: .beatIntervalSeries)
+        try writer.append([.timestamp(Date(timeIntervalSince1970: 0)), .integer(1)])
         let text = String(decoding: writer.data(), as: UTF8.self)
         // The registry requires LF after every row, the last one included, and no byte-order mark.
-        #expect(text == "timestamp,value\n0,1.5\n")
+        #expect(text == "timestamp,precededByGap\n0,1\n")
     }
 
     @Test
     func carriageReturnIsRejectedEvenInsideAQuotedField() throws {
-        var writer = RecordingCSVWriter(columns: ["note"])
-        #expect(throws: RecordingCSVWriter.WriterError.carriageReturn(column: "note")) {
-            try writer.append([.text("line1\r\nline2")])
-        }
+        #expect(appendError([.integer(1), .number(60), .integer(2), .text("line1\r\nline2")]) == .carriageReturn(column: "device"))
     }
 
     @Test
     func quotingAppliesExactlyToTheRegistrysThreeTriggers() throws {
-        var writer = RecordingCSVWriter(columns: ["a", "b", "c", "d"])
-        try writer.append([.text("plain"), .text("has,comma"), .text("has\"quote"), .text("has\nbreak")])
+        var writer = try RecordingCSVWriter(format: .heartRateSamples)
+        for device in ["plain", "has,comma", "has\"quote", "has\nbreak"] {
+            try writer.append([.integer(1), .number(60), .integer(2), .text(device)])
+        }
         let text = String(decoding: writer.data(), as: UTF8.self)
-        #expect(text.hasSuffix("plain,\"has,comma\",\"has\"\"quote\",\"has\nbreak\"\n"))
+        #expect(text.hasSuffix("1,60,2,plain\n1,60,2,\"has,comma\"\n1,60,2,\"has\"\"quote\"\n1,60,2,\"has\nbreak\"\n"))
     }
 
     @Test
@@ -43,42 +42,46 @@ struct RecordingCSVWriterTests {
         // The registry's decimal form admits no exponent, but Swift's shortest round-trip
         // description switches to one outside a middling range. Odometer slope and wrist-temperature
         // error estimates reach these magnitudes.
-        var writer = RecordingCSVWriter(columns: ["v"])
         for value in [1e-5, 1e-7, 1e16, 0.1, -0.25] {
-            try writer.append([.number(value)])
-        }
-        let text = String(decoding: writer.data(), as: UTF8.self)
-        #expect(!text.lowercased().contains("e"))
-        for line in text.split(separator: "\n").dropFirst() {
-            #expect(Double(line) != nil, "\(line) does not parse as a plain decimal")
+            let written = try Self.writtenValue(value)
+            #expect(!written.lowercased().contains("e"))
+            #expect(Double(written) != nil, "\(written) does not parse as a plain decimal")
         }
     }
 
     @Test
     func everyWrittenNumberRoundTrips() throws {
         for value in [1e-5, 1e-7, 1e16, 0.1, 1.0 / 3.0, -0.25, 1234.5678] {
-            var writer = RecordingCSVWriter(columns: ["v"])
-            try writer.append([.number(value)])
-            let line = String(decoding: writer.data(), as: UTF8.self).split(separator: "\n")[1]
-            #expect(Double(line) == value, "\(line) does not round-trip \(value)")
+            let written = try Self.writtenValue(value)
+            #expect(Double(written) == value, "\(written) does not round-trip \(value)")
         }
     }
 
     @Test
     func nonFiniteValuesAreRejectedIncludingTimestamps() {
-        #expect(appendError([.number(.nan)]) == .nonFiniteNumber(column: "v"))
-        #expect(appendError([.timestamp(Date(timeIntervalSince1970: .infinity))]) == .nonFiniteNumber(column: "v"))
+        #expect(appendError([.integer(1), .number(.nan), .integer(2), .text("Watch")]) == .nonFiniteNumber(column: "value"))
+        #expect(
+            appendError([.timestamp(Date(timeIntervalSince1970: .infinity)), .number(60), .integer(2), .text("Watch")])
+                == .nonFiniteNumber(column: "timestamp")
+        )
     }
 
     @Test
     func aRowMustMatchTheDeclaredColumnCount() {
-        #expect(appendError([.text("a"), .text("b")]) == .columnCountMismatch(expected: 1, actual: 2))
+        #expect(appendError([.text("a")]) == .columnCountMismatch(expected: 4, actual: 1))
     }
 
-    /// The error one row produces, or nil when it is accepted.
+    @Test
+    func aFormatWithoutColumnsHasNoWriter() {
+        #expect(throws: RecordingCSVWriter.WriterError.notTabular(.nativeRecording)) {
+            _ = try RecordingCSVWriter(format: .nativeRecording)
+        }
+    }
+
+    /// The error one heart-rate row produces, or nil when it is accepted.
     private func appendError(_ fields: [RecordingCSVWriter.Field]) -> RecordingCSVWriter.WriterError? {
-        var writer = RecordingCSVWriter(columns: ["v"])
         do {
+            var writer = try RecordingCSVWriter(format: .heartRateSamples)
             try writer.append(fields)
             return nil
         } catch {
@@ -120,5 +123,16 @@ struct RecordingCSVWriterTests {
         ])
         #expect(RegisteredRecordingFormat.fhirResource.registeredContentType == nil)
         #expect(RegisteredRecordingFormat.fhirCollectionBundle.registeredContentType == "application/fhir+json")
+    }
+}
+
+
+extension RecordingCSVWriterTests {
+    /// The `value` field of a wrist-temperature row stating `value`.
+    fileprivate static func writtenValue(_ value: Double) throws -> String {
+        var writer = try RecordingCSVWriter(format: .wristTemperatureSamples)
+        try writer.append([.timestamp(Date(timeIntervalSince1970: 1)), .number(value), .number(0.1), .absent])
+        let row = String(decoding: writer.data(), as: UTF8.self).split(separator: "\n")[1]
+        return String(row.split(separator: ",")[1])
     }
 }

@@ -49,12 +49,12 @@ public struct SensorKitBatchSnapshot: Hashable, Sendable {
         sourceDevicesSuppliedEverySample: Bool = false,
         sourceTimeZone: TimeZone,
         conversionInstant: Date
-    ) throws {
+    ) throws(SnapshotError) {
         guard sourceDevices.count <= 128,
               (0...253_402_300_799).contains(conversionInstant.timeIntervalSince1970),
               !sourceDevicesSuppliedEverySample || !sourceDevices.isEmpty,
               let zone = TimeZone(identifier: sourceTimeZone.identifier) else {
-            throw SnapshotError.invalidFacts
+            throw .invalidFacts
         }
         self.application = application
         self.host = host
@@ -70,17 +70,37 @@ public struct SensorKitBatchSnapshot: Hashable, Sendable {
     ///
     /// The byte limit is checked before decoding, and the application and host are validated as their initializers
     /// validate them.
-    public init(encoded data: Data, maximumByteCount: Int) throws {
+    ///
+    /// - Parameters:
+    ///   - data: The encoded snapshot.
+    ///   - maximumByteCount: The most bytes the encoded snapshot may hold.
+    /// - Throws: ``SnapshotError/capacityExceeded`` for an empty or oversized snapshot or string,
+    ///   ``SnapshotError/unsupportedVersion`` for another version, and ``SnapshotError/invalidFacts`` for bytes that
+    ///   don't decode or facts that are invalid.
+    public init(encoded data: Data, maximumByteCount: Int) throws(SnapshotError) {
         guard maximumByteCount > 0, !data.isEmpty, data.count <= maximumByteCount else {
-            throw SnapshotError.capacityExceeded
+            throw .capacityExceeded
         }
-        let value = try JSONDecoder().decode(Representation.self, from: data)
-        guard value.version == 1 else { throw SnapshotError.unsupportedVersion }
+        let value: Representation
+        do {
+            value = try JSONDecoder().decode(Representation.self, from: data)
+        } catch {
+            throw .invalidFacts
+        }
+        guard value.version == 1 else { throw .unsupportedVersion }
         try value.validateStringBounds()
-        guard let zone = TimeZone(identifier: value.timeZone) else { throw SnapshotError.invalidFacts }
+        guard let zone = TimeZone(identifier: value.timeZone) else { throw .invalidFacts }
+        let application: ApplicationDevice
+        let host: HostDevice
+        do {
+            application = try value.application.value()
+            host = try value.host.value()
+        } catch {
+            throw .invalidFacts
+        }
         try self.init(
-            application: value.application.value(),
-            host: value.host.value(),
+            application: application,
+            host: host,
             recordingDevice: value.recording?.value,
             sourceDevices: value.sources.map(\.value),
             sourceDevicesSuppliedEverySample: value.sourcesSuppliedEverySample,

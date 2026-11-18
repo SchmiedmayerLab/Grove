@@ -18,9 +18,20 @@ struct RegisteredRecordingFileValidationTests {
     func callerBudgetIsCheckedBeforeGrammarAndAllowsItsExactBoundary() throws {
         let file = try staged(Data("{\"value\":1}".utf8))
         try RegisteredRecordingFormat.nativeRecording.validatePayload(file, maximumByteCount: file.byteCount)
-        for limit in [-1, 0, file.byteCount - 1] {
+        for limit in [-1, 0, file.byteCount - 1, Int(Int32.max) + 1] {
             #expect(throws: RegisteredRecordingPayloadError.payloadLimitExceeded) {
                 try RegisteredRecordingFormat.nativeRecording.validatePayload(file, maximumByteCount: limit)
+            }
+        }
+    }
+
+    @Test
+    func memoryEntryPointAppliesTheSameCallerBudget() throws {
+        let bytes = Data("{\"value\":1}".utf8)
+        try RegisteredRecordingFormat.nativeRecording.validatePayload(bytes, maximumByteCount: bytes.count)
+        for limit in [-1, 0, bytes.count - 1, Int(Int32.max) + 1] {
+            #expect(throws: RegisteredRecordingPayloadError.payloadLimitExceeded) {
+                try RegisteredRecordingFormat.nativeRecording.validatePayload(bytes, maximumByteCount: limit)
             }
         }
     }
@@ -32,9 +43,8 @@ struct RegisteredRecordingFileValidationTests {
             try RegisteredRecordingFormat.nativeRecording.validatePayload(duplicate, maximumByteCount: 1_024)
         }
         let format = RegisteredRecordingFormat.heartRateSamples
-        var writer = RecordingCSVWriter(columns: try #require(format.csvColumns))
-        try writer.append([.text("not-a-timestamp"), .number(60), .integer(2), .text("Watch")])
-        let invalidRow = try staged(writer.data())
+        let header = try #require(format.csvColumns).joined(separator: ",")
+        let invalidRow = try staged(Data("\(header)\nnot-a-timestamp,60,2,Watch\n".utf8))
         #expect(throws: RegisteredRecordingPayloadError.invalidTabularPayload) {
             try format.validatePayload(invalidRow, maximumByteCount: 16_384)
         }

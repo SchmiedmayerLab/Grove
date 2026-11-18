@@ -52,20 +52,8 @@ public struct RecordingCSVWriter: ~Copyable {
         case closed
     }
 
-    private let columns: [String]
-    /// The registered columns, or empty for a writer that checks only the syntax.
     private let schema: [RecordingCSVColumn]
     private var bytes: [UInt8] = []
-
-    /// Creates a writer for one closed column set, and writes the header row.
-    ///
-    /// The writer checks only the CSV syntax. Use ``init(format:)`` to also enforce the registered value types and absence
-    /// rules of a registry format.
-    public init(columns: [String]) {
-        self.columns = columns
-        self.schema = []
-        Self.encode(columns.map(Field.text), into: &bytes)
-    }
 
     /// Creates a writer for a tabular registry format, and writes the header row.
     ///
@@ -74,16 +62,15 @@ public struct RecordingCSVWriter: ~Copyable {
         guard let schema = format.csvSchema else {
             throw .notTabular(format)
         }
-        self.columns = schema.map(\.name)
         self.schema = schema
-        Self.encode(columns.map(Field.text), into: &bytes)
+        Self.encode(schema.map { .text($0.name) }, into: &bytes)
     }
 
     /// Appends one source sample, in source order.
     ///
     /// Every field is checked before any is written, so a refused row leaves no partial line behind.
     public mutating func append(_ fields: [Field]) throws(WriterError) {
-        try Self.validate(fields, columns: columns, schema: schema)
+        try Self.validate(fields, schema: schema)
         Self.encode(fields, into: &bytes)
     }
 
@@ -92,25 +79,25 @@ public struct RecordingCSVWriter: ~Copyable {
         Data(bytes)
     }
 
-    /// Checks that `fields` form one valid row of `columns`, and of `schema` unless it is empty.
-    static func validate(_ fields: [Field], columns: [String], schema: [RecordingCSVColumn]) throws(WriterError) {
-        guard fields.count == columns.count else {
-            throw .columnCountMismatch(expected: columns.count, actual: fields.count)
+    /// Checks that `fields` form one valid row of `schema`.
+    static func validate(_ fields: [Field], schema: [RecordingCSVColumn]) throws(WriterError) {
+        guard fields.count == schema.count else {
+            throw .columnCountMismatch(expected: schema.count, actual: fields.count)
         }
-        for (field, column) in zip(fields, columns) {
+        for (field, column) in zip(fields, schema) {
             switch field {
             case .number(let value) where !value.isFinite:
-                throw .nonFiniteNumber(column: column)
+                throw .nonFiniteNumber(column: column.name)
             case .timestamp(let date) where !date.timeIntervalSince1970.isFinite:
-                throw .nonFiniteNumber(column: column)
+                throw .nonFiniteNumber(column: column.name)
             case .text(let value) where value.utf8.contains(0x0D):
-                throw .carriageReturn(column: column)
+                throw .carriageReturn(column: column.name)
             default:
                 break
             }
-        }
-        for (field, column) in zip(fields, schema) where !column.admits(text(field)) {
-            throw .invalidValue(column: column.name)
+            guard column.admits(text(field)) else {
+                throw .invalidValue(column: column.name)
+            }
         }
     }
 
