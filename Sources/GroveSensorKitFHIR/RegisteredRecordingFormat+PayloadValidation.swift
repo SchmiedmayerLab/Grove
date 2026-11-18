@@ -73,13 +73,6 @@ extension RegisteredRecordingFormat {
         try validatePayload(bytes)
     }
 
-    /// Both entry points admit at most the caller's limit, which an attachment's `Int32` size bounds.
-    private static func validateByteCount(_ byteCount: Int, maximumByteCount: Int) throws(RegisteredRecordingPayloadError) {
-        guard (1...Int(Int32.max)).contains(maximumByteCount), byteCount <= maximumByteCount else {
-            throw .payloadLimitExceeded
-        }
-    }
-
     func validatePayloadSize(_ byteCount: Int) throws(RegisteredRecordingPayloadError) {
         guard !requiresWholePayloadDecoding || byteCount <= Self.maximumDecodedPayloadByteCount else { throw .payloadLimitExceeded }
     }
@@ -191,6 +184,16 @@ extension RegisteredRecordingFormat {
             } catch {
                 throw .invalidFHIRJSON
             }
+        }
+    }
+}
+
+
+extension RegisteredRecordingFormat {
+    /// Both entry points admit at most the caller's limit, which an attachment's `Int32` size bounds.
+    fileprivate static func validateByteCount(_ byteCount: Int, maximumByteCount: Int) throws(RegisteredRecordingPayloadError) {
+        guard (1...Int(Int32.max)).contains(maximumByteCount), byteCount <= maximumByteCount else {
+            throw .payloadLimitExceeded
         }
     }
 }
