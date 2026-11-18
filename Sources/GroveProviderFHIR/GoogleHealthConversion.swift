@@ -204,7 +204,7 @@ enum GoogleHealthConversion {
                 throw ProviderConversionError.invalidQuantity(contract.id)
             }
             return try ProviderObservation.scalar(
-                Decimal(minutes) / 60,
+                ProviderObservation.duration(seconds: Decimal(minutes) * 60, in: contract),
                 contract: contract,
                 adapter: Profile.googleHealthObservation,
                 effective: effective,

@@ -85,7 +85,7 @@ extension WithingsConversion {
                 throw ProviderConversionError.invalidQuantity(field.contract.id)
             }
             let output = try ProviderObservation.scalar(
-                Decimal(seconds) / 3_600,
+                ProviderObservation.duration(seconds: Decimal(seconds), in: field.contract),
                 contract: field.contract,
                 adapter: Profile.withingsObservation,
                 effective: effective,
