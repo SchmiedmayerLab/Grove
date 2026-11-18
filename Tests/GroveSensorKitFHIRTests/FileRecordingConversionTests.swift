@@ -44,8 +44,7 @@ struct FileRecordingConversionTests {
 
     @Test
     func fileSummaryCountsCanonicalDevicesAndEmbeddedNullsExactly() throws {
-        let columns = try #require(RegisteredRecordingFormat.triaxialAccelerationSamples.csvColumns)
-        var writer = RecordingCSVWriter(columns: columns)
+        var writer = try RecordingCSVWriter(format: .triaxialAccelerationSamples)
         let devices = ["caf\u{00E9}", "cafe\u{0301}", "Watch\0one", "Watch\0two", "Watch\0one"]
         for (index, device) in devices.enumerated() {
             try writer.append([.number(Double(index)), .integer(1), .number(0.1), .number(0.2), .number(0.3), .text(device)])

@@ -33,6 +33,34 @@ struct ECGProcessingTests {
     }
 
     @available(iOS 17.4, *)
+    @Test(arguments: ["begin", "active", "empty", "frequency", "lead", "duplicate-active", "duplicate-date"])
+    func timeRangeProcessingSkipsUnusableSessions(field: String) throws {
+        var groups = Self.groups(changing: field)
+        switch field {
+        case "begin": groups.removeAll { $0.state == .begin }
+        case "active": groups.removeAll { $0.state == .active }
+        case "empty": groups[1] = .init(identifier: groups[1].identifier, state: .active, guidance: groups[1].guidance, readings: [])
+        case "duplicate-active": groups.append(groups[1])
+        default: break
+        }
+        let complete = Self.groups(changing: "").map { group in
+            SensorKitECGSession.InputGroup(identifier: "complete-session", state: group.state, guidance: group.guidance, readings: group.readings)
+        }
+        #expect(SensorKitECGSession.processLeniently(groups + complete) == (try SensorKitECGSession.process(complete)))
+    }
+
+    @available(iOS 17.4, *)
+    @Test
+    func timeRangeProcessingKeepsASessionWithoutItsEndState() throws {
+        let groups = Self.groups().filter { $0.state != .end }
+        let session = try #require(SensorKitECGSession.processLeniently(groups).first)
+        let complete = try #require(SensorKitECGSession.process(Self.groups()).first)
+        #expect(session.sessionStates == [.begin, .active])
+        #expect(session.batches == complete.batches)
+        #expect(session.startDate == complete.startDate)
+    }
+
+    @available(iOS 17.4, *)
     @Test(arguments: ["frequency", "lead", "duplicate-active"])
     func inconsistentSessionFactsAreExplicitErrors(field: String) throws {
         var groups = Self.groups(changing: field)

@@ -57,14 +57,37 @@ struct ECGAnchoredAssemblyTests {
 
     @Test
     @available(iOS 18, *)
-    func incompleteFetchCannotAdvanceAnEmptyCursor() async throws {
-        let start = Date(timeIntervalSince1970: 90)
+    func fetchEndSkipsASessionWithoutVoltageSamplesAndAdvances() async throws {
+        let start = Date.now.addingTimeInterval(-120)
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let fetcher = Self.fetcher(anchor: anchor)
-        #expect(fetcher.processECGGroupsForTesting([ECGProcessingTests.groups()[0]], timestamp: SRAbsoluteTime(start)))
-        fetcher.completeFetchForTesting()
-        await #expect(throws: SensorKitECGSession.ProcessingError.incompleteSession) { try await fetcher.next(isolation: nil) }
-        #expect(try anchor.value.timestamp == start)
+        try fetcher.startNativeFetchForTesting()
+        #expect(fetcher.processECGGroupsForTesting([ECGProcessingTests.groups()[0]], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        nonisolated(unsafe) let reader = fetcher
+        let completion = Task.detached { reader.completeFetchForTesting() }
+        #expect(try await fetcher.next(isolation: nil) == nil)
+        await completion.value
+        #expect(try anchor.value.timestamp > start)
+        #expect(try anchor.value.pendingBatch == nil)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func fetchEndDeliversASessionWithoutItsEndState() async throws {
+        let start = Date.now.addingTimeInterval(-120)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let groups = Array(ECGProcessingTests.groups().prefix(2))
+        let fetcher = Self.fetcher(anchor: anchor)
+        try fetcher.startNativeFetchForTesting()
+        #expect(fetcher.processECGGroupsForTesting(groups, timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        nonisolated(unsafe) let reader = fetcher
+        let completion = Task.detached { reader.completeFetchForTesting() }
+        let batch = try #require(try await fetcher.next(isolation: nil))
+        await completion.value
+        #expect(batch.samples == SensorKitECGSession.processLeniently(groups))
+        #expect(batch.samples.map(\.sessionStates) == [[.begin, .active]])
+        try await batch.acknowledge()
+        #expect(try anchor.value.timestamp > start)
         #expect(try anchor.value.pendingBatch == nil)
     }
 

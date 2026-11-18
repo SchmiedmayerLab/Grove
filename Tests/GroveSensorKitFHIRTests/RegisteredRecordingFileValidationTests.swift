@@ -32,9 +32,8 @@ struct RegisteredRecordingFileValidationTests {
             try RegisteredRecordingFormat.nativeRecording.validatePayload(duplicate, maximumByteCount: 1_024)
         }
         let format = RegisteredRecordingFormat.heartRateSamples
-        var writer = RecordingCSVWriter(columns: try #require(format.csvColumns))
-        try writer.append([.text("not-a-timestamp"), .number(60), .integer(2), .text("Watch")])
-        let invalidRow = try staged(writer.data())
+        let header = try #require(format.csvColumns).joined(separator: ",")
+        let invalidRow = try staged(Data("\(header)\nnot-a-timestamp,60,2,Watch\n".utf8))
         #expect(throws: RegisteredRecordingPayloadError.invalidTabularPayload) {
             try format.validatePayload(invalidRow, maximumByteCount: 16_384)
         }
