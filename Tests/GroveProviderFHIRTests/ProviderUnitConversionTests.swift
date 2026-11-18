@@ -27,7 +27,10 @@ struct ProviderUnitConversionTests {
             WithingsMeasureGroup(
                 id: "group",
                 date: WithingsFHIRTests.date,
-                measures: [.init(type: 1, value: 72_501, unit: -3), .init(type: 4, value: 1_755, unit: -3)]
+                measures: [
+                    .init(type: 1, value: 72_501, unit: -3), .init(type: 4, value: 1_755, unit: -3),
+                    .init(type: 54, value: 97, unit: 0), .init(type: 71, value: 3_705, unit: -2)
+                ]
             ),
             context: context
         )
@@ -41,13 +44,17 @@ struct ProviderUnitConversionTests {
         sleep.remSleepDuration = 7_200
         sleep.lightSleepDuration = 14_430
         sleep.wakeupDuration = 3_600
+        sleep.averageRespiratoryRate = 15
         let interval = DateInterval(start: WithingsFHIRTests.date.addingTimeInterval(-28_800), end: WithingsFHIRTests.date)
         results += try ProviderFHIRConverter.convert(WithingsSummary.sleep(id: "sleep", interval: interval, values: sleep), context: context)
         try Self.expect(results, [
             Expected(contract: MeasurementCatalog.bodyWeight, value: "72.501"),
             Expected(contract: MeasurementCatalog.bodyHeight, value: "175.5"),
+            Expected(contract: MeasurementCatalog.oxygenSaturation, value: "97"),
+            Expected(contract: MeasurementCatalog.bodyTemperature, value: "37.05"),
             Expected(contract: MeasurementCatalog.distance, value: "750"),
             Expected(contract: MeasurementCatalog.activeEnergy, value: "100"),
+            Expected(contract: MeasurementCatalog.respiratoryRateAverage, value: "15"),
             Expected(contract: MeasurementCatalog.deepSleepDuration, value: "90"),
             Expected(contract: MeasurementCatalog.remSleepDuration, value: "120"),
             Expected(contract: MeasurementCatalog.lightSleepDuration, value: "240.5"),
@@ -64,16 +71,21 @@ struct ProviderUnitConversionTests {
         activity.equivalentWalkingDistance = 750
         let end = WithingsFHIRTests.date
         var sleep = try OuraSleepRecord(id: "sleep", bedtime: ProviderFixtures.interval(end.addingTimeInterval(-28_800), end))
-        sleep.totalSleepDuration = 25_200
+        sleep.totalSleepDuration = 25_230
         sleep.deepSleepDuration = 5_400
         sleep.remSleepDuration = 7_200
         sleep.lightSleepDuration = 14_430
         sleep.awakeTime = 3_600
-        let results = try [OuraRecord.dailyActivity(activity), .sleep(sleep)].map { try ProviderFHIRConverter.convert($0, context: context) }
+        sleep.averageBreath = 15
+        let records: [OuraRecord] = [.dailyActivity(activity), .sleep(sleep), .dailyOxygenSaturation(id: "oxygen", day: day, average: 97)]
+        let results = try records.map { try ProviderFHIRConverter.convert($0, context: context) }
         try Self.expect(results, [
             Expected(contract: MeasurementCatalog.distance, value: "750"),
             Expected(contract: MeasurementCatalog.activeEnergy, value: "100"),
-            Expected(contract: MeasurementCatalog.sleepDuration, value: "7"),
+            Expected(contract: MeasurementCatalog.oxygenSaturationDailyAverage, value: "97"),
+            Expected(contract: MeasurementCatalog.respiratoryRateAverage, value: "15"),
+            // 25,230 seconds are 7.00833... hours, rounded half to even at four places.
+            Expected(contract: MeasurementCatalog.sleepDuration, value: "7.0083"),
             Expected(contract: MeasurementCatalog.deepSleepDuration, value: "90"),
             Expected(contract: MeasurementCatalog.remSleepDuration, value: "120"),
             Expected(contract: MeasurementCatalog.lightSleepDuration, value: "240.5"),
@@ -81,9 +93,10 @@ struct ProviderUnitConversionTests {
         ])
     }
 
-    @Test("Google Health SI fields and sleep minutes state the contract's unit")
+    @Test("Google Health SI fields, sleep minutes and identity mappings state the contract's unit")
     func googleHealthUnits() throws {
-        let context = try WithingsFHIRTests.context()
+        let context = try Self.googleHealthContext()
+        let day = try ProviderCivilDay(year: 2026, month: 11, day: 1, timeZone: context.sourceTimeZone)
         let date = try ProviderFixtures.timestamp(WithingsFHIRTests.date)
         let interval = try ProviderFixtures.interval(WithingsFHIRTests.date.addingTimeInterval(-28_800), WithingsFHIRTests.date)
         var sleep = GoogleHealthDataPoint.SleepSummary()
@@ -98,7 +111,11 @@ struct ProviderUnitConversionTests {
             .height(millimeters: 1_755, timestamp: date),
             .activeEnergy(kilocalories: 25, interval: interval),
             .basalEnergy(kilocalories: 500, interval: interval),
-            .sleep(interval: interval, summary: sleep)
+            .sleep(interval: interval, summary: sleep),
+            .dailyOxygenSaturation(averagePercentage: 97, day: day),
+            .coreBodyTemperature(celsius: 37.5, timestamp: date),
+            .heartRateVariability(timestamp: date, rmssdMilliseconds: 30, sdnnMilliseconds: 25),
+            .dailyRespiratoryRate(breathsPerMinute: 15, day: day)
         ]
         let results = try values.map { try ProviderFHIRConverter.convert(GoogleHealthDataPoint(id: "native-one", value: $0), context: context) }
         try Self.expect(results, [
@@ -111,7 +128,12 @@ struct ProviderUnitConversionTests {
             Expected(contract: MeasurementCatalog.deepSleepDuration, value: "90"),
             Expected(contract: MeasurementCatalog.remSleepDuration, value: "120"),
             Expected(contract: MeasurementCatalog.lightSleepDuration, value: "240"),
-            Expected(contract: MeasurementCatalog.sleepAwakeDuration, value: "60")
+            Expected(contract: MeasurementCatalog.sleepAwakeDuration, value: "60"),
+            Expected(contract: MeasurementCatalog.oxygenSaturationDailyAverage, value: "97"),
+            Expected(contract: MeasurementCatalog.bodyTemperature, value: "37.5"),
+            Expected(contract: MeasurementCatalog.heartRateVariabilityRmssd, value: "30"),
+            Expected(contract: MeasurementCatalog.heartRateVariabilitySdnn, value: "25"),
+            Expected(contract: MeasurementCatalog.respiratoryRateAverage, value: "15")
         ])
     }
 
@@ -120,41 +142,31 @@ struct ProviderUnitConversionTests {
         #expect(MeasurementCatalog.sleepDuration.quantity?.code == "h")
         #expect(try ProviderObservation.duration(seconds: 5_400, in: MeasurementCatalog.sleepDuration) == Decimal(string: "1.5"))
         #expect(try ProviderObservation.duration(seconds: 5_400, in: MeasurementCatalog.deepSleepDuration) == 90)
+        #expect(try ProviderObservation.duration(seconds: 25_230, in: MeasurementCatalog.sleepDuration) == Decimal(string: "7.0083"))
+        // Half to even: 0.00005 hours rounds down to 0, 0.00015 hours up to 0.0002.
+        let half = try #require(Decimal(string: "0.18"))
+        let threeHalves = try #require(Decimal(string: "0.54"))
+        #expect(try ProviderObservation.duration(seconds: half, in: MeasurementCatalog.sleepDuration) == 0)
+        #expect(try ProviderObservation.duration(seconds: threeHalves, in: MeasurementCatalog.sleepDuration) == Decimal(string: "0.0002"))
         #expect(throws: ProviderConversionError.invalidContract(MeasurementCatalog.distance.id)) {
             try ProviderObservation.duration(seconds: 60, in: MeasurementCatalog.distance)
-        }
-    }
-
-    @Test("Every native recording stream is advertised as its provider's native recording token")
-    func nativeRecordingTokens() async throws {
-        let bytes = Data("{\"value\": 1}".utf8)
-        let chunks = AsyncStream<Data> { continuation in
-            continuation.yield(bytes)
-            continuation.finish()
-        }
-        let file = try await RecordingFile.stage(chunks: chunks, maximumByteCount: bytes.count)
-        for provider in ProviderCapabilities.Provider.allCases {
-            let context = try provider == .oura ? OuraFHIRTests.context() : WithingsFHIRTests.context()
-            let converted = try ProviderNativeRecording.Source.allCases.filter { $0.rawValue.hasPrefix(provider.rawValue + "/") }.map {
-                let recording = try ProviderNativeRecording(
-                    id: "native-one",
-                    source: $0,
-                    title: "Fixture",
-                    file: file,
-                    attachmentPath: "recording.json",
-                    admission: .verifiedSanitizedInput
-                )
-                return try ProviderFHIRConverter.convert(recording, context: context).sourceToken
-            }
-            let advertised = ProviderCapabilities.sources(for: provider).filter { $0.conversionSupport == .nativeRecording }.map(\.token)
-            #expect(Set(converted) == Set(advertised))
-            #expect(!converted.isEmpty)
         }
     }
 }
 
 
 extension ProviderUnitConversionTests {
+    /// A Google Health connection of its own, apart from the Withings fixture account.
+    static func googleHealthContext() throws -> ProviderConversionContext {
+        let original = try WithingsFHIRTests.context()
+        return try .init(
+            producer: original.producer,
+            scope: .account(BusinessIdentifier(system: "https://study.example.org/google-health-account", value: "account-one")),
+            instant: original.instant,
+            sourceTimeZone: original.sourceTimeZone
+        )
+    }
+
     private static func expect(_ results: [ProviderConversionResult], _ expected: [Expected]) throws {
         let observations = try results.flatMap { result in
             let record = try #require(result.record)

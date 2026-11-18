@@ -59,14 +59,22 @@ enum ProviderObservation {
     }
 
     /// `seconds` in the contract's UCUM time unit, so the value always matches the quantity's `code`.
+    ///
+    /// The value is rounded half to even at four decimal places, so a duration that doesn't divide evenly, such as
+    /// 25,230 seconds in hours (7.0083), states a short exact decimal instead of a 38-digit repeating one. Four places
+    /// keep a sub-second resolution for minutes and about a third of a second for hours.
     static func duration(seconds: Decimal, in contract: MeasurementContract) throws -> Decimal {
+        var value: Decimal
         switch contract.quantity?.code {
-        case "s": seconds
-        case "min": seconds / 60
-        case "h": seconds / 3_600
-        case "d": seconds / 86_400
+        case "s": value = seconds
+        case "min": value = seconds / 60
+        case "h": value = seconds / 3_600
+        case "d": value = seconds / 86_400
         default: throw ProviderConversionError.invalidContract(contract.id)
         }
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &value, 4, .bankers)
+        return rounded
     }
 
     static func coding(_ contract: CodingContract) -> Coding {
