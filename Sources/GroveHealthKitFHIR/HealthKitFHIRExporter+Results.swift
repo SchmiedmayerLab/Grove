@@ -30,6 +30,8 @@ extension HealthKitFHIRExporter {
         /// A workout route with its locations, exported as a recording document only under
         /// ``Options/route`` `.authorized`.
         case workoutRoute(HKWorkoutRoute, locations: [CLLocation])
+        /// A complete file-backed route or beat series, preserving its sample metadata and device lineage.
+        case fileRecording(HealthKitRecordingFile)
 
         /// One beat instant in a heartbeat series, as `HKHeartbeatSeriesQuery` enumerates it.
         public struct Heartbeat: Hashable, Sendable {
@@ -48,6 +50,7 @@ extension HealthKitFHIRExporter {
             case .electrocardiogram(let ecg, _, _): ecg
             case .heartbeatSeries(let series, _): series
             case .workoutRoute(let route, _): route
+            case .fileRecording(let recording): recording.sample
             }
         }
     }

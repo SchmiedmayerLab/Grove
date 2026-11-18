@@ -141,7 +141,7 @@ public struct SensorKitNativeRecording: Sendable {
         guard payload.byteCount <= Int(Int32.max) else {
             throw SensorKitConversionError.payloadTooLarge(byteCount: payload.byteCount)
         }
-        if let path = payload.sidecarPath, !Self.isRelativeSidecarPath(path) {
+        if let path = payload.sidecarPath, !isRelativeAttachmentPath(path) {
             throw SensorKitRecordError.invalidSidecarPath(path)
         }
         do {
@@ -187,25 +187,6 @@ public struct SensorKitNativeRecording: Sendable {
         case .file(_, let file): try file.readChunks { try stream.read($0, onRow: onRow) }
         }
         try stream.finish()
-    }
-
-    /// Whether `path` is a relative reference with no empty, `.` or `..` segment, query or fragment, which a deployment
-    /// resolves against its own storage root.
-    private static func isRelativeSidecarPath(_ path: String) -> Bool {
-        guard !path.isEmpty,
-              !path.hasPrefix("/"),
-              !path.split(separator: "/", omittingEmptySubsequences: false).contains(where: {
-                  $0.isEmpty || $0 == "." || $0 == ".."
-              }),
-              let components = URLComponents(string: path),
-              components.scheme == nil,
-              components.host == nil,
-              components.query == nil,
-              components.fragment == nil,
-              components.percentEncodedPath == path else {
-            return false
-        }
-        return true
     }
 }
 

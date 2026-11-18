@@ -35,6 +35,16 @@ enum AssemblyFixtures {
             }
             let evidence = try plan.ecgEvidence(ecg, voltages: voltages)
             return try exporter.assembly.convertECG(evidence, symptoms: symptoms, plan: plan, request: request, symptomRequests: symptomRequests)
+        case .fileRecording(let recording):
+            guard !record.isWorkoutRoute || inputs.options.route == .authorized else {
+                return []
+            }
+            return try exporter.assembly.documentGraph(
+                for: recording.sample,
+                plan: plan,
+                document: plan.recordingDocument().document(recording: recording),
+                request: request
+            )
         case let .heartbeatSeries(series, _):
             let recording = try #require(record.recording(content: plan)).get()
             return try exporter.assembly.convertHeartbeatSeries(series, recording: recording, plan: plan, request: request)
