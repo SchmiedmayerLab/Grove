@@ -94,6 +94,41 @@ struct ProviderRecordingFHIRTests {
         }
     }
 
+    @Test("A recording period keeps the source spelling for Oura and Google Health and the source time zone for Withings")
+    func recordingPeriod() async throws {
+        let file = try await Self.file(Data("{\"value\": 1}".utf8))
+        let timestamps = try ProviderNativeRecording.Interval.timestamps(
+            ProviderInterval(start: ProviderTimestamp("2026-11-01T08:00:00.120+02:00"), end: ProviderTimestamp("2026-11-01T09:00:00+02:00"))
+        )
+        let dates = ProviderNativeRecording.Interval.dates(DateInterval(start: WithingsFHIRTests.date, duration: 3_600))
+        func recording(_ source: ProviderNativeRecording.Source, _ interval: ProviderNativeRecording.Interval, id: String = "one") throws
+            -> ProviderNativeRecording {
+            try ProviderNativeRecording(
+                id: id,
+                source: source,
+                title: "Fixture",
+                file: file,
+                attachmentPath: "recording.json",
+                interval: interval,
+                admission: .verifiedSanitizedInput
+            )
+        }
+        let oura = try ProviderFHIRConverter.convert(recording(.ouraHeartRate, timestamps), context: OuraFHIRTests.context())
+        let bundle = try JSONDecoder().decode(ModelsR4.Bundle.self, from: try #require(oura.record?.json))
+        let document = try #require(bundle.entry?.compactMap { $0.resource?.get() as? DocumentReference }.first)
+        #expect(document.context?.period?.start?.value?.description == "2026-11-01T08:00:00.120+02:00")
+        #expect(document.context?.period?.end?.value?.description == "2026-11-01T09:00:00+02:00")
+        let withings = try ProviderFHIRConverter.convert(recording(.withingsSleep, dates), context: WithingsFHIRTests.context())
+        #expect(withings.record != nil)
+        for (source, interval) in [(ProviderNativeRecording.Source.withingsActivity, timestamps), (.googleHeartRate, dates), (.ouraHeartRate, dates)] {
+            #expect(throws: ProviderNativeRecording.ValidationError.invalidInterval) { try recording(source, interval) }
+        }
+        #expect(throws: ProviderNativeRecording.ValidationError.invalidInterval) {
+            try recording(.withingsSleep, .dates(DateInterval(start: WithingsFHIRTests.date, duration: 0)))
+        }
+        #expect(throws: ProviderNativeRecording.ValidationError.invalidIdentifier) { try recording(.withingsSleep, dates, id: "") }
+    }
+
     @Test("File-backed transport compression preserves the FHIR source checksum")
     func compression() async throws {
         let bytes = Data(("{\"padding\":\"" + String(repeating: "x", count: 32_768) + "\"}").utf8)

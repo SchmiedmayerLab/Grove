@@ -23,9 +23,9 @@ public struct ProviderCivilDay: Sendable {
     public let interval: DateInterval
 
     /// Creates a day, refusing a date that doesn't exist in the time zone.
-    public init(year: Int, month: Int, day: Int, timeZone: TimeZone) throws {
+    public init(year: Int, month: Int, day: Int, timeZone: TimeZone) throws(ProviderConversionError) {
         guard (1...9999).contains(year), (1...12).contains(month), (1...31).contains(day) else {
-            throw ProviderConversionError.invalidCivilDay
+            throw .invalidCivilDay
         }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
@@ -34,7 +34,7 @@ public struct ProviderCivilDay: Sendable {
             calendar.dateComponents([.year, .month, .day], from: candidate) == components,
             let interval = calendar.dateInterval(of: .day, for: candidate)
         else {
-            throw ProviderConversionError.invalidCivilDay
+            throw .invalidCivilDay
         }
         self.year = year
         self.month = month
@@ -45,24 +45,24 @@ public struct ProviderCivilDay: Sendable {
 
     /// A source-defined day whose boundary is a local wall-clock hour on this date and the following date.
     /// Nonexistent boundary times are refused rather than shifted, and daylight-saving transitions retain their duration.
-    public func interval(startingAt hour: Int) throws -> DateInterval {
-        guard (0...23).contains(hour) else { throw ProviderConversionError.invalidCivilDay }
+    public func interval(startingAt hour: Int) throws(ProviderConversionError) -> DateInterval {
+        guard (0...23).contains(hour) else { throw .invalidCivilDay }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        func boundary(on date: Date) throws -> Date {
+        func boundary(on date: Date) throws(ProviderConversionError) -> Date {
             var components = calendar.dateComponents([.year, .month, .day], from: date)
             components.hour = hour
             components.minute = 0
             components.second = 0
             guard let result = calendar.date(from: components),
                 calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: result) == components else {
-                throw ProviderConversionError.invalidCivilDay
+                throw .invalidCivilDay
             }
             return result
         }
         let start = try boundary(on: interval.start)
         let end = try boundary(on: interval.end)
-        guard start < end else { throw ProviderConversionError.invalidCivilDay }
+        guard start < end else { throw .invalidCivilDay }
         return DateInterval(start: start, end: end)
     }
 }
