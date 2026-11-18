@@ -39,7 +39,7 @@ public enum FHIRMeasurementCatalog {
     /// measurement catalog. Its values use `Canonicals.healthKitHeartRateMotionContext`.
     public static let healthKitHeartRateMotionContextCode = FHIRMeasurementDefinition.Code(
         CodingContract(
-            system: Canonicals.healthKitMetadataKey.value?.url.absoluteString ?? "",
+            system: Canonicals.healthKitMetadataKeyValue,
             code: "HKMetadataKeyHeartRateMotionContext"
         )
     )
