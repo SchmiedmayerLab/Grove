@@ -74,17 +74,22 @@ extension RegisteredRecordingFormat {
     /// A producer emits every declared column and no others; a reader requires the same
     /// header. `nil` for a format that is not tabular.
     public var csvColumns: [String]? {
+        csvSchema?.map(\.name)
+    }
+
+    /// The columns with the value types and absence rules the registry declares for them.
+    var csvSchema: [RecordingCSVColumn]? {
         switch self {
-        case .ambientLightSamples: ["timestamp", "lux", "placement", "chromaticityX", "chromaticityY", "device"]
-        case .ambientPressureSamples: ["timestamp", "identifier", "pressure", "temperature", "device"]
-        case .beatIntervalSeries: ["timestamp", "precededByGap"]
-        case .heartRateSamples: ["timestamp", "value", "confidence", "device"]
-        case .locationTrackSamples: ["timestamp", "latitude", "longitude", "altitude", "horizontalAccuracy", "verticalAccuracy", "speed", "speedAccuracy", "course", "courseAccuracy"]
-        case .odometerSamples: ["start", "end", "gpsDate", "speed", "speedAccuracy", "slope", "maxAbsSlope", "deltaDistance", "deltaDistanceAccuracy", "deltaAltitude", "verticalAccuracy", "originDevice", "device"]
-        case .pedometerSamples: ["start", "end", "steps", "distance", "floorsUp", "floorsDown", "currentPace", "currentCadence", "avgActivePace", "device"]
-        case .triaxialAccelerationSamples: ["timestamp", "identifier", "x", "y", "z", "device"]
-        case .triaxialRotationSamples: ["timestamp", "x", "y", "z", "device"]
-        case .wristTemperatureSamples: ["timestamp", "value", "errorEstimate", "condition"]
+        case .ambientLightSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "lux", type: .number, nullable: false), .init(name: "placement", type: .string, nullable: false), .init(name: "chromaticityX", type: .number, nullable: false), .init(name: "chromaticityY", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .ambientPressureSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "identifier", type: .integer, nullable: false), .init(name: "pressure", type: .number, nullable: false), .init(name: "temperature", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .beatIntervalSeries: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "precededByGap", type: .integer, nullable: false)]
+        case .heartRateSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "value", type: .number, nullable: false), .init(name: "confidence", type: .integer, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .locationTrackSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "latitude", type: .number, nullable: false), .init(name: "longitude", type: .number, nullable: false), .init(name: "altitude", type: .number, nullable: false), .init(name: "horizontalAccuracy", type: .number, nullable: true), .init(name: "verticalAccuracy", type: .number, nullable: true), .init(name: "speed", type: .number, nullable: true), .init(name: "speedAccuracy", type: .number, nullable: true), .init(name: "course", type: .number, nullable: true), .init(name: "courseAccuracy", type: .number, nullable: true)]
+        case .odometerSamples: [.init(name: "start", type: .timestamp, nullable: false), .init(name: "end", type: .timestamp, nullable: false), .init(name: "gpsDate", type: .timestamp, nullable: false), .init(name: "speed", type: .number, nullable: false), .init(name: "speedAccuracy", type: .number, nullable: false), .init(name: "slope", type: .number, nullable: true), .init(name: "maxAbsSlope", type: .number, nullable: true), .init(name: "deltaDistance", type: .number, nullable: false), .init(name: "deltaDistanceAccuracy", type: .number, nullable: false), .init(name: "deltaAltitude", type: .number, nullable: false), .init(name: "verticalAccuracy", type: .number, nullable: false), .init(name: "originDevice", type: .string, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .pedometerSamples: [.init(name: "start", type: .timestamp, nullable: false), .init(name: "end", type: .timestamp, nullable: false), .init(name: "steps", type: .integer, nullable: false), .init(name: "distance", type: .number, nullable: true), .init(name: "floorsUp", type: .integer, nullable: true), .init(name: "floorsDown", type: .integer, nullable: true), .init(name: "currentPace", type: .number, nullable: true), .init(name: "currentCadence", type: .number, nullable: true), .init(name: "avgActivePace", type: .number, nullable: true), .init(name: "device", type: .string, nullable: false)]
+        case .triaxialAccelerationSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "identifier", type: .integer, nullable: false), .init(name: "x", type: .number, nullable: false), .init(name: "y", type: .number, nullable: false), .init(name: "z", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .triaxialRotationSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "x", type: .number, nullable: false), .init(name: "y", type: .number, nullable: false), .init(name: "z", type: .number, nullable: false), .init(name: "device", type: .string, nullable: false)]
+        case .wristTemperatureSamples: [.init(name: "timestamp", type: .timestamp, nullable: false), .init(name: "value", type: .number, nullable: false), .init(name: "errorEstimate", type: .number, nullable: false), .init(name: "condition", type: .string, nullable: true)]
         default: nil
         }
     }
