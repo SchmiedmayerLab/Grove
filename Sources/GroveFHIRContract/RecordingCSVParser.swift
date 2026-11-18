@@ -29,15 +29,19 @@ struct RecordingCSVParser: Sendable {
         self.limits = limits
     }
 
-    mutating func read(_ chunk: Data, onRow: (RecordingCSVReader.Row) throws -> Void) throws {
-        guard chunk.count <= limits.maximumByteCount - byteOffset else { throw ReaderError.payloadLimitExceeded }
-        for byte in chunk {
-            guard recordByteCount < limits.maximumRecordByteCount else { throw ReaderError.recordLimitExceeded(row: row) }
-            recordByteCount += 1
-            try read(byte, onRow: onRow)
-            byteOffset += 1
-            lastByte = byte
-        }
+    /// Refuses a chunk that would take the payload past its byte limit.
+    func admit(_ chunk: Data) throws(ReaderError) {
+        guard chunk.count <= limits.maximumByteCount - byteOffset else { throw .payloadLimitExceeded }
+    }
+
+    /// Consumes one byte, returning the data row it completes; the header row is checked, not returned.
+    mutating func consume(_ byte: UInt8) throws(ReaderError) -> RecordingCSVReader.Row? {
+        guard recordByteCount < limits.maximumRecordByteCount else { throw .recordLimitExceeded(row: row) }
+        recordByteCount += 1
+        let completed = try read(byte)
+        byteOffset += 1
+        lastByte = byte
+        return completed
     }
 
     func finish() throws(ReaderError) {
@@ -51,13 +55,13 @@ struct RecordingCSVParser: Sendable {
 
     // Keep the four states beside one another so the registered quote grammar is directly auditable.
     // swiftlint:disable:next cyclomatic_complexity
-    private mutating func read(_ byte: UInt8, onRow: (RecordingCSVReader.Row) throws -> Void) throws {
+    private mutating func read(_ byte: UInt8) throws(ReaderError) -> RecordingCSVReader.Row? {
         switch state {
         case .fieldStart:
             switch byte {
             case UInt8(ascii: "\""): state = .quoted
             case UInt8(ascii: ","): try appendField()
-            case UInt8(ascii: "\n"): try appendRow(onRow)
+            case UInt8(ascii: "\n"): return try appendRow()
             case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
             default:
                 try appendByte(byte)
@@ -67,7 +71,7 @@ struct RecordingCSVParser: Sendable {
             switch byte {
             case UInt8(ascii: "\""): throw locationError(ReaderError.unexpectedQuote)
             case UInt8(ascii: ","): try appendField()
-            case UInt8(ascii: "\n"): try appendRow(onRow)
+            case UInt8(ascii: "\n"): return try appendRow()
             case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
             default: try appendByte(byte)
             }
@@ -83,11 +87,12 @@ struct RecordingCSVParser: Sendable {
                 try appendByte(byte)
                 state = .quoted
             case UInt8(ascii: ","): try appendField()
-            case UInt8(ascii: "\n"): try appendRow(onRow)
+            case UInt8(ascii: "\n"): return try appendRow()
             case UInt8(ascii: "\r"): throw locationError(ReaderError.unexpectedCarriageReturn)
             default: throw locationError(ReaderError.invalidCharacterAfterClosingQuote)
             }
         }
+        return nil
     }
 
     private func locationError(_ error: (Int, Int, Int) -> ReaderError) -> ReaderError {
@@ -115,18 +120,20 @@ struct RecordingCSVParser: Sendable {
         state = .fieldStart
     }
 
-    private mutating func appendRow(_ onRow: (RecordingCSVReader.Row) throws -> Void) throws {
+    private mutating func appendRow() throws(ReaderError) -> RecordingCSVReader.Row? {
         try appendField()
-        if row == 0 {
-            guard fields == columns else { throw ReaderError.unexpectedHeader(expected: columns, actual: fields) }
-        } else {
-            guard fields.count == columns.count else {
-                throw ReaderError.columnCountMismatch(row: row, expected: columns.count, actual: fields.count)
-            }
-            try onRow(.init(fields: fields, columns: columns))
+        defer {
+            fields.removeAll(keepingCapacity: true)
+            row += 1
+            recordByteCount = 0
         }
-        fields.removeAll(keepingCapacity: true)
-        row += 1
-        recordByteCount = 0
+        if row == 0 {
+            guard fields == columns else { throw .unexpectedHeader(expected: columns, actual: fields) }
+            return nil
+        }
+        guard fields.count == columns.count else {
+            throw .columnCountMismatch(row: row, expected: columns.count, actual: fields.count)
+        }
+        return .init(fields: fields, columns: columns)
     }
 }

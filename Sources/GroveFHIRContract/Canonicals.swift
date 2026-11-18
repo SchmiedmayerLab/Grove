@@ -58,7 +58,7 @@ public enum Canonicals {
     /// than one platform produces the same complete identifier.
     public static let writerRecordIdentifierSystem = "\(root)/mobile/NamingSystem/grove-writer-record-id"
     public static let writerRecordVersion = uri("/mobile/StructureDefinition/grove-writer-record-version")
-    public static let healthKitMetadataKey = uri("/healthkit/CodeSystem/healthkit-metadata-key")
+    public static let healthKitMetadataKey = FHIRPrimitive(FHIRURI(stringLiteral: healthKitMetadataKeyValue))
     static let healthKitMetadataKeyValue = "\(root)/healthkit/CodeSystem/healthkit-metadata-key"
     public static let healthKitSourceTypeExtension = HealthKitContract.sourceTypeExtension
     public static let healthKitHeartRateMotionContext = uri("/healthkit/CodeSystem/healthkit-heart-rate-motion-context")

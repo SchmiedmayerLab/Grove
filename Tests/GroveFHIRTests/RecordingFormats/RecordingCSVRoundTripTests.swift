@@ -91,7 +91,8 @@ struct RecordingCSVRoundTripTests {
     func quotedCarriageReturnIsRejected() throws {
         let columns = try #require(RegisteredRecordingFormat.wristTemperatureSamples.csvColumns)
         let payload = Data("\(columns.joined(separator: ","))\n1,36.5,0.1,\"offWrist\rhidden\"\n".utf8)
-        #expect(throws: RecordingCSVReader.ReaderError.self) {
+        let offset = try #require(payload.firstIndex(of: UInt8(ascii: "\r")))
+        #expect(throws: RecordingCSVReader.ReaderError.unexpectedCarriageReturn(row: 1, column: 3, byteOffset: offset)) {
             _ = try RecordingCSVReader(payload, format: .wristTemperatureSamples)
         }
     }
