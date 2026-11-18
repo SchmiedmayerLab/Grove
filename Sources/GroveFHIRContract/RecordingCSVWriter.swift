@@ -50,6 +50,8 @@ public struct RecordingCSVWriter: ~Copyable {
         case payloadLimitExceeded
         /// One of the configured byte limits is outside the supported range.
         case invalidWriteLimits
+        /// The writer was closed by an earlier error.
+        case closed
     }
 
     private let schema: [RecordingCSVColumn]
@@ -168,7 +170,7 @@ public struct RecordingCSVWriter: ~Copyable {
     }
 
     /// The encoded size of a row of `fields`, with its quotes, delimiters and LF, measured before it is allocated.
-    private static func encodedByteCount(_ fields: [Field], limits: RecordingCSVReader.Limits) throws(WriterError) -> Int {
+    static func encodedByteCount(_ fields: [Field], limits: RecordingCSVReader.Limits) throws(WriterError) -> Int {
         // One delimiter per field, with LF in place of the last one.
         var count = fields.count
         for field in fields {
