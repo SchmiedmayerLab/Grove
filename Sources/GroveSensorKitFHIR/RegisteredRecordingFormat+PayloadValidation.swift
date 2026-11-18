@@ -9,7 +9,7 @@
 // This validator intentionally keeps the closed payload grammar in one exhaustive switch.
 // swiftlint:disable cyclomatic_complexity function_body_length
 
-import Foundation
+public import Foundation
 public import GroveFHIRContract
 import ModelsR4
 
@@ -46,6 +46,36 @@ extension RegisteredRecordingFormat {
 
     private var requiresWholePayloadDecoding: Bool {
         csvColumns == nil && self != .clinicalDocument
+    }
+
+    /// Validates a recording file against this format's grammar within the caller's byte limit.
+    ///
+    /// A CSV is validated in bounded chunks, retaining one bounded row. JSON, FHIR and PPG payloads are decoded as a
+    /// whole and stay within ``maximumDecodedPayloadByteCount`` as well. The caller separately verifies the source
+    /// digests, the media type, the consent and the clinical graph.
+    ///
+    /// - Parameters:
+    ///   - file: The recording file.
+    ///   - maximumByteCount: The most bytes the file may hold.
+    public func validatePayload(_ file: RecordingFile, maximumByteCount: Int) throws {
+        guard maximumByteCount > 0, file.byteCount <= maximumByteCount else {
+            throw RegisteredRecordingPayloadError.payloadLimitExceeded
+        }
+        try validatePayload(file)
+    }
+
+    /// Validates bytes already in memory against this format's grammar within the caller's byte limit.
+    ///
+    /// Payloads that are decoded as a whole stay within ``maximumDecodedPayloadByteCount`` as well.
+    ///
+    /// - Parameters:
+    ///   - bytes: The payload.
+    ///   - maximumByteCount: The most bytes the payload may hold.
+    public func validatePayload(_ bytes: Data, maximumByteCount: Int) throws(RegisteredRecordingPayloadError) {
+        guard maximumByteCount > 0, bytes.count <= maximumByteCount else {
+            throw .payloadLimitExceeded
+        }
+        try validatePayload(bytes)
     }
 
     func validatePayloadSize(_ byteCount: Int) throws(RegisteredRecordingPayloadError) {
