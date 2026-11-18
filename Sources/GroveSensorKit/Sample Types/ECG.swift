@@ -154,10 +154,3 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
         }
     }
 }
-
-
-extension Sequence {
-    func min<T: Comparable>(of keyPath: KeyPath<Element, T>) -> T? {
-        self.min { $0[keyPath: keyPath] < $1[keyPath: keyPath] }?[keyPath: keyPath]
-    }
-}
