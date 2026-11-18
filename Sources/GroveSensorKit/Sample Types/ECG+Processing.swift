@@ -37,8 +37,13 @@ extension SensorKitECGSession {
         sorted(Dictionary(grouping: groups, by: \.identifier).compactMap { try? assemble($0, from: $1, requiresEnd: false) })
     }
 
+    /// The one order of assembled sessions: by start date, then by session identifier.
+    static func precedes(_ lhs: Self, _ rhs: Self) -> Bool {
+        (lhs.startDate, lhs.sessionIdentifier) < (rhs.startDate, rhs.sessionIdentifier)
+    }
+
     private static func sorted(_ sessions: [Self]) -> [Self] {
-        sessions.sorted { ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier) }
+        sessions.sorted(by: precedes)
     }
 
     private static func assemble(_ identifier: String, from groups: [InputGroup], requiresEnd: Bool) throws -> Self {
