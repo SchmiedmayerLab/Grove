@@ -52,7 +52,7 @@ struct SensorKitECGAssembly {
         return output.sorted { ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier) }
     }
 
-    /// Ends assembly when the fetch completes, so no unfinished session can hold the acquisition cursor.
+    /// Ends assembly when the fetch completes, so an unfinished session neither fails the fetch nor holds back later batches.
     ///
     /// Every pending session is assembled as a time-range fetch assembles it: one without its end state is returned,
     /// and one without its begin state or voltage samples, or with inconsistent facts, is skipped and counted.
@@ -69,7 +69,19 @@ struct SensorKitECGAssembly {
         return (sessions.sorted { ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier) }, skippedSessionCount)
     }
 
-    private static func merged(
+    mutating func resetCompletedBoundary() {
+        guard pending.isEmpty else {
+            return
+        }
+        completed.removeAll(keepingCapacity: true)
+        voltageSamples = 0
+    }
+}
+
+
+@available(iOS 17.4, *)
+extension SensorKitECGAssembly {
+    fileprivate static func merged(
         _ groups: [SensorKitECGSession.InputGroup],
         identifier: String
     ) throws -> [SensorKitECGSession.InputGroup] {
@@ -81,13 +93,5 @@ struct SensorKitECGAssembly {
                 identifier: identifier, state: state, guidance: first.guidance, readings: parts.flatMap(\.readings)
             )
         }
-    }
-
-    mutating func resetCompletedBoundary() {
-        guard pending.isEmpty else {
-            return
-        }
-        completed.removeAll(keepingCapacity: true)
-        voltageSamples = 0
     }
 }
