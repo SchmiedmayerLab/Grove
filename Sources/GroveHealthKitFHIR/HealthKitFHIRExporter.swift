@@ -114,6 +114,16 @@ public final class HealthKitFHIRExporter: Sendable {
     /// The records are planned first, then built and handed to `receive` in input order, on the calling task. A food
     /// correlation's members and an ECG's symptoms are records of their own, so a member or symptom also passed as its
     /// own record in the same call is exported twice.
+    ///
+    /// - Parameters:
+    ///   - records: The records, each with the companion data its conversion needs.
+    ///   - instant: The conversion instant of every sample without an entry in `conversionInstants`.
+    ///   - conversionInstants: The retained conversion instant of a sample by its UUID, a food correlation's members
+    ///     and an ECG's symptoms included. A member or symptom without an entry uses `instant`, not its grouping's
+    ///     entry. Reusing a sample's first conversion instant keeps its record version when the sample is exported
+    ///     again, alone or through its grouping. These instants state when Grove converted the sample; they change no
+    ///     clinical effective time.
+    ///   - receive: Receives each export, in input order.
     nonisolated(nonsending) public func export(
         records: some Collection<Record>,
         at instant: Date = .now,
