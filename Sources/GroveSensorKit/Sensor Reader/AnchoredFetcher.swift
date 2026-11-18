@@ -395,7 +395,7 @@ extension SensorKit {
         /// Durable acquisition coordinate allocated before this batch is exposed to its consumer.
         public let acquisitionBatch: AcquisitionBatchCoordinate
         /// Exact pending native-query boundary for later historical replay without changing live cursors.
-        public let replayToken: BatchReplayToken?
+        public let replayToken: BatchReplayToken
         
         @inlinable
         public init(
@@ -404,7 +404,7 @@ extension SensorKit {
             sourceDevices: [SourceDeviceInfo] = [],
             sourceDevicesSuppliedEverySample: Bool = false,
             acquisitionBatch: AcquisitionBatchCoordinate,
-            replayToken: BatchReplayToken? = nil
+            replayToken: BatchReplayToken
         ) {
             self.timeRange = timeRange
             self.device = device

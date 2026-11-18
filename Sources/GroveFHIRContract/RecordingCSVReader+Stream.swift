@@ -58,6 +58,8 @@ extension RecordingCSVReader {
         private let schema: [RecordingCSVColumn]
         private var parser: RecordingCSVParser
         private var phase = Phase.reading
+        /// The one-based number of the next data row.
+        private var nextRow = 1
 
         /// Creates a stream that reads a payload as the given registry format.
         ///
@@ -80,10 +82,15 @@ extension RecordingCSVReader {
             guard phase == .reading else { throw ReaderError.streamClosed }
             do {
                 let schema = schema
+                var nextRow = nextRow
+                defer {
+                    self.nextRow = nextRow
+                }
                 try parser.read(chunk) { row in
                     for (column, value) in zip(schema, row.fields) where !column.admits(value) {
-                        throw ReaderError.invalidColumnValue(column: column.name)
+                        throw ReaderError.invalidColumnValue(row: nextRow, column: column.name)
                     }
+                    nextRow += 1
                     try onRow(row)
                 }
             } catch {

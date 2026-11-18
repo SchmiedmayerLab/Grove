@@ -44,7 +44,7 @@ struct RecordingCSVRoundTripTests {
             _ = try absentRow.requiredInteger("condition")
         }
         let malformed = Data("\(columns.joined(separator: ","))\n1,not-a-number,0.1,\n".utf8)
-        #expect(throws: RecordingCSVReader.ReaderError.invalidColumnValue(column: "value")) {
+        #expect(throws: RecordingCSVReader.ReaderError.invalidColumnValue(row: 1, column: "value")) {
             _ = try RecordingCSVReader(malformed, format: format)
         }
         #expect(throws: RecordingCSVReader.RowValueError.unknownColumn("unknown")) {
@@ -55,11 +55,8 @@ struct RecordingCSVRoundTripTests {
     @Test("A payload whose header disagrees with the format is rejected")
     func headerMismatchIsRejected() throws {
         let format = RegisteredRecordingFormat.heartRateSamples
-        var writer = RecordingCSVWriter(columns: ["timestamp", "value"])
-        try writer.append([.timestamp(Date(timeIntervalSince1970: 1)), .number(60)])
-        // data() consumes the writer, so it cannot be called from inside the expectation closure.
-        let mismatched = writer.data()
-        #expect(throws: RecordingCSVReader.ReaderError.self) {
+        let mismatched = Data("timestamp,value\n1,60\n".utf8)
+        #expect(throws: RecordingCSVReader.ReaderError.unexpectedHeader(expected: try #require(format.csvColumns), actual: ["timestamp", "value"])) {
             try RecordingCSVReader(mismatched, format: format)
         }
     }
@@ -67,7 +64,7 @@ struct RecordingCSVRoundTripTests {
     @Test("A payload missing its final row terminator is rejected")
     func truncatedPayloadIsRejected() throws {
         let format = RegisteredRecordingFormat.heartRateSamples
-        var writer = RecordingCSVWriter(columns: try #require(format.csvColumns))
+        var writer = try RecordingCSVWriter(format: format)
         try writer.append([.timestamp(Date(timeIntervalSince1970: 1)), .number(60), .integer(2), .text("Watch")])
         var truncated = writer.data()
         truncated.removeLast()
@@ -81,7 +78,7 @@ struct RecordingCSVRoundTripTests {
         let format = RegisteredRecordingFormat.wristTemperatureSamples
         let columns = try #require(format.csvColumns)
         let awkward = "offWrist,onCharger\nstill \"quoted\""
-        var writer = RecordingCSVWriter(columns: columns)
+        var writer = try RecordingCSVWriter(format: format)
         try writer.append(columns.indices.map { index in
             index == columns.count - 1 ? .text(awkward) : .number(Double(index))
         })
