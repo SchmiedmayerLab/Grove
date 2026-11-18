@@ -102,9 +102,12 @@ try await exporter.export(records: samples.map { .sample($0) }) { export in
 try commitAnchor()
 ```
 
-`receive` is called once per record or refusal, as soon as it is ready: once for most inputs, once plus once per registered symptom for an ECG, and never for a workout route while `route` is `.omit`, which emits nothing and is not a refusal.
+`receive` is called once per record or refusal, as soon as it is ready: once for most inputs, once plus once per registered symptom for an ECG, once plus once per member for a food correlation, and never for a workout route while `route` is `.omit`, which emits nothing and is not a refusal.
 Exporting a sample again at another instant is a new version of the same source record, so feed the exporter from anchored queries, which deliver each sample once, not from overlapping date windows.
-`export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way is refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
+`export(_:at:conversionInstants:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way is refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
+
+`conversionInstants` supplies the retained conversion instant of a sample by its UUID, a food correlation's members and an ECG's symptoms included; a sample without an entry uses the call's `at` instant. Reusing a sample's first conversion instant keeps its record version when it is exported again, alone or through its correlation. These instants state when Grove converted a sample and change no clinical effective time.
+A food correlation exports as one eating-occasion Observation that references its nutrient members, each exported as a record of its own under the same disclosure options; a member also passed as its own record in the same call is exported twice.
 A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
 
 To upload, add the staged records to an `ExchangeBundlePacker` and send the `json` of the `ExchangeGraph` that `bundle(packedAt:)` returns.

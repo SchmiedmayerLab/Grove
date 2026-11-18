@@ -16,7 +16,7 @@ public import HealthKit
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// One input of ``export(records:at:receive:)``: a sample, plus the companion data HealthKit keeps
+    /// One input of ``export(records:at:conversionInstants:receive:)``: a sample, plus the companion data HealthKit keeps
     /// outside the sample for the kinds that need it. The exporter never queries HealthKit itself.
     public enum Record: Sendable {
         /// Any sample; an `HKElectrocardiogram`, `HKHeartbeatSeriesSample` or `HKWorkoutRoute` passed here is refused, as

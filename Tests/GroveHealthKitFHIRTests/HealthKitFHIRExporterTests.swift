@@ -149,12 +149,6 @@ struct HealthKitFHIRExporterTests {
             ),
             uuid: GoldenFixtures.uuid(7)
         )
-        let food = HKCorrelation(
-            type: HKCorrelationType(.food),
-            start: start,
-            end: start,
-            objects: [HKQuantitySample(type: HKQuantityType(.dietaryEnergyConsumed), quantity: HKQuantity(unit: .kilocalorie(), doubleValue: 320), start: start, end: start)]
-        )
         let audiogram = try StoredSampleFixtures.seriesSample(
             HKAudiogramSample.self,
             sampleType: HKObjectType.audiogramSampleType(),
@@ -168,11 +162,10 @@ struct HealthKitFHIRExporterTests {
         let notYetConvertible = ExchangeGraphRule.mobileInputNotYetConvertible.diagnostic(at: "HKSample.sampleType")
         let expected: [(HealthKitConversionError, ProducerDiagnostic)] = [
             (.invalidValue(.stepCount, .outsideDomain), ExchangeGraphRule.mobileInputValueOutsideDomain.diagnostic(at: "HKSample.value")),
-            (.notYetConvertible(.food), notYetConvertible),
             (.notYetConvertible(.audiogram), notYetConvertible),
             (.notYetConvertible(.visionPrescription), notYetConvertible)
         ]
-        let samples: [HKSample] = [fractionalSteps, food, audiogram, prescription, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))]
+        let samples: [HKSample] = [fractionalSteps, audiogram, prescription, try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(8))]
         let exports = try await Self.collect(Self.exporter(), samples)
         try #require(exports.count == expected.count + 1)
         for (export, (error, diagnostic)) in zip(exports, expected) {

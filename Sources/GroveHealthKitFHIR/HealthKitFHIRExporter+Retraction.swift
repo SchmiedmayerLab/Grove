@@ -20,7 +20,7 @@ extension HealthKitFHIRExporter {
     /// ``Retraction/Outcome/nothingToRetract``. A retraction's one target is the source record, recomputed from the
     /// deletion's coordinates, so nothing from the original export needs to be kept.
     ///
-    /// The call ends early for the same reasons as ``export(_:at:receive:)``: an unstatable `instant`, errors of `receive`,
+    /// The call ends early for the same reasons as ``export(_:at:conversionInstants:receive:)``: an unstatable `instant`, errors of `receive`,
     /// and cancellation before the next records are handed over.
     nonisolated(nonsending) public func retract(
         _ deletions: some Collection<Deletion>,
