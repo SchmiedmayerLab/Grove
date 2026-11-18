@@ -18,9 +18,20 @@ struct RegisteredRecordingFileValidationTests {
     func callerBudgetIsCheckedBeforeGrammarAndAllowsItsExactBoundary() throws {
         let file = try staged(Data("{\"value\":1}".utf8))
         try RegisteredRecordingFormat.nativeRecording.validatePayload(file, maximumByteCount: file.byteCount)
-        for limit in [-1, 0, file.byteCount - 1] {
+        for limit in [-1, 0, file.byteCount - 1, Int(Int32.max) + 1] {
             #expect(throws: RegisteredRecordingPayloadError.payloadLimitExceeded) {
                 try RegisteredRecordingFormat.nativeRecording.validatePayload(file, maximumByteCount: limit)
+            }
+        }
+    }
+
+    @Test
+    func memoryEntryPointAppliesTheSameCallerBudget() throws {
+        let bytes = Data("{\"value\":1}".utf8)
+        try RegisteredRecordingFormat.nativeRecording.validatePayload(bytes, maximumByteCount: bytes.count)
+        for limit in [-1, 0, bytes.count - 1, Int(Int32.max) + 1] {
+            #expect(throws: RegisteredRecordingPayloadError.payloadLimitExceeded) {
+                try RegisteredRecordingFormat.nativeRecording.validatePayload(bytes, maximumByteCount: limit)
             }
         }
     }

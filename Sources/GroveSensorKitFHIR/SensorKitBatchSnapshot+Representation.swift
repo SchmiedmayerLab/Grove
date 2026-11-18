@@ -21,10 +21,10 @@ extension SensorKitBatchSnapshot {
         let timeZone: String
         let instant: Date
 
-        func validateStringBounds() throws {
-            guard sources.count <= 128 else { throw SnapshotError.capacityExceeded }
+        func validateStringBounds() throws(SnapshotError) {
+            guard sources.count <= 128 else { throw .capacityExceeded }
             let strings = application.strings + host.strings + (recording?.strings ?? []) + sources.flatMap(\.strings) + [timeZone]
-            guard strings.allSatisfy({ $0.utf8.count <= 2048 }) else { throw SnapshotError.capacityExceeded }
+            guard strings.allSatisfy({ $0.utf8.count <= 2048 }) else { throw .capacityExceeded }
         }
     }
 
@@ -42,7 +42,7 @@ extension SensorKitBatchSnapshot {
             build = device.build
         }
 
-        func value() throws -> ApplicationDevice {
+        func value() throws(ApplicationDevice.ValidationError) -> ApplicationDevice {
             try ApplicationDevice(name: name, bundleIdentifier: bundleIdentifier, version: version, build: build)
         }
     }
@@ -69,7 +69,7 @@ extension SensorKitBatchSnapshot {
             manufacturer = device.manufacturer
         }
 
-        func value() throws -> HostDevice {
+        func value() throws(HostDevice.ValidationError) -> HostDevice {
             try HostDevice(
                 operatingSystemName: operatingSystemName,
                 operatingSystemVersion: operatingSystemVersion,

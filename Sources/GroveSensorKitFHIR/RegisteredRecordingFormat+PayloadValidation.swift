@@ -56,11 +56,10 @@ extension RegisteredRecordingFormat {
     ///
     /// - Parameters:
     ///   - file: The recording file.
-    ///   - maximumByteCount: The most bytes the file may hold.
+    ///   - maximumByteCount: The most bytes the file may hold, between 1 and `Int32.max`.
+    /// - Throws: A ``RegisteredRecordingPayloadError``, a `RecordingFile.FileError` or `CancellationError`.
     public func validatePayload(_ file: RecordingFile, maximumByteCount: Int) throws {
-        guard maximumByteCount > 0, file.byteCount <= maximumByteCount else {
-            throw RegisteredRecordingPayloadError.payloadLimitExceeded
-        }
+        try Self.validateByteCount(file.byteCount, maximumByteCount: maximumByteCount)
         try validatePayload(file)
     }
 
@@ -70,12 +69,17 @@ extension RegisteredRecordingFormat {
     ///
     /// - Parameters:
     ///   - bytes: The payload.
-    ///   - maximumByteCount: The most bytes the payload may hold.
+    ///   - maximumByteCount: The most bytes the payload may hold, between 1 and `Int32.max`.
     public func validatePayload(_ bytes: Data, maximumByteCount: Int) throws(RegisteredRecordingPayloadError) {
-        guard maximumByteCount > 0, bytes.count <= maximumByteCount else {
+        try Self.validateByteCount(bytes.count, maximumByteCount: maximumByteCount)
+        try validatePayload(bytes)
+    }
+
+    /// Both entry points admit at most the caller's limit, which an attachment's `Int32` size bounds.
+    private static func validateByteCount(_ byteCount: Int, maximumByteCount: Int) throws(RegisteredRecordingPayloadError) {
+        guard (1...Int(Int32.max)).contains(maximumByteCount), byteCount <= maximumByteCount else {
             throw .payloadLimitExceeded
         }
-        try validatePayload(bytes)
     }
 
     func validatePayloadSize(_ byteCount: Int) throws(RegisteredRecordingPayloadError) {
