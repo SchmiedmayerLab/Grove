@@ -578,9 +578,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         switch state {
         case .fetching:
             let finished = ecgAssembly.finish()
-            if let sessions = finished.sessions as? [Sample.SafeRepresentation] {
-                samples.append(contentsOf: sessions)
-            }
+            samples += finished.sessions as? [Sample.SafeRepresentation] ?? []
             if finished.skippedSessionCount > 0 {
                 logger.notice("Skipped \(finished.skippedSessionCount, privacy: .public) unusable ECG sessions at the end of the fetch")
             }
