@@ -55,20 +55,23 @@ struct SensorKitBatchSnapshotTests {
         }
     }
 
-    @Test(arguments: ["version", "timeZone", "application"])
+    @Test(arguments: ["version", "timeZone", "application", "instant", "malformed"])
     func rejectsUnknownVersionOrInvalidRetainedFacts(field: String) throws {
         let bytes = try snapshot().encoded(maximumByteCount: 16_384)
         var object = try #require(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
         switch field {
         case "version": object[field] = 2
         case "timeZone": object[field] = "Invalid/TimeZone"
+        case "instant": object[field] = "not a date"
+        case "malformed": object.removeValue(forKey: "host")
         default:
             var application = try #require(object[field] as? [String: Any])
             application["bundleIdentifier"] = ""
             object[field] = application
         }
         let corrupted = try JSONSerialization.data(withJSONObject: object)
-        #expect(throws: (any Error).self) {
+        let expected: SensorKitBatchSnapshot.SnapshotError = field == "version" ? .unsupportedVersion : .invalidFacts
+        #expect(throws: expected) {
             try SensorKitBatchSnapshot(encoded: corrupted, maximumByteCount: 16_384)
         }
     }

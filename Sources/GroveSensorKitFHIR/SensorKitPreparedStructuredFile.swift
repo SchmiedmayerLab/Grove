@@ -67,7 +67,15 @@ public struct SensorKitPreparedStructuredFile: Sendable {
         if !retryEvidenceSupplement.isEmpty { try consume(retryEvidenceSupplement) }
     }
 
-    /// Uses already-validated generated JSON without decoding the full file a second time.
+    /// Builds the FHIR input, referencing the file at an archive-relative path.
+    ///
+    /// This module generated the JSON, so the file is attached without being parsed again to check it.
+    ///
+    /// - Parameters:
+    ///   - sourceRecordID: The identity of the source sample.
+    ///   - title: The attachment title.
+    ///   - sidecarPath: The archive-relative path the file is stored at.
+    ///   - admission: The caller's authorization to attach the native recording.
     public func sensorKitRecord(
         sourceRecordID: SensorKitSourceRecordID, title: String, sidecarPath: String, admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
