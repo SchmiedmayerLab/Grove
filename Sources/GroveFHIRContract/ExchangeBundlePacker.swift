@@ -131,8 +131,9 @@ public struct ExchangeBundlePacker: Sendable {
 
     /// The exact size of the serialized Bundle, computed without assembling or validating it.
     ///
-    /// The size includes the Bundle's header, the separators between its entries and the transport identifier. Use it
-    /// while selecting a batch; ``bundle(packedAt:transportIdentifier:)`` still validates the completed Bundle.
+    /// The size includes the Bundle's header, the separators between its entries and the transport identifier. For an
+    /// empty packer, it is the size of a Bundle without entries. Use it while selecting a batch;
+    /// ``bundle(packedAt:transportIdentifier:)`` still validates the completed Bundle.
     ///
     /// - Parameters:
     ///   - packedAt: `Bundle.timestamp`, which enters no identity.
