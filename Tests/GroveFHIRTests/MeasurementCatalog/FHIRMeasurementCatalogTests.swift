@@ -64,6 +64,7 @@ struct FHIRMeasurementCatalogTests {
     func motionContextCode() {
         let code = FHIRMeasurementCatalog.healthKitHeartRateMotionContextCode
         #expect(code.system == "https://grovealliance.org/fhir/healthkit/CodeSystem/healthkit-metadata-key")
+        #expect(code.system == Canonicals.healthKitMetadataKey.value?.url.absoluteString)
         #expect(code.value == "HKMetadataKeyHeartRateMotionContext")
     }
 
