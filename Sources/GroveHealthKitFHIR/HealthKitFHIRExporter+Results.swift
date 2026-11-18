@@ -43,6 +43,8 @@ extension HealthKitFHIRExporter {
         /// A workout route with its locations, exported as a recording document only under
         /// ``Options/route`` `.authorized`.
         case workoutRoute(HKWorkoutRoute, locations: [CLLocation])
+        /// A complete file-backed route or beat series, preserving its sample metadata and device lineage.
+        case fileRecording(HealthKitRecordingFile)
 
         /// A sample of ``unsavedSample(_:source:)``: one of the kinds of sample the exporter states an unsaved one's
         /// origin for.
@@ -86,6 +88,7 @@ extension HealthKitFHIRExporter {
             case .electrocardiogram(let ecg, _, _): ecg
             case .heartbeatSeries(let series, _): series
             case .workoutRoute(let route, _): route
+            case .fileRecording(let recording): recording.sample
             }
         }
 
