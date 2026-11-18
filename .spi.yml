@@ -36,6 +36,7 @@ builder:
         - GroveHealthKit
         - GroveHealthKitBulkExport
         - GroveHealthKitFHIR
+        - GroveProviderFHIR
         - GroveHealthKitUI
         - GroveLLM
         - GroveLLMLocal
