@@ -159,14 +159,7 @@ public struct RecordingCSVReader: Sendable {
     public init(_ data: Data, format: RegisteredRecordingFormat, limits: Limits = .default) throws(ReaderError) {
         var stream = try Stream(format: format, limits: limits)
         var rows: [Row] = []
-        do {
-            try stream.read(data) { rows.append($0) }
-        } catch let error as ReaderError {
-            throw error
-        } catch {
-            // The row consumer above doesn't throw, so the stream reports only reader errors.
-            preconditionFailure("A recording stream reported an error that is not a ReaderError: \(error)")
-        }
+        try stream.read(data, appendingTo: &rows)
         try stream.finish()
         self.columns = stream.columns
         self.rows = rows
