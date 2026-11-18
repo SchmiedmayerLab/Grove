@@ -89,6 +89,8 @@ final class HealthKitContentPlan: Sendable {
     indirect enum Route: Sendable {
         /// One Observation, built from the sample.
         case observation(ObservationPlan)
+        /// One eating occasion referencing its independently identified nutrient records.
+        case food(HealthKitFoodContent)
         /// The ECG waveform and its average heart rate, built from the caller's ECG record; a bare sample is refused.
         case electrocardiogram(HealthKitECGContent)
         /// A recording document, built from the caller's record; a bare sample is refused.

@@ -25,6 +25,8 @@ enum HealthKitContentRules {
     enum Rule: Sendable {
         /// One Observation of the row's first measurement, its value read as the observation rule says.
         case observation(ObservationRule)
+        /// A food correlation and the independent nutrient records it groups.
+        case food
         /// The ECG waveform and its derived average heart rate, built only from the caller's ECG record.
         case electrocardiogram
         /// A recording document of the registered format with a fixed title, built only from the caller's record.
@@ -92,7 +94,7 @@ enum HealthKitContentRules {
 
     /// Supported rows the adapter declares it does not convert yet; any other supported row without a rule is a defect.
     static let notYetConvertible: Set<HealthKitSourceType> = [
-        .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .food, .audiogram
+        .biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .audiogram
     ]
 
     /// The correlation members, by contract component id; a member type alone converts only inside its correlation.
@@ -254,6 +256,7 @@ extension HealthKitContentRules {
     /// The rules of the remaining sample and record types. Sleeping breathing disturbances are the one quantity whose
     /// row does not imply its rule.
     private static let recordGroups = [
+        RuleGroup(.food, [.food]),
         RuleGroup(.observation(.quantity(.platformRate)), [.appleSleepingBreathingDisturbances]),
         RuleGroup(.observation(.bloodPressure), [.bloodPressure]),
         RuleGroup(.observation(.workout), [.workout]),
