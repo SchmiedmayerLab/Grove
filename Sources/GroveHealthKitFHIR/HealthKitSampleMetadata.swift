@@ -329,10 +329,12 @@ extension HealthKitSampleMetadata {
     /// A key is carried only through the representation the guide publishes for it, on an output that has that
     /// representation, or the typed metadata extension on its source output.
     /// A blood-pressure member's zone or manual entry that the record takes, because the correlation states none,
-    /// is carried as the record's own would be.
+    /// is carried as the record's own would be. A device key in `omittedDeviceKeys`, whose fact the device policy
+    /// omits, is never withheld.
     func withheldKeys(
         in outputs: [ExchangeOutputDraft],
         device: RecordingDevice?,
+        omittedDeviceKeys: Set<String> = [],
         preservedSampleKeys: Set<String> = [],
         excludedSampleKeys: Set<String> = []
     ) -> [String] {
@@ -344,23 +346,33 @@ extension HealthKitSampleMetadata {
         }
         // A blood-pressure member's zone and manual entry count only toward the record's, as the rules above define,
         // so neither is withheld from the member (healthkit mapping.md, Blood-pressure correlation objects).
-        let contained = memberValues.isEmpty ? containedValues : containedValues.map { metadata in
+        let contained = (memberValues.isEmpty ? containedValues : containedValues.map { metadata in
             metadata.filter { key, _ in key != HKMetadataKeyTimeZone && key != HKMetadataKeyWasUserEntered }
+        }).map { metadata in
+            omittedDeviceKeys.isEmpty ? metadata : metadata.filter { key, _ in !omittedDeviceKeys.contains(key) }
         }
         // Generic metadata represents only its owner. It cannot make a same-named contained value disappear.
         // A key the extension preserves or the metadata policy excludes is not withheld. The sync pair is never generic
         // metadata, so an output without the writer record withholds it under every metadata policy.
         let own = values.filter { key, _ in
             HealthKitContract.metadataExcludedKeys.contains(key)
-                || !(preservedSampleKeys.contains(key) || excludedSampleKeys.contains(key))
+                || !(preservedSampleKeys.contains(key) || excludedSampleKeys.contains(key) || omittedDeviceKeys.contains(key))
         }
         return Self.withheldKeys(record: own, contained: contained, carried: carried)
     }
 
     /// Source-sample values without a faithful representation in the mapped content or supporting graph.
     /// Conflicting device metadata remains here; a preferred HKDevice value cannot represent a different source value.
-    func unmappedValues(in outputs: [ExchangeOutputDraft], device: RecordingDevice?) -> [String: Any] {
+    /// A device key in `omittedDeviceKeys`, whose fact the device policy omits, is not among them.
+    func unmappedValues(
+        in outputs: [ExchangeOutputDraft],
+        device: RecordingDevice?,
+        omittedDeviceKeys: Set<String> = []
+    ) -> [String: Any] {
         values.filter { key, value in
+            guard !omittedDeviceKeys.contains(key) else {
+                return false
+            }
             // The writer-record identity, its version and the readable sync identifier alone represent the sync pair.
             guard !HealthKitContract.metadataExcludedKeys.contains(key) else {
                 return false

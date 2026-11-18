@@ -649,6 +649,7 @@ struct HealthKitFHIRConverterTests {
 
         var disclosureInputs = inputs
         disclosureInputs.options.nativeIdentifier = .authorized(system: nativeSystem, type: nativeType)
+        disclosureInputs.options.syncIdentifier = .authorized
         let disclosed = try await ExporterFixtures.export(sample, disclosureInputs)
         let native = try #require(disclosed.observation.identifier?.first {
             $0.system?.value?.url.absoluteString == nativeSystem.rawValue
@@ -704,6 +705,7 @@ struct HealthKitFHIRConverterTests {
             identitySystems.providerArtifact
         ] {
             disclosureInputs.options.nativeIdentifier = .authorized(system: collidingNativeSystem)
+            disclosureInputs.options.syncIdentifier = .authorized
             #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierSystem(collidingNativeSystem)) {
                 try ExporterFixtures.exporter(disclosureInputs)
             }

@@ -53,6 +53,7 @@ extension GoldenCase {
             let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: ExporterGolden.deploymentNativeIdentifierSystem)
+            inputs.options.syncIdentifier = .authorized
             return try await GoldenFixtures.export(.heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat)), inputs)
         },
         GoldenCase("workout-route") {
@@ -76,6 +77,7 @@ extension GoldenCase {
         GoldenCase("retraction-heart-rate-native-identifier") {
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+            inputs.options.syncIdentifier = .authorized
             return try await retraction(of: .heartRate, uuid: 81, deletedAfter: GoldenFixtures.sampleStart, inputs)
         },
         GoldenCase("retraction-electrocardiogram") {

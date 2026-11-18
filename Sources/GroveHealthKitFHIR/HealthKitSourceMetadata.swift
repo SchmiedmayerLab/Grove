@@ -34,7 +34,7 @@ struct HealthKitSourceMetadata {
     init(sample: HKSample, values: [String: Any], policy: HealthKitFHIRExporter.MetadataPolicy) {
         let allKeys = values.keys
         excludedKeys = allKeys.reduce(into: []) { result, key in
-            switch policy.evaluate(forEntryWithKey: key) {
+            switch policy.decision(for: key) {
             case .include:
                 break // we include the key, ie we dont omit it, ie we dont insert it into the set of omitted keys
             case .omit:

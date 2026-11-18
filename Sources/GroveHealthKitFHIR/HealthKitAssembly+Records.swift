@@ -176,7 +176,7 @@ extension HealthKitAssembly {
         do {
             target = try RetractionRecord.Target(
                 sourceRecord: sourceRecord.identifier,
-                nativeRecordIdentifier: options.nativeIdentifier.nativeRecordIdentifier(for: uuid.uuidString.lowercased())
+                nativeRecordIdentifier: disclosure.nativeIdentifier.nativeRecordIdentifier(for: uuid.uuidString.lowercased())
             )
         } catch {
             throw HealthKitConversionError(dependency: error)

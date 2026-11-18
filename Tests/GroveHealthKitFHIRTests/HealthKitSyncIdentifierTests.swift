@@ -35,6 +35,7 @@ struct HealthKitSyncIdentifierTests {
         inputs.options.route = .authorized
         if let system {
             inputs.options.nativeIdentifier = .authorized(system: system)
+            inputs.options.syncIdentifier = .authorized
         }
         return inputs
     }
@@ -354,11 +355,13 @@ struct HealthKitSyncIdentifierTests {
         let reserved = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "healthkit-sync-id")
         var inputs = Self.inputs()
         inputs.options.nativeIdentifier = .authorized(system: Self.store, type: reserved)
+        inputs.options.syncIdentifier = .authorized
         #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierType(reserved)) {
             try ExporterFixtures.exporter(inputs)
         }
         let other = try GovernedSourceIdentifierDisclosurePolicy.IdentifierType(system: typeSystem, code: "healthkit-uuid")
         inputs.options.nativeIdentifier = .authorized(system: Self.store, type: other)
+        inputs.options.syncIdentifier = .authorized
         _ = try ExporterFixtures.exporter(inputs)
     }
 

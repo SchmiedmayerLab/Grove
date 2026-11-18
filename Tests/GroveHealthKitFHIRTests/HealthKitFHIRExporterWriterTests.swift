@@ -266,7 +266,7 @@ struct HealthKitFHIRExporterWriterTests {
         }
     }
 
-    @Test("W4: no source file of the adapter names Apple's per-device bundle-identifier prefix")
+    @Test("W4: only the source-revision policy names Apple's per-device bundle-identifier prefix")
     func noSourceNamesThePerDevicePrefix() throws {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -275,7 +275,9 @@ struct HealthKitFHIRExporterWriterTests {
             .appendingPathComponent("Sources/GroveHealthKitFHIR", isDirectory: true)
         let files = try FileManager.default.subpathsOfDirectory(atPath: sources.path).filter { $0.hasSuffix(".swift") }
         try #require(!files.isEmpty, "no adapter sources at \(sources.path)")
-        for file in files {
+        // The source policy withholds a bundle identifier of that form by its form alone. No other file may read the prefix,
+        // so neither the writer nor an identity is classified by it.
+        for file in files where file != "HealthKitFHIRExporter+SourceRevision.swift" {
             let text = try String(contentsOf: sources.appendingPathComponent(file), encoding: .utf8)
             #expect(!text.contains("\"com.apple.health."), "\(file) names the Apple per-device source prefix")
         }

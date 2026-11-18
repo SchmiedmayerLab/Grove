@@ -64,8 +64,8 @@ struct ProducerDefaultsTests {
             return
         }
         #expect(options.role == .assembler)
-        #expect(options.metadata.evaluate(forEntryWithKey: HKMetadataKeyExternalUUID) == .include)
-        #expect(options.metadata.evaluate(forEntryWithKey: "com.example.note") == .include)
+        #expect(options.metadata.decision(for: HKMetadataKeyExternalUUID) == .include)
+        #expect(options.metadata.decision(for: "com.example.note") == .include)
         #expect(options.route == .omit)
         #expect(options.nativeIdentifier == .omit)
     }
@@ -429,6 +429,7 @@ struct ProducerSurfaceTests {
         let store: IdentifierSystem = "https://study.example.org/fhir/NamingSystem/healthkit-store"
         var inputs = ExportInputs()
         inputs.options.nativeIdentifier = .authorized(system: store)
+        inputs.options.syncIdentifier = .authorized
         let disclosed = try await targets(inputs)
         let nativeIdentifier = try BusinessIdentifier(system: store, value: Self.heartRate.uuid.uuidString.lowercased())
         #expect(disclosed.map(native) == [.identifier(nativeIdentifier.fhirIdentifier)])
@@ -444,6 +445,7 @@ struct ProducerSurfaceTests {
         var reserved = ExportInputs()
         let reservedSystem = reserved.base.identityScope.systems.sourceOutput
         reserved.options.nativeIdentifier = .authorized(system: reservedSystem)
+        reserved.options.syncIdentifier = .authorized
         #expect(throws: HealthKitFHIRExporter.ConfigurationError.reservedNativeIdentifierSystem(reservedSystem)) {
             try ExporterFixtures.exporter(reserved)
         }

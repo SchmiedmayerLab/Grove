@@ -135,9 +135,9 @@ let producer = try ExchangeProducer(
 )
 ```
 
-Every device and source fact HealthKit supplies travels, a serial number and a name a person gave the device included: a consumer filters what it does not need, and a deployment that shares data applies its own policy to the sensitive ones.
-The route and identifier disclosures in ``HealthKitFHIRExporter/Options`` default to omission: a workout route needs `route` `.authorized`, and the clear HealthKit UUID needs `nativeIdentifier` to authorize a system you own. Sample metadata is preserved by default; `metadata` `.nonIdentifying` or `.omit` narrows it.
-Authorizing `nativeIdentifier` also discloses the exact sync identifier of a sample that carries one, under a system that names the writing application's bundle identifier; <doc:ConfiguringTheExporter#Sync-identifiers> describes it.
+By default every device and source fact HealthKit supplies travels, a serial number and a name a person gave the device included.
+The route and identifier disclosures in ``HealthKitFHIRExporter/Options`` default to omission: a workout route needs `route` `.authorized`, and the clear HealthKit UUID needs `nativeIdentifier` `.authorized`, under a system the exporter derives from the repository scope or one you own. Sample metadata, source facts and device facts travel by default; `metadata`, `source` and `device` each narrow theirs with `.nonIdentifying`, `.omit` or `.custom`, and `Options.nonIdentifying` sets all three to `.nonIdentifying`.
+`syncIdentifier` `.authorized` discloses the exact sync identifier of a sample that carries one, beside an authorized UUID and under a system that names the writing application's bundle identifier; <doc:ConfiguringTheExporter#Sync-identifiers> describes it.
 
 ```swift
 var options = HealthKitFHIRExporter.Options()
