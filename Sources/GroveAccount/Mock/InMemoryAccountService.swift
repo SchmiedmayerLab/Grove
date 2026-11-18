@@ -231,7 +231,7 @@ public final class InMemoryAccountService: AccountService {
 
 
     public func login(userId: String, password: String) async throws {
-        logger.debug("Trying to login \(userId) with password \(password)")
+        logger.debug("Trying to log in a user account")
         try await Task.sleep(for: .milliseconds(500))
 
         guard let accountId = userIdToAccountId[userId],
