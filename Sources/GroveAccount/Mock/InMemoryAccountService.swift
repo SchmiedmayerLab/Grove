@@ -310,6 +310,7 @@ public final class InMemoryAccountService: AccountService {
         try await loadUser(storage, isNew: true)
     }
 
+    // periphery:ignore:parameters userId - required by the protocol; the mock deliberately keeps it out of its log
     public func resetPassword(userId: String) async throws {
         logger.debug("Sending a password reset e-mail")
         try await Task.sleep(for: .milliseconds(500))
