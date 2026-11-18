@@ -58,6 +58,17 @@ enum ProviderObservation {
         )
     }
 
+    /// `seconds` in the contract's UCUM time unit, so the value always matches the quantity's `code`.
+    static func duration(seconds: Decimal, in contract: MeasurementContract) throws -> Decimal {
+        switch contract.quantity?.code {
+        case "s": seconds
+        case "min": seconds / 60
+        case "h": seconds / 3_600
+        case "d": seconds / 86_400
+        default: throw ProviderConversionError.invalidContract(contract.id)
+        }
+    }
+
     static func coding(_ contract: CodingContract) -> Coding {
         Coding(
             code: contract.code.asFHIRStringPrimitive(),

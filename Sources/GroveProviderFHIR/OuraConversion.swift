@@ -157,7 +157,8 @@ extension OuraConversion {
             guard seconds >= 0, Decimal(seconds) <= bedtime.duration else {
                 throw ProviderConversionError.invalidQuantity(contract.id)
             }
-            return try scalar(Decimal(seconds) / 3_600, contract: contract, effective: effective, context: context)
+            let value = try ProviderObservation.duration(seconds: Decimal(seconds), in: contract)
+            return try scalar(value, contract: contract, effective: effective, context: context)
         }
         outputs += try [
             scalar(
