@@ -14,6 +14,9 @@ extension SensorKit {
     /// Fetches exactly one retained native batch using an isolated copy of its original pending anchor.
     /// The caller must compare the ordered source digests with its retained receipt before using any result.
     /// Missing, reordered or expired history is an error; it never silently advances a live cursor.
+    ///
+    /// Pass the ``SensorKitECGProcessingLimits`` the batch was originally fetched with: an ECG batch replayed with
+    /// smaller limits can fail with ``SensorKitECGSession/ProcessingError/assemblyCapacityExceeded``.
     public func replay<Sample>(
         _ token: BatchReplayToken, from sensor: Sensor<Sample>, ecgProcessingLimits: SensorKitECGProcessingLimits = .init()
     ) async throws -> AnchoredBatch<Sample.SafeRepresentation> {
