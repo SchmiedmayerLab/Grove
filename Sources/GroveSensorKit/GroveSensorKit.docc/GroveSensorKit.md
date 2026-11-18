@@ -54,7 +54,7 @@ You use the ``Sensor`` type to interact with individual SensorKit sensors.
 
 #### SensorKit Sample Safe Representations
 Since most sensors' returned samples aren't thread-safe, GroveSensorKit provides so-called "safe representations" for most sensors, which are small Swift structs that act as `Sendable` representations of the data returned by a ``Sensor``.
-When you fetch data from a sensor (e.g., using ``Sensor/fetch(from:timeRange:)`` or ``SensorKit-class/fetchAnchored(_:batchSize:)``), GroveSensorKit automatically transforms the raw SensorKit samples into their respective safe representations.
+When you fetch data from a sensor (e.g., using ``Sensor/fetch(from:timeRange:)`` or ``SensorKit-class/fetchAnchored(_:acquisitionNamespace:batchSize:initialStartDate:ecgProcessingLimits:)``), GroveSensorKit automatically transforms the raw SensorKit samples into their respective safe representations.
 For some sensors this step also performs additional pre-processing; for example, when fetching ECG data, SensorKit returns a bunch of individual [`SRElectrocardiogramSample`](https://developer.apple.com/documentation/sensorkit/srelectrocardiogramsample) objects each of which represents just a small part of the total ECG.
 Fetching ECG data via GroveSensorKit implicitly processes the raw `SRElectrocardiogramSample`s into ``SensorKitECGSession``s, each of which represents a logical ECG session.
 The safe representation retains the source session identifier, every observed provider session state,
@@ -80,8 +80,8 @@ for device in devices {
 
 
 #### Fetching Data: Anchored Queries
-You can implement continuous SensorKit data fetching using the Anchored Fetching API (e.g., ``SensorKit-class/fetchAnchored(_:batchSize:)``).
-The ``SensorKit-class/fetchAnchored(_:batchSize:)`` function returns an `AsyncSequence` which fetches batches of SensorKit data on-demand (as the sequence is being iterated), and keeps track of the most recent already-fetched timestamp.
+You can implement continuous SensorKit data fetching using the Anchored Fetching API (e.g., ``SensorKit-class/fetchAnchored(_:acquisitionNamespace:batchSize:initialStartDate:ecgProcessingLimits:)``).
+The ``SensorKit-class/fetchAnchored(_:acquisitionNamespace:batchSize:initialStartDate:ecgProcessingLimits:)`` function returns an `AsyncSequence` which fetches batches of SensorKit data on-demand (as the sequence is being iterated), and keeps track of the most recent already-fetched timestamp.
 
 ```swift
 import GroveSensorKit
@@ -90,6 +90,8 @@ for try await batch in try await sensorKit.fetchAnchored(.ecg) {
     // do smth with a batch of `
 }
 ```
+
+Pass an `acquisitionNamespace` to keep the cursors of one source apart from every other source's; ``SensorKit-class/resetQueryAnchors(for:acquisitionNamespace:)`` and ``SensorKit-class/discardPendingBatches(for:acquisitionNamespace:)`` act on the cursors of the namespace you name, and ``SensorKit-class/removeQueryAnchors(acquisitionNamespace:)`` removes a namespace's cursors once its source has ended. An `initialStartDate` sets where an empty cursor starts. Each batch's `info.replayToken` lets ``SensorKit-class/replay(_:from:ecgProcessingLimits:)`` fetch the same batch again, without touching the live cursor, until the batch is acknowledged. With ``SensorKitECGProcessingLimits`` and a sample-count batch size, ECG sessions whose samples arrive in several native callbacks are assembled into complete sessions.
 
 ### Performance Considerations
 The amount of samples collected varies significantly across the different sensors.

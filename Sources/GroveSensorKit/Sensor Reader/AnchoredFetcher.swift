@@ -74,12 +74,31 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     private let queryAnchorProvider: (SensorKit.QueryAnchorKey) -> ManagedQueryAnchor
     private let batchSize: BatchSize
     private let devices: [SRDevice]
+    private let initialStartDate: Date?
+    private let ecgProcessingLimits: SensorKitECGProcessingLimits?
     
+    /// Creates a fetcher of one sensor's batches on every device.
+    ///
+    /// - Parameters:
+    ///   - sensor: The sensor from which data should be fetched.
+    ///   - batchSize: The batch size. Omit it to use the `sensor`'s default batch size.
+    ///   - initialStartDate: Where an empty cursor starts. It never changes an established cursor.
+    ///   - ecgProcessingLimits: For the ECG sensor with a sample-count batch size, the limits within which ECG sessions
+    ///     are assembled across native callbacks. Without them, the ECG sensor keeps its time-range cursor; a pending
+    ///     cursor never changes its mode implicitly.
+    ///   - queryAnchorProvider: The cursor of each sensor and device.
     public init(
         sensor: some AnySensor<Sample>,
         batchSize: BatchSize? = nil,
+        initialStartDate: Date? = nil,
+        ecgProcessingLimits: SensorKitECGProcessingLimits? = nil,
         queryAnchorProvider: @escaping (SensorKit.QueryAnchorKey) -> ManagedQueryAnchor
     ) async throws {
+        guard initialStartDate?.timeIntervalSinceReferenceDate.isFinite != false else {
+            throw SensorKit.AnchoredFetchError.invalidInitialStartDate
+        }
+        self.initialStartDate = initialStartDate
+        self.ecgProcessingLimits = ecgProcessingLimits
         self.sensor = Sensor(sensor)
         self.queryAnchorProvider = queryAnchorProvider
         self.batchSize = batchSize ?? sensor.suggestedBatchSize
@@ -90,11 +109,9 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     
     @_AsyncIteratorBuilder<Element, Failure>
     public consuming func makeAsyncIterator() -> some AsyncIteratorProtocol<Element, Failure> {
-        if sensor.id == Sensor.ecg.id {
-            // we need to fetch all ECGs at once, since each recording will consist of a series of
-            // separate `SRElectrocardiogramSample` objects, and we can't risk accidentally
-            // splitting in the middle of that, since we then would not be able to correctly post-process
-            // these samples into SensorKitECGSession objects.
+        if sensor.id == Sensor.ecg.id && ecgProcessingLimits == nil {
+            // Without an explicit assembly budget, ECG uses a time-range cursor. Supplying limits
+            // enables sample-count batches that retain unfinished sessions across native callbacks.
             timeIntervalBasedIterator(batchDuration: Duration(secondsComponent: .max, attosecondsComponent: 0))
         } else {
             switch batchSize {
@@ -105,7 +122,9 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
                         sensor: sensor,
                         batchSize: limit,
                         anchor: queryAnchorProvider(SensorKit.QueryAnchorKey(sensor: sensor, deviceProductType: device.productType)),
-                        device: device
+                        device: device,
+                        initialStartDate: initialStartDate,
+                        ecgProcessingLimits: ecgProcessingLimits ?? .init()
                     )
                 }
             case .timeInterval(let duration):
@@ -123,7 +142,8 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
                 anchor: queryAnchorProvider(SensorKit.QueryAnchorKey(sensor: sensor, deviceProductType: device.productType)),
                 quarantineCutoff: sensor.currentQuarantineBegin,
                 batchSize: duration.timeInterval,
-                device: device
+                device: device,
+                initialStartDate: initialStartDate
             )
         }
     }
@@ -137,6 +157,10 @@ extension SensorKit {
         /// SensorKit exposed multiple physical devices under the same only-available stable partition.
         /// Querying them would share a cursor and could silently skip or conflate records.
         case ambiguousDevicePartition(productType: String)
+        /// The initial start date is not a finite date.
+        case invalidInitialStartDate
+        /// SensorKit's native clock reported a time that is not finite.
+        case invalidNativeClock
     }
 
     static func validateUniqueDevicePartitions(_ productTypes: [String]) throws {
@@ -189,7 +213,7 @@ extension SensorKit {
         case exhaustedBatchSequence
         /// A crash retry did not reproduce the persisted delivery boundary.
         ///
-        /// Recover with ``SensorKit/discardPendingBatches(for:)``.
+        /// Recover with ``SensorKit/discardPendingBatches(for:acquisitionNamespace:)``.
         case pendingBatchMismatch
         /// SensorKit delivered source records without the cursor needed to acknowledge them durably.
         case missingDeliveryAnchor
@@ -370,6 +394,8 @@ extension SensorKit {
         public let sourceDevicesSuppliedEverySample: Bool
         /// Durable acquisition coordinate allocated before this batch is exposed to its consumer.
         public let acquisitionBatch: AcquisitionBatchCoordinate
+        /// Exact pending native-query boundary for later historical replay without changing live cursors.
+        public let replayToken: BatchReplayToken?
         
         @inlinable
         public init(
@@ -377,13 +403,15 @@ extension SensorKit {
             device: DeviceInfo,
             sourceDevices: [SourceDeviceInfo] = [],
             sourceDevicesSuppliedEverySample: Bool = false,
-            acquisitionBatch: AcquisitionBatchCoordinate
+            acquisitionBatch: AcquisitionBatchCoordinate,
+            replayToken: BatchReplayToken? = nil
         ) {
             self.timeRange = timeRange
             self.device = device
             self.sourceDevices = sourceDevices
             self.sourceDevicesSuppliedEverySample = sourceDevicesSuppliedEverySample && !sourceDevices.isEmpty
             self.acquisitionBatch = acquisitionBatch
+            self.replayToken = replayToken
         }
     }
 }

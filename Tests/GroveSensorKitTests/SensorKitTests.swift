@@ -265,11 +265,9 @@ struct SensorKitTests {
         let sensor = Sensor.heartRate
         let sensorID = sensor.id
         let partitions = SensorKit.devicePartitionsToReset(
-            sensorID: sensorID,
+            rawKeyPrefix: "\(SensorKit.queryAnchorKeyPrefix).\(sensorID).",
             currentDeviceProductTypes: ["currently-present"],
-            cachedKeys: [
-                SensorKit.QueryAnchorKey(sensor: sensor, deviceProductType: "in-flight-but-absent")
-            ],
+            cachedDeviceProductTypes: ["in-flight-but-absent"],
             persistedRawKeys: [
                 "\(SensorKit.queryAnchorKeyPrefix).\(sensorID).previously-seen-but-absent",
                 "\(SensorKit.queryAnchorKeyPrefix).different-sensor.ignore-me"
@@ -281,5 +279,34 @@ struct SensorKitTests {
             "in-flight-but-absent",
             "previously-seen-but-absent"
         ])
+    }
+
+    @Test("Resetting a namespace's cursors covers only that namespace's persisted partitions")
+    @available(iOS 18, *)
+    func namespaceResetCoversOnlyItsPartitions() throws {
+        let sensor = Sensor.heartRate
+        let namespace = try #require(UUID(uuidString: "5E1C0B7A-6F4D-4E52-9B0E-6D1A2C3B4D5E"))
+        let other = try #require(UUID(uuidString: "0A1B2C3D-4E5F-4061-8293-A4B5C6D7E8F9"))
+        let scopedPrefix = SensorKit.StoredQueryAnchorKey.storagePrefix(namespace: namespace)
+        #expect(scopedPrefix == "\(SensorKit.queryAnchorKeyPrefix).scoped.5e1c0b7a-6f4d-4e52-9b0e-6d1a2c3b4d5e.")
+        let key = SensorKit.StoredQueryAnchorKey(
+            namespace: namespace,
+            query: .init(sensor: sensor, deviceProductType: "Watch7,12")
+        )
+        #expect(key.storageIdentifier == "\(scopedPrefix)\(sensor.id).Watch7,12")
+        let unscoped = SensorKit.StoredQueryAnchorKey(namespace: nil, query: key.query)
+        #expect(unscoped.storageIdentifier == "\(SensorKit.queryAnchorKeyPrefix).\(sensor.id).Watch7,12")
+
+        let partitions = SensorKit.devicePartitionsToReset(
+            rawKeyPrefix: "\(scopedPrefix)\(sensor.id).",
+            currentDeviceProductTypes: [],
+            cachedDeviceProductTypes: [],
+            persistedRawKeys: [
+                key.storageIdentifier,
+                unscoped.storageIdentifier,
+                SensorKit.StoredQueryAnchorKey(namespace: other, query: key.query).storageIdentifier
+            ]
+        )
+        #expect(partitions == ["Watch7,12"])
     }
 }
