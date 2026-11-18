@@ -42,6 +42,14 @@ public struct RecordingCSVWriter: ~Copyable {
         case carriageReturn(column: String)
         /// A field violates its column's registered value type or absence rule.
         case invalidValue(column: String)
+        /// A field exceeds the most UTF-8 bytes a reader admits in one field.
+        case fieldLimitExceeded
+        /// A row exceeds the most bytes a reader admits in one encoded row.
+        case recordLimitExceeded
+        /// The payload would exceed the writer's maximum byte count.
+        case payloadLimitExceeded
+        /// The writer was closed by an earlier error.
+        case closed
     }
 
     private let columns: [String]
@@ -129,6 +137,25 @@ public struct RecordingCSVWriter: ~Copyable {
             bytes.append(0x22)
         }
         bytes.append(0x0A)
+    }
+
+    /// The encoded size of a row of `fields`, with its quotes, delimiters and LF, measured before it is allocated.
+    static func encodedByteCount(_ fields: [Field], limits: RecordingCSVReader.Limits) throws(WriterError) -> Int {
+        // One delimiter per field, with LF in place of the last one.
+        var count = fields.count
+        for field in fields {
+            let value = text(field)
+            let byteCount = value.utf8.count
+            guard byteCount <= limits.maximumFieldByteCount else {
+                throw .fieldLimitExceeded
+            }
+            let encodedCount = needsQuotes(value) ? byteCount + 2 + value.utf8.count(where: { $0 == 0x22 }) : byteCount
+            guard encodedCount <= limits.maximumRecordByteCount - count else {
+                throw .recordLimitExceeded
+            }
+            count += encodedCount
+        }
+        return count
     }
 
     /// The unquoted text of a field.

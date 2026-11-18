@@ -70,7 +70,7 @@ struct RecordingRoundTripTests {
 
         #expect(prepared.format == .photoplethysmogramSamples)
         #expect(prepared.retryEvidence == prepared.data)
-        #expect(ppg.nativeRecording.bytes == prepared.data)
+        #expect(try ppg.nativeRecording.decodedPayload() == prepared.data)
     }
 
     @Test("Malformed complete PPG payloads fail closed")
