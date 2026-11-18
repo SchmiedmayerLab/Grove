@@ -286,7 +286,8 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     }
     
     nonisolated(unsafe) private var nativeClock: QueryNativeClock?
-    nonisolated(unsafe) private var ecgAssembly = SensorKitECGAssembly()
+    private let ecgProcessingLimits: SensorKitECGProcessingLimits
+    nonisolated(unsafe) private var ecgAssembly: SensorKitECGAssembly
     nonisolated(unsafe) private(set) var samples: [Sample.SafeRepresentation] = []
     /// The peripherals that supplied `samples`, in the order SensorKit first named them.
     nonisolated(unsafe) private(set) var sourceDevices: [SensorKit.SourceDeviceInfo] = []
@@ -303,6 +304,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     init(
         sensor: Sensor<Sample>, deviceInfo: SensorKit.DeviceInfo, batchSize: Int, ecgProcessingLimits: SensorKitECGProcessingLimits
     ) {
+        self.ecgProcessingLimits = ecgProcessingLimits
         self.ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
         self.logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "\(Self.self)")
         self.sensor = sensor
@@ -367,7 +369,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     func stop() {
         lock.lock()
         samples.removeAll()
-        ecgAssembly = SensorKitECGAssembly()
+        ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
         sourceDevices.removeAll()
         hasSamplesWithoutSourceDevice = false
         lastSeenTimestamp = nil
