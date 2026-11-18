@@ -8,6 +8,7 @@
 
 import Foundation
 @testable import GroveFHIRContract
+import GroveFoundation
 import Testing
 
 
@@ -28,7 +29,7 @@ struct RecordingFileStreamingTests {
         try decoded.readChunks { actual.append($0) }
         #expect(actual == bytes && decoded.attachmentSHA1 == bytes.attachmentSHA1)
         for count in [bytes.count - 1, bytes.count + 1] {
-            #expect(throws: (any Error).self) { try compressed.zstandardDecompressed(decompressedByteCount: count) }
+            #expect(throws: Zstd.StreamError.outputSizeMismatch) { try compressed.zstandardDecompressed(decompressedByteCount: count) }
         }
     }
 
@@ -62,9 +63,12 @@ struct RecordingFileStreamingTests {
         let compressed = try #require(try original.zstandardCompressed())
         var frame = Data()
         try compressed.readChunks { frame.append($0) }
-        for damaged in [frame.dropLast(), frame + Data([0]), frame + frame] {
+        let damagedFrames: [(Data, Zstd.StreamError)] = [
+            (frame.dropLast(), .truncatedFrame), (frame + Data([0]), .trailingData), (frame + frame, .trailingData)
+        ]
+        for (damaged, error) in damagedFrames {
             let file = try await RecordingFile.stage(chunks: Self.stream([damaged]), maximumByteCount: 8192)
-            #expect(throws: (any Error).self) { try file.zstandardDecompressed(decompressedByteCount: bytes.count) }
+            #expect(throws: error) { try file.zstandardDecompressed(decompressedByteCount: bytes.count) }
         }
         #expect(throws: RecordingFile.FileError.invalidByteLimit) { try compressed.zstandardDecompressed(decompressedByteCount: 0) }
         let cancelled = Task {
