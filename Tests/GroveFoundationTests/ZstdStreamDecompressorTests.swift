@@ -76,7 +76,11 @@ struct ZstdStreamDecompressorTests {
             decompressedByteCount: Self.source.count,
             maximumWindowByteCount: 8 * 1024 * 1024
         )
-        #expect(throws: Zstd.StreamError.self) { try decoder.write(damaged) { _ in } }
+        let checksumError = #expect(throws: Zstd.StreamError.self) { try decoder.write(damaged) { _ in } }
+        guard case .codec = checksumError else {
+            Issue.record("A damaged checksum must fail in the codec, not \(String(describing: checksumError))")
+            return
+        }
         #expect(throws: Zstd.StreamError.closed) { try decoder.finish() }
     }
 
@@ -84,7 +88,7 @@ struct ZstdStreamDecompressorTests {
     func truncatedFramesCannotBeFinalized() throws {
         let frame = try Zstd.compress(Data("synthetic recording".utf8))
         for count in 1..<frame.count {
-            #expect(throws: Zstd.StreamError.self) {
+            #expect(throws: Zstd.StreamError.truncatedFrame) {
                 try Self.decompress(Data(frame.prefix(count)), expectedCount: 19, chunkSize: 1)
             }
         }
@@ -109,7 +113,7 @@ struct ZstdStreamDecompressorTests {
         // An empty skippable Zstandard frame, followed by an invalid frame header.
         for bytes in [Data([0x50, 0x2a, 0x4d, 0x18, 0, 0, 0, 0]), Data("not a zstd frame".utf8)] {
             for chunkSize in [1, bytes.count] {
-                #expect(throws: Zstd.StreamError.self) { try Self.decompress(bytes, expectedCount: 0, chunkSize: chunkSize) }
+                #expect(throws: Zstd.StreamError.invalidFrame) { try Self.decompress(bytes, expectedCount: 0, chunkSize: chunkSize) }
             }
         }
     }
@@ -130,7 +134,11 @@ struct ZstdStreamDecompressorTests {
             maximumWindowByteCount: 1024
         )
         var delivered = false
-        #expect(throws: Zstd.StreamError.self) { try decoder.write(frame) { _ in delivered = true } }
+        let windowError = #expect(throws: Zstd.StreamError.self) { try decoder.write(frame) { _ in delivered = true } }
+        guard case .codec = windowError else {
+            Issue.record("A frame that needs a larger window must fail in the codec, not \(String(describing: windowError))")
+            return
+        }
         #expect(!delivered)
         #expect(throws: Zstd.StreamError.closed) { try decoder.finish() }
     }
