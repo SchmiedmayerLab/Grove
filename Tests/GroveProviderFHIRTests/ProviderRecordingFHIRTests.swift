@@ -129,6 +129,37 @@ struct ProviderRecordingFHIRTests {
         #expect(throws: ProviderNativeRecording.ValidationError.invalidIdentifier) { try recording(.withingsSleep, dates, id: "") }
     }
 
+    @Test("Every native recording stream is advertised as its provider's native recording token")
+    func nativeRecordingTokens() async throws {
+        let bytes = Data("{\"value\": 1}".utf8)
+        let chunks = AsyncStream<Data> { continuation in
+            continuation.yield(bytes)
+            continuation.finish()
+        }
+        let file = try await RecordingFile.stage(chunks: chunks, maximumByteCount: bytes.count)
+        for provider in ProviderCapabilities.Provider.allCases {
+            let context = try switch provider {
+            case .oura: OuraFHIRTests.context()
+            case .googleHealthAPI: ProviderUnitConversionTests.googleHealthContext()
+            case .withings: WithingsFHIRTests.context()
+            }
+            let converted = try ProviderNativeRecording.Source.allCases.filter { $0.rawValue.hasPrefix(provider.rawValue + "/") }.map {
+                let recording = try ProviderNativeRecording(
+                    id: "native-one",
+                    source: $0,
+                    title: "Fixture",
+                    file: file,
+                    attachmentPath: "recording.json",
+                    admission: .verifiedSanitizedInput
+                )
+                return try ProviderFHIRConverter.convert(recording, context: context).sourceToken
+            }
+            let advertised = ProviderCapabilities.sources(for: provider).filter { $0.conversionSupport == .nativeRecording }.map(\.token)
+            #expect(Set(converted) == Set(advertised))
+            #expect(!converted.isEmpty)
+        }
+    }
+
     @Test("File-backed transport compression preserves the FHIR source checksum")
     func compression() async throws {
         let bytes = Data(("{\"padding\":\"" + String(repeating: "x", count: 32_768) + "\"}").utf8)

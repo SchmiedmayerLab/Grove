@@ -97,7 +97,9 @@ public struct ProviderNativeRecording: Sendable {
         guard isRelativeAttachmentPath(attachmentPath) else { throw ValidationError.invalidPath }
         guard (1...Self.maximumJSONByteCount).contains(maximumByteCount) else { throw ValidationError.invalidByteLimit }
         guard file.byteCount <= maximumByteCount else { throw ValidationError.payloadTooLarge }
-        guard interval.map({ $0.isValid(for: source) }) != false else { throw ValidationError.invalidInterval }
+        if let interval, !interval.isValid(for: source) {
+            throw ValidationError.invalidInterval
+        }
         do {
             var scanner = try StrictJSONScanner(file.decodedPayload(maximumByteCount: maximumByteCount))
             try scanner.validate()
