@@ -118,6 +118,14 @@ struct ZstdStreamDecompressorTests {
         }
     }
 
+    @Test(arguments: 1...3)
+    func magicNumberDivergingAfterAMatchingPrefixIsAnInvalidFrame(chunkSize: Int) throws {
+        // A prefix of the little-endian Zstandard magic number 0xFD2FB528, then a diverging third or fourth byte.
+        for diverging in [Data([0x28, 0xb5, 0x00, 0xfd, 0, 0, 0, 0]), Data([0x28, 0xb5, 0x2f, 0x00, 0, 0, 0, 0])] {
+            #expect(throws: Zstd.StreamError.invalidFrame) { try Self.decompress(diverging, expectedCount: 0, chunkSize: chunkSize) }
+        }
+    }
+
     @Test
     func decompressedLengthAndHistoryWindowAreIndependentLimits() throws {
         let source = Data(repeating: 0x71, count: 1_048_577)
