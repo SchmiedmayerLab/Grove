@@ -24,6 +24,7 @@ builder:
         - GroveFHIR
         - GroveFHIRContract
         - GroveFHIRMockPatients
+        - GroveProviderFHIR
         - EDFFormat
         - GroveFirebaseAccount
         - GroveFirebaseConfiguration
@@ -36,7 +37,6 @@ builder:
         - GroveHealthKit
         - GroveHealthKitBulkExport
         - GroveHealthKitFHIR
-        - GroveProviderFHIR
         - GroveHealthKitUI
         - GroveLLM
         - GroveLLMLocal

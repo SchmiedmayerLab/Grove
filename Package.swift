@@ -228,6 +228,7 @@ var products: [Product] = [
     .library(name: "GroveFHIRContract", targets: ["GroveFHIRContract"]),
     .library(name: "GroveFHIR", targets: ["GroveFHIR"]),
     .library(name: "GroveFHIRMockPatients", targets: ["GroveFHIRMockPatients"]),
+    .library(name: "GroveProviderFHIR", targets: ["GroveProviderFHIR"]),
     // MARK: GroveFileFormats
     .library(name: "EDFFormat", targets: ["EDFFormat"]),
     // MARK: GroveFoundation
@@ -239,7 +240,6 @@ var products: [Product] = [
     .library(name: "GroveHealthKitBulkExport", targets: ["GroveHealthKitBulkExport"]),
     .library(name: "GroveHealthKitUI", targets: ["GroveHealthKitUI"]),
     .library(name: "GroveHealthKitFHIR", targets: ["GroveHealthKitFHIR"]),
-    .library(name: "GroveProviderFHIR", targets: ["GroveProviderFHIR"]),
     // MARK: GroveLLM
     .library(name: "GroveLLM", targets: ["GroveLLM"]),
     .library(name: "GroveLLMLocal", targets: ["GroveLLMLocal"]),

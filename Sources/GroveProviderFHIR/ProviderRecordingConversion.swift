@@ -31,12 +31,7 @@ enum ProviderRecordingConversion {
             title: recording.title.asFHIRStringPrimitive(),
             url: FHIRPrimitive(FHIRURI(stringLiteral: recording.attachmentPath))
         )
-        let period = try recording.interval.map {
-            try Period(
-                end: FHIRPrimitive(ExchangeInstant.fhirDateTime($0.end, offsetIn: context.sourceTimeZone)),
-                start: FHIRPrimitive(ExchangeInstant.fhirDateTime($0.start, offsetIn: context.sourceTimeZone))
-            )
-        }
+        let period = try recording.interval.map { try $0.period(timeZone: context.sourceTimeZone) }
         let document = DocumentReference(
             content: [
                 DocumentReferenceContent(
@@ -65,5 +60,24 @@ enum ProviderRecordingConversion {
             ],
             context: context
         )
+    }
+}
+
+
+extension ProviderNativeRecording.Interval {
+    /// A Withings period in the source time zone, or an Oura or Google Health period in its exact source spelling.
+    fileprivate func period(timeZone: TimeZone) throws -> Period {
+        switch self {
+        case .dates(let interval):
+            try Period(
+                end: FHIRPrimitive(ExchangeInstant.fhirDateTime(interval.end, offsetIn: timeZone)),
+                start: FHIRPrimitive(ExchangeInstant.fhirDateTime(interval.start, offsetIn: timeZone))
+            )
+        case .timestamps(let interval):
+            try Period(
+                end: FHIRPrimitive(DateTime(interval.end.originalValue)),
+                start: FHIRPrimitive(DateTime(interval.start.originalValue))
+            )
+        }
     }
 }

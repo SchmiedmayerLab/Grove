@@ -25,10 +25,23 @@ public struct ProviderNativeRecording: Sendable {
         case withingsSleep = "withings/sleepIntraday"
     }
 
+    /// The period a recording covers, as its provider states it.
+    public enum Interval: Sendable, Hashable {
+        /// A Withings period, from the provider's Unix timestamps.
+        case dates(DateInterval)
+        /// An Oura or Google Health period, keeping the provider's timestamp spelling, UTC offset and digits.
+        case timestamps(ProviderInterval)
+    }
+
     /// Why a native recording is invalid.
     public enum ValidationError: Error, Equatable, Sendable {
+        /// The identifier is empty.
+        case invalidIdentifier
         /// The title is blank.
         case invalidTitle
+        /// The interval is empty, or it is not the representation its provider states: dates for Withings and
+        /// timestamps for Oura and Google Health.
+        case invalidInterval
         /// The attachment path is not a relative reference without empty or dot segments, a query or a fragment.
         case invalidPath
         /// The byte limit is outside 1 through ``ProviderNativeRecording/maximumJSONByteCount``.
@@ -53,27 +66,38 @@ public struct ProviderNativeRecording: Sendable {
     /// The relative path the attachment URL states.
     public let attachmentPath: String
     /// The period the recording covers, if known.
-    public let interval: DateInterval?
+    public let interval: Interval?
 
     /// Creates a native recording, validating its JSON grammar within the byte limit.
     ///
     /// The caller asserts the payload's admission; Grove neither sanitizes nor reinterprets the provider's fields.
+    ///
+    /// - Parameters:
+    ///   - id: The recording's native identifier, or a persisted import key.
+    ///   - source: The recording's stream.
+    ///   - title: The attachment title.
+    ///   - file: The exact provider JSON.
+    ///   - attachmentPath: The relative path the attachment URL states.
+    ///   - interval: The period the recording covers, in the representation its provider states, if known.
+    ///   - maximumByteCount: The most bytes the JSON may hold, between 1 and ``maximumJSONByteCount``.
+    ///   - admission: The caller's authorization to attach the payload.
+    /// - Throws: A ``ValidationError``, or `CancellationError` when the task is cancelled during validation.
     public init(
         id: String,
         source: Source,
         title: String,
         file: RecordingFile,
         attachmentPath: String,
-        interval: DateInterval? = nil,
+        interval: Interval? = nil,
         maximumByteCount: Int = maximumJSONByteCount,
         admission: RecordingPayloadAdmission
     ) throws {
-        guard !id.isEmpty else { throw ProviderConversionError.invalidNativeIdentifier }
+        guard !id.isEmpty else { throw ValidationError.invalidIdentifier }
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ValidationError.invalidTitle }
         guard isRelativeAttachmentPath(attachmentPath) else { throw ValidationError.invalidPath }
         guard (1...Self.maximumJSONByteCount).contains(maximumByteCount) else { throw ValidationError.invalidByteLimit }
         guard file.byteCount <= maximumByteCount else { throw ValidationError.payloadTooLarge }
-        if let interval, interval.duration <= 0 { throw ProviderConversionError.invalidInterval }
+        guard interval.map({ $0.isValid(for: source) }) != false else { throw ValidationError.invalidInterval }
         do {
             var scanner = try StrictJSONScanner(file.decodedPayload(maximumByteCount: maximumByteCount))
             try scanner.validate()
@@ -88,5 +112,16 @@ public struct ProviderNativeRecording: Sendable {
         self.file = file
         self.attachmentPath = attachmentPath
         self.interval = interval
+    }
+}
+
+
+extension ProviderNativeRecording.Interval {
+    fileprivate func isValid(for source: ProviderNativeRecording.Source) -> Bool {
+        switch (self, source) {
+        case (.dates(let interval), .withingsActivity), (.dates(let interval), .withingsSleep): interval.duration > 0
+        case (.timestamps, .ouraHeartRate), (.timestamps, .googleHeartRate): true
+        case (.dates, _), (.timestamps, _): false
+        }
     }
 }
