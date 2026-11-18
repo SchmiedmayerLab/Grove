@@ -71,8 +71,8 @@ private struct MockSignInWithAppleButton: View {
             }
 
             request.nonce = "ABCDEF"
-        } onCompletion: { result in
-            print("Sign in with Apple completed: \(result)")
+        } onCompletion: { _ in
+            print("Sign in with Apple completed.")
         }
             .frame(height: 55)
     }
@@ -231,7 +231,7 @@ public final class InMemoryAccountService: AccountService {
 
 
     public func login(userId: String, password: String) async throws {
-        logger.debug("Trying to login \(userId) with password \(password)")
+        logger.debug("Trying to log in a user account")
         try await Task.sleep(for: .milliseconds(500))
 
         guard let accountId = userIdToAccountId[userId],
@@ -245,7 +245,7 @@ public final class InMemoryAccountService: AccountService {
 
     // swiftlint:disable:next function_body_length
     public func signUp(with signupDetails: AccountDetails) async throws {
-        logger.debug("Signing up user account \(signupDetails.userId)")
+        logger.debug("Signing up a user account")
         try await Task.sleep(for: .milliseconds(500))
 
         guard userIdToAccountId[signupDetails.userId] == nil else {
@@ -311,7 +311,7 @@ public final class InMemoryAccountService: AccountService {
     }
 
     public func resetPassword(userId: String) async throws {
-        logger.debug("Sending password reset e-mail for \(userId)")
+        logger.debug("Sending a password reset e-mail")
         try await Task.sleep(for: .milliseconds(500))
     }
 
@@ -329,7 +329,7 @@ public final class InMemoryAccountService: AccountService {
             return
         }
 
-        logger.debug("Deleting user account for \(details.userId)")
+        logger.debug("Deleting the current user account")
         try await Task.sleep(for: .milliseconds(500))
 
         try await withCheckedThrowingContinuation { continuation in
@@ -353,14 +353,14 @@ public final class InMemoryAccountService: AccountService {
         }
 
         guard let accountId = UUID(uuidString: details.accountId) else {
-            preconditionFailure("Invalid accountId format \(details.accountId)")
+            preconditionFailure("The account identifier of the current account is not a valid UUID.")
         }
 
         guard var storage = registeredUsers[accountId] else {
             throw AccountError.internalError
         }
 
-        logger.debug("Updating user details for \(details.userId): \(String(describing: modifications))")
+        logger.debug("Updating the details of the current user account")
         try await Task.sleep(for: .milliseconds(500))
 
         if modifications.modifiedDetails.contains(AccountKeys.userId) || modifications.modifiedDetails.contains(AccountKeys.password) {
@@ -546,7 +546,7 @@ extension InMemoryAccountService.UserStorage {
 extension String {
     var assumeUUID: UUID {
         guard let id = UUID(uuidString: self) else {
-            preconditionFailure("Invalid uuid format \(self)")
+            preconditionFailure("The account identifier is not a valid UUID.")
         }
         return id
     }
