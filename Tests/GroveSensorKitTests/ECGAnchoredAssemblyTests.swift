@@ -57,16 +57,30 @@ struct ECGAnchoredAssemblyTests {
 
     @Test
     @available(iOS 18, *)
-    func fetchEndSkipsASessionWithoutVoltageSamplesAndAdvances() async throws {
+    func fetchEndSkipsASessionWithoutVoltageSamplesWithoutFailing() async throws {
         let start = Date.now.addingTimeInterval(-120)
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let groups = ECGProcessingTests.groups()
+        let unusable = SensorKitECGSession.InputGroup(identifier: "other-session", state: .begin, guidance: .guided, readings: groups[0].readings)
         let fetcher = Self.fetcher(anchor: anchor)
         try fetcher.startNativeFetchForTesting()
-        #expect(fetcher.processECGGroupsForTesting([ECGProcessingTests.groups()[0]], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        #expect(fetcher.processECGGroupsForTesting([unusable], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
         nonisolated(unsafe) let reader = fetcher
         let completion = Task.detached { reader.completeFetchForTesting() }
         #expect(try await fetcher.next(isolation: nil) == nil)
         await completion.value
+        #expect(try anchor.value.timestamp == start)
+        #expect(try anchor.value.pendingBatch == nil)
+        // A later fetch reads the unusable session again, skips it, and its batch moves the cursor past both sessions.
+        let later = Self.fetcher(anchor: anchor)
+        try later.startNativeFetchForTesting()
+        #expect(later.processECGGroupsForTesting([unusable] + groups, timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        nonisolated(unsafe) let laterReader = later
+        let laterCompletion = Task.detached { laterReader.completeFetchForTesting() }
+        let batch = try #require(try await later.next(isolation: nil))
+        await laterCompletion.value
+        #expect(batch.samples == (try SensorKitECGSession.process(groups)))
+        try await batch.acknowledge()
         #expect(try anchor.value.timestamp > start)
         #expect(try anchor.value.pendingBatch == nil)
     }
