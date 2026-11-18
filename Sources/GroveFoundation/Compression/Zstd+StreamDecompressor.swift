@@ -113,12 +113,16 @@ extension Zstd {
         }
 
         /// Refuses anything but a Zstandard frame, including a skippable frame that would decode to an empty output.
+        ///
+        /// Each byte of the magic number is checked as it arrives, before the codec sees it, so a foreign input fails
+        /// with ``StreamError/invalidFrame`` however it is split into chunks.
         private mutating func readMagic(_ bytes: Data) throws(StreamError) {
             for byte in bytes.prefix(MemoryLayout<UInt32>.size - magicByteCount) {
                 magic |= UInt32(byte) << (magicByteCount * 8)
                 magicByteCount += 1
             }
-            if magicByteCount == MemoryLayout<UInt32>.size, magic != ZSTD_MAGICNUMBER {
+            let mask = magicByteCount == MemoryLayout<UInt32>.size ? UInt32.max : (UInt32(1) << (magicByteCount * 8)) - 1
+            if magic != ZSTD_MAGICNUMBER & mask {
                 throw .invalidFrame
             }
         }
