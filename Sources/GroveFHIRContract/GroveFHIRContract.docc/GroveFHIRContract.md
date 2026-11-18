@@ -171,6 +171,12 @@ Use ``RecordingCSVReader/Stream`` to read the same grammar in chunks without ret
 
 These operations are synchronous disk operations and belong on a background executor.
 
+## Inspect collection contracts
+
+``FHIRMeasurementCatalog`` exposes the pinned guide's measurement and HealthKit inventory facts on Apple platforms and Linux. Use ``FHIRMeasurementCatalog/measurement(id:)`` to inspect a measurement's temporal shape, canonical quantity unit and components. ``FHIRMeasurementCatalog/healthKitSource(identifier:)`` keeps every declared measurement identifier and profile alternative of a row; a workout row names both its session and its segments. Apple callers pass a `HealthKitSourceType`'s `rawValue` instead of building another table of source names.
+
+Guide admission establishes neither converter availability nor participant permission nor receiver capability: a supported row can still lack an implemented producer, and a missing value shape never admits arbitrary content. Adapters choose their own source semantics for a `dateTimeOrPeriod` contract, and receivers still validate the complete graph against its profiles. The descriptors read the generated contracts; they perform no conversion or unit arithmetic.
+
 ## Topics
 
 ### Identities
@@ -222,3 +228,9 @@ These operations are synchronous disk operations and belong on a background exec
 - ``RecordingCSVReader``
 - ``RecordingFile``
 - ``RecordingCSVFileWriter``
+
+### Collection contracts
+
+- ``FHIRMeasurementCatalog``
+- ``FHIRMeasurementDefinition``
+- ``HealthKitSourceDefinition``
