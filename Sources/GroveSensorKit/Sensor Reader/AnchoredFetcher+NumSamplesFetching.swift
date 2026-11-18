@@ -501,7 +501,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
                  sample: unsafeDowncast($1, to: Sample.SafeRepresentationProcessingInput.self))
             }
             return try PreparedCallback(
-                samples: processSamples(newSamples), sourceDevice: fetchResult.sourceDevice, containsNativeSamples: !newSamples.isEmpty
+                samples: processSamples(newSamples, at: timestamp), sourceDevice: fetchResult.sourceDevice, containsNativeSamples: !newSamples.isEmpty
             )
         }
     }
@@ -579,8 +579,10 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         case .fetching:
             let finished = ecgAssembly.finish()
             samples += finished.sessions as? [Sample.SafeRepresentation] ?? []
-            if finished.skippedSessionCount > 0 {
-                logger.notice("Skipped \(finished.skippedSessionCount, privacy: .public) unusable ECG sessions at the end of the fetch")
+            logSkippedECGSessions(finished.skippedSessionCount)
+            if let heldFrom = finished.heldFrom {
+                // The next fetch must read the held session whole, so the delivered boundary stays before it.
+                lastSeenTimestamp = lastSeenTimestamp.map { min($0, SRAbsoluteTime(rawValue: heldFrom.nextDown)) }
             }
             state = .flushing
             lock.unlock()
@@ -603,16 +605,13 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
 extension FetchDelegate {
     fileprivate func processECGGroups(_ groups: [SensorKitECGSession.InputGroup], timestamp: SRAbsoluteTime) -> Bool {
         processPrepared(timestamp: timestamp) {
-            let completed = try lock.withLock { try ecgAssembly.append(groups) }
-            guard Sample.self == SRElectrocardiogramSample.self, let samples = completed as? [Sample.SafeRepresentation] else {
-                throw SensorKitECGSession.ProcessingError.inconsistentSession
-            }
-            return PreparedCallback(samples: samples, sourceDevice: nil, containsNativeSamples: !groups.isEmpty)
+            PreparedCallback(samples: try assemble(groups, at: timestamp), sourceDevice: nil, containsNativeSamples: !groups.isEmpty)
         }
     }
 
     fileprivate func processSamples(
-        _ samples: [(timestamp: Date, sample: Sample.SafeRepresentationProcessingInput)]
+        _ samples: [(timestamp: Date, sample: Sample.SafeRepresentationProcessingInput)],
+        at timestamp: SRAbsoluteTime
     ) throws -> [Sample.SafeRepresentation] {
         guard Sample.self == SRElectrocardiogramSample.self else {
             return try Sample.processIntoSafeRepresentation(samples)
@@ -620,11 +619,21 @@ extension FetchDelegate {
         guard let native = samples as? [(timestamp: Date, sample: SRElectrocardiogramSample)] else {
             throw SensorKitECGSession.ProcessingError.inconsistentSession
         }
-        let groups = SRElectrocardiogramSample.inputGroups(native)
-        let completed = try lock.withLock { try ecgAssembly.append(groups) }
-        guard let result = completed as? [Sample.SafeRepresentation] else {
+        return try assemble(SRElectrocardiogramSample.inputGroups(native), at: timestamp)
+    }
+
+    private func assemble(_ groups: [SensorKitECGSession.InputGroup], at timestamp: SRAbsoluteTime) throws -> [Sample.SafeRepresentation] {
+        let output = try lock.withLock { try ecgAssembly.append(groups, at: timestamp.rawValue) }
+        logSkippedECGSessions(output.skippedSessionCount)
+        guard let result = output.sessions as? [Sample.SafeRepresentation] else {
             throw SensorKitECGSession.ProcessingError.inconsistentSession
         }
         return result
+    }
+
+    private func logSkippedECGSessions(_ count: Int) {
+        if count > 0 {
+            logger.notice("Skipped \(count, privacy: .public) unusable ECG sessions")
+        }
     }
 }

@@ -57,52 +57,85 @@ struct ECGAnchoredAssemblyTests {
 
     @Test
     @available(iOS 18, *)
-    func fetchEndSkipsASessionWithoutVoltageSamplesWithoutFailing() async throws {
+    func sessionSplitAcrossTwoFetchesIsDeliveredOnceAndComplete() async throws {
         let start = Date.now.addingTimeInterval(-120)
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let groups = ECGProcessingTests.groups()
-        let unusable = SensorKitECGSession.InputGroup(identifier: "other-session", state: .begin, guidance: .guided, readings: groups[0].readings)
+        let early = Self.groups(identifier: "early-session")
+        let heldStart = SRAbsoluteTime(start.addingTimeInterval(11))
+        // The first fetch ends inside the session: the earlier session is delivered and the boundary stays before the held one.
+        let first = Self.fetcher(anchor: anchor, batchSize: 10)
+        try first.startNativeFetchForTesting()
+        #expect(first.processECGGroupsForTesting(early, timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        #expect(first.processECGGroupsForTesting([groups[0]], timestamp: heldStart))
+        #expect(first.processECGGroupsForTesting([groups[1]], timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        let firstBatch = try #require(try await Self.completeAndFetch(first))
+        #expect(firstBatch.samples == (try SensorKitECGSession.process(early)))
+        try await firstBatch.acknowledge()
+        let boundary = try #require(anchor.value.nativeTimestamp)
+        #expect(boundary < heldStart.rawValue)
+        #expect(boundary >= SRAbsoluteTime(start.addingTimeInterval(10)).rawValue)
+        // The next fetch reads the held session whole, now with its end state.
+        let second = Self.fetcher(anchor: anchor, batchSize: 10)
+        try second.startNativeFetchForTesting()
+        #expect(second.processECGGroupsForTesting([groups[0]], timestamp: heldStart))
+        #expect(second.processECGGroupsForTesting([groups[1]], timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        #expect(second.processECGGroupsForTesting([groups[2]], timestamp: SRAbsoluteTime(start.addingTimeInterval(13))))
+        let secondBatch = try #require(try await Self.completeAndFetch(second))
+        #expect(secondBatch.samples == (try SensorKitECGSession.process(groups)))
+        #expect(secondBatch.samples.map(\.sessionStates) == [[.begin, .active, .end]])
+        try await secondBatch.acknowledge()
+        #expect(try #require(anchor.value.nativeTimestamp) >= SRAbsoluteTime(start.addingTimeInterval(13)).rawValue)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func onlyUnfinishedSessionLeavesTheCursorWithoutFailing() async throws {
+        let start = Date.now.addingTimeInterval(-120)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let fetcher = Self.fetcher(anchor: anchor)
         try fetcher.startNativeFetchForTesting()
-        #expect(fetcher.processECGGroupsForTesting([unusable], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
-        nonisolated(unsafe) let reader = fetcher
-        let completion = Task.detached { reader.completeFetchForTesting() }
-        #expect(try await fetcher.next(isolation: nil) == nil)
-        await completion.value
+        #expect(fetcher.processECGGroupsForTesting([ECGProcessingTests.groups()[0]], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        #expect(try await Self.completeAndFetch(fetcher) == nil)
         #expect(try anchor.value.timestamp == start)
-        #expect(try anchor.value.pendingBatch == nil)
-        // A later fetch reads the unusable session again, skips it, and its batch moves the cursor past both sessions.
-        let later = Self.fetcher(anchor: anchor)
-        try later.startNativeFetchForTesting()
-        #expect(later.processECGGroupsForTesting([unusable] + groups, timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
-        nonisolated(unsafe) let laterReader = later
-        let laterCompletion = Task.detached { laterReader.completeFetchForTesting() }
-        let batch = try #require(try await later.next(isolation: nil))
-        await laterCompletion.value
-        #expect(batch.samples == (try SensorKitECGSession.process(groups)))
-        try await batch.acknowledge()
-        #expect(try anchor.value.timestamp > start)
         #expect(try anchor.value.pendingBatch == nil)
     }
 
     @Test
     @available(iOS 18, *)
-    func fetchEndDeliversASessionWithoutItsEndState() async throws {
+    func abandonedSessionWithoutVoltageIsSkippedOnceLaterDataFollows() async throws {
         let start = Date.now.addingTimeInterval(-120)
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
-        let groups = Array(ECGProcessingTests.groups().prefix(2))
-        let fetcher = Self.fetcher(anchor: anchor)
+        let abandoned = SensorKitECGSession.InputGroup(identifier: "abandoned-session", state: .begin, guidance: .guided, readings: [])
+        let groups = ECGProcessingTests.groups()
+        let fetcher = Self.fetcher(anchor: anchor, batchSize: 10)
         try fetcher.startNativeFetchForTesting()
-        #expect(fetcher.processECGGroupsForTesting(groups, timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
-        nonisolated(unsafe) let reader = fetcher
-        let completion = Task.detached { reader.completeFetchForTesting() }
-        let batch = try #require(try await fetcher.next(isolation: nil))
-        await completion.value
-        #expect(batch.samples == SensorKitECGSession.processLeniently(groups))
-        #expect(batch.samples.map(\.sessionStates) == [[.begin, .active]])
+        #expect(fetcher.processECGGroupsForTesting([abandoned], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        #expect(fetcher.processECGGroupsForTesting(groups, timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        let batch = try #require(try await Self.completeAndFetch(fetcher))
+        #expect(batch.samples == (try SensorKitECGSession.process(groups)))
         try await batch.acknowledge()
-        #expect(try anchor.value.timestamp > start)
+        #expect(try #require(anchor.value.nativeTimestamp) >= SRAbsoluteTime(start.addingTimeInterval(12)).rawValue)
         #expect(try anchor.value.pendingBatch == nil)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func abandonedSessionWithoutItsEndIsDeliveredOnceLaterDataFollows() async throws {
+        let start = Date.now.addingTimeInterval(-120)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let withoutEnd = Array(ECGProcessingTests.groups().prefix(2))
+        let later = Self.groups(identifier: "later-session", offset: 60)
+        let fetcher = Self.fetcher(anchor: anchor, batchSize: 10)
+        try fetcher.startNativeFetchForTesting()
+        #expect(fetcher.processECGGroupsForTesting(withoutEnd, timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        #expect(fetcher.processECGGroupsForTesting(later, timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        let batch = try #require(try await Self.completeAndFetch(fetcher))
+        // The later session completes during the fetch; the abandoned one is finished when the fetch completes.
+        #expect(batch.samples == ((try SensorKitECGSession.process(later)) + SensorKitECGSession.processLeniently(withoutEnd)))
+        #expect(batch.samples.map(\.sessionStates) == [[.begin, .active, .end], [.begin, .active]])
+        try await batch.acknowledge()
+        #expect(try #require(anchor.value.nativeTimestamp) >= SRAbsoluteTime(start.addingTimeInterval(12)).rawValue)
     }
 
     @Test
@@ -124,9 +157,34 @@ struct ECGAnchoredAssemblyTests {
 extension ECGAnchoredAssemblyTests {
     @available(iOS 18, *)
     private static func fetcher(
-        anchor: ManagedQueryAnchor, limits: SensorKitECGProcessingLimits = .init()
+        anchor: ManagedQueryAnchor, batchSize: Int = 1, limits: SensorKitECGProcessingLimits = .init()
     ) -> AnchoredFetcher<SRElectrocardiogramSample>.SampleCountBasedFetcher {
-        .init(sensor: .ecg, batchSize: 1, anchor: anchor, device: .current, ecgProcessingLimits: limits, startFetch: { _, _ in })
+        .init(sensor: .ecg, batchSize: batchSize, anchor: anchor, device: .current, ecgProcessingLimits: limits, startFetch: { _, _ in })
+    }
+
+    /// Completes the native fetch on another task, as SensorKit does, and returns the batch it flushes.
+    @available(iOS 18, *)
+    private static func completeAndFetch(
+        _ fetcher: AnchoredFetcher<SRElectrocardiogramSample>.SampleCountBasedFetcher
+    ) async throws -> SensorKit.AnchoredBatch<SensorKitECGSession>? {
+        nonisolated(unsafe) let reader = fetcher
+        let completion = Task.detached { reader.completeFetchForTesting() }
+        let batch = try await fetcher.next(isolation: nil)
+        await completion.value
+        return batch
+    }
+
+    /// The groups of one complete session with another identifier, `offset` seconds after the shared fixture.
+    @available(iOS 17.4, *)
+    private static func groups(identifier: String, offset: TimeInterval = -60) -> [SensorKitECGSession.InputGroup] {
+        ECGProcessingTests.groups().map { group in
+            SensorKitECGSession.InputGroup(
+                identifier: identifier,
+                state: group.state,
+                guidance: group.guidance,
+                readings: group.readings.map { .init(date: $0.date.addingTimeInterval(offset), frequency: $0.frequency, lead: $0.lead, samples: $0.samples) }
+            )
+        }
     }
 }
 #endif
