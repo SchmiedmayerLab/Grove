@@ -105,6 +105,26 @@ struct ExchangeBundlePackerTests {
         #expect(try packer.insert(record) == .duplicate)
     }
 
+    @Test("The Bundle byte count equals the packed Bundle's size, with shared nodes and an escaped transport id")
+    func bundleByteCount() throws {
+        let assembler = try Fixtures.assembler(studies: [Fixtures.enrollment()])
+        var device = RecordingDevice()
+        device.name = "Strap"
+        let transport = try BusinessIdentifier(system: IdentifierSystem("https://study.example.org/upload"), value: "upload-\"\\é")
+        var packer = ExchangeBundlePacker(kind: .active)
+        for index in 1...3 {
+            let record = try Fixtures.record(nativeRecordID: "record-\(index)", recordingDevice: device, assembler: assembler)
+            #expect(try packer.insert(record) == .inserted)
+            for identifier in [nil, transport] {
+                let size = try packer.bundleByteCount(packedAt: Fixtures.instant, transportIdentifier: identifier)
+                #expect(try size == packer.bundle(packedAt: Fixtures.instant, transportIdentifier: identifier).json.count)
+            }
+            let beforeDuplicate = try packer.bundleByteCount(packedAt: Fixtures.instant)
+            #expect(try packer.insert(record) == .duplicate)
+            #expect(try packer.bundleByteCount(packedAt: Fixtures.instant) == beforeDuplicate)
+        }
+    }
+
     @Test("The same version stating an entry the Bundle doesn't hold goes into the next Bundle")
     func sameVersionWithANewEntryIsDeferred() throws {
         // A changed enrollment is a new ResearchSubject, which stays outside the record version.
