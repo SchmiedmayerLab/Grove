@@ -25,18 +25,18 @@ extension SensorKitNativeRecording.Payload {
         }
     }
 
+    var sidecarPath: String? {
+        switch self {
+        case .inline: nil
+        case .sidecar(let path, _), .file(let path, _): path
+        }
+    }
+
     /// Checks the payload against `format`'s grammar, reading a file payload incrementally where the format allows it.
     func validate(as format: RegisteredRecordingFormat) throws {
         switch self {
         case .inline(let bytes), .sidecar(_, let bytes): try format.validatePayload(bytes)
         case .file(_, let file): try format.validatePayload(file)
-        }
-    }
-
-    var sidecarPath: String? {
-        switch self {
-        case .inline: nil
-        case .sidecar(let path, _), .file(let path, _): path
         }
     }
 }
