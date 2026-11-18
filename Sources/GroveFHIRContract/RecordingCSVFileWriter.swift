@@ -16,8 +16,10 @@ import Foundation
 /// computes the attachment checksum while writing. The disk operations are synchronous and belong on a background
 /// executor.
 ///
-/// Any error or cancellation closes the writer, so a failed recording can't be finished as a successful prefix. The
-/// resulting file is a temporary snapshot; copy its chunks into durable storage before relying on them.
+/// Unlike ``RecordingCSVWriter``, which refuses an invalid row and stays usable, this writer closes on any error,
+/// including a refused row, a file error or cancellation, so a failed recording can't be finished as a successful
+/// prefix. Later calls throw ``RecordingCSVWriter/WriterError/closed``. The resulting file is a temporary snapshot;
+/// copy its chunks into durable storage before relying on them.
 public struct RecordingCSVFileWriter: ~Copyable {
     private let schema: [RecordingCSVColumn]
     private let limits: RecordingCSVReader.Limits
