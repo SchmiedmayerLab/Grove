@@ -81,13 +81,19 @@ public struct SensorKitBatchSnapshot: Hashable, Sendable {
         guard maximumByteCount > 0, !data.isEmpty, data.count <= maximumByteCount else {
             throw .capacityExceeded
         }
+        // The version decides the shape, so it is read first: another version need not decode as this one.
+        struct Version: Decodable {
+            let version: Int
+        }
         let value: Representation
         do {
+            guard try JSONDecoder().decode(Version.self, from: data).version == 1 else { throw SnapshotError.unsupportedVersion }
             value = try JSONDecoder().decode(Representation.self, from: data)
+        } catch SnapshotError.unsupportedVersion {
+            throw .unsupportedVersion
         } catch {
             throw .invalidFacts
         }
-        guard value.version == 1 else { throw .unsupportedVersion }
         try value.validateStringBounds()
         guard let zone = TimeZone(identifier: value.timeZone) else { throw .invalidFacts }
         let application: ApplicationDevice
@@ -110,12 +116,20 @@ public struct SensorKitBatchSnapshot: Hashable, Sendable {
     }
 
     /// Encodes the exact retained facts, without any device lookup or current-time fallback.
-    public func encoded(maximumByteCount: Int) throws -> Data {
-        guard maximumByteCount > 0 else { throw SnapshotError.capacityExceeded }
+    ///
+    /// - Throws: ``SnapshotError/capacityExceeded`` when the encoding exceeds `maximumByteCount`, and
+    ///   ``SnapshotError/invalidFacts`` if the facts can't be encoded.
+    public func encoded(maximumByteCount: Int) throws(SnapshotError) -> Data {
+        guard maximumByteCount > 0 else { throw .capacityExceeded }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        let data = try encoder.encode(representation)
-        guard data.count <= maximumByteCount else { throw SnapshotError.capacityExceeded }
+        let data: Data
+        do {
+            data = try encoder.encode(representation)
+        } catch {
+            throw .invalidFacts
+        }
+        guard data.count <= maximumByteCount else { throw .capacityExceeded }
         return data
     }
 }

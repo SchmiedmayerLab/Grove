@@ -60,7 +60,10 @@ struct SensorKitBatchSnapshotTests {
         let bytes = try snapshot().encoded(maximumByteCount: 16_384)
         var object = try #require(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
         switch field {
-        case "version": object[field] = 2
+        case "version":
+            // Another version needn't have this version's shape.
+            object[field] = 2
+            object.removeValue(forKey: "host")
         case "timeZone": object[field] = "Invalid/TimeZone"
         case "instant": object[field] = "not a date"
         case "malformed": object.removeValue(forKey: "host")

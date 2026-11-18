@@ -8,26 +8,27 @@
 
 public import Foundation
 import GroveFoundation
+import OSLog
 public import SensorKit
 
 
 /// An ECG Session recorded by SensorKit.
 @available(iOS 17.4, *)
 public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
-    /// Why fetched ECG samples could not be assembled into sessions.
+    /// Why an ECG session could not be assembled.
     ///
-    /// None of these failures advances the acquisition cursor, so the batch remains available for a retry.
+    /// Only ``assemblyCapacityExceeded`` reaches a caller: it fails an anchored, sample-count ECG fetch without
+    /// advancing its cursor. The other cases name why a session is skipped: a time-range fetch skips such a session, and
+    /// an anchored fetch skips it and counts it in its log, so one unusable session never blocks the sessions after it.
     public enum ProcessingError: Error, Equatable, Sendable {
-        /// A session lacks its begin, active or end state, or its voltage samples.
-        ///
-        /// Only sessions assembled across the callbacks of an anchored, sample-count fetch are refused for this;
-        /// time-range fetches skip such a session instead.
+        /// A session lacks its begin or active state, or its voltage samples (or, where one is required, its end state).
         case incompleteSession
         /// A session states one state more than once, mixes frequencies, leads or guidance, or has no identifier.
         case inconsistentSession
         /// A session's start, frequency or sample dates are not finite, or two samples share a date.
         case invalidTiming
-        /// The sessions exceed the ``SensorKitECGProcessingLimits``.
+        /// The sessions of one unacknowledged batch exceed the ``SensorKitECGProcessingLimits``. Retry the fetch with
+        /// larger limits; the cursor stays where it was.
         case assemblyCapacityExceeded
     }
 
@@ -130,8 +131,16 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
     public static func processIntoSafeRepresentation(
         _ samples: some Sequence<(timestamp: Date, sample: SRElectrocardiogramSample)>
     ) throws -> [SensorKitECGSession] {
-        // A time-range fetch skips sessions without their begin state or voltage samples, and keeps one without its end state.
-        SensorKitECGSession.processLeniently(inputGroups(samples))
+        // A time-range fetch keeps a session without its end state and skips one without its begin state or voltage
+        // samples, or with inconsistent facts; the anchored assembly logs its skips the same way.
+        let groups = inputGroups(samples)
+        let sessions = SensorKitECGSession.processLeniently(groups)
+        let skipped = Set(groups.map(\.identifier)).count - sessions.count
+        if skipped > 0 {
+            Logger(subsystem: "org.grovealliance.sensorKit", category: "SensorKitECGSession")
+                .notice("Skipped \(skipped, privacy: .public) unusable ECG sessions")
+        }
+        return sessions
     }
 
     static func inputGroups(
@@ -152,12 +161,5 @@ extension SRElectrocardiogramSample: SensorKitSampleProtocol {
                 }
             )
         }
-    }
-}
-
-
-extension Sequence {
-    func min<T: Comparable>(of keyPath: KeyPath<Element, T>) -> T? {
-        self.min { $0[keyPath: keyPath] < $1[keyPath: keyPath] }?[keyPath: keyPath]
     }
 }
