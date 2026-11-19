@@ -195,13 +195,13 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         return deliveredAnchor
     }
 
-    func advancedPastEmptyRange(to timestamp: Date, nativeTimestamp: Double? = nil) -> Self {
+    /// Moves a time-range cursor past a range without samples. A sample-count cursor moves only with a batch.
+    func advancedPastEmptyRange(to timestamp: Date) -> Self {
         Self(
             timestamp: timestamp,
             resetGeneration: resetGeneration,
             batchSequence: batchSequence,
             streamPartition: nextStreamPartition,
-            nativeTimestampBits: nativeTimestamp?.bitPattern,
             nativeClock: nativeClock
         )
     }

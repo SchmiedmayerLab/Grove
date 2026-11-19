@@ -20,6 +20,7 @@ extension AnchoredFetcher {
     final class SampleCountBasedFetcher: AsyncIteratorProtocol {
         private let anchor: ManagedQueryAnchor
         private let sensorIdentifier: String
+        private let quarantineDuration: TimeInterval
         private let initialStartDate: Date?
         private let reader: SRSensorReader
         private let delegate: FetchDelegate<Sample> // swiftlint:disable:this weak_delegate
@@ -43,6 +44,7 @@ extension AnchoredFetcher {
             self.anchor = anchor
             self.initialStartDate = initialStartDate
             self.sensorIdentifier = sensor.id
+            self.quarantineDuration = sensor.dataQuarantineDuration.timeInterval
             self.device = device
             self.startFetch = startFetch
             self.reader = SRSensorReader(sensor)
@@ -69,7 +71,12 @@ extension AnchoredFetcher {
             let delivery = try await delegate.nextBatch(isolation: actor)
             let fetchCursor = try validatedFetchCursor()
             guard let rawElement = delivery.element else {
-                return try finishEmptyDelivery(anchor: delivery.anchor, fetchCursor: fetchCursor)
+                // A fetch that delivers nothing states no boundary, so the cursor stays. A persisted pending batch
+                // must be delivered again, so an empty fetch does not resolve it.
+                guard fetchCursor.pendingBatch == nil else {
+                    throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
+                }
+                return nil
             }
             return try prepareAnchoredBatch(
                 rawElement,
@@ -87,22 +94,6 @@ extension AnchoredFetcher {
             }
             fetchCursor = outstandingAcknowledgement
             self.outstandingAcknowledgement = nil
-        }
-
-        private func finishEmptyDelivery(anchor deliveredAnchor: QueryAnchor?, fetchCursor: QueryAnchor) throws -> Element? {
-            guard fetchCursor.pendingBatch == nil else {
-                throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
-            }
-            if let deliveredAnchor {
-                let desiredAnchor = fetchCursor.advancedPastEmptyRange(
-                    to: deliveredAnchor.timestamp, nativeTimestamp: deliveredAnchor.nativeTimestamp
-                )
-                guard try anchor.update(from: fetchCursor, to: desiredAnchor) else {
-                    throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
-                }
-                self.fetchCursor = desiredAnchor
-            }
-            return nil
         }
 
         private func prepareAnchoredBatch(
@@ -123,11 +114,16 @@ extension AnchoredFetcher {
                 pendingAnchor = fetchCursor
             } else {
                 pendingAnchor = fetchCursor.preparing(pendingBatch)
-                guard try anchor.update(from: fetchCursor, to: pendingAnchor) else {
-                    throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
-                }
             }
+            // Everything that can fail is derived before the pending batch is persisted, so a failure never leaves a
+            // pending batch that no later fetch can deliver.
+            let replayToken = try SensorKit.BatchReplayToken(
+                sensorIdentifier: sensorIdentifier, deviceProductType: device.productType, anchor: pendingAnchor
+            )
             let desiredAnchor = try pendingAnchor.committingPendingBatch()
+            guard try anchor.update(from: fetchCursor, to: pendingAnchor) else {
+                throw SensorKit.QueryAnchorAcknowledgementError.staleCursor
+            }
             let anchor = self.anchor
             let acknowledgement = SensorKit.QueryAnchorAcknowledgement {
                 guard try anchor.update(from: pendingAnchor, to: desiredAnchor) else {
@@ -142,9 +138,7 @@ extension AnchoredFetcher {
                     sourceDevices: rawElement.sourceDevices,
                     sourceDevicesSuppliedEverySample: rawElement.sourceDevicesSuppliedEverySample,
                     acquisitionBatch: pendingAnchor.acquisitionBatchCoordinate,
-                    replayToken: try SensorKit.BatchReplayToken(
-                        sensorIdentifier: sensorIdentifier, deviceProductType: device.productType, anchor: pendingAnchor
-                    )
+                    replayToken: replayToken
                 ),
                 samples: rawElement.samples,
                 acknowledgement: acknowledgement
@@ -156,10 +150,10 @@ extension AnchoredFetcher {
                 return
             }
             var fetchCursor = try anchor.value
+            let reference = SRAbsoluteTime.current()
             if fetchCursor.pendingBatch == nil {
                 let start = fetchCursor.timestamp == .distantPast ? initialStartDate ?? .distantPast : fetchCursor.timestamp
                 let native = fetchCursor.nativeTimestamp ?? SRAbsoluteTime(start).rawValue
-                let reference = SRAbsoluteTime.current()
                 let clock = QueryNativeClock(nativeReferenceBits: reference.rawValue.bitPattern, wallReference: Date(reference))
                 guard native.isFinite, clock.isValid else {
                     throw SensorKit.AnchoredFetchError.invalidNativeClock
@@ -170,7 +164,11 @@ extension AnchoredFetcher {
                 }
                 fetchCursor = retained
             }
-            delegate.configureNativeClock(fetchCursor.nativeClock)
+            // SensorKit returns no data newer than the quarantine cutoff, so a session that ends there may be cut off.
+            delegate.configure(
+                nativeClock: fetchCursor.nativeClock,
+                ecgHoldCutoff: reference.rawValue - quarantineDuration - SensorKitECGAssembly.holdInterval
+            )
             if let pendingBatch = fetchCursor.pendingBatch {
                 guard pendingBatch.mode == .sampleCount,
                       pendingBatch.sampleCount > 0 else {
@@ -182,8 +180,10 @@ extension AnchoredFetcher {
             isFetching = true
             let fetchRequest = SRFetchRequest()
             fetchRequest.device = device
+            // The cursor is the boundary of the last acknowledged batch. The batches assume that SensorKit returns only
+            // results after `from`, in ascending timestamp order.
             fetchRequest.from = fetchCursor.nativeTimestamp.map(SRAbsoluteTime.init(rawValue:)) ?? SRAbsoluteTime(fetchCursor.timestamp)
-            fetchRequest.to = .current()
+            fetchRequest.to = reference
             startFetch(reader, fetchRequest)
         }
 
@@ -202,8 +202,16 @@ extension AnchoredFetcher {
             delegate.process(sample: object, timestamp: timestamp, sourceDevice: sourceDevice)
         }
 
-        func processECGGroupsForTesting(_ groups: [SensorKitECGSession.InputGroup], timestamp: SRAbsoluteTime) -> Bool {
-            delegate.processECGGroups(groups, timestamp: timestamp)
+        func processECGGroupsForTesting(
+            _ groups: [SensorKitECGSession.InputGroup],
+            timestamp: SRAbsoluteTime,
+            sourceDevice: SensorKit.SourceDeviceInfo? = nil
+        ) -> Bool {
+            delegate.processECGGroups(groups, timestamp: timestamp, sourceDevice: sourceDevice)
+        }
+
+        func stopForTesting() {
+            delegate.stop()
         }
 
         func completeFetchForTesting() {
@@ -241,14 +249,74 @@ extension AnchoredFetcher {
     }
 }
 
+/// The peripherals a set of native fetch results named.
+@available(iOS 18, *)
+private struct SourceDevices {
+    /// The named peripherals, in the order SensorKit first named them.
+    private(set) var named: [SensorKit.SourceDeviceInfo] = []
+    /// Whether a result named no peripheral.
+    private(set) var hasUnnamedResult = false
+
+    mutating func add(_ device: SensorKit.SourceDeviceInfo?) {
+        if let device {
+            if !named.contains(device) {
+                named.append(device)
+            }
+        } else {
+            hasUnnamedResult = true
+        }
+    }
+
+    mutating func formUnion(_ other: Self) {
+        other.named.forEach { add($0) }
+        hasUnnamedResult = hasUnnamedResult || other.hasUnnamedResult
+    }
+}
+
+
+/// One native ECG fetch result, kept while a batch can still end before it.
+@available(iOS 18, *)
+private struct ECGResult {
+    let groups: [SensorKitECGSession.InputGroup]
+    let timestamp: SRAbsoluteTime
+    let sourceDevice: SensorKit.SourceDeviceInfo?
+}
+
+
+/// A point at which the current batch can end.
+@available(iOS 18, *)
+private struct BatchEnd {
+    /// How many of the collected samples the batch holds.
+    let sampleCount: Int
+    /// The largest native timestamp received when the last of those samples was added.
+    let boundary: SRAbsoluteTime
+    /// The peripherals of the fetch results received up to the boundary.
+    let sourceDevices: SourceDevices
+}
+
+
+/// Collects the samples of one native fetch into batches.
+///
+/// A batch ends at a batch end: a number of samples and the largest native timestamp received when the last of them
+/// was added, recorded when a fetch from that timestamp would read again everything the batch leaves out. Batch size,
+/// ECG limits and the end of the fetch only decide when the batch is delivered. After a delivery the delegate starts
+/// over as a fetch from the boundary does and processes the retained results after the boundary again, so its state
+/// never depends on where an earlier batch ended. A later fetch that starts at the same cursor with the batch's sample
+/// count as its batch size therefore delivers the same batch, whatever newer data SensorKit returns by then, as long
+/// as SensorKit returns the same results in the same order.
+///
+/// The cursor is a native timestamp: results are expected in ascending timestamp order, and a fetch is expected to
+/// return only results after its start. An ECG result at or before a recorded batch end's boundary withdraws that
+/// batch end, because a fetch from the boundary would not read the result again.
 @available(iOS 18, *)
 private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate, Sendable {
     typealias RawElement = SampleCountRawElement<Sample>
     typealias Delivery = (element: RawElement?, anchor: QueryAnchor?)
-    private struct PreparedCallback {
-        let samples: [Sample.SafeRepresentation]
-        let sourceDevice: SensorKit.SourceDeviceInfo?
-        let containsNativeSamples: Bool
+    private struct Resumption {
+        let continuation: CheckedContinuation<Delivery, any Error>
+        let delivery: Delivery
+        /// The retained results after the delivered batch's boundary, to process again.
+        let resultsToProcess: [ECGResult]
     }
 
     private let logger: Logger
@@ -288,12 +356,24 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     nonisolated(unsafe) private var nativeClock: QueryNativeClock?
     private let ecgProcessingLimits: SensorKitECGProcessingLimits
     nonisolated(unsafe) private var ecgAssembly: SensorKitECGAssembly
-    nonisolated(unsafe) private(set) var samples: [Sample.SafeRepresentation] = []
-    /// The peripherals that supplied `samples`, in the order SensorKit first named them.
-    nonisolated(unsafe) private(set) var sourceDevices: [SensorKit.SourceDeviceInfo] = []
-    /// Whether some of `samples` came from a fetch result that named no peripheral.
-    nonisolated(unsafe) private(set) var hasSamplesWithoutSourceDevice = false
-    nonisolated(unsafe) private(set) var lastSeenTimestamp: SRAbsoluteTime?
+    /// An unfinished ECG session whose latest native timestamp is earlier than this is finished when the fetch
+    /// completes; a later one is held for the next fetch.
+    nonisolated(unsafe) private var ecgHoldCutoff = -Double.infinity
+    /// The samples collected since the last delivered batch.
+    nonisolated(unsafe) private var samples: [Sample.SafeRepresentation] = []
+    /// The largest native timestamp received when `samples` last grew.
+    nonisolated(unsafe) private var boundaryTimestamp: SRAbsoluteTime?
+    /// Where the current batch can end; a delivery takes the samples up to it.
+    nonisolated(unsafe) private var batchEnd: BatchEnd?
+    /// The ECG results received after `batchEnd`'s boundary, or since `samples` first grew without one.
+    nonisolated(unsafe) private var resultsAfterBatchEnd: [ECGResult] = []
+    /// The peripherals of the fetch results received up to the boundary.
+    nonisolated(unsafe) private var sourceDevices = SourceDevices()
+    /// The peripherals of the fetch results received since `samples` last grew. A fetch from the boundary reads those
+    /// results again, so they belong to the next batch.
+    nonisolated(unsafe) private var trailingSourceDevices = SourceDevices()
+    /// The largest native timestamp received in this fetch.
+    nonisolated(unsafe) private var lastSeenTimestamp: SRAbsoluteTime?
     
     private let semaphore = DispatchSemaphore(value: 0)
     nonisolated(unsafe) private var nextBatchContinuation: CheckedContinuation<Delivery, any Error>?
@@ -317,7 +397,12 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         }
     }
 
-    func configureNativeClock(_ clock: QueryNativeClock?) { lock.withLock { nativeClock = clock } }
+    func configure(nativeClock: QueryNativeClock?, ecgHoldCutoff: Double) {
+        lock.withLock {
+            self.nativeClock = nativeClock
+            self.ecgHoldCutoff = ecgHoldCutoff
+        }
+    }
 
     /// Reinstates the exact delivery boundary persisted before a previously yielded batch.
     func configureBatchSize(_ batchSize: Int) {
@@ -369,9 +454,12 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     func stop() {
         lock.lock()
         samples.removeAll()
+        boundaryTimestamp = nil
+        batchEnd = nil
+        resultsAfterBatchEnd.removeAll()
         ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
-        sourceDevices.removeAll()
-        hasSamplesWithoutSourceDevice = false
+        sourceDevices = SourceDevices()
+        trailingSourceDevices = SourceDevices()
         lastSeenTimestamp = nil
         let continuation = nextBatchContinuation
         nextBatchContinuation = nil
@@ -394,15 +482,21 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         continuation?.resume(returning: (nil, nil))
     }
     
-    private func processCurrentSamples() {
+    /// Delivers the current batch to the consumer, waiting for it to ask.
+    ///
+    /// - Returns: The retained results after the batch's boundary, which the caller processes again.
+    @discardableResult
+    private func processCurrentSamples() -> [ECGResult] {
         // IMPORTANT: the semaphore wait must happen OUTSIDE the lock, otherwise we'd deadlock
         // with `stop()`: it acquires the lock and then signals the semaphore, but if we held
         // the lock here it could never acquire it to signal us.
         semaphore.wait() // wait for continuation to be ready
         // IMPORTANT: the resume must also happen OUTSIDE the lock; see `takeNextBatchResumption()`.
-        if let (continuation, value) = takeNextBatchResumption() {
-            continuation.resume(returning: value)
+        guard let resumption = takeNextBatchResumption() else {
+            return []
         }
+        resumption.continuation.resume(returning: resumption.delivery)
+        return resumption.resultsToProcess
     }
 
     /// Performs the locked half of ``processCurrentSamples()``: advances the state machine, takes ownership
@@ -414,7 +508,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     ///     *before* invoking our cancellation handler, which in turn wants `lock`. Resuming while holding
     ///     `lock` therefore deadlocks (ABBA) against a concurrent cancellation of the consuming task.
     /// - returns: the parked continuation and the value to resume it with, or `nil` if no consumer is parked.
-    private func takeNextBatchResumption() -> (CheckedContinuation<Delivery, any Error>, Delivery)? {
+    private func takeNextBatchResumption() -> Resumption? {
         lock.lock()
         defer {
             lock.unlock()
@@ -430,50 +524,55 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
             return nil
         }
         self.nextBatchContinuation = nil
-        let value: RawElement?
-        if let first = samples.first {
-            // samples is not empty
-            // NOTE: most of the time, SensorKit queries return their samples in ascending chronological order,
-            // which, were it guaranteed behaviour, would allow us to simply do `first.timeRange.lowerBound..<last.timeRange.lowerBound`.
-            // but, it is not guaranteed, and sometimes the samples are not ordered, and as a result we need to do this ugly O(n) here...
-            let timeRange = { () -> Range<Date> in
-                // note that we intentionally use the lower bound of the last sample's time range,
-                // in order to make the batch's time range match the fetched time range, as opposed to the represented time range.
-                // (otherwise, using the batch's time ranges to perform follow up fetches could lead to missed samples...)
-                var start = first.timeRange.lowerBound
-                var end = start
-                for sample in samples.dropFirst() {
-                    let sampleDate = sample.timeRange.lowerBound
-                    start = min(start, sampleDate)
-                    end = max(end, sampleDate)
-                }
-                return start..<end
-            }()
-            value = RawElement(
-                timeRange: timeRange,
-                device: deviceInfo,
-                sourceDevices: sourceDevices,
-                sourceDevicesSuppliedEverySample: !sourceDevices.isEmpty && !hasSamplesWithoutSourceDevice,
-                samples: samples
-            )
-        } else {
-            // samples is empty
-            value = nil
+        guard let batchEnd, let first = samples.first else {
+            // No batch can end here, so nothing is delivered and the cursor stays where it is.
             // NOTE: safe to call while holding the (recursive) lock: we have already taken the continuation
             // above, so `stop()`'s own resume is a no-op and cannot resume anything under the lock.
             stop()
+            return Resumption(continuation: nextBatchContinuation, delivery: (nil, nil), resultsToProcess: [])
         }
-        let deliveredAnchor = lastSeenTimestamp.map {
-            QueryAnchor(timestamp: nativeClock?.date(for: $0.rawValue) ?? Date($0), nativeTimestampBits: $0.rawValue.bitPattern)
-        }
-        lastSeenTimestamp = nil
-        ecgAssembly.resetCompletedBoundary()
+        let delivered = Array(samples.prefix(batchEnd.sampleCount))
+        // NOTE: most of the time, SensorKit queries return their samples in ascending chronological order,
+        // which, were it guaranteed behaviour, would allow us to simply do `first.timeRange.lowerBound..<last.timeRange.lowerBound`.
+        // but, it is not guaranteed, and sometimes the samples are not ordered, and as a result we need to do this ugly O(n) here...
+        let timeRange = { () -> Range<Date> in
+            // note that we intentionally use the lower bound of the last sample's time range,
+            // in order to make the batch's time range match the fetched time range, as opposed to the represented time range.
+            // (otherwise, using the batch's time ranges to perform follow up fetches could lead to missed samples...)
+            var start = first.timeRange.lowerBound
+            var end = start
+            for sample in delivered.dropFirst() {
+                let sampleDate = sample.timeRange.lowerBound
+                start = min(start, sampleDate)
+                end = max(end, sampleDate)
+            }
+            return start..<end
+        }()
+        let value = RawElement(
+            timeRange: timeRange,
+            device: deviceInfo,
+            sourceDevices: batchEnd.sourceDevices.named,
+            sourceDevicesSuppliedEverySample: !batchEnd.sourceDevices.named.isEmpty && !batchEnd.sourceDevices.hasUnnamedResult,
+            samples: delivered
+        )
+        let deliveredAnchor = QueryAnchor(
+            timestamp: nativeClock?.date(for: batchEnd.boundary.rawValue) ?? Date(batchEnd.boundary),
+            nativeTimestampBits: batchEnd.boundary.rawValue.bitPattern
+        )
+        // The delegate starts over as a fetch from the boundary does. The caller processes the retained results after
+        // the boundary again, which brings back the samples and unfinished ECG sessions the batch left out.
+        let resultsToProcess = resultsAfterBatchEnd
+        resultsAfterBatchEnd = []
         samples.removeAll(keepingCapacity: true)
-        sourceDevices.removeAll()
-        hasSamplesWithoutSourceDevice = false
-        return (nextBatchContinuation, (value, deliveredAnchor))
+        boundaryTimestamp = nil
+        self.batchEnd = nil
+        sourceDevices = SourceDevices()
+        trailingSourceDevices = SourceDevices()
+        lastSeenTimestamp = batchEnd.boundary
+        ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
+        return Resumption(continuation: nextBatchContinuation, delivery: (value, deliveredAnchor), resultsToProcess: resultsToProcess)
     }
-    
+
     func sensorReader(_ reader: SRSensorReader, fetching fetchRequest: SRFetchRequest, didFetchResult result: SRFetchResult<AnyObject>) -> Bool {
         // Keep the materialized native sample's lifetime scoped to SensorKit's callback queue.
         autoreleasepool {
@@ -493,58 +592,26 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         timestamp: SRAbsoluteTime,
         fetchResult: () throws -> SensorKit.FetchResult<Sample>
     ) -> Bool {
-        processPrepared(timestamp: timestamp) {
+        processResult {
             let fetchResult = try fetchResult()
             let clock = lock.withLock { nativeClock }
             let newSamples = SensorKit.FetchResultsIterator(fetchResult).map {
                 (timestamp: clock?.date(for: timestamp.rawValue) ?? $0,
                  sample: unsafeDowncast($1, to: Sample.SafeRepresentationProcessingInput.self))
             }
-            return try PreparedCallback(
-                samples: processSamples(newSamples, at: timestamp), sourceDevice: fetchResult.sourceDevice, containsNativeSamples: !newSamples.isEmpty
-            )
+            guard Sample.self == SRElectrocardiogramSample.self else {
+                let samples = try Sample.processIntoSafeRepresentation(newSamples)
+                try add(samples, at: timestamp, sourceDevice: fetchResult.sourceDevice, containsNativeSamples: !newSamples.isEmpty)
+                return
+            }
+            guard let native = newSamples as? [(timestamp: Date, sample: SRElectrocardiogramSample)] else {
+                throw SensorKitECGSession.ProcessingError.inconsistentSession
+            }
+            let groups = SRElectrocardiogramSample.inputGroups(native)
+            try process(ECGResult(groups: groups, timestamp: timestamp, sourceDevice: fetchResult.sourceDevice))
         }
     }
 
-    private func processPrepared(timestamp: SRAbsoluteTime, prepare: () throws -> PreparedCallback) -> Bool {
-        guard lock.withLock({ state.isFetching }) else {
-            return false
-        }
-        do {
-            let processed = try prepare()
-            lock.lock()
-            // re-check under the lock: a deinit-triggered `stop()` may have interleaved since the
-            // check above, in which case the batch must be dropped (post-stop, `samples` stays empty).
-            if state.isFetching {
-                self.samples.append(contentsOf: processed.samples)
-                if processed.containsNativeSamples {
-                    if let sourceDevice = processed.sourceDevice {
-                        if !sourceDevices.contains(sourceDevice) {
-                            sourceDevices.append(sourceDevice)
-                        }
-                    } else {
-                        hasSamplesWithoutSourceDevice = true
-                    }
-                }
-                lastSeenTimestamp = lastSeenTimestamp.map { max($0, timestamp) } ?? timestamp
-            }
-            lock.unlock()
-        } catch {
-            logger.error("SensorKit batch processing failed; error type: \(String(reflecting: type(of: error)), privacy: .public)")
-            // Advancing past a malformed native result would make a later acknowledged batch
-            // permanently skip it. Terminate and surface the error while the durable cursor stays.
-            fail(error)
-            return false
-        }
-        let batchIsFull = lock.withLock {
-            samples.count >= batchSize && !ecgAssembly.hasPendingSession
-        }
-        if batchIsFull {
-            processCurrentSamples()
-        }
-        return lock.withLock { state.isFetching }
-    }
-    
     func sensorReader(_ reader: SRSensorReader, fetching fetchRequest: SRFetchRequest, failedWithError error: any Error) {
         fail(error)
     }
@@ -577,13 +644,8 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         lock.lock()
         switch state {
         case .fetching:
-            let finished = ecgAssembly.finish()
-            samples += finished.sessions as? [Sample.SafeRepresentation] ?? []
-            logSkippedECGSessions(finished.skippedSessionCount)
-            if let heldFrom = finished.heldFrom {
-                // The next fetch must read the held session whole, so the delivered boundary stays before it.
-                lastSeenTimestamp = lastSeenTimestamp.map { min($0, SRAbsoluteTime(rawValue: heldFrom.nextDown)) }
-            }
+            finishPendingECGSessions()
+            recordBatchEnd()
             state = .flushing
             lock.unlock()
             processCurrentSamples()
@@ -603,32 +665,186 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
 
 @available(iOS 18, *)
 extension FetchDelegate {
-    fileprivate func processECGGroups(_ groups: [SensorKitECGSession.InputGroup], timestamp: SRAbsoluteTime) -> Bool {
-        processPrepared(timestamp: timestamp) {
-            PreparedCallback(samples: try assemble(groups, at: timestamp), sourceDevice: nil, containsNativeSamples: !groups.isEmpty)
+    fileprivate func processECGGroups(
+        _ groups: [SensorKitECGSession.InputGroup],
+        timestamp: SRAbsoluteTime,
+        sourceDevice: SensorKit.SourceDeviceInfo?
+    ) -> Bool {
+        processResult {
+            try process(ECGResult(groups: groups, timestamp: timestamp, sourceDevice: sourceDevice))
         }
     }
 
-    fileprivate func processSamples(
-        _ samples: [(timestamp: Date, sample: Sample.SafeRepresentationProcessingInput)],
-        at timestamp: SRAbsoluteTime
-    ) throws -> [Sample.SafeRepresentation] {
-        guard Sample.self == SRElectrocardiogramSample.self else {
-            return try Sample.processIntoSafeRepresentation(samples)
+    /// Processes one native result, failing the fetch when `body` throws.
+    ///
+    /// - Returns: Whether the fetch continues.
+    private func processResult(_ body: () throws -> Void) -> Bool {
+        guard lock.withLock({ state.isFetching }) else {
+            return false
         }
-        guard let native = samples as? [(timestamp: Date, sample: SRElectrocardiogramSample)] else {
-            throw SensorKitECGSession.ProcessingError.inconsistentSession
+        do {
+            try body()
+        } catch {
+            logger.error("SensorKit batch processing failed; error type: \(String(reflecting: type(of: error)), privacy: .public)")
+            // Advancing past a malformed native result would make a later acknowledged batch
+            // permanently skip it. Terminate and surface the error while the durable cursor stays.
+            fail(error)
+            return false
         }
-        return try assemble(SRElectrocardiogramSample.inputGroups(native), at: timestamp)
+        return lock.withLock { state.isFetching }
     }
 
-    private func assemble(_ groups: [SensorKitECGSession.InputGroup], at timestamp: SRAbsoluteTime) throws -> [Sample.SafeRepresentation] {
-        let output = try lock.withLock { try ecgAssembly.append(groups, at: timestamp.rawValue) }
+    /// Adds the samples of the result at `timestamp` to the current batch and delivers the batch once it is full.
+    private func add(
+        _ newSamples: [Sample.SafeRepresentation],
+        at timestamp: SRAbsoluteTime,
+        sourceDevice: SensorKit.SourceDeviceInfo?,
+        containsNativeSamples: Bool
+    ) throws {
+        lock.withLock {
+            // re-check under the lock: a deinit-triggered `stop()` may have interleaved since the
+            // caller's check, in which case the batch must be dropped (post-stop, `samples` stays empty).
+            guard state.isFetching else {
+                return
+            }
+            lastSeenTimestamp = lastSeenTimestamp.map { max($0, timestamp) } ?? timestamp
+            if containsNativeSamples {
+                trailingSourceDevices.add(sourceDevice)
+            }
+            append(newSamples)
+            recordBatchEnd()
+        }
+        try deliverBatchIfFull()
+    }
+
+    private func process(_ result: ECGResult) throws {
+        guard lock.withLock({ state.isFetching }) else {
+            return
+        }
+        // The unfinished sessions this result carries no data of end before it: they join the batch at the boundary
+        // before this result, where the batch may also end.
+        let superseded = try lock.withLock {
+            if let batchEnd, result.timestamp <= batchEnd.boundary {
+                self.batchEnd = nil
+            }
+            let output = ecgAssembly.finishPending(supersededBy: result.groups)
+            append(try representations(of: output.sessions))
+            recordBatchEnd(before: result.timestamp)
+            return output
+        }
+        logSkippedECGSessions(superseded.skippedSessionCount)
+        try deliverBatchIfFull()
+        let output: SensorKitECGAssembly.Output
+        do {
+            output = try lock.withLock { try ecgAssembly.append(result.groups, at: result.timestamp.rawValue) }
+        } catch SensorKitECGSession.ProcessingError.assemblyCapacityExceeded {
+            guard try releaseECGCapacity() else {
+                throw SensorKitECGSession.ProcessingError.assemblyCapacityExceeded
+            }
+            // Making room changed what is retained, so the result is processed from its start. Each round delivers
+            // a batch or forgets a session, so this ends.
+            try process(result)
+            return
+        }
         logSkippedECGSessions(output.skippedSessionCount)
-        guard let result = output.sessions as? [Sample.SafeRepresentation] else {
+        lock.withLock { resultsAfterBatchEnd.append(result) }
+        let sessions = try representations(of: output.sessions)
+        try add(sessions, at: result.timestamp, sourceDevice: result.sourceDevice, containsNativeSamples: !result.groups.isEmpty)
+    }
+
+    /// Makes room for a result that exceeds the ECG limits: delivers the current batch, or, with no samples
+    /// collected, forgets the skipped sessions.
+    ///
+    /// - Returns: Whether there was room to make. Without it, the result doesn't fit the limits together with the
+    ///   samples and unfinished sessions that no batch can end before.
+    private func releaseECGCapacity() throws -> Bool {
+        lock.lock()
+        guard !samples.isEmpty else {
+            defer {
+                lock.unlock()
+            }
+            return ecgAssembly.forgetFinishedSessions()
+        }
+        let canDeliver = batchEnd != nil
+        lock.unlock()
+        if canDeliver {
+            try deliverBatch()
+        }
+        return canDeliver
+    }
+
+    /// Finishes the ECG sessions still unfinished when the native fetch completes, unless they are held.
+    ///
+    /// When the latest result of the unfinished sessions is older than the hold cutoff, they can't receive more
+    /// data, so they are finished like sessions that another session followed. Otherwise the end of the fetch may
+    /// have cut them off: they are left for the next fetch, which reads them whole from the batch's boundary.
+    ///
+    /// The caller must hold `lock`.
+    private func finishPendingECGSessions() {
+        guard let pending = ecgAssembly.pendingTimestamps, pending.latest < ecgHoldCutoff else {
+            return
+        }
+        let finished = ecgAssembly.finishPending()
+        append(finished.sessions as? [Sample.SafeRepresentation] ?? [])
+        logSkippedECGSessions(finished.skippedSessionCount)
+    }
+
+    private func representations(of sessions: [SensorKitECGSession]) throws -> [Sample.SafeRepresentation] {
+        guard let result = sessions as? [Sample.SafeRepresentation] else {
             throw SensorKitECGSession.ProcessingError.inconsistentSession
         }
         return result
+    }
+
+    /// Adds samples to the collected ones, whose boundary becomes the largest native timestamp received so far.
+    ///
+    /// The caller must hold `lock`.
+    private func append(_ newSamples: [Sample.SafeRepresentation]) {
+        guard state.isFetching, !newSamples.isEmpty else {
+            return
+        }
+        samples.append(contentsOf: newSamples)
+        boundaryTimestamp = lastSeenTimestamp
+        sourceDevices.formUnion(trailingSourceDevices)
+        trailingSourceDevices = SourceDevices()
+    }
+
+    /// Records that the current batch can end with the samples collected so far, when a fetch from their boundary
+    /// reads again whatever the batch leaves out: every unfinished ECG session started after the boundary and, for a
+    /// batch that ends before a result is processed, that result is later than the boundary too.
+    ///
+    /// The caller must hold `lock`.
+    private func recordBatchEnd(before result: SRAbsoluteTime? = nil) {
+        guard state.isFetching, !samples.isEmpty, let boundaryTimestamp else {
+            // Without samples no batch can end before the retained results.
+            resultsAfterBatchEnd.removeAll()
+            return
+        }
+        guard samples.count > batchEnd?.sampleCount ?? 0 else {
+            return
+        }
+        if let result, result <= boundaryTimestamp {
+            return
+        }
+        if let pending = ecgAssembly.pendingTimestamps, pending.earliest <= boundaryTimestamp.rawValue {
+            return
+        }
+        batchEnd = BatchEnd(sampleCount: samples.count, boundary: boundaryTimestamp, sourceDevices: sourceDevices)
+        resultsAfterBatchEnd.removeAll { $0.timestamp <= boundaryTimestamp }
+    }
+
+    /// Delivers the current batch once it holds the batch size.
+    private func deliverBatchIfFull() throws {
+        if lock.withLock({ batchEnd?.sampleCount ?? 0 >= batchSize }) {
+            try deliverBatch()
+        }
+    }
+
+    /// Delivers the current batch and processes the retained results after its boundary again.
+    private func deliverBatch() throws {
+        for result in processCurrentSamples() {
+            try process(result)
+        }
     }
 
     private func logSkippedECGSessions(_ count: Int) {
