@@ -55,7 +55,7 @@ public struct ProviderConversionContext: Sendable {
         self.recordingDevice = recordingDevice
     }
 
-    /// The opaque source identity conversion uses, for durable acquisition and retry bookkeeping.
+    /// The opaque source identity conversion uses, for persistent acquisition and retry bookkeeping.
     ///
     /// A recognized token identifies its native key space; it establishes neither conversion support nor consent.
     public func sourceIdentity(

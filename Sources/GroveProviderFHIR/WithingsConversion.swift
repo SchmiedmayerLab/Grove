@@ -99,7 +99,7 @@ enum WithingsConversion {
             }
             return try ObservationComponent(
                 code: CodeableConcept(coding: [Coding(code: component.code.asFHIRStringPrimitive(), system: component.system.asFHIRURIPrimitive())]),
-                value: .quantity(ProviderObservation.quantity(value, contract: quantity))
+                value: .quantity(ProviderObservation.quantity(value, contract: quantity, of: component.id))
             )
         }
         return try ProviderObservation.assemble(

@@ -46,9 +46,10 @@ enum ProviderObservation {
         }
     }
 
-    static func quantity(_ value: Decimal, contract: QuantityContract) throws -> Quantity {
+    /// The quantity of the measurement or component with `identifier`, which a value outside the domain names.
+    static func quantity(_ value: Decimal, contract: QuantityContract, of identifier: String) throws -> Quantity {
         guard !value.isNaN, contract.valueDomain?.contains(value) ?? true else {
-            throw ProviderConversionError.invalidQuantity(contract.code)
+            throw ProviderConversionError.invalidQuantity(identifier)
         }
         return Quantity(
             code: contract.code.asFHIRStringPrimitive(),
@@ -138,7 +139,7 @@ enum ProviderObservation {
     ) throws -> ExchangeOutputDraft {
         guard let quantityContract = contract.quantity else { throw ProviderConversionError.invalidContract(contract.id) }
         var observation = try base(contract, adapter: adapter, effective: effective, method: method, context: context)
-        observation.value = try .quantity(quantity(value, contract: quantityContract))
+        observation.value = try .quantity(quantity(value, contract: quantityContract, of: contract.id))
         return ExchangeOutputDraft(role: contract.id, resource: .observation(observation))
     }
 

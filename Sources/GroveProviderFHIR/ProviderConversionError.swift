@@ -22,7 +22,7 @@ public enum ProviderConversionError: Error, Equatable, Sendable {
     case decimalOverflow
     /// A measure group states this measure type twice.
     case conflictingMeasurement(Int)
-    /// A value is outside the domain of the quantity with this unit code or measurement identifier.
+    /// A value is outside the domain of the measurement or measurement component with this identifier.
     case invalidQuantity(String)
     /// The source doesn't match the temporal shape or method of the measurement with this identifier.
     case invalidContract(String)

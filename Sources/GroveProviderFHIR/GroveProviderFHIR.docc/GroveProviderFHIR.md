@@ -14,13 +14,13 @@ Convert typed provider records into immutable FHIR exchange records.
 
 ## Overview
 
-``ProviderFHIRConverter`` converts typed Withings, Oura and Google Health records with the shared Grove identity, Device and conversion Provenance infrastructure. It accepts source values and timestamps; the application handles provider authorization, acquisition, pagination and durable custody.
+``ProviderFHIRConverter`` converts typed Withings, Oura and Google Health records with the shared Grove identity, Device and conversion Provenance infrastructure. It accepts source values and timestamps; the application handles provider authorization, acquisition, pagination and persistent custody.
 
 ``ProviderCapabilities`` describes conversion support for exact provider source tokens and the semantic profiles each source element can produce. It does not establish consent or qualify a provider connection. Select authorized source elements before conversion, and preserve the source token when recording each output's permissions.
 
 ## Identity and retries
 
-``ProviderConversionContext`` supplies a stable identity scope, participant, application, source time zone and persisted conversion instant. Withings and Google Health records use an account scope; Oura documents use their global document scope. Keep the scope and native record identifier stable across reconnects and retries. Where the API exposes no durable native identifier, as for a Withings summary or a Google Health data point without one, supply a previously persisted import key instead. A new retrieval time must not replace a measurement's source time or an existing conversion instant.
+``ProviderConversionContext`` supplies a stable identity scope, participant, application, source time zone and persisted conversion instant. Withings and Google Health records use an account scope; Oura documents use their global document scope. Keep the scope and native record identifier stable across reconnects and retries. Where the API exposes no stable native identifier, as for a Withings summary or a Google Health data point without one, supply a previously persisted import key instead. A new retrieval time must not replace a measurement's source time or an existing conversion instant.
 
 Stage each returned exchange record's exact bytes before advancing the acquisition checkpoint. A result without a record includes an explicit omission. Missing evidence and unimplemented conversions require resolution; they are not permission to discard a source record or advance past it.
 
