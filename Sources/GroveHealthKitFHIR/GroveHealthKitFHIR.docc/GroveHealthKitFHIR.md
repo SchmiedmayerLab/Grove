@@ -106,6 +106,8 @@ try commitAnchor()
 Exporting a sample again at another instant is a new version of the same source record, so feed the exporter from anchored queries, which deliver each sample once, not from overlapping date windows.
 `export(_:at:receive:)` wraps every sample as ``HealthKitFHIRExporter/Record/sample(_:)``; it suits batches without those three kinds, as an ECG, a heartbeat series or a workout route passed that way is refused for want of its companion data, the ECG with ``HealthKitConversionError/ecgEvidence(_:)`` and the other two with ``HealthKitConversionError/platformExclusiveSourceType(_:)``.
 A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
+A sample your application created but did not save into HealthKit, for example because the user does not let it write the sample's type, names no source until HealthKit saves it.
+Export it as ``HealthKitFHIRExporter/Record/unsavedSample(_:source:)`` from the build that created it: the exporter states the source revision HealthKit would stamp on saving it, so the record states the writer, source revision and gateway role it would for the saved sample.
 
 To upload, add the staged records to an `ExchangeBundlePacker` and send the `json` of the `ExchangeGraph` that `bundle(packedAt:)` returns.
 Records of one Bundle state each shared node once, and packing or repacking them changes no record.

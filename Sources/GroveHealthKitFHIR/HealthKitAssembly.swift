@@ -27,6 +27,9 @@ struct HealthKitAssembly: Sendable {
         /// The application, host and studies the record states.
         let facts: ConversionFacts
         let converterRole: ConverterRole
+        /// The source revision the record states in place of its sample's own, which only an unsaved sample's record
+        /// does (see ``HealthKitFHIRExporter/Record/unsavedSample(_:source:)``); `nil` for every other record.
+        let sourceRevisionOverride: HKSourceRevision?
         /// What the writer and unit-token policies answered for the sample; a retraction states no sample's origin and
         /// resolves nothing.
         let policies: HealthKitFHIRExporter.ResolvedPolicies
@@ -35,11 +38,13 @@ struct HealthKitAssembly: Sendable {
             instant: Date,
             facts: ConversionFacts,
             converterRole: ConverterRole = .assembler,
+            sourceRevisionOverride: HKSourceRevision? = nil,
             policies: HealthKitFHIRExporter.ResolvedPolicies = .unresolved
         ) {
             self.instant = instant
             self.facts = facts
             self.converterRole = converterRole
+            self.sourceRevisionOverride = sourceRevisionOverride
             self.policies = policies
         }
     }
@@ -126,7 +131,14 @@ struct HealthKitAssembly: Sendable {
         guard !outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
-        let facts = try SourceFacts(sample, metadata: metadata, outputs: outputs, policies: request.policies, options: options)
+        let facts = try SourceFacts(
+            sample,
+            metadata: metadata,
+            outputs: outputs,
+            policies: request.policies,
+            options: options,
+            revisionOverride: request.sourceRevisionOverride
+        )
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
         // One record states one entry method: its metadata decides it for every output it yields.

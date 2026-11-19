@@ -28,9 +28,10 @@ extension HealthKitFHIRExporter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.ResolvedPolicies {
-    /// What `options`' writer and unit-token policies answer for `sample`.
-    init(_ sample: HKSample, options: HealthKitFHIRExporter.Options) {
-        let source = sample.sourceRevision.source
+    /// What `options`' writer and unit-token policies answer for `sample`, whose record states `revisionOverride` in
+    /// place of the sample's own revision when one is given.
+    init(_ sample: HKSample, options: HealthKitFHIRExporter.Options, revisionOverride: HKSourceRevision? = nil) {
+        let source = (revisionOverride ?? sample.sourceRevision).source
         self.init(
             writer: options.writer.classification(of: source),
             unitToken: sample.device.flatMap { options.unitToken.token(for: $0, source: source) }

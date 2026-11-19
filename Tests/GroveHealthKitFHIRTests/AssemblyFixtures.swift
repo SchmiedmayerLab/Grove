@@ -24,9 +24,14 @@ enum AssemblyFixtures {
     static func conversions(_ record: HealthKitFHIRExporter.Record, _ inputs: ExportInputs = ExportInputs()) throws -> [HealthKitAssembly.Conversion] {
         let exporter = try ExporterFixtures.exporter(inputs)
         let plan = try #require(HealthKitContentPlan.plan(for: record.sample))
-        let request = Self.request(for: record.sample, exporter: exporter, inputs: inputs)
+        let request = Self.request(
+            for: record.sample,
+            revisionOverride: record.unsavedSampleRevision(producer: exporter.producer.facts),
+            exporter: exporter,
+            inputs: inputs
+        )
         switch record {
-        case .sample(let sample):
+        case .sample(let sample), .unsavedSample(let sample, _):
             return try exporter.assembly.convert(sample, plan: plan, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             var symptomRequests: [UUID: HealthKitAssembly.Request] = [:]
@@ -53,9 +58,20 @@ enum AssemblyFixtures {
         try #require(try conversions(.sample(sample), inputs).first)
     }
 
-    /// The request the exporter states for `sample` under `inputs`.
-    private static func request(for sample: HKSample, exporter: HealthKitFHIRExporter, inputs: ExportInputs) -> HealthKitAssembly.Request {
-        exporter.assemblyRequest(for: sample, policies: HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options), at: inputs.instant)
+    /// The request the exporter states for `sample` under `inputs`, whose record states `revisionOverride` in place of the
+    /// sample's own revision when one is given.
+    private static func request(
+        for sample: HKSample,
+        revisionOverride: HKSourceRevision? = nil,
+        exporter: HealthKitFHIRExporter,
+        inputs: ExportInputs
+    ) -> HealthKitAssembly.Request {
+        exporter.assemblyRequest(
+            for: sample,
+            revisionOverride: revisionOverride,
+            policies: HealthKitFHIRExporter.ResolvedPolicies(sample, options: exporter.options, revisionOverride: revisionOverride),
+            at: inputs.instant
+        )
     }
 }
 

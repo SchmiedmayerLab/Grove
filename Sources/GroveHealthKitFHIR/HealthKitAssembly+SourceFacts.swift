@@ -28,15 +28,17 @@ extension HealthKitAssembly {
         let wasUserEntered: Bool
 
         /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it. `outputs`
-        /// are the record's: only an Observation output takes the sample's device metadata keys.
+        /// are the record's: only an Observation output takes the sample's device metadata keys. The record states
+        /// `revisionOverride` in place of the sample's own revision when one is given.
         init(
             _ sample: HKSample,
             metadata: HealthKitSampleMetadata,
             outputs: [ExchangeOutputDraft],
             policies: HealthKitFHIRExporter.ResolvedPolicies,
-            options: HealthKitFHIRExporter.Options
+            options: HealthKitFHIRExporter.Options,
+            revisionOverride: HKSourceRevision? = nil
         ) throws {
-            let revision = sample.sourceRevision
+            let revision = revisionOverride ?? sample.sourceRevision
             self.recordingDevice = sample.device.map { healthKitDevice in
                 var device = RecordingDevice(healthKitDevice)
                 // A record without an Observation output represents no metadata key (healthkit mapping.md, Withheld metadata).
