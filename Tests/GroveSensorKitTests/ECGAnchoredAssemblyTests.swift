@@ -67,7 +67,7 @@ struct ECGAnchoredAssemblyTests {
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let groups = ECGProcessingTests.groups()
         let early = Self.groups(identifier: "early-session")
-        // The first fetch ends inside the session: the earlier session is delivered and the boundary stays before the held one.
+        // The first fetch ends inside the session: the earlier session is delivered and the batch ends with it.
         let first = Self.fetcher(anchor: anchor, batchSize: 10)
         try first.startNativeFetchForTesting()
         #expect(first.processECGGroupsForTesting(early, timestamp: native10))
@@ -76,9 +76,7 @@ struct ECGAnchoredAssemblyTests {
         let firstBatch = try #require(try await Self.completeAndFetch(first))
         #expect(firstBatch.samples == (try SensorKitECGSession.process(early)))
         try await firstBatch.acknowledge()
-        let boundary = try #require(anchor.value.nativeTimestamp)
-        #expect(boundary < native11.rawValue)
-        #expect(boundary >= native10.rawValue)
+        #expect(try anchor.value.nativeTimestamp == native10.rawValue)
         // The next fetch reads the held session whole, now with its end state.
         let second = Self.fetcher(anchor: anchor, batchSize: 10)
         try second.startNativeFetchForTesting()
@@ -143,9 +141,9 @@ struct ECGAnchoredAssemblyTests {
         #expect(fetcher.processECGGroupsForTesting(withoutEnd, timestamp: native10))
         #expect(fetcher.processECGGroupsForTesting(later, timestamp: native12))
         let batch = try #require(try await Self.completeAndFetch(fetcher))
-        // The later session completes during the fetch; the abandoned one is finished when the fetch completes.
-        #expect(batch.samples == ((try SensorKitECGSession.process(later)) + SensorKitECGSession.processLeniently(withoutEnd)))
-        #expect(batch.samples.map(\.sessionStates) == [[.begin, .active, .end], [.begin, .active]])
+        // The abandoned session ends where the later one starts, so it precedes it in the batch.
+        #expect(batch.samples == (SensorKitECGSession.processLeniently(withoutEnd) + (try SensorKitECGSession.process(later))))
+        #expect(batch.samples.map(\.sessionStates) == [[.begin, .active], [.begin, .active, .end]])
         try await batch.acknowledge()
         #expect(try #require(anchor.value.nativeTimestamp) >= native12.rawValue)
     }
@@ -174,13 +172,12 @@ extension ECGAnchoredAssemblyTests {
         .init(sensor: .ecg, batchSize: batchSize, anchor: anchor, device: .current, ecgProcessingLimits: limits, startFetch: { _, _ in })
     }
 
-    /// Completes the native fetch on another task, as SensorKit does, and returns the batch it flushes.
+    /// Completes the native fetch on another thread, as SensorKit does, and returns the batch it flushes.
     @available(iOS 18, *)
     private static func completeAndFetch(
         _ fetcher: AnchoredFetcher<SRElectrocardiogramSample>.SampleCountBasedFetcher
     ) async throws -> SensorKit.AnchoredBatch<SensorKitECGSession>? {
-        nonisolated(unsafe) let reader = fetcher
-        let completion = Task.detached { reader.completeFetchForTesting() }
+        let completion = ECGBatchBoundaryTests.feed([], to: fetcher)
         let batch = try await fetcher.next(isolation: nil)
         await completion.value
         return batch
