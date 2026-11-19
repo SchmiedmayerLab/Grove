@@ -23,7 +23,8 @@ public struct SensorKitECGProcessingLimits: Hashable, Sendable {
     /// The most sessions of one batch, counting skipped ones, and unfinished sessions after them.
     public let maximumSessions: Int
 
-    /// Limits that admit one million entries and 128 sessions in one unacknowledged batch.
+    /// Limits that admit one million entries and 128 sessions across one batch's sessions and the unfinished sessions
+    /// after them.
     public init() {
         maximumEntries = 1_000_000
         maximumSessions = 128

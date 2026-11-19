@@ -13,7 +13,7 @@ import SensorKit
 import Testing
 
 
-@Suite
+@Suite(.timeLimit(.minutes(1)))
 struct ECGAnchoredAssemblyTests {
     @Test
     @available(iOS 18, *)
@@ -30,8 +30,10 @@ struct ECGAnchoredAssemblyTests {
         #expect(try anchor.value.pendingBatch == nil)
         #expect(SRAbsoluteTime(start.addingTimeInterval(11)) < deliveryTimestamp)
         nonisolated(unsafe) let reader = fetcher
+        // The end state completes the session; the end of the fetch confirms the batch that ends with it.
         let callbacks = Task.detached {
-            reader.processECGGroupsForTesting([groups[2]], timestamp: deliveryTimestamp)
+            _ = reader.processECGGroupsForTesting([groups[2]], timestamp: deliveryTimestamp)
+            reader.completeFetchForTesting()
         }
         let batch = try #require(try await fetcher.next(isolation: nil))
         _ = await callbacks.value
@@ -44,7 +46,8 @@ struct ECGAnchoredAssemblyTests {
         try restarted.startNativeFetchForTesting()
         nonisolated(unsafe) let retryReader = restarted
         let retryCallbacks = Task.detached {
-            retryReader.processECGGroupsForTesting(groups, timestamp: deliveryTimestamp)
+            _ = retryReader.processECGGroupsForTesting(groups, timestamp: deliveryTimestamp)
+            retryReader.completeFetchForTesting()
         }
         let replay = try #require(try await restarted.next(isolation: nil))
         _ = await retryCallbacks.value

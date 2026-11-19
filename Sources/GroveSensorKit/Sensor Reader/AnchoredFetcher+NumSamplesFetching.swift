@@ -69,6 +69,11 @@ extension AnchoredFetcher {
             try acceptOutstandingAcknowledgement()
             try startNativeFetchIfNeeded()
             let delivery = try await delegate.nextBatch(isolation: actor)
+            guard delivery.element != nil || !Task.isCancelled else {
+                // A cancellation stops the fetch before its batch. Like a cancellation between `next()` calls, it ends
+                // the iteration; a persisted pending batch stays for the next fetch.
+                return nil
+            }
             let fetchCursor = try validatedFetchCursor()
             guard let rawElement = delivery.element else {
                 // A fetch that delivers nothing states no boundary, so the cursor stays. A persisted pending batch
@@ -298,16 +303,17 @@ private struct BatchEnd {
 /// Collects the samples of one native fetch into batches.
 ///
 /// A batch ends at a batch end: a number of samples and the largest native timestamp received when the last of them
-/// was added, recorded when a fetch from that timestamp would read again everything the batch leaves out. Batch size,
-/// ECG limits and the end of the fetch only decide when the batch is delivered. After a delivery the delegate starts
-/// over as a fetch from the boundary does and processes the retained results after the boundary again, so its state
-/// never depends on where an earlier batch ended. A later fetch that starts at the same cursor with the batch's sample
-/// count as its batch size therefore delivers the same batch, whatever newer data SensorKit returns by then, as long
-/// as SensorKit returns the same results in the same order.
+/// was added, recorded when a fetch from that timestamp would read again everything the batch leaves out. A batch end
+/// is a candidate until a result with a later timestamp or the end of the fetch confirms it; a result with the same or
+/// an earlier timestamp withdraws it, since a fetch from that timestamp would not read the result again. Only a
+/// confirmed batch end is delivered. Batch size, ECG limits and the end of the fetch only decide when the batch is
+/// delivered. After a delivery the delegate starts over as a fetch from the boundary does and processes the retained
+/// results after the boundary again, so its state never depends on where an earlier batch ended. A later fetch that
+/// starts at the same cursor with the batch's sample count as its batch size therefore delivers the same batch,
+/// whatever newer data SensorKit returns by then, as long as SensorKit returns the same results in the same order.
 ///
 /// The cursor is a native timestamp: results are expected in ascending timestamp order, and a fetch is expected to
-/// return only results after its start. An ECG result at or before a recorded batch end's boundary withdraws that
-/// batch end, because a fetch from the boundary would not read the result again.
+/// return only results after its start.
 @available(iOS 18, *)
 private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SRSensorReaderDelegate, Sendable {
     typealias RawElement = SampleCountRawElement<Sample>
@@ -363,8 +369,10 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     nonisolated(unsafe) private var samples: [Sample.SafeRepresentation] = []
     /// The largest native timestamp received when `samples` last grew.
     nonisolated(unsafe) private var boundaryTimestamp: SRAbsoluteTime?
-    /// Where the current batch can end; a delivery takes the samples up to it.
+    /// Where the current batch can end, confirmed by a later result; a delivery takes the samples up to it.
     nonisolated(unsafe) private var batchEnd: BatchEnd?
+    /// A later batch end at the latest result's timestamp, which a result with a later timestamp confirms.
+    nonisolated(unsafe) private var candidateBatchEnd: BatchEnd?
     /// The ECG results received after `batchEnd`'s boundary, or since `samples` first grew without one.
     nonisolated(unsafe) private var resultsAfterBatchEnd: [ECGResult] = []
     /// The peripherals of the fetch results received up to the boundary.
@@ -456,6 +464,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         samples.removeAll()
         boundaryTimestamp = nil
         batchEnd = nil
+        candidateBatchEnd = nil
         resultsAfterBatchEnd.removeAll()
         ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
         sourceDevices = SourceDevices()
@@ -562,14 +571,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         // The delegate starts over as a fetch from the boundary does. The caller processes the retained results after
         // the boundary again, which brings back the samples and unfinished ECG sessions the batch left out.
         let resultsToProcess = resultsAfterBatchEnd
-        resultsAfterBatchEnd = []
-        samples.removeAll(keepingCapacity: true)
-        boundaryTimestamp = nil
-        self.batchEnd = nil
-        sourceDevices = SourceDevices()
-        trailingSourceDevices = SourceDevices()
-        lastSeenTimestamp = batchEnd.boundary
-        ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
+        startOver(at: batchEnd.boundary)
         return Resumption(continuation: nextBatchContinuation, delivery: (value, deliveredAnchor), resultsToProcess: resultsToProcess)
     }
 
@@ -644,8 +646,18 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         lock.lock()
         switch state {
         case .fetching:
-            finishPendingECGSessions()
+            do {
+                try finishPendingECGSessions()
+            } catch {
+                lock.unlock()
+                fail(error)
+                return
+            }
             recordBatchEnd()
+            // The end of the fetch confirms the last batch end.
+            if let candidateBatchEnd {
+                confirm(candidateBatchEnd)
+            }
             state = .flushing
             lock.unlock()
             processCurrentSamples()
@@ -687,34 +699,87 @@ extension FetchDelegate {
         } catch {
             logger.error("SensorKit batch processing failed; error type: \(String(reflecting: type(of: error)), privacy: .public)")
             // Advancing past a malformed native result would make a later acknowledged batch
-            // permanently skip it. Terminate and surface the error while the durable cursor stays.
+            // permanently skip it. Terminate and surface the error while the persisted cursor stays.
             fail(error)
             return false
         }
         return lock.withLock { state.isFetching }
     }
 
-    /// Adds the samples of the result at `timestamp` to the current batch and delivers the batch once it is full.
+    /// Resets the collected state to that of a fetch that starts at `boundary`.
+    ///
+    /// The caller must hold `lock`.
+    private func startOver(at boundary: SRAbsoluteTime) {
+        resultsAfterBatchEnd = []
+        samples.removeAll(keepingCapacity: true)
+        boundaryTimestamp = nil
+        batchEnd = nil
+        candidateBatchEnd = nil
+        sourceDevices = SourceDevices()
+        trailingSourceDevices = SourceDevices()
+        lastSeenTimestamp = boundary
+        ecgAssembly = SensorKitECGAssembly(limits: ecgProcessingLimits)
+    }
+
+    /// Confirms the candidate batch end when the result at `timestamp` is later than its boundary, and withdraws it
+    /// otherwise, because a fetch from the boundary would not read that result again.
+    ///
+    /// The caller must hold `lock`.
+    private func observe(_ timestamp: SRAbsoluteTime) {
+        guard let candidateBatchEnd else {
+            return
+        }
+        if timestamp > candidateBatchEnd.boundary {
+            confirm(candidateBatchEnd)
+        } else {
+            self.candidateBatchEnd = nil
+        }
+    }
+
+    /// Makes `end` the batch end a delivery takes, and drops the retained ECG results up to its boundary.
+    ///
+    /// The caller must hold `lock`.
+    private func confirm(_ end: BatchEnd) {
+        batchEnd = end
+        candidateBatchEnd = nil
+        resultsAfterBatchEnd.removeAll { $0.timestamp <= end.boundary }
+    }
+
+    /// Adds the samples of the result at `timestamp` to the current batch. A full batch is delivered first when the
+    /// result is later than its boundary, so the results that share the boundary's timestamp belong to the batch.
     private func add(
         _ newSamples: [Sample.SafeRepresentation],
         at timestamp: SRAbsoluteTime,
         sourceDevice: SensorKit.SourceDeviceInfo?,
         containsNativeSamples: Bool
     ) throws {
-        lock.withLock {
-            // re-check under the lock: a deinit-triggered `stop()` may have interleaved since the
-            // caller's check, in which case the batch must be dropped (post-stop, `samples` stays empty).
-            guard state.isFetching else {
-                return
-            }
-            lastSeenTimestamp = lastSeenTimestamp.map { max($0, timestamp) } ?? timestamp
-            if containsNativeSamples {
-                trailingSourceDevices.add(sourceDevice)
-            }
-            append(newSamples)
-            recordBatchEnd()
-        }
+        lock.withLock { observe(timestamp) }
         try deliverBatchIfFull()
+        lock.withLock {
+            collect(newSamples, at: timestamp, sourceDevice: sourceDevice, containsNativeSamples: containsNativeSamples)
+        }
+    }
+
+    /// Adds the samples of the result at `timestamp` and records the candidate batch end after them.
+    ///
+    /// The caller must hold `lock`.
+    private func collect(
+        _ newSamples: [Sample.SafeRepresentation],
+        at timestamp: SRAbsoluteTime,
+        sourceDevice: SensorKit.SourceDeviceInfo?,
+        containsNativeSamples: Bool
+    ) {
+        // re-check under the lock: a deinit-triggered `stop()` may have interleaved since the
+        // caller's check, in which case the batch must be dropped (post-stop, `samples` stays empty).
+        guard state.isFetching else {
+            return
+        }
+        lastSeenTimestamp = lastSeenTimestamp.map { max($0, timestamp) } ?? timestamp
+        if containsNativeSamples {
+            trailingSourceDevices.add(sourceDevice)
+        }
+        append(newSamples)
+        recordBatchEnd()
     }
 
     private func process(_ result: ECGResult) throws {
@@ -724,16 +789,19 @@ extension FetchDelegate {
         // The unfinished sessions this result carries no data of end before it: they join the batch at the boundary
         // before this result, where the batch may also end.
         let superseded = try lock.withLock {
-            if let batchEnd, result.timestamp <= batchEnd.boundary {
-                self.batchEnd = nil
-            }
+            observe(result.timestamp)
             let output = ecgAssembly.finishPending(supersededBy: result.groups)
             append(try representations(of: output.sessions))
             recordBatchEnd(before: result.timestamp)
             return output
         }
         logSkippedECGSessions(superseded.skippedSessionCount)
-        try deliverBatchIfFull()
+        if try deliverBatchIfFull() {
+            // The delivery started over with the retained results, so the result is processed from its start against
+            // them. Each round delivers a batch, so this ends.
+            try process(result)
+            return
+        }
         let output: SensorKitECGAssembly.Output
         do {
             output = try lock.withLock { try ecgAssembly.append(result.groups, at: result.timestamp.rawValue) }
@@ -747,9 +815,13 @@ extension FetchDelegate {
             return
         }
         logSkippedECGSessions(output.skippedSessionCount)
-        lock.withLock { resultsAfterBatchEnd.append(result) }
         let sessions = try representations(of: output.sessions)
-        try add(sessions, at: result.timestamp, sourceDevice: result.sourceDevice, containsNativeSamples: !result.groups.isEmpty)
+        // The batch end after this result stays a candidate until a later result confirms it, so it isn't delivered
+        // here.
+        lock.withLock {
+            resultsAfterBatchEnd.append(result)
+            collect(sessions, at: result.timestamp, sourceDevice: result.sourceDevice, containsNativeSamples: !result.groups.isEmpty)
+        }
     }
 
     /// Makes room for a result that exceeds the ECG limits: delivers the current batch, or, with no samples
@@ -780,12 +852,12 @@ extension FetchDelegate {
     /// have cut them off: they are left for the next fetch, which reads them whole from the batch's boundary.
     ///
     /// The caller must hold `lock`.
-    private func finishPendingECGSessions() {
+    private func finishPendingECGSessions() throws {
         guard let pending = ecgAssembly.pendingTimestamps, pending.latest < ecgHoldCutoff else {
             return
         }
         let finished = ecgAssembly.finishPending()
-        append(finished.sessions as? [Sample.SafeRepresentation] ?? [])
+        append(try representations(of: finished.sessions))
         logSkippedECGSessions(finished.skippedSessionCount)
     }
 
@@ -811,7 +883,8 @@ extension FetchDelegate {
 
     /// Records that the current batch can end with the samples collected so far, when a fetch from their boundary
     /// reads again whatever the batch leaves out: every unfinished ECG session started after the boundary and, for a
-    /// batch that ends before a result is processed, that result is later than the boundary too.
+    /// batch that ends before a result is processed, that result is later than the boundary too. That result confirms
+    /// the batch end; without one it is a candidate.
     ///
     /// The caller must hold `lock`.
     private func recordBatchEnd(before result: SRAbsoluteTime? = nil) {
@@ -829,15 +902,29 @@ extension FetchDelegate {
         if let pending = ecgAssembly.pendingTimestamps, pending.earliest <= boundaryTimestamp.rawValue {
             return
         }
-        batchEnd = BatchEnd(sampleCount: samples.count, boundary: boundaryTimestamp, sourceDevices: sourceDevices)
-        resultsAfterBatchEnd.removeAll { $0.timestamp <= boundaryTimestamp }
+        var devices = sourceDevices
+        if lastSeenTimestamp == boundaryTimestamp {
+            // The results at the boundary's timestamp belong to the batch, also those without a usable sample.
+            devices.formUnion(trailingSourceDevices)
+        }
+        let end = BatchEnd(sampleCount: samples.count, boundary: boundaryTimestamp, sourceDevices: devices)
+        if result != nil {
+            confirm(end)
+        } else {
+            candidateBatchEnd = end
+        }
     }
 
-    /// Delivers the current batch once it holds the batch size.
-    private func deliverBatchIfFull() throws {
-        if lock.withLock({ batchEnd?.sampleCount ?? 0 >= batchSize }) {
-            try deliverBatch()
+    /// Delivers the current batch once its confirmed batch end holds the batch size.
+    ///
+    /// - Returns: Whether it delivered a batch.
+    @discardableResult
+    private func deliverBatchIfFull() throws -> Bool {
+        guard lock.withLock({ batchEnd?.sampleCount ?? 0 >= batchSize }) else {
+            return false
         }
+        try deliverBatch()
+        return true
     }
 
     /// Delivers the current batch and processes the retained results after its boundary again.
