@@ -13,8 +13,10 @@ import SensorKit
 /// Holds only immutable public ECG facts between the native callbacks of one fetch.
 ///
 /// A session is delivered once its begin, active and end states have arrived. A session that has them all but can't be
-/// assembled (inconsistent facts, invalid timing, no voltage samples), and a fragment of a session that already
-/// finished and is not forgotten, is skipped and counted instead of failing the fetch.
+/// assembled (inconsistent facts, invalid timing, no voltage samples), a fragment of a session that already finished
+/// and is not forgotten, and a fragment of a session that is not pending and whose begin state isn't in the
+/// same callback, is skipped and counted instead of failing the fetch. That last fragment can't become a session,
+/// since every session needs its begin state.
 ///
 /// The sessions of one device are expected not to overlap in time, so an unfinished session ends when a callback
 /// carries data of another session and none of its own: ``finishPending(supersededBy:)`` then assembles it as a
@@ -83,7 +85,7 @@ struct SensorKitECGAssembly {
         var skipped: Set<String> = []
         var accepted: [SensorKitECGSession.InputGroup] = []
         for group in groups {
-            if accepts(group) {
+            if accepts(group, in: groups) {
                 accepted.append(group)
             } else {
                 skipped.insert(group.identifier)
@@ -120,7 +122,7 @@ struct SensorKitECGAssembly {
     /// Ends the unfinished sessions that a callback with `groups` carries no data of, when it carries data of another
     /// session. Call it before ``append(_:at:)`` adds that callback.
     mutating func finishPending(supersededBy groups: [SensorKitECGSession.InputGroup]) -> Output {
-        let current = Set(groups.filter { accepts($0) }.map(\.identifier))
+        let current = Set(groups.filter { accepts($0, in: groups) }.map(\.identifier))
         return current.isEmpty ? Output() : finishPending(except: current)
     }
 
@@ -147,7 +149,7 @@ struct SensorKitECGAssembly {
 
     /// Forgets the sessions finished so far, so they no longer count against the session limit.
     ///
-    /// A later fragment of a forgotten session counts as a new unfinished session.
+    /// A later fragment of a forgotten session is skipped unless its callback carries the session's begin state.
     ///
     /// - Returns: Whether there was a finished session to forget.
     mutating func forgetFinishedSessions() -> Bool {
@@ -157,8 +159,12 @@ struct SensorKitECGAssembly {
         return !finished.isEmpty
     }
 
-    private func accepts(_ group: SensorKitECGSession.InputGroup) -> Bool {
-        !finished.contains(group.identifier) && !group.identifier.isEmpty && group.identifier.utf8.count <= 4096
+    /// Whether `group` of a callback with `groups` belongs to an unfinished session or starts one.
+    private func accepts(_ group: SensorKitECGSession.InputGroup, in groups: [SensorKitECGSession.InputGroup]) -> Bool {
+        guard !finished.contains(group.identifier), !group.identifier.isEmpty, group.identifier.utf8.count <= 4096 else {
+            return false
+        }
+        return pending[group.identifier] != nil || groups.contains { $0.identifier == group.identifier && $0.state == .begin }
     }
 }
 
