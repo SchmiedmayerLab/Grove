@@ -59,43 +59,49 @@ struct ECGAnchoredAssemblyTests {
     @available(iOS 18, *)
     func sessionSplitAcrossTwoFetchesIsDeliveredOnceAndComplete() async throws {
         let start = Date.now.addingTimeInterval(-120)
+        // Each conversion reads the current clock, so the native timestamps are converted once and reused.
+        let native10 = SRAbsoluteTime(start.addingTimeInterval(10))
+        let native11 = SRAbsoluteTime(start.addingTimeInterval(11))
+        let native12 = SRAbsoluteTime(start.addingTimeInterval(12))
+        let native13 = SRAbsoluteTime(start.addingTimeInterval(13))
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let groups = ECGProcessingTests.groups()
         let early = Self.groups(identifier: "early-session")
-        let heldStart = SRAbsoluteTime(start.addingTimeInterval(11))
         // The first fetch ends inside the session: the earlier session is delivered and the boundary stays before the held one.
         let first = Self.fetcher(anchor: anchor, batchSize: 10)
         try first.startNativeFetchForTesting()
-        #expect(first.processECGGroupsForTesting(early, timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
-        #expect(first.processECGGroupsForTesting([groups[0]], timestamp: heldStart))
-        #expect(first.processECGGroupsForTesting([groups[1]], timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        #expect(first.processECGGroupsForTesting(early, timestamp: native10))
+        #expect(first.processECGGroupsForTesting([groups[0]], timestamp: native11))
+        #expect(first.processECGGroupsForTesting([groups[1]], timestamp: native12))
         let firstBatch = try #require(try await Self.completeAndFetch(first))
         #expect(firstBatch.samples == (try SensorKitECGSession.process(early)))
         try await firstBatch.acknowledge()
         let boundary = try #require(anchor.value.nativeTimestamp)
-        #expect(boundary < heldStart.rawValue)
-        #expect(boundary >= SRAbsoluteTime(start.addingTimeInterval(10)).rawValue)
+        #expect(boundary < native11.rawValue)
+        #expect(boundary >= native10.rawValue)
         // The next fetch reads the held session whole, now with its end state.
         let second = Self.fetcher(anchor: anchor, batchSize: 10)
         try second.startNativeFetchForTesting()
-        #expect(second.processECGGroupsForTesting([groups[0]], timestamp: heldStart))
-        #expect(second.processECGGroupsForTesting([groups[1]], timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
-        #expect(second.processECGGroupsForTesting([groups[2]], timestamp: SRAbsoluteTime(start.addingTimeInterval(13))))
+        #expect(second.processECGGroupsForTesting([groups[0]], timestamp: native11))
+        #expect(second.processECGGroupsForTesting([groups[1]], timestamp: native12))
+        #expect(second.processECGGroupsForTesting([groups[2]], timestamp: native13))
         let secondBatch = try #require(try await Self.completeAndFetch(second))
         #expect(secondBatch.samples == (try SensorKitECGSession.process(groups)))
         #expect(secondBatch.samples.map(\.sessionStates) == [[.begin, .active, .end]])
         try await secondBatch.acknowledge()
-        #expect(try #require(anchor.value.nativeTimestamp) >= SRAbsoluteTime(start.addingTimeInterval(13)).rawValue)
+        #expect(try #require(anchor.value.nativeTimestamp) >= native13.rawValue)
     }
 
     @Test
     @available(iOS 18, *)
     func onlyUnfinishedSessionLeavesTheCursorWithoutFailing() async throws {
         let start = Date.now.addingTimeInterval(-120)
+        // Each conversion reads the current clock, so the native timestamps are converted once and reused.
+        let native10 = SRAbsoluteTime(start.addingTimeInterval(10))
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let fetcher = Self.fetcher(anchor: anchor)
         try fetcher.startNativeFetchForTesting()
-        #expect(fetcher.processECGGroupsForTesting([ECGProcessingTests.groups()[0]], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
+        #expect(fetcher.processECGGroupsForTesting([ECGProcessingTests.groups()[0]], timestamp: native10))
         #expect(try await Self.completeAndFetch(fetcher) == nil)
         #expect(try anchor.value.timestamp == start)
         #expect(try anchor.value.pendingBatch == nil)
@@ -105,17 +111,20 @@ struct ECGAnchoredAssemblyTests {
     @available(iOS 18, *)
     func abandonedSessionWithoutVoltageIsSkippedOnceLaterDataFollows() async throws {
         let start = Date.now.addingTimeInterval(-120)
+        // Each conversion reads the current clock, so the native timestamps are converted once and reused.
+        let native10 = SRAbsoluteTime(start.addingTimeInterval(10))
+        let native12 = SRAbsoluteTime(start.addingTimeInterval(12))
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let abandoned = SensorKitECGSession.InputGroup(identifier: "abandoned-session", state: .begin, guidance: .guided, readings: [])
         let groups = ECGProcessingTests.groups()
         let fetcher = Self.fetcher(anchor: anchor, batchSize: 10)
         try fetcher.startNativeFetchForTesting()
-        #expect(fetcher.processECGGroupsForTesting([abandoned], timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
-        #expect(fetcher.processECGGroupsForTesting(groups, timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        #expect(fetcher.processECGGroupsForTesting([abandoned], timestamp: native10))
+        #expect(fetcher.processECGGroupsForTesting(groups, timestamp: native12))
         let batch = try #require(try await Self.completeAndFetch(fetcher))
         #expect(batch.samples == (try SensorKitECGSession.process(groups)))
         try await batch.acknowledge()
-        #expect(try #require(anchor.value.nativeTimestamp) >= SRAbsoluteTime(start.addingTimeInterval(12)).rawValue)
+        #expect(try #require(anchor.value.nativeTimestamp) >= native12.rawValue)
         #expect(try anchor.value.pendingBatch == nil)
     }
 
@@ -123,19 +132,22 @@ struct ECGAnchoredAssemblyTests {
     @available(iOS 18, *)
     func abandonedSessionWithoutItsEndIsDeliveredOnceLaterDataFollows() async throws {
         let start = Date.now.addingTimeInterval(-120)
+        // Each conversion reads the current clock, so the native timestamps are converted once and reused.
+        let native10 = SRAbsoluteTime(start.addingTimeInterval(10))
+        let native12 = SRAbsoluteTime(start.addingTimeInterval(12))
         let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
         let withoutEnd = Array(ECGProcessingTests.groups().prefix(2))
         let later = Self.groups(identifier: "later-session", offset: 60)
         let fetcher = Self.fetcher(anchor: anchor, batchSize: 10)
         try fetcher.startNativeFetchForTesting()
-        #expect(fetcher.processECGGroupsForTesting(withoutEnd, timestamp: SRAbsoluteTime(start.addingTimeInterval(10))))
-        #expect(fetcher.processECGGroupsForTesting(later, timestamp: SRAbsoluteTime(start.addingTimeInterval(12))))
+        #expect(fetcher.processECGGroupsForTesting(withoutEnd, timestamp: native10))
+        #expect(fetcher.processECGGroupsForTesting(later, timestamp: native12))
         let batch = try #require(try await Self.completeAndFetch(fetcher))
         // The later session completes during the fetch; the abandoned one is finished when the fetch completes.
         #expect(batch.samples == ((try SensorKitECGSession.process(later)) + SensorKitECGSession.processLeniently(withoutEnd)))
         #expect(batch.samples.map(\.sessionStates) == [[.begin, .active, .end], [.begin, .active]])
         try await batch.acknowledge()
-        #expect(try #require(anchor.value.nativeTimestamp) >= SRAbsoluteTime(start.addingTimeInterval(12)).rawValue)
+        #expect(try #require(anchor.value.nativeTimestamp) >= native12.rawValue)
     }
 
     @Test
