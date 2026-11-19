@@ -64,6 +64,25 @@ struct SensorKitBatchReplayTokenTests {
         #expect(try anchor.value.resetGeneration == 0)
     }
 
+    @Test
+    func nativeBoundaryIsValidWhateverItsDate() throws {
+        // A date is a projection of the native clock, so after a wall-clock correction a boundary's date can precede the cursor's.
+        let cursor = Date(timeIntervalSinceReferenceDate: 7_000)
+        func token(nativeTimestamp: Double?) throws(GroveSensorKit.SensorKit.BatchReplayError) -> GroveSensorKit.SensorKit.BatchReplayToken {
+            let boundary = QueryAnchor.PendingBatch.sampleCount(
+                deliveryTimestamp: cursor.addingTimeInterval(-30), sampleCount: 1, nativeTimestamp: nativeTimestamp
+            )
+            return try .init(
+                sensorIdentifier: Sensor.onWrist.id,
+                deviceProductType: "Watch1,1",
+                anchor: QueryAnchor(timestamp: cursor, nativeTimestampBits: 5.0.bitPattern).preparing(boundary)
+            )
+        }
+        let native = try token(nativeTimestamp: 15)
+        #expect(try GroveSensorKit.SensorKit.BatchReplayToken(encoded: native.encoded()) == native)
+        #expect(throws: GroveSensorKit.SensorKit.BatchReplayError.invalidToken) { try token(nativeTimestamp: nil) }
+    }
+
     @Test(arguments: [0, 16_385])
     func invalidTokenSizeIsRejected(bytes: Int) {
         #expect(throws: GroveSensorKit.SensorKit.BatchReplayError.invalidToken) {

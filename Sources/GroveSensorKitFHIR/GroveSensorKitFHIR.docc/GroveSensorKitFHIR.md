@@ -202,7 +202,8 @@ An ECG session's evidence covers its identifier, states and waveform, followed b
 Persist a ``SensorKitBatchSnapshot`` of the application, host and source devices, the time zone and the conversion instant before the first conversion of a batch, and convert a redelivery with the decoded snapshot, so the retry states the same facts.
 
 Failing a batch means throwing before `acknowledge()`: the anchor stays, and the batch is reissued after a restart under the same coordinate and ids.
-A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:acquisitionNamespace:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
+The reissued batch holds the same samples while SensorKit returns the same fetch results up to the batch's boundary; data recorded after the batch does not change it.
+A batch whose digests drifted, or whose redelivery fails with `QueryAnchorAcknowledgementError.pendingBatchMismatch`, can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:acquisitionNamespace:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
 
 A tabular batch, with `retryLog` standing for your app's durable store of each batch's digests, time zone and conversion instant, and `stageSidecar` for your upload of the bytes:
 

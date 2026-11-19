@@ -179,9 +179,20 @@ public struct SensorKitNativeRecording: Sendable {
 
     func readRows(_ onRow: (RecordingCSVReader.Row) throws -> Void) throws {
         var stream = try RecordingCSVReader.Stream(format: format)
+        // Callers match the reader's and the consumer's own errors, so each is thrown as it is.
+        func read(_ chunk: Data) throws {
+            do {
+                try stream.read(chunk, onRow: onRow)
+            } catch {
+                switch error {
+                case .reader(let error): throw error
+                case .consumer(let error): throw error
+                }
+            }
+        }
         switch payload {
-        case .inline(let data), .sidecar(_, let data): try stream.read(data, onRow: onRow)
-        case .file(_, let file): try file.readChunks { try stream.read($0, onRow: onRow) }
+        case .inline(let data), .sidecar(_, let data): try read(data)
+        case .file(_, let file): try file.readChunks(read)
         }
         try stream.finish()
     }
