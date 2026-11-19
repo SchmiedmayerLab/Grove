@@ -27,6 +27,10 @@ struct SensorKitStructuredFileTests {
             totalUnlockDuration: 42.5,
             version: "synthetic/1",
             appUsageByCategory: [
+                // Names whose order depends on case and digit handling pin the file's member order to the in-memory encoding's.
+                .init(rawValue: "Category-10"): [],
+                .init(rawValue: "category-9"): [],
+                .init(rawValue: "CATEGORY-2"): [],
                 .init(rawValue: "category-b"): [],
                 .init(rawValue: "category-a"): [
                     .init(
