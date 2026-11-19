@@ -14,74 +14,89 @@ import SensorKit
 ///
 /// A session is delivered once its begin, active and end states have arrived. A session that has them all but can't be
 /// assembled (inconsistent facts, invalid timing, no voltage samples), and a fragment of a session that already
-/// completed, is skipped and counted instead of failing the fetch. Only exceeding the ``SensorKitECGProcessingLimits``
-/// fails it. When the fetch completes, ``finish()`` decides each unfinished session; see there.
+/// finished and is not forgotten, is skipped and counted instead of failing the fetch.
 ///
-/// The native timestamps are those of the fetch results; the sessions of one device don't overlap in time.
+/// The sessions of one device are expected not to overlap in time, so an unfinished session ends when a callback
+/// carries data of another session and none of its own: ``finishPending(supersededBy:)`` then assembles it as a
+/// time-range fetch does. That decision depends only on the order of the callbacks. The caller decides what happens
+/// to the sessions still unfinished when a fetch ends.
+///
+/// The native timestamps are those of the fetch results.
 @available(iOS 17.4, *)
 struct SensorKitECGAssembly {
-    /// The sessions one native callback completed, and how many sessions or late fragments it skipped.
+    /// The sessions one step finished, and how many sessions or late fragments it skipped.
     struct Output {
         var sessions: [SensorKitECGSession] = []
         var skippedSessionCount = 0
-    }
-
-    /// How the fetch's unfinished sessions end.
-    struct Completion {
-        /// The unfinished sessions later native data followed, which can therefore never complete.
-        var sessions: [SensorKitECGSession] = []
-        /// The unfinished sessions later native data followed that can't be assembled even without an end state.
-        var skippedSessionCount = 0
-        /// The earliest native timestamp of an unfinished session the fetch saw no later data after. The delivered
-        /// boundary must stay before it, so the next fetch reads that session whole.
-        var heldFrom: Double?
     }
 
     private struct Pending {
         var groups: [SensorKitECGSession.InputGroup] = []
         let firstTimestamp: Double
         var lastTimestamp: Double
+        var entryCount = 0
 
         var hasEveryState: Bool {
             [.begin, .active, .end].allSatisfy { state in groups.contains { $0.state == state } }
         }
+
+        mutating func append(_ group: SensorKitECGSession.InputGroup, at timestamp: Double) {
+            groups.append(group)
+            lastTimestamp = timestamp
+            entryCount += SensorKitECGAssembly.entryCount(of: group)
+        }
     }
 
-    private let maximumVoltageSamples: Int
+    /// How long before the end of the data a fetch can read an unfinished session still waits for its remaining
+    /// callbacks, in seconds.
+    static let holdInterval: Double = 3600
+
+    private let maximumEntries: Int
     private let maximumSessions: Int
     private var pending: [String: Pending] = [:]
-    private var completed: Set<String> = []
-    private var voltageSamples = 0
-    private var latestTimestamp: Double?
+    /// The sessions delivered or skipped so far.
+    private var finished: Set<String> = []
+    /// The entries of the unfinished and the delivered sessions.
+    private var entryCount = 0
 
-    var hasPendingSession: Bool { !pending.isEmpty }
+    /// The native timestamps of the earliest first callback and of the latest callback of the unfinished sessions.
+    var pendingTimestamps: (earliest: Double, latest: Double)? {
+        guard let earliest = pending.values.lazy.map(\.firstTimestamp).min(),
+              let latest = pending.values.lazy.map(\.lastTimestamp).max() else {
+            return nil
+        }
+        return (earliest, latest)
+    }
 
     init(limits: SensorKitECGProcessingLimits = .init()) {
-        self.maximumVoltageSamples = limits.maximumEntries
+        self.maximumEntries = limits.maximumEntries
         self.maximumSessions = limits.maximumSessions
     }
 
     /// Adds the groups of one native callback at its native `timestamp`.
     ///
-    /// - Throws: ``SensorKitECGSession/ProcessingError/assemblyCapacityExceeded`` when the retained sessions or entries
-    ///   exceed the limits; the fetch fails and keeps its cursor, so a retry with larger limits can assemble them.
+    /// - Throws: ``SensorKitECGSession/ProcessingError/assemblyCapacityExceeded`` when the callback doesn't fit the
+    ///   limits together with the sessions retained so far. Nothing is added then, so the caller can make room and add
+    ///   the callback again.
     mutating func append(_ groups: [SensorKitECGSession.InputGroup], at timestamp: Double) throws -> Output {
-        latestTimestamp = max(latestTimestamp ?? timestamp, timestamp)
         var output = Output()
         var skipped: Set<String> = []
+        var accepted: [SensorKitECGSession.InputGroup] = []
         for group in groups {
-            guard !completed.contains(group.identifier), !group.identifier.isEmpty, group.identifier.utf8.count <= 4096 else {
+            if accepts(group) {
+                accepted.append(group)
+            } else {
                 skipped.insert(group.identifier)
-                continue
             }
-            guard pending[group.identifier] != nil || pending.count + completed.count < maximumSessions else {
-                throw SensorKitECGSession.ProcessingError.assemblyCapacityExceeded
-            }
-            let added = max(1, group.readings.reduce(0) { $0 + max(1, $1.samples.count) })
-            guard added <= maximumVoltageSamples - voltageSamples else { throw SensorKitECGSession.ProcessingError.assemblyCapacityExceeded }
-            voltageSamples += added
-            pending[group.identifier, default: Pending(firstTimestamp: timestamp, lastTimestamp: timestamp)].groups.append(group)
-            pending[group.identifier]?.lastTimestamp = timestamp
+        }
+        let newSessionCount = Set(accepted.lazy.map(\.identifier)).subtracting(pending.keys).count
+        let addedEntryCount = accepted.reduce(0) { $0 + Self.entryCount(of: $1) }
+        guard newSessionCount <= maximumSessions - pending.count - finished.count, addedEntryCount <= maximumEntries - entryCount else {
+            throw SensorKitECGSession.ProcessingError.assemblyCapacityExceeded
+        }
+        entryCount += addedEntryCount
+        for group in accepted {
+            pending[group.identifier, default: Pending(firstTimestamp: timestamp, lastTimestamp: timestamp)].append(group, at: timestamp)
         }
         for identifier in pending.keys.sorted() {
             guard let entry = pending[identifier], entry.hasEveryState else {
@@ -92,54 +107,69 @@ struct SensorKitECGAssembly {
                 output.sessions += sessions
             } else {
                 skipped.insert(identifier)
+                entryCount -= entry.entryCount
             }
             pending.removeValue(forKey: identifier)
-            completed.insert(identifier)
+            finished.insert(identifier)
         }
         output.skippedSessionCount = skipped.count
         output.sessions.sort(by: SensorKitECGSession.precedes)
         return output
     }
 
-    /// Ends the unfinished sessions when the fetch completes, so none of them fails the fetch.
-    ///
-    /// An unfinished session that later native data followed can never complete: it is assembled as a time-range fetch
-    /// assembles it, so it is delivered without its end state, or skipped and counted without its begin state or
-    /// voltage samples. An unfinished session the fetch saw no later data after may still complete, for example when
-    /// the fetch ended inside it: it is not delivered, and ``Completion/heldFrom`` keeps the delivered boundary before
-    /// it, so the next fetch reads it whole.
-    mutating func finish() -> Completion {
-        var completion = Completion()
-        for (identifier, entry) in pending {
-            if let latestTimestamp, entry.lastTimestamp < latestTimestamp {
-                if let merged = try? Self.merged(entry.groups, identifier: identifier),
-                   let session = SensorKitECGSession.processLeniently(merged).first {
-                    completion.sessions.append(session)
-                } else {
-                    completion.skippedSessionCount += 1
-                }
-                completed.insert(identifier)
-            } else {
-                completion.heldFrom = min(completion.heldFrom ?? entry.firstTimestamp, entry.firstTimestamp)
-            }
-        }
-        pending.removeAll()
-        completion.sessions.sort(by: SensorKitECGSession.precedes)
-        return completion
+    /// Ends the unfinished sessions that a callback with `groups` carries no data of, when it carries data of another
+    /// session. Call it before ``append(_:at:)`` adds that callback.
+    mutating func finishPending(supersededBy groups: [SensorKitECGSession.InputGroup]) -> Output {
+        let current = Set(groups.filter { accepts($0) }.map(\.identifier))
+        return current.isEmpty ? Output() : finishPending(except: current)
     }
 
-    mutating func resetCompletedBoundary() {
-        guard pending.isEmpty else {
-            return
+    /// Ends the unfinished sessions, except those named: each is assembled as a time-range fetch assembles it, so it is
+    /// delivered without its end state, or skipped and counted without its begin state or voltage samples.
+    mutating func finishPending(except current: Set<String> = []) -> Output {
+        var output = Output()
+        for identifier in pending.keys.sorted() where !current.contains(identifier) {
+            guard let entry = pending.removeValue(forKey: identifier) else {
+                continue
+            }
+            finished.insert(identifier)
+            if let merged = try? Self.merged(entry.groups, identifier: identifier),
+               let session = SensorKitECGSession.processLeniently(merged).first {
+                output.sessions.append(session)
+            } else {
+                output.skippedSessionCount += 1
+                entryCount -= entry.entryCount
+            }
         }
-        completed.removeAll(keepingCapacity: true)
-        voltageSamples = 0
+        output.sessions.sort(by: SensorKitECGSession.precedes)
+        return output
+    }
+
+    /// Forgets the sessions finished so far, so they no longer count against the session limit.
+    ///
+    /// A later fragment of a forgotten session counts as a new unfinished session.
+    ///
+    /// - Returns: Whether there was a finished session to forget.
+    mutating func forgetFinishedSessions() -> Bool {
+        defer {
+            finished.removeAll(keepingCapacity: true)
+        }
+        return !finished.isEmpty
+    }
+
+    private func accepts(_ group: SensorKitECGSession.InputGroup) -> Bool {
+        !finished.contains(group.identifier) && !group.identifier.isEmpty && group.identifier.utf8.count <= 4096
     }
 }
 
 
 @available(iOS 17.4, *)
 extension SensorKitECGAssembly {
+    /// The entries a group counts against the limits: its voltage samples, and one for each reading without any.
+    fileprivate static func entryCount(of group: SensorKitECGSession.InputGroup) -> Int {
+        max(1, group.readings.reduce(0) { $0 + max(1, $1.samples.count) })
+    }
+
     fileprivate static func merged(
         _ groups: [SensorKitECGSession.InputGroup],
         identifier: String

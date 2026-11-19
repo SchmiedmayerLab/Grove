@@ -81,11 +81,12 @@ public struct AnchoredFetcher<Sample: SensorKitSampleProtocol>: AsyncSequence {
     ///
     /// - Parameters:
     ///   - sensor: The sensor from which data should be fetched.
-    ///   - batchSize: The batch size. Omit it to use the `sensor`'s default batch size.
+    ///   - batchSize: The batch size. Omit it to use the `sensor`'s default batch size. For the ECG sensor with
+    ///     `ecgProcessingLimits`, a sample-count batch size counts sessions.
     ///   - initialStartDate: Where an empty cursor starts. It never changes an established cursor.
     ///   - ecgProcessingLimits: For the ECG sensor with a sample-count batch size, the limits within which ECG sessions
-    ///     are assembled across native callbacks. Without them, the ECG sensor keeps its time-range cursor; a pending
-    ///     cursor never changes its mode implicitly.
+    ///     are assembled across native callbacks. A batch also ends where the limits are reached. Without them, the ECG
+    ///     sensor keeps its time-range cursor; a pending cursor never changes its mode implicitly.
     ///   - queryAnchorProvider: The cursor of each sensor and device.
     public init(
         sensor: some AnySensor<Sample>,
@@ -211,7 +212,8 @@ extension SensorKit {
         case exhaustedResetGeneration
         /// The cursor cannot assign another acquisition-batch sequence in this reset generation.
         case exhaustedBatchSequence
-        /// A crash retry did not reproduce the persisted delivery boundary.
+        /// A crash retry did not reproduce the persisted delivery boundary, because SensorKit no longer returns the same
+        /// fetch results up to it.
         ///
         /// Recover with ``SensorKit/discardPendingBatches(for:acquisitionNamespace:)``.
         case pendingBatchMismatch

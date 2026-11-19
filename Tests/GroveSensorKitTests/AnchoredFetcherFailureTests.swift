@@ -39,6 +39,23 @@ private final class PassingSample: NSObject, SensorKitSampleProtocol {
     }
 }
 
+/// A sample whose safe representation exists only when it is usable.
+private final class SelectiveSample: NSObject, SensorKitSampleProtocol {
+    typealias SafeRepresentation = AnchoredFetcherSafeSample
+
+    let isUsable: Bool
+
+    init(isUsable: Bool) {
+        self.isUsable = isUsable
+    }
+
+    static func processIntoSafeRepresentation(
+        _ samples: some Sequence<(timestamp: Date, sample: SelectiveSample)>
+    ) -> [AnchoredFetcherSafeSample] {
+        samples.filter(\.sample.isUsable).map { AnchoredFetcherSafeSample(timeRange: $0.timestamp..<$0.timestamp) }
+    }
+}
+
 @Suite("Anchored fetch failure handling")
 struct AnchoredFetcherFailureTests {
     @Test("Native sample materialization exceptions become fetch errors")
@@ -323,6 +340,45 @@ struct AnchoredFetcherFailureTests {
         await results.value
         #expect(batch.info.sourceDevices == [peripheral])
         #expect(!batch.info.sourceDevicesSuppliedEverySample)
+    }
+
+    @Test("A sample-count batch ends at its last sample, and a fetch without samples keeps the cursor")
+    @available(iOS 18, *)
+    func sampleCountBoundaryIsTheLastSample() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_975)
+        let origin = SRAbsoluteTime(start)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let sensor = Sensor<SelectiveSample>(
+            srSensor: .ambientLightSensor, displayName: "Selective test sensor", dataQuarantineDuration: .zero, sensorKitFetchReturnType: .object
+        )
+        func fetch(_ results: [(isUsable: Bool, seconds: Double)]) async throws -> SensorKit.AnchoredBatch<AnchoredFetcherSafeSample>? {
+            let fetcher = AnchoredFetcher<SelectiveSample>.SampleCountBasedFetcher(
+                sensor: sensor, batchSize: 10, anchor: anchor, device: .current, startFetch: { _, _ in }
+            )
+            try fetcher.startNativeFetchForTesting()
+            for result in results {
+                let timestamp = SRAbsoluteTime(rawValue: origin.rawValue + result.seconds)
+                #expect(fetcher.processForTesting(sample: SelectiveSample(isUsable: result.isUsable), timestamp: timestamp))
+            }
+            // The completion parks its thread until a consumer asks for the batch, so it runs on a thread of its own.
+            nonisolated(unsafe) let reader = fetcher
+            let (completed, continuation) = AsyncStream<Void>.makeStream()
+            Thread.detachNewThread {
+                reader.completeFetchForTesting()
+                continuation.finish()
+            }
+            let batch = try await fetcher.next(isolation: nil)
+            for await _ in completed {}
+            return batch
+        }
+        // The result without a sample follows the batch's last sample, so it stays after the boundary.
+        let batch = try #require(try await fetch([(true, 1), (false, 2)]))
+        #expect(batch.samples.count == 1)
+        try await batch.acknowledge()
+        #expect(try anchor.value.nativeTimestamp == origin.rawValue + 1)
+        #expect(try await fetch([(false, 2)]) == nil)
+        #expect(try anchor.value.nativeTimestamp == origin.rawValue + 1)
+        #expect(try anchor.value.pendingBatch == nil)
     }
 
     @Test("Reset during a native sample-count fetch rejects its terminal cursor")
