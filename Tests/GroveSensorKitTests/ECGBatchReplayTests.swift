@@ -14,7 +14,7 @@ import Testing
 
 
 /// Batches that end where the ECG limits are reached, and that each is the batch a fetch from its cursor delivers.
-@Suite
+@Suite(.timeLimit(.minutes(1)))
 struct ECGBatchReplayTests {
     private typealias Fixture = ECGBatchBoundaryTests
     private typealias NativeStream = ECGBatchBoundaryTests.NativeStream
@@ -109,6 +109,71 @@ struct ECGBatchReplayTests {
         #expect(batches[0].info.replayToken == first.info.replayToken)
         #expect(batches.flatMap(\.samples) == (try sessions.flatMap(SensorKitECGSession.process)))
         try await Fixture.expectReplay(of: first, over: grown, limits: limits)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func fullBatchWaitsForAResultAfterItsBoundaryTimestamp() async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let complete = NativeStream.session("complete-session", offset: -60)
+        let held = NativeStream.session("held-session")
+        // The complete session fills the batch, but the held session starts at the same timestamp, so a fetch from that
+        // boundary would not read its begin state again: the batch waits, and the fetch ends without one.
+        let started = [stream.result(complete, at: 10), stream.result([held[0]], at: 10), stream.result([held[1]], at: 11)]
+        #expect(try await Fixture.fetch(started, anchor: anchor, batchSize: 1).isEmpty)
+        #expect(try anchor.value.batchSequence == 0)
+        #expect(try anchor.value.pendingBatch == nil)
+        let grown = started + [stream.result([held[2]], at: 12)]
+        let batches = try await Fixture.fetch(grown, anchor: anchor, batchSize: 1)
+        #expect(batches.map(\.samples) == [try SensorKitECGSession.process(complete + held)])
+        #expect(try anchor.value.nativeTimestamp == stream.time(12).rawValue)
+        try await Fixture.expectReplay(of: batches[0], over: grown)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func filledBatchEndsAtTheLastBoundaryBeforeASessionAtItsTimestamp() async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let sessions = (0..<2).map { NativeStream.session("session-\($0)", offset: Double($0) - 60) }
+        let held = NativeStream.session("held-session")
+        // The two complete sessions fill the batch, but the held session starts at the second one's timestamp. The
+        // batch ends at the first session's boundary, which the second session's later timestamp confirmed.
+        let started = [
+            stream.result(sessions[0], at: 9), stream.result(sessions[1], at: 10), stream.result([held[0]], at: 10),
+            stream.result([held[1]], at: 11)
+        ]
+        let first = try await Fixture.fetch(started, anchor: anchor, batchSize: 2)
+        #expect(first.map(\.samples) == [try SensorKitECGSession.process(sessions[0])])
+        #expect(try anchor.value.nativeTimestamp == stream.time(9).rawValue)
+        let grown = started + [stream.result([held[2]], at: 12)]
+        let next = try await Fixture.fetch(Array(grown.dropFirst()), anchor: anchor, batchSize: 2)
+        #expect(next.map(\.samples) == [try SensorKitECGSession.process(sessions[1] + held)])
+        try await Fixture.expectReplay(of: first[0], over: grown)
+        try await Fixture.expectReplay(of: next[0], over: grown)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func sessionAtTheCandidateTimestampKeepsTheConfirmedBatchEnd() async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let sessions = (0..<2).map { NativeStream.session("session-\($0)", offset: Double($0) - 60) }
+        let third = NativeStream.session("third-session")
+        let limits = try SensorKitECGProcessingLimits(maximumEntries: 1_000_000, maximumSessions: 2)
+        // The third session starts at the second one's timestamp and exceeds the session limit. The batch can't end
+        // after the second session, but it can end after the first one, so the fetch splits there.
+        let results = [
+            stream.result(sessions[0], at: 9), stream.result(sessions[1], at: 10), stream.result([third[0]], at: 10),
+            stream.result([third[1]], at: 11), stream.result([third[2]], at: 12)
+        ]
+        let batches = try await Fixture.fetch(results, anchor: anchor, batchSize: 10, limits: limits)
+        #expect(batches.map(\.samples) == [try SensorKitECGSession.process(sessions[0]), try SensorKitECGSession.process(sessions[1] + third)])
+        #expect(try anchor.value.nativeTimestamp == stream.time(12).rawValue)
+        for batch in batches {
+            try await Fixture.expectReplay(of: batch, over: results, limits: limits)
+        }
     }
 }
 #endif

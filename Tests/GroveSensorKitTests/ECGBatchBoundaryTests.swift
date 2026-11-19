@@ -14,7 +14,7 @@ import Testing
 
 
 /// Where ECG batches end, and that a batch fetched again from its pending anchor is the batch first delivered.
-@Suite
+@Suite(.timeLimit(.minutes(1)))
 struct ECGBatchBoundaryTests {
     @Test
     @available(iOS 18, *)
