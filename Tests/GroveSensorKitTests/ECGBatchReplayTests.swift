@@ -28,16 +28,15 @@ struct ECGBatchReplayTests {
         let second = NativeStream.session("second-session")
         let later = NativeStream.session("later-session", offset: 60)
         // A complete session takes four entries. The batch ends after the first session once the second one exceeds
-        // the limit. A fetch from that boundary doesn't know the first session, so it reads the first session's late
-        // fragment as another session, which ends the second one; the continuing fetch must do the same.
-        let limits = try SensorKitECGProcessingLimits(maximumEntries: 8, maximumSessions: 128)
+        // the limit. A fetch from that boundary doesn't know the first session; its late fragment has no begin state,
+        // so it is skipped and doesn't end the second session, in the continuing fetch as in a fetch from the boundary.
+        let limits = try SensorKitECGProcessingLimits(maximumEntries: 7, maximumSessions: 128)
         let results = [
-            stream.result(first, at: 10), stream.result(Array(second.prefix(2)), at: 11), stream.result([first[1]], at: 12),
+            stream.result(first, at: 10), stream.result([second[0]], at: 11), stream.result([first[1]], at: 12),
             stream.result([second[1]], at: 13), stream.result([second[2]], at: 14), stream.result(later, at: 15)
         ]
         let batches = try await Fixture.fetch(results, anchor: anchor, batchSize: 100, limits: limits)
-        let interrupted = SensorKitECGSession.processLeniently(Array(second.prefix(2)))
-        #expect(batches.map(\.samples) == [try SensorKitECGSession.process(first), interrupted + (try SensorKitECGSession.process(later))])
+        #expect(batches.map(\.samples) == (try [first, second, later].map(SensorKitECGSession.process)))
         #expect(try anchor.value.nativeTimestamp == stream.time(15).rawValue)
         for batch in batches {
             try await Fixture.expectReplay(of: batch, over: results, limits: limits)
@@ -51,13 +50,14 @@ struct ECGBatchReplayTests {
         let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
         let sessions = (0..<4).map { NativeStream.session("session-\($0)", offset: Double($0)) }
         let limits = try SensorKitECGProcessingLimits(maximumEntries: 1_000_000, maximumSessions: 2)
-        // The late fragment of the second session follows the boundary, so the next batch counts it as a session.
+        // The late fragment of the second session follows the boundary; without its begin state it is skipped, so the
+        // next batch doesn't count it as a session.
         let results = [
             stream.result(sessions[0], at: 10), stream.result(sessions[1], at: 11), stream.result([sessions[1][1]], at: 12),
             stream.result(sessions[2], at: 13), stream.result(sessions[3], at: 14)
         ]
         let batches = try await Fixture.fetch(results, anchor: anchor, batchSize: 100, limits: limits)
-        #expect(batches.map(\.samples.count) == [2, 1, 1])
+        #expect(batches.map(\.samples.count) == [2, 2])
         #expect(batches.flatMap(\.samples) == (try sessions.flatMap(SensorKitECGSession.process)))
         for batch in batches {
             try await Fixture.expectReplay(of: batch, over: results, limits: limits)
