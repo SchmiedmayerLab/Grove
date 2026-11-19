@@ -41,6 +41,10 @@ public struct SensorKitBatchSnapshot: Hashable, Sendable {
     public let conversionInstant: Date
 
     /// Creates a snapshot of the facts of a batch's first conversion.
+    ///
+    /// - Throws: ``SnapshotError/capacityExceeded`` for more than 128 source devices or a string of more than 2,048
+    ///   UTF-8 bytes, and ``SnapshotError/invalidFacts`` for an unknown time zone, a conversion instant outside the
+    ///   FHIR range, or source devices said to supply every sample when there are none.
     public init(
         application: ApplicationDevice,
         host: HostDevice,
@@ -50,8 +54,10 @@ public struct SensorKitBatchSnapshot: Hashable, Sendable {
         sourceTimeZone: TimeZone,
         conversionInstant: Date
     ) throws(SnapshotError) {
-        guard sourceDevices.count <= 128,
-              (0...253_402_300_799).contains(conversionInstant.timeIntervalSince1970),
+        guard sourceDevices.count <= 128 else {
+            throw .capacityExceeded
+        }
+        guard (0...253_402_300_799).contains(conversionInstant.timeIntervalSince1970),
               !sourceDevicesSuppliedEverySample || !sourceDevices.isEmpty,
               let zone = TimeZone(identifier: sourceTimeZone.identifier) else {
             throw .invalidFacts
