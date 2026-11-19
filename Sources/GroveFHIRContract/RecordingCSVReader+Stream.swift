@@ -51,6 +51,14 @@ extension RecordingCSVReader {
     /// is complete. Rows delivered before an error are provisional; consumers must not commit their
     /// effects until the complete payload is validated. Any error closes this stream.
     public struct Stream: Sendable {
+        /// Why ``read(_:onRow:)`` stopped: the payload, or the row consumer.
+        public enum ReadFailure<Consumer: Error>: Error {
+            /// The payload violates the registered grammar or the read limits, or the stream is closed.
+            case reader(ReaderError)
+            /// `onRow` threw this error.
+            case consumer(Consumer)
+        }
+
         private enum Phase { case reading, finished, failed }
 
         /// The columns the format publishes, in order.
@@ -79,14 +87,47 @@ extension RecordingCSVReader {
 
         /// Accepts a chunk, invoking `onRow` for each complete data row; the header is not delivered.
         ///
-        /// - Throws: A ``ReaderError``, or the error `onRow` throws.
-        public mutating func read(_ chunk: Data, onRow: (Row) throws -> Void) throws {
+        /// - Throws: ``ReadFailure/reader(_:)`` for the payload, ``ReadFailure/consumer(_:)`` with the error `onRow` throws.
+        public mutating func read<Consumer: Error>(
+            _ chunk: Data,
+            onRow: (Row) throws(Consumer) -> Void
+        ) throws(ReadFailure<Consumer>) {
+            guard phase == .reading else { throw .reader(.streamClosed) }
             do {
-                try readRows(chunk, onRow: onRow)
+                try parser.admit(chunk)
+            } catch {
+                phase = .failed
+                throw .reader(error)
+            }
+            for byte in chunk {
+                let row: Row?
+                do {
+                    row = try parser.consume(byte)
+                    if let row {
+                        try validate(row)
+                    }
+                } catch {
+                    phase = .failed
+                    throw .reader(error)
+                }
+                guard let row else { continue }
+                do {
+                    try onRow(row)
+                } catch {
+                    phase = .failed
+                    throw .consumer(error)
+                }
+            }
+        }
+
+        /// Accepts a chunk and checks its rows without delivering them.
+        public mutating func read(_ chunk: Data) throws(ReaderError) {
+            do {
+                try read(chunk) { (_: Row) in }
             } catch {
                 switch error {
                 case .reader(let error): throw error
-                case .consumer(let error): throw error
+                case .consumer(let never): switch never {}
                 }
             }
         }
@@ -94,7 +135,7 @@ extension RecordingCSVReader {
         /// ``read(_:onRow:)`` that appends every row to `rows`, so only reader errors remain.
         mutating func read(_ chunk: Data, appendingTo rows: inout [Row]) throws(ReaderError) {
             do {
-                try readRows(chunk) { (row: Row) in rows.append(row) }
+                try read(chunk) { (row: Row) in rows.append(row) }
             } catch {
                 switch error {
                 case .reader(let error): throw error
@@ -120,45 +161,10 @@ extension RecordingCSVReader {
 }
 
 
+extension RecordingCSVReader.Stream.ReadFailure: Equatable where Consumer: Equatable {}
+
+
 extension RecordingCSVReader.Stream {
-    /// A failure of the grammar or of the row consumer, kept apart so each caller states exactly what it can throw.
-    fileprivate enum Failure<Consumer: Error>: Error {
-        case reader(RecordingCSVReader.ReaderError)
-        case consumer(Consumer)
-    }
-
-    fileprivate mutating func readRows<Consumer: Error>(
-        _ chunk: Data,
-        onRow: (RecordingCSVReader.Row) throws(Consumer) -> Void
-    ) throws(Failure<Consumer>) {
-        guard phase == .reading else { throw .reader(.streamClosed) }
-        do {
-            try parser.admit(chunk)
-        } catch {
-            phase = .failed
-            throw .reader(error)
-        }
-        for byte in chunk {
-            let row: RecordingCSVReader.Row?
-            do {
-                row = try parser.consume(byte)
-                if let row {
-                    try validate(row)
-                }
-            } catch {
-                phase = .failed
-                throw .reader(error)
-            }
-            guard let row else { continue }
-            do {
-                try onRow(row)
-            } catch {
-                phase = .failed
-                throw .consumer(error)
-            }
-        }
-    }
-
     private mutating func validate(_ row: RecordingCSVReader.Row) throws(RecordingCSVReader.ReaderError) {
         for (column, value) in zip(schema, row.fields) where !column.admits(value) {
             throw .invalidColumnValue(row: nextRow, column: column.name)
