@@ -26,7 +26,7 @@ public struct HealthKitRecordingFile: Sendable {
         /// The attachment path is not a relative reference without empty or dot segments, a query or a fragment.
         case invalidRelativePath
         /// The sequence delivered another number of elements than the series sample states.
-        case incompleteSeries
+        case elementCountMismatch
     }
 
     /// The recording's bytes in the sample's registered format.
@@ -112,13 +112,13 @@ public struct HealthKitRecordingFile: Sendable {
         var count = 0
         for try await element in elements {
             guard count < sample.count else {
-                throw RecordingError.incompleteSeries
+                throw RecordingError.elementCountMismatch
             }
             try writer.append(fields(element))
             count += 1
         }
         guard count == sample.count else {
-            throw RecordingError.incompleteSeries
+            throw RecordingError.elementCountMismatch
         }
         let file = try writer.finish()
         return Self(file: file, relativePath: relativePath, format: format, sample: sample)

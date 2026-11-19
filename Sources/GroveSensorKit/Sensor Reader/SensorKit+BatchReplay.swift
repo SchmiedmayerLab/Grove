@@ -15,6 +15,10 @@ extension SensorKit {
     /// The caller must compare the ordered source digests with its retained receipt before using any result.
     /// Missing, reordered or expired history is an error; it never silently advances a live cursor.
     ///
+    /// A sample-count batch is cut where its sample count is reached, which is the boundary it was first delivered
+    /// with, so data SensorKit recorded after the batch does not change the replay as long as SensorKit returns the
+    /// batch's fetch results as before.
+    ///
     /// Pass the ``SensorKitECGProcessingLimits`` the batch was originally fetched with: an ECG batch replayed with
     /// smaller limits can fail with ``SensorKitECGSession/ProcessingError/assemblyCapacityExceeded``.
     public func replay<Sample>(

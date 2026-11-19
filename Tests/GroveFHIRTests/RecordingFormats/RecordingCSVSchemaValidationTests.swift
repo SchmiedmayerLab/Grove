@@ -18,7 +18,7 @@ struct RecordingCSVSchemaValidationTests {
         let header = try #require(RegisteredRecordingFormat.triaxialAccelerationSamples.csvColumns).joined(separator: ",")
         let bytes = Data("\(header)\n0,1,\(value),0,0,Watch\n".utf8)
         var stream = try RecordingCSVReader.Stream(format: .triaxialAccelerationSamples)
-        #expect(throws: RecordingCSVReader.ReaderError.invalidColumnValue(row: 1, column: "x")) {
+        #expect(throws: RecordingCSVReader.Stream.ReadFailure<Never>.reader(.invalidColumnValue(row: 1, column: "x"))) {
             try stream.read(bytes) { _ in Issue.record("Invalid typed row reached the consumer") }
         }
         #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try stream.finish() }

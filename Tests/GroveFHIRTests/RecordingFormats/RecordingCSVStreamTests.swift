@@ -108,15 +108,16 @@ struct RecordingCSVStreamTests {
         enum ConsumerError: Error { case refused }
         let data = Data((try header() + "1,60,2,Watch\n").utf8)
         var failed = try RecordingCSVReader.Stream(format: .heartRateSamples)
-        #expect(throws: ConsumerError.refused) {
-            try failed.read(data) { _ in throw ConsumerError.refused }
+        #expect(throws: RecordingCSVReader.Stream.ReadFailure<ConsumerError>.consumer(.refused)) {
+            try failed.read(data) { (_: RecordingCSVReader.Row) throws(ConsumerError) in throw .refused }
         }
         #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try failed.finish() }
-        #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try failed.read(data) { _ in } }
+        #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try failed.read(data) }
+        #expect(throws: RecordingCSVReader.Stream.ReadFailure<Never>.reader(.streamClosed)) { try failed.read(data) { _ in } }
         var finished = try RecordingCSVReader.Stream(format: .heartRateSamples)
-        try finished.read(data) { _ in }
+        try finished.read(data)
         try finished.finish()
-        #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try finished.read(data) { _ in } }
+        #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try finished.read(data) }
         #expect(throws: RecordingCSVReader.ReaderError.streamClosed) { try finished.finish() }
     }
 
@@ -143,7 +144,14 @@ struct RecordingCSVStreamTests {
         var stream = try RecordingCSVReader.Stream(format: format, limits: limits)
         var rows: [RecordingCSVReader.Row] = []
         for start in stride(from: 0, to: data.count, by: chunkSize) {
-            try stream.read(data.subdata(in: start..<min(start + chunkSize, data.count))) { rows.append($0) }
+            do {
+                try stream.read(data.subdata(in: start..<min(start + chunkSize, data.count))) { rows.append($0) }
+            } catch {
+                switch error {
+                case .reader(let error): throw error
+                case .consumer(let never): switch never {}
+                }
+            }
         }
         try stream.finish()
         return rows

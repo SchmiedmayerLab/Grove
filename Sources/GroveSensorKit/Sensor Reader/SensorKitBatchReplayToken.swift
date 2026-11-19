@@ -70,11 +70,14 @@ extension SensorKit {
                   let pending = anchor.pendingBatch,
                   (1...Int(Int32.max)).contains(pending.sampleCount),
                   pending.upperBound.timeIntervalSinceReferenceDate.isFinite,
-                  pending.nativeUpperBoundBits.map({ Double(bitPattern: $0).isFinite }) != false,
-                  pending.upperBound >= anchor.timestamp else { throw .invalidToken }
+                  pending.nativeUpperBoundBits.map({ Double(bitPattern: $0).isFinite }) != false else { throw .invalidToken }
             switch pending.mode {
             case .sampleCount:
-                guard pending.lowerBound == nil else { throw .invalidToken }
+                // A native boundary is authoritative. Its date is a projection of the native clock made when the fetch
+                // started, so after a wall-clock correction it can precede the cursor's date.
+                guard pending.lowerBound == nil, pending.nativeUpperBoundBits != nil || pending.upperBound >= anchor.timestamp else {
+                    throw .invalidToken
+                }
             case .timeRange:
                 guard let lower = pending.lowerBound, lower.timeIntervalSinceReferenceDate.isFinite,
                       lower >= anchor.timestamp, lower < pending.upperBound else { throw .invalidToken }

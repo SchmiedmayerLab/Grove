@@ -141,10 +141,12 @@ extension SensorKit {
     /// - Parameters:
     ///   - sensor: The ``Sensor`` from which data should be fetched.
     ///   - acquisitionNamespace: The namespace of the cursors, or `nil` for the unscoped cursors.
-    ///   - batchSize: The batch size of the returned sequence. Omit it to use the `sensor`'s default batch size.
+    ///   - batchSize: The batch size of the returned sequence. Omit it to use the `sensor`'s default batch size. For the
+    ///     ECG sensor with `ecgProcessingLimits`, a sample-count batch size counts sessions.
     ///   - initialStartDate: Where an empty cursor starts. It never changes an established cursor.
     ///   - ecgProcessingLimits: For the ECG sensor with a sample-count batch size, the limits within which ECG sessions
-    ///     are assembled across native callbacks. Without them, the ECG sensor keeps its time-range cursor.
+    ///     are assembled across native callbacks. A batch also ends where the limits are reached. Without them, the ECG
+    ///     sensor keeps its time-range cursor.
     ///
     /// - Note: In order to fetch data from a sensor, you first need to request permission and call ``Sensor/startRecording()``
     @available(iOS 18, *)
