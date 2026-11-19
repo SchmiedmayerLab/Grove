@@ -112,6 +112,26 @@ struct ECGAssemblyTests {
 
     @Test
     @available(iOS 18, *)
+    func fragmentWithoutItsBeginStateNeitherStartsNorEndsASession() throws {
+        let groups = ECGProcessingTests.groups()
+        let fragment = SensorKitECGSession.InputGroup(
+            identifier: "delivered-session", state: .active, guidance: .guided, readings: groups[1].readings
+        )
+        var assembly = SensorKitECGAssembly()
+        #expect(try assembly.append([groups[0]], at: 1).sessions.isEmpty)
+        // A fragment of a session the assembly doesn't know, such as one delivered before a batch boundary, can't
+        // become a session without its begin state, so it is skipped and the unfinished session continues.
+        #expect(assembly.finishPending(supersededBy: [fragment]).sessions.isEmpty)
+        let skipped = try assembly.append([fragment], at: 2)
+        #expect(skipped.sessions.isEmpty)
+        #expect(skipped.skippedSessionCount == 1)
+        #expect(assembly.pendingTimestamps?.earliest == 1)
+        #expect(assembly.pendingTimestamps?.latest == 1)
+        #expect(try assembly.append(Array(groups.dropFirst()), at: 3).sessions == SensorKitECGSession.process(groups))
+    }
+
+    @Test
+    @available(iOS 18, *)
     func neverEndingSessionStopsAtAnExplicitCapacityWithoutDroppingFragments() throws {
         let groups = ECGProcessingTests.groups()
         var assembly = SensorKitECGAssembly(limits: try .init(maximumEntries: 2, maximumSessions: 128))
@@ -149,7 +169,7 @@ struct ECGAssemblyTests {
     @Test
     @available(iOS 18, *)
     func skippedSessionsReleaseTheirEntries() throws {
-        let abandoned = SensorKitECGSession.InputGroup(identifier: "abandoned-session", state: .active, guidance: .guided, readings: [])
+        let abandoned = SensorKitECGSession.InputGroup(identifier: "abandoned-session", state: .begin, guidance: .guided, readings: [])
         let groups = ECGProcessingTests.groups()
         // One complete session takes four entries: its begin marker, two voltage samples and its end marker.
         var assembly = SensorKitECGAssembly(limits: try .init(maximumEntries: 4, maximumSessions: 128))
