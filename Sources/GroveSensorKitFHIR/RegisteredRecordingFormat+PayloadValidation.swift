@@ -55,7 +55,7 @@ extension RegisteredRecordingFormat {
         if csvColumns != nil {
             do {
                 var stream = try RecordingCSVReader.Stream(format: self)
-                try file.readChunks { try stream.read($0) { _ in } }
+                try file.readChunks { try stream.read($0) }
                 try stream.finish()
             } catch is RecordingCSVReader.ReaderError {
                 throw RegisteredRecordingPayloadError.invalidTabularPayload
@@ -105,7 +105,7 @@ extension RegisteredRecordingFormat {
              .triaxialRotationSamples, .wristTemperatureSamples:
             do {
                 var stream = try RecordingCSVReader.Stream(format: self)
-                try stream.read(data) { _ in }
+                try stream.read(data)
                 try stream.finish()
             } catch {
                 throw .invalidTabularPayload
