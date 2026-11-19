@@ -261,12 +261,11 @@ extension RecordingFile {
 
         /// Writes the remaining bytes and returns the snapshot.
         ///
-        /// - Parameter allowingEmpty: Whether a snapshot without bytes is valid; otherwise it fails with
-        ///   ``FileError/emptySource``.
-        consuming func finish(allowingEmpty: Bool = false) throws -> RecordingFile {
+        /// - Throws: ``FileError/emptySource`` for a snapshot without bytes.
+        consuming func finish() throws -> RecordingFile {
             try flush()
             try Task.checkCancellation()
-            guard allowingEmpty || writtenByteCount > 0 else {
+            guard writtenByteCount > 0 else {
                 throw FileError.emptySource
             }
             return RecordingFile(byteCount: writtenByteCount, attachmentSHA1: hasher.finalize(), storage: storage)

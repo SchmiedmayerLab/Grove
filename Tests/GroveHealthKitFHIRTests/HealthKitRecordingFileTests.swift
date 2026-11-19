@@ -123,7 +123,7 @@ struct HealthKitRecordingFileTests {
     @Test(arguments: [0, 1, 3])
     func truncatedAndExcessRouteSamplesCannotProduceAFile(count: Int) async throws {
         let route = try Self.sample(HKWorkoutRoute.self, type: HKSeriesType.workoutRoute(), count: 2)
-        await #expect(throws: HealthKitRecordingFile.RecordingError.incompleteSeries) {
+        await #expect(throws: HealthKitRecordingFile.RecordingError.elementCountMismatch) {
             try await HealthKitRecordingFile.workoutRoute(
                 route, locations: Self.sequence(Self.locations(count: count)), relativePath: "route.csv", maximumByteCount: 4096
             )
