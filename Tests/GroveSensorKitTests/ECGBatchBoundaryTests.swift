@@ -127,6 +127,31 @@ struct ECGBatchBoundaryTests {
         try await Self.expectReplay(of: batches[0], over: results)
     }
 
+    @Test(arguments: [false, true])
+    @available(iOS 18, *)
+    func resultBeyondTheLimitsWithoutABatchEndFailsTheFetch(sameResult: Bool) async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let complete = NativeStream.session("complete-session", offset: -60)
+        let held = NativeStream.session("held-session")
+        // The held session starts at the timestamp of the complete one, in a result of its own or in the same one, so
+        // no batch can end between them. Its end state exceeds the limits, and without a batch end the fetch can't make
+        // room: it fails and keeps the cursor. Limits that fit both sessions deliver them in one batch.
+        let start = sameResult
+            ? [stream.result(complete + [held[0]], at: 10)]
+            : [stream.result(complete, at: 10), stream.result([held[0]], at: 10)]
+        let results = start + [stream.result([held[1]], at: 11), stream.result([held[2]], at: 12)]
+        let tight = try SensorKitECGProcessingLimits(maximumEntries: 7, maximumSessions: 128)
+        await #expect(throws: SensorKitECGSession.ProcessingError.assemblyCapacityExceeded) {
+            try await Self.fetch(results, anchor: anchor, batchSize: 10, limits: tight)
+        }
+        #expect(try anchor.value.batchSequence == 0)
+        #expect(try anchor.value.pendingBatch == nil)
+        let fitting = try SensorKitECGProcessingLimits(maximumEntries: 8, maximumSessions: 128)
+        let batches = try await Self.fetch(results, anchor: anchor, batchSize: 10, limits: fitting)
+        #expect(batches.map(\.samples) == [try SensorKitECGSession.process(complete + held)])
+    }
+
     @Test
     @available(iOS 18, *)
     func overlappingSessionsAreEachDeliveredOnce() async throws {
