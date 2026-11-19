@@ -138,10 +138,10 @@ struct ProviderRecordingFHIRTests {
         }
         let file = try await RecordingFile.stage(chunks: chunks, maximumByteCount: bytes.count)
         for provider in ProviderCapabilities.Provider.allCases {
-            let context = try switch provider {
-            case .oura: OuraFHIRTests.context()
-            case .googleHealthAPI: ProviderUnitConversionTests.googleHealthContext()
-            case .withings: WithingsFHIRTests.context()
+            let context = switch provider {
+            case .oura: try OuraFHIRTests.context()
+            case .googleHealthAPI: try ProviderUnitConversionTests.googleHealthContext()
+            case .withings: try WithingsFHIRTests.context()
             }
             let converted = try ProviderNativeRecording.Source.allCases.filter { $0.rawValue.hasPrefix(provider.rawValue + "/") }.map {
                 let recording = try ProviderNativeRecording(
