@@ -62,6 +62,14 @@ struct ProviderUnitConversionTests {
         ])
     }
 
+    @Test("A value outside its domain names the measurement")
+    func valueOutsideItsDomainNamesTheMeasurement() throws {
+        let group = WithingsMeasureGroup(id: "group", date: WithingsFHIRTests.date, measures: [.init(type: 54, value: 101, unit: 0)])
+        #expect(throws: ProviderConversionError.invalidQuantity(MeasurementCatalog.oxygenSaturation.id)) {
+            try ProviderFHIRConverter.convert(group, context: try WithingsFHIRTests.context())
+        }
+    }
+
     @Test("Oura activity totals and sleep durations state the contract's unit")
     func ouraUnits() throws {
         let context = try OuraFHIRTests.context()

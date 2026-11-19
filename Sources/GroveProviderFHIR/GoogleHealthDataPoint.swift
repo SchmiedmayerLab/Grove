@@ -12,7 +12,7 @@ public import Foundation
 /// The typed fields of one Google Health API data point that the guide admits.
 ///
 /// Preserve the provider's data point identifier, or supply a previously persisted import key where the API exposes no
-/// durable native identifier. Timestamps keep their exact source spelling and precision.
+/// stable native identifier. Timestamps keep their exact source spelling and precision.
 public struct GoogleHealthDataPoint: Sendable {
     /// The measured value of a data point, with its source time.
     public enum Value: Sendable {
