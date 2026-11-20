@@ -204,5 +204,84 @@ struct ECGBatchReplayTests {
         try await Fixture.expectReplay(of: first, over: results)
         try await Fixture.expectReplay(of: first, over: grown)
     }
+
+    @Test
+    @available(iOS 18, *)
+    func resultWithoutSessionDataDoesNotMoveAFinishedSessionsBoundary() async throws {
+        // The results are older than the hold cutoff, so the end of a fetch finishes an unfinished session.
+        let stream = NativeStream(start: Date.now.addingTimeInterval(-26 * 3600))
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let unfinished = Array(NativeStream.session("unfinished-session").prefix(2))
+        let first = try await Fixture.firstBatch(of: [stream.result(unfinished, at: 1)], anchor: anchor, batchSize: 1)
+        #expect(first.samples == SensorKitECGSession.processLeniently(unfinished))
+        // Newer results hold a fragment of a session without its begin state, which the fetch skips, and then another
+        // session, which ends the unfinished one at the same boundary the end of the fetch did.
+        let orphan = NativeStream.session("orphan-session", offset: 30)[1]
+        let grown = [
+            stream.result(unfinished, at: 1), stream.result([orphan], at: 2), stream.result(NativeStream.session("later-session", offset: 60), at: 3)
+        ]
+        try await Fixture.expectReplay(of: first, over: grown)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func resultWithoutSessionDataNamesNoPeripheral() async throws {
+        let stream = NativeStream(start: Date.now.addingTimeInterval(-26 * 3600))
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let peripherals = ["unfinished", "orphan", "complete"].map { SensorKit.SourceDeviceInfo(localIdentifier: $0) }
+        let unfinished = Array(NativeStream.session("unfinished-session").prefix(2))
+        let orphan = NativeStream.session("orphan-session", offset: 30)[1]
+        let complete = NativeStream.session("complete-session", offset: 60)
+        let results = [(unfinished, 1), ([orphan], 2), (complete, 3)].enumerated().map { index, entry in
+            (result: stream.result(entry.0, at: entry.1), peripheral: peripherals[index])
+        }
+        // The fragment adds no data, so its peripheral belongs to no batch, whether the fetch reads it before the
+        // unfinished session's boundary or after it.
+        let fetcher = Fixture.fetcher(anchor: anchor, batchSize: 1)
+        try fetcher.startNativeFetchForTesting()
+        let feed = Self.feed(results, to: fetcher)
+        let first = try #require(try await fetcher.next(isolation: nil))
+        #expect(first.info.sourceDevices == [peripherals[0]])
+        try await first.acknowledge()
+        let second = try #require(try await fetcher.next(isolation: nil))
+        #expect(second.info.sourceDevices == [peripherals[2]])
+        fetcher.stopForTesting()
+        await feed.value
+        let restarted = Fixture.fetcher(anchor: anchor, batchSize: 1)
+        try restarted.startNativeFetchForTesting()
+        let restartFeed = Self.feed(Array(results.dropFirst()), to: restarted)
+        let again = try #require(try await restarted.next(isolation: nil))
+        restarted.stopForTesting()
+        await restartFeed.value
+        #expect(again.samples == second.samples)
+        #expect(again.info.sourceDevices == [peripherals[2]])
+        #expect(again.info.sourceDevicesSuppliedEverySample)
+    }
+}
+
+
+extension ECGBatchReplayTests {
+    /// Delivers ECG results with their peripherals and then the fetch completion on a thread of its own.
+    @available(iOS 18, *)
+    fileprivate static func feed(
+        _ results: [(result: ECGBatchBoundaryTests.NativeResult, peripheral: SensorKit.SourceDeviceInfo)], to fetcher: ECGBatchBoundaryTests.Fetcher
+    ) -> Task<Void, Never> {
+        nonisolated(unsafe) let reader = fetcher
+        nonisolated(unsafe) let input = results
+        let (finished, continuation) = AsyncStream<Void>.makeStream()
+        Thread.detachNewThread {
+            defer {
+                continuation.finish()
+            }
+            for entry in input
+            where !reader.processECGGroupsForTesting(entry.result.groups, timestamp: entry.result.timestamp, sourceDevice: entry.peripheral) {
+                return
+            }
+            reader.completeFetchForTesting()
+        }
+        return Task {
+            for await _ in finished {}
+        }
+    }
 }
 #endif
