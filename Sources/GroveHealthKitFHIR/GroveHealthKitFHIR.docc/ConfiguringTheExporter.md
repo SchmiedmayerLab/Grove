@@ -138,7 +138,8 @@ The source-revision extension states the source name, bundle identifier, version
 The source name of an iPhone or Apple Watch is the name the person gave the device, and HealthKit gives such a source a bundle identifier of the form `com.apple.health.` followed by a UUID, which it assigns to that one device.
 `.nonIdentifying` omits the source name and a bundle identifier of exactly that form, as ``HealthKitFHIRExporter/SourceFact/deviceBundleIdentifier``; every other bundle identifier, such as an application's, still travels.
 The match is by form and best effort, the member is omitted as a whole, and it changes nothing else: the writer, the sync identifier's system and the keyed identities use the exact bundle identifier.
-`.omit` states no source-revision extension.
+Every other bundle identifier is no fact a policy decides: the guide lets a policy withhold `sourceBundleIdentifier` only in that form, so the extension states any other whenever it is stated.
+`.omit`, or any policy that includes no fact, states no source-revision extension.
 The source policy does not change a writer that ``HealthKitFHIRExporter/Options/writer`` states.
 
 The device policy governs the recording Device whether an `HKDevice` property or a device metadata key supplies a fact.

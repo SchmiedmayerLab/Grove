@@ -95,9 +95,10 @@ extension HealthKitFHIRExporter {
         /// Which facts of the sample's `HKSourceRevision` the source-revision extension states. See ``SourceFact``.
         ///
         /// It governs only that extension, which a record carries when no writer is stated. The writer ``writer``
-        /// states carries its name, bundle identifier, version and host under every policy. A custom policy that wants
-        /// no bundle identifier in the extension omits both ``SourceFact/bundleIdentifier`` and
-        /// ``SourceFact/deviceBundleIdentifier``.
+        /// states carries its name, bundle identifier, version and host under every policy. A bundle identifier other
+        /// than a ``SourceFact/deviceBundleIdentifier``, such as an application's, is no fact a policy decides: the guide
+        /// keeps it whenever the extension is stated, and only a policy that includes no fact, such as `.omit`, states
+        /// no extension.
         public var source: SourcePolicy = .all
         /// Which facts the recording Device states, whether an `HKDevice` property or a device metadata key supplies
         /// them. See ``DeviceFact``.
@@ -283,12 +284,13 @@ extension HealthKitFHIRExporter {
         }
     }
 
-    /// One fact of a sample's `HKSourceRevision`, as the source-revision extension states it.
+    /// One fact of a sample's `HKSourceRevision` that a policy decides, as the source-revision extension states it.
+    ///
+    /// Any other `HKSource.bundleIdentifier`, such as an application's, is no such fact: the guide lets a policy withhold
+    /// `sourceBundleIdentifier` only where it is a ``deviceBundleIdentifier``, so the extension states every other one.
     public enum SourceFact: Hashable, Sendable, CaseIterable {
         /// `HKSource.name`. For an iPhone or Apple Watch it is the name the person gave the device.
         case name
-        /// `HKSource.bundleIdentifier`, unless it is a ``deviceBundleIdentifier``.
-        case bundleIdentifier
         /// An `HKSource.bundleIdentifier` that is exactly `com.apple.health.` followed by a UUID in the 8-4-4-4-12
         /// hexadecimal form, which HealthKit assigns to one iPhone or Apple Watch.
         ///

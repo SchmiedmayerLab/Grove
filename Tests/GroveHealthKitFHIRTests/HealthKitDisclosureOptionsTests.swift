@@ -246,16 +246,20 @@ struct HealthKitDisclosureOptionsTests {
         #expect(narrowed.json.contains(bundleIdentifier))
     }
 
-    @Test("A custom source policy decides the two bundle identifier facts apart")
-    func customPolicySeparatesBundleIdentifiers() throws {
+    @Test("A custom source policy decides a device's bundle identifier, and an application's travels whenever the extension does")
+    func customPolicyDecidesOnlyTheDeviceBundleIdentifier() throws {
         let device = "com.apple.health.94C8E349-0D09-4184-BF6C-AF11692FA465"
         let application = "com.example.scale"
-        let keepsDevice: (inout Options) -> Void = { $0.source = .custom { $0 == .bundleIdentifier ? .omit : .include } }
-        let keepsApplication: (inout Options) -> Void = { $0.source = .custom { $0 == .deviceBundleIdentifier ? .omit : .include } }
-        #expect(try Self.sourceRevision(bundleIdentifier: device, keepsDevice).members.contains("sourceBundleIdentifier"))
-        #expect(try !Self.sourceRevision(bundleIdentifier: application, keepsDevice).members.contains("sourceBundleIdentifier"))
-        #expect(try !Self.sourceRevision(bundleIdentifier: device, keepsApplication).members.contains("sourceBundleIdentifier"))
-        #expect(try Self.sourceRevision(bundleIdentifier: application, keepsApplication).members.contains("sourceBundleIdentifier"))
+        let omitsDevice: (inout Options) -> Void = { $0.source = .custom { $0 == .deviceBundleIdentifier ? .omit : .include } }
+        let keepsVersion: (inout Options) -> Void = { $0.source = .custom { $0 == .version ? .include : .omit } }
+        #expect(try !Self.sourceRevision(bundleIdentifier: device, omitsDevice).members.contains("sourceBundleIdentifier"))
+        #expect(try Self.sourceRevision(bundleIdentifier: application, omitsDevice).members.contains("sourceBundleIdentifier"))
+        // The guide lets a policy withhold the member only in the device form, or with the whole extension.
+        #expect(try Self.sourceRevision(bundleIdentifier: device, keepsVersion).members == ["version"])
+        #expect(try Self.sourceRevision(bundleIdentifier: application, keepsVersion).members == ["sourceBundleIdentifier", "version"])
+        let none = try Self.sourceRevision(bundleIdentifier: application) { $0.source = .custom { _ in .omit } }
+        #expect(none.members.isEmpty)
+        #expect(!none.json.contains(application))
     }
 
     @Test("A source policy that omits every fact states no source-revision extension")
@@ -269,7 +273,7 @@ struct HealthKitDisclosureOptionsTests {
     @Test("A custom source policy decides each fact")
     func customSource() throws {
         let conversion = try Self.convert(Self.inputs { options in
-            options.source = .custom { $0 == .bundleIdentifier || $0 == .productType ? .include : .omit }
+            options.source = .custom { $0 == .productType ? .include : .omit }
         })
         #expect(try Self.sourceRevisionMembers(of: conversion) == ["sourceBundleIdentifier", "productType"])
         Self.expectNoOmissionReported(conversion)
