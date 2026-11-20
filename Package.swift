@@ -181,7 +181,7 @@ var dependencies: [Package.Dependency] = [
 // references it, so on Linux these were fetched for nothing. firebase-ios-sdk additionally ships no
 // Linux products, which breaks graph loading outright.
 dependencies += [
-    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.1.0"),
+    .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "13.2.0"),
     .package(url: "https://github.com/stephencelis/SQLite.swift.git", .upToNextMinor(from: "0.16.0")),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.6.1")
 ]
