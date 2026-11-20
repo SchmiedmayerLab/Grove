@@ -21,7 +21,8 @@ import SensorKit
 /// The sessions of one device are expected not to overlap in time, so an unfinished session ends when a callback
 /// carries data of another session and none of its own: ``finishPending(supersededBy:)`` then assembles it as a
 /// time-range fetch does. That decision depends only on the order of the callbacks. The caller decides what happens
-/// to the sessions still unfinished when a fetch ends.
+/// to the sessions still unfinished when a fetch ends. A session is delivered once as long as its begin state doesn't
+/// repeat: after the caller starts a new assembly, a repeated begin state starts the session anew.
 ///
 /// The native timestamps are those of the fetch results.
 @available(iOS 17.4, *)
