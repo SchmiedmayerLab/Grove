@@ -178,7 +178,7 @@ For the derived form this is the repository scope's system.
 ### Sync identifiers
 
 A sample's `HKMetadataKeySyncIdentifier` and `HKMetadataKeySyncVersion` name one logical record of its writing application and that record's version.
-Under every option, the primary output carries them as the keyed `writer-record` identifier, scoped to the subject and the source's bundle identifier, and the Grove Writer Record Version extension: an Observation, or the document of a heartbeat series, workout route, clinical record or CDA document. A workout's segments restate both.
+Under every option, the primary output carries them as the keyed `writer-record` identifier, scoped to the subject and the source's bundle identifier, and the Grove Writer Record Version extension: an Observation, or the document of a heartbeat series, workout route, clinical record or CDA document. Every other Observation of the record restates both: a workout's segments and an ECG's average heart rate.
 The keyed identifier links the versions of one logical record without revealing the sync identifier.
 
 ``HealthKitFHIRExporter/Options/syncIdentifier`` discloses the exact sync identifier text.

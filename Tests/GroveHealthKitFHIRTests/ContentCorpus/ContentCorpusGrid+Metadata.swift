@@ -108,7 +108,7 @@ extension ContentCorpusGrid {
 
     /// Keys no path reads, keys one path reads stated on another, and keys a graph has no element for (a document's
     /// zone, manual entry and sync pair), each reported; and what stays silent: manual entry stated false, and a
-    /// correlation member's key the correlation carries with the equal value.
+    /// correlation member's zone, which the correlation rules decide.
     static var unmodeledMetadata: [ContentCorpusVector] {
         func with(_ keys: [String: ContentCorpusMetadataValue]) -> [String: ContentCorpusMetadataValue] {
             zone.merging(keys) { _, new in new }

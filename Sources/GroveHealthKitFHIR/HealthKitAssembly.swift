@@ -137,13 +137,14 @@ struct HealthKitAssembly: Sendable {
         for index in outputs.indices {
             outputs[index].wasUserEntered = facts.wasUserEntered
         }
-        // The primary, an Observation or the record's sole document, states the writer-record identity and its version;
-        // a workout's segments restate them. The readable sync identifier travels on the primary alone.
-        outputs[0].writerRecord = facts.writerRecord
-        if type == .workout {
-            for index in outputs.indices.dropFirst() {
-                outputs[index].writerRecord = facts.writerRecord
+        // Every Observation output and the record's sole document state the writer-record identity and its version: a
+        // workout's segments and an ECG's average heart rate restate the primary's (healthkit mapping.md, logical identity
+        // and revisions). The readable sync identifier travels on the primary alone.
+        for index in outputs.indices {
+            if case .document = outputs[index].resource, index > 0 {
+                continue
             }
+            outputs[index].writerRecord = facts.writerRecord
         }
         let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice, omittedDeviceKeys: disclosure.omittedDeviceKeys)
         let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, policy: options.metadata)
