@@ -885,8 +885,9 @@ extension FetchDelegate {
 
     /// Records that the current batch can end with the samples collected so far, when a fetch from their boundary
     /// reads again whatever the batch leaves out: every unfinished ECG session started after the boundary and, for a
-    /// batch that ends before a result is processed, that result is later than the boundary too. That result confirms
-    /// the batch end; without one it is a candidate.
+    /// batch that ends before a result is processed, that result is later than the boundary too. That result, or a
+    /// result already received after the boundary, confirms the batch end; a batch end at the latest timestamp is a
+    /// candidate.
     ///
     /// The caller must hold `lock`.
     private func recordBatchEnd(before result: SRAbsoluteTime? = nil) {
