@@ -62,8 +62,8 @@ extension HealthKitFHIRExporter {
         /// the only way it reaches the wire. See ``NativeIdentifierDisclosure``.
         ///
         /// ``HealthKitFHIRExporter`` refuses a system that is one of the deployment's identity systems, a system whose
-        /// path cannot be extended and a type that is the `healthkit-sync-id` coding, each with its
-        /// ``HealthKitFHIRExporter/ConfigurationError``.
+        /// path cannot be extended while ``syncIdentifier`` is authorized, and a type that is the `healthkit-sync-id`
+        /// coding, each with its ``HealthKitFHIRExporter/ConfigurationError``.
         public var nativeIdentifier: NativeIdentifierDisclosure = .omit
         /// Discloses the exact `HKMetadataKeySyncIdentifier` text of a sample that carries a sync identifier and version,
         /// on the primary output, as an identifier whose system is the native identifier's system, then
@@ -246,8 +246,9 @@ extension HealthKitFHIRExporter {
 
     /// Discloses the clear HealthKit UUID as an identifier under a system scoped to one participant's HealthKit store.
     ///
-    /// The system must name an authority and have no query and no fragment, as an `https` URL without them does, so
-    /// that the segments of a sync identifier's system extend its path (see ``Options/syncIdentifier``).
+    /// While ``Options/syncIdentifier`` is authorized, the system must name an authority and have no query and no
+    /// fragment, as an `https` URL without them does, so that the segments of a sync identifier's system extend its path.
+    /// A derived system always extends the repository scope's system, which therefore always needs that form.
     public struct NativeIdentifierDisclosure: Hashable, Sendable {
         enum Storage: Hashable, Sendable {
             case omit

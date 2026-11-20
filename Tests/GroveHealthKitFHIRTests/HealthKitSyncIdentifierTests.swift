@@ -333,7 +333,7 @@ struct HealthKitSyncIdentifierTests {
         _ = try ExporterFixtures.exporter(inputs)
     }
 
-    @Test("A native identifier system the sync identifier's path cannot extend is refused at configuration")
+    @Test("A native identifier system the sync identifier's path cannot extend is refused at configuration, and only then")
     func nonExtensibleSystemIsRefused() throws {
         let systems: [IdentifierSystem] = [
             "urn:oid:2.16.840.1.113883.3.1",
@@ -345,6 +345,10 @@ struct HealthKitSyncIdentifierTests {
             #expect(throws: HealthKitFHIRExporter.ConfigurationError.nativeIdentifierSystemNotExtensible(system)) {
                 try ExporterFixtures.exporter(Self.inputs(disclosing: system))
             }
+            // Without the sync identifier, nothing extends the system: the UUID alone may use it.
+            var uuidOnly = Self.inputs(disclosing: system)
+            uuidOnly.options.syncIdentifier = .omit
+            _ = try ExporterFixtures.exporter(uuidOnly)
         }
         _ = try ExporterFixtures.exporter(Self.inputs(disclosing: "https://study.example.org/store/participant-42"))
     }

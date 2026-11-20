@@ -171,7 +171,7 @@ One key and repository scope always yield the same system, and another scope or 
 A retraction issued after the key changed therefore names the UUID under another system than the export did; use an explicit system where retractions must match across a key change.
 `.authorized(system:type:)` states a system you own instead, which must be scoped to one participant's HealthKit store.
 
-Either system must name an authority and have no query and no fragment, as an `https` URL does; the exporter refuses any other, a `urn:oid:` system included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
+A system that is extended by a path must name an authority and have no query and no fragment, as an `https` URL does: the repository scope's system under `.authorized`, and a system you state while ``HealthKitFHIRExporter/Options/syncIdentifier`` is authorized. The exporter refuses any other, a `urn:oid:` system included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
 For the derived form this is the repository scope's system.
 
 ### Sync identifiers
