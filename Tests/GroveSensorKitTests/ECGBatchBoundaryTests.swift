@@ -285,6 +285,7 @@ extension ECGBatchBoundaryTests {
     struct NativeResult: Sendable {
         let groups: [SensorKitECGSession.InputGroup]
         let timestamp: SRAbsoluteTime
+        var sourceDevice: SensorKit.SourceDeviceInfo?
     }
 
     /// The native results of one device, at timestamps a fixed number of seconds after a start.
@@ -336,7 +337,8 @@ extension ECGBatchBoundaryTests {
             defer {
                 continuation.finish()
             }
-            for result in results where !reader.processECGGroupsForTesting(result.groups, timestamp: result.timestamp) {
+            for result in results
+            where !reader.processECGGroupsForTesting(result.groups, timestamp: result.timestamp, sourceDevice: result.sourceDevice) {
                 return
             }
             reader.completeFetchForTesting()
