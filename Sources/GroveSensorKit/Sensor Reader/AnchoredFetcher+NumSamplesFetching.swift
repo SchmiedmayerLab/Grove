@@ -179,7 +179,7 @@ extension AnchoredFetcher {
                       pendingBatch.sampleCount > 0 else {
                     throw SensorKit.QueryAnchorAcknowledgementError.pendingBatchMismatch
                 }
-                delegate.configureBatchSize(pendingBatch.sampleCount)
+                delegate.configurePendingBatchSize(pendingBatch.sampleCount)
             }
             self.fetchCursor = fetchCursor
             isFetching = true
@@ -334,7 +334,10 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     private let logger: Logger
     private let sensor: Sensor<Sample>
     private let deviceInfo: SensorKit.DeviceInfo
-    /// Protected by `lock`; a persisted pending-batch size is installed before native fetching starts.
+    /// The batch size the fetch was created with.
+    private let configuredBatchSize: Int
+    /// The batch size of the next batch: the configured one, or the sample count of a persisted pending batch until
+    /// that batch is delivered. Protected by `lock`.
     nonisolated(unsafe) private var batchSize: Int
     /// Protects all mutable state in the object.
     ///
@@ -412,6 +415,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         self.logger = Logger(subsystem: "org.grovealliance.sensorKit", category: "\(Self.self)")
         self.sensor = sensor
         self.deviceInfo = deviceInfo
+        self.configuredBatchSize = batchSize
         self.batchSize = batchSize
         self.samples.reserveCapacity(batchSize + (batchSize / 5))
         if batchSize <= 0 {
@@ -427,8 +431,9 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         }
     }
 
-    /// Reinstates the exact delivery boundary persisted before a previously yielded batch.
-    func configureBatchSize(_ batchSize: Int) {
+    /// Delivers the first batch with the sample count of a pending batch persisted before it was yielded; the batches
+    /// after it use the configured batch size again.
+    func configurePendingBatchSize(_ batchSize: Int) {
         precondition(batchSize > 0)
         lock.withLock {
             precondition(samples.isEmpty && lastSeenTimestamp == nil)
@@ -587,6 +592,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
         // the boundary again, which brings back the samples and unfinished ECG sessions the batch left out.
         let resultsToProcess = resultsAfterBatchEnd
         startOver(at: batchEnd.boundary)
+        batchSize = configuredBatchSize
         return Resumption(continuation: nextBatchContinuation, delivery: (value, deliveredAnchor), resultsToProcess: resultsToProcess)
     }
 

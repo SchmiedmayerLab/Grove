@@ -33,8 +33,9 @@ struct ECGBatchBoundaryTests {
         #expect(pending.nativeUpperBoundBits == stream.time(10).rawValue.bitPattern)
         // The process ends before the acknowledgement. By the next fetch SensorKit returns the rest and newer data.
         let grown = ended + [stream.result([held[2]], at: 13), stream.result(later, at: 14)]
+        // The restart delivers the pending batch with its sample count, then the rest with the configured batch size.
         let batches = try await Self.fetch(grown, anchor: anchor, batchSize: 10)
-        #expect(batches.map(\.samples) == (try [early, held, later].map(SensorKitECGSession.process)))
+        #expect(batches.map(\.samples) == [try SensorKitECGSession.process(early), try [held, later].flatMap(SensorKitECGSession.process)])
         #expect(batches[0].info.replayToken == first.info.replayToken)
         #expect(batches[0].info.acquisitionBatch == first.info.acquisitionBatch)
         #expect(try anchor.value.nativeTimestamp == stream.time(14).rawValue)
@@ -257,6 +258,22 @@ struct ECGBatchBoundaryTests {
         let batches = try await Self.fetch(results, anchor: anchor, batchSize: 10)
         #expect(batches.map(\.info.replayToken) == [first.info.replayToken])
         #expect(try anchor.value.nativeTimestamp == stream.time(10).rawValue)
+    }
+
+    @Test
+    @available(iOS 18, *)
+    func restartOnAPendingBatchKeepsTheConfiguredBatchSizeAfterIt() async throws {
+        let stream = NativeStream()
+        let results = (1...6).map { stream.result(NativeStream.session("session-\($0)", offset: Double($0) * 10), at: $0) }
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        // A batch of one session is delivered and not acknowledged, so the anchor keeps it pending.
+        let pending = try await Self.firstBatch(of: results, anchor: anchor, batchSize: 1)
+        #expect(pending.samples.count == 1)
+        // The restart delivers the pending batch with its sample count, and the batches after it with the configured
+        // batch size.
+        let batches = try await Self.fetch(results, anchor: anchor, batchSize: 3)
+        #expect(batches.map(\.samples.count) == [1, 3, 2])
+        #expect(batches.first?.info.replayToken == pending.info.replayToken)
     }
 }
 
