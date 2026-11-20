@@ -219,6 +219,7 @@ Guide admission establishes neither converter availability nor participant permi
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+- ``RecordingPayloadAdmission``
 
 ### Recordings
 

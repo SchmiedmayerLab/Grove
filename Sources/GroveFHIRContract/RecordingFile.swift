@@ -131,6 +131,33 @@ public struct RecordingFile: Sendable {
         return try builder.finish()
     }
 
+    /// Stages the bytes `body` produces synchronously, written in chunks of at most 64 KiB.
+    ///
+    /// An error `body` throws or an exceeded byte limit discards the file instead of returning a partial snapshot, and
+    /// `append` refuses every further byte after its first failure.
+    package static func stage(
+        maximumByteCount: Int,
+        producing body: (_ append: (Data) throws -> Void) throws -> Void
+    ) throws -> Self {
+        var builder = try Builder(maximumByteCount: maximumByteCount)
+        var failure: (any Error)?
+        try body { bytes in
+            if let failure {
+                throw failure
+            }
+            do {
+                try builder.append(bytes)
+            } catch {
+                failure = error
+                throw error
+            }
+        }
+        if let failure {
+            throw failure
+        }
+        return try builder.finish()
+    }
+
     /// Reads the bytes in chunks of at most 64 KiB, independently of any other reader.
     ///
     /// Only the current chunk is retained; `consume` controls whether it retains delivered chunks. An error or

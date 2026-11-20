@@ -110,7 +110,7 @@ public struct SensorKitNativeRecording: Sendable {
         format: RegisteredRecordingFormat,
         contentType: String? = nil,
         payload: Payload,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws {
         try self.init(
             title: title,
@@ -131,7 +131,7 @@ public struct SensorKitNativeRecording: Sendable {
         format: RegisteredRecordingFormat,
         contentType: String? = nil,
         payload: Payload,
-        admission: SensorRawPayloadAdmission,
+        admission: RecordingPayloadAdmission,
         validatePayload: (Payload) throws -> Void
     ) throws {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
