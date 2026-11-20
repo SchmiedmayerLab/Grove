@@ -170,7 +170,7 @@ extension HealthKitFHIRExporter {
             } else {
                 nil
             }
-            let omitted = if content != nil, case .workoutRoute = record { exporter.options.route == .omit } else { false }
+            let omitted = content != nil && record.isWorkoutRoute && exporter.options.route == .omit
             self.record = record
             self.content = content
             self.evidence = evidence
@@ -268,6 +268,13 @@ extension HealthKitFHIRExporter {
             return try assembly.convertHeartbeatSeries(series, recording: plan.recordingPayload(), plan: content, request: request)
         case let .workoutRoute(route, _):
             return try assembly.convertWorkoutRoute(route, recording: plan.recordingPayload(), plan: content, request: request)
+        case .fileRecording(let recording):
+            return try assembly.documentGraph(
+                for: recording.sample,
+                plan: content,
+                document: content.recordingDocument().document(recording: recording),
+                request: request
+            )
         }
     }
 
@@ -303,6 +310,14 @@ extension HealthKitFHIRExporter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.Record {
+    var isWorkoutRoute: Bool {
+        switch self {
+        case .workoutRoute: true
+        case .fileRecording(let recording): recording.sample is HKWorkoutRoute
+        default: false
+        }
+    }
+
     /// The correlated symptoms, each a record of its own.
     var symptoms: [HKCategorySample] {
         guard case .electrocardiogram(_, _, let symptoms) = self else {
@@ -319,7 +334,7 @@ extension HealthKitFHIRExporter.Record {
             Result { try content.recordingDocument().beatIntervals(seriesStart: series.startDate, heartbeats: beats) }
         case let .workoutRoute(_, locations):
             Result { try content.recordingDocument().locationTrack(locations) }
-        case .sample, .electrocardiogram:
+        case .sample, .electrocardiogram, .fileRecording:
             nil
         }
     }
