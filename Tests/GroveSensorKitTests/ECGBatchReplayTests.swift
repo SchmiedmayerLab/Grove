@@ -205,6 +205,25 @@ struct ECGBatchReplayTests {
         try await Fixture.expectReplay(of: first, over: grown)
     }
 
+    @Test(arguments: [false, true])
+    @available(iOS 18, *)
+    func replayOfABatchSensorKitNoLongerReturnsIsUnavailable(returnsOtherData: Bool) async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let results = [stream.result(NativeStream.session("first-session"), at: 1), stream.result(NativeStream.session("later-session", offset: 60), at: 2)]
+        let batch = try await Fixture.firstBatch(of: results, anchor: anchor, batchSize: 1)
+        // SensorKit returns nothing after the batch's cursor any more, or only another session.
+        let history = returnsOtherData ? [stream.result(NativeStream.session("other-session", offset: 30), at: 3)] : []
+        let fetcher = Fixture.fetcher(anchor: .ephemeral(anchor: batch.info.replayToken.anchor), batchSize: 1)
+        try fetcher.startNativeFetchForTesting()
+        let feed = Fixture.feed(history, to: fetcher)
+        await #expect(throws: GroveSensorKit.SensorKit.BatchReplayError.batchUnavailable) {
+            _ = try await GroveSensorKit.SensorKit.replayedBatch(of: fetcher)
+        }
+        fetcher.stopForTesting()
+        await feed.value
+    }
+
     @Test
     @available(iOS 18, *)
     func sessionSkippedBeforeADeliveryIsLoggedOnce() async throws {
