@@ -309,14 +309,15 @@ private struct BatchEnd {
 /// Collects the samples of one native fetch into batches.
 ///
 /// A batch ends at a batch end: a number of samples and the largest native timestamp of a result with data received
-/// when the last of them was added, recorded when a fetch from that timestamp would read again everything the batch leaves out. A batch end
-/// is a candidate until a result with a later timestamp or the end of the fetch confirms it; a result with the same or
-/// an earlier timestamp withdraws it, since a fetch from that timestamp would not read the result again. Only a
-/// confirmed batch end is delivered. Batch size, ECG limits and the end of the fetch only decide when the batch is
-/// delivered. After a delivery the delegate starts over as a fetch from the boundary does and processes the retained
-/// results after the boundary again, so its state never depends on where an earlier batch ended. A later fetch that
-/// starts at the same cursor with the batch's sample count as its batch size therefore delivers the same batch,
-/// whatever newer data SensorKit returns by then, as long as SensorKit returns the same results in the same order.
+/// when the last of them was added, recorded when a fetch from that timestamp would read again everything the batch
+/// leaves out. A batch end is a candidate until a result with a later timestamp or the end of the fetch confirms it; a
+/// result with the same or an earlier timestamp withdraws it, since a fetch from that timestamp would not read the
+/// result again. Only a confirmed batch end is delivered. Batch size, ECG limits and the end of the fetch only decide
+/// when the batch is delivered. After a delivery the delegate starts over as a fetch from the boundary does and
+/// processes the retained results after the boundary again, so its state never depends on where an earlier batch ended.
+/// A later fetch that starts at the same cursor with the batch's sample count as its batch size therefore delivers the
+/// same batch, whatever newer data SensorKit returns by then, as long as SensorKit returns the same results in the same
+/// order.
 ///
 /// The cursor is a native timestamp: results are expected in ascending timestamp order, and a fetch is expected to
 /// return only results after its start.
