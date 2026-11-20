@@ -175,5 +175,34 @@ struct ECGBatchReplayTests {
             try await Fixture.expectReplay(of: batch, over: results, limits: limits)
         }
     }
+
+    @Test
+    @available(iOS 18, *)
+    func batchEndThatALaterResultConfirmedIsDeliveredBeforeItGrows() async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let complete = NativeStream.session("complete-session", offset: -60)
+        let unusable = NativeStream.session("unusable-session", offset: -30).map { group in
+            SensorKitECGSession.InputGroup(
+                identifier: group.identifier,
+                state: group.state,
+                guidance: group.guidance,
+                readings: group.readings.map { .init(date: $0.date, frequency: $0.frequency, lead: $0.lead, samples: []) }
+            )
+        }
+        let held = NativeStream.session("held-session")
+        // The second result ends the unusable session, which blocked a batch end after the complete session, without
+        // a sample, and starts the held session. The batch end after the complete session is then already confirmed,
+        // so a replay with its sample count delivers it before the held session can join it.
+        let results = [
+            stream.result(complete + [unusable[0]], at: 1),
+            stream.result(Array(unusable.dropFirst()) + Array(held.prefix(2)), at: 2)
+        ]
+        let first = try await Fixture.firstBatch(of: results, anchor: anchor, batchSize: 100)
+        #expect(first.samples == (try SensorKitECGSession.process(complete)))
+        let grown = results + [stream.result([NativeStream.session("later-session", offset: 60)[0]], at: 3)]
+        try await Fixture.expectReplay(of: first, over: results)
+        try await Fixture.expectReplay(of: first, over: grown)
+    }
 }
 #endif
