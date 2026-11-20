@@ -88,12 +88,15 @@ struct ConformanceFixtureTests {
     /// invariant admits -1 through 1, an IG defect.
     private static let validatedGoldens: Set<String> = [
         "guide-example-heart-rate",
+        "guide-example-source-metadata",
         "high-heart-rate-threshold",
         "workout-session",
         "workout-session-context",
         "writer-non-ascii-name",
         "gad7-assessment",
         "device-metadata-facts",
+        "sync-identifier-disclosure",
+        "heartbeat-series-sync-identifier-disclosure",
         "exporter-default-apple-watch-heart-rate",
         "exporter-default-apple-watch-heart-rate-without-unit-token",
         "exporter-deployment-own-heart-rate",

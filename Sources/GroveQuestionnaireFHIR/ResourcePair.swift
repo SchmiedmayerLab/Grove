@@ -83,6 +83,7 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
 /// Base R4, SDC, and profile validation remain the job of the official validator pipeline.
 /// This preflight is deliberately offline: every terminology resource must be supplied by
 /// the caller, and an unresolved ValueSet fails closed.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PairExpressionEvaluator: Sendable {
     // FHIRPath has three outcomes here: true, false, and the empty collection (`nil`).
     // swiftlint:disable:next discouraged_optional_boolean
@@ -112,6 +113,7 @@ public struct PairExpressionEvaluator: Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct PairValidator: Sendable {
     private let expressionEvaluator: PairExpressionEvaluator?
 
@@ -163,6 +165,7 @@ public struct PairValidator: Sendable {
 
 /// A Questionnaire and QuestionnaireResponse whose canonical, answer structure, and
 /// deterministic acceptance rules have passed Grove preflight.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public struct ResourcePair {
     /// The exact Questionnaire definition that was validated.
     public let questionnaire: ModelsR4.Questionnaire

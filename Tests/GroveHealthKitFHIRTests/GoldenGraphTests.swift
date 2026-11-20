@@ -94,7 +94,15 @@ struct GoldenGraphTests {
     func matchesCheckedInGolden(_ goldenCase: GoldenCase) async throws {
         let output = try await goldenCase.output()
         let actual = try LosslessJSONValue(parsing: output.record.json)
-        let expected = try LosslessJSONValue(parsing: GoldenStore.data(named: goldenCase.name))
+        let expectedBytes: Data
+        do {
+            expectedBytes = try GoldenStore.data(named: goldenCase.name)
+        } catch {
+            let bytes = try GoldenStore.encoder.encode(output.record.graph.bundle)
+            Attachment.record(String(decoding: bytes, as: UTF8.self), named: "actual-\(goldenCase.name).json")
+            throw error
+        }
+        let expected = try LosslessJSONValue(parsing: expectedBytes)
         let outline = try #require(GoldenStore.outlines()[goldenCase.name], "no outline is pinned for \(goldenCase.name)")
 
         #expect(
@@ -109,6 +117,8 @@ struct GoldenGraphTests {
         let mismatches = try output.reportMismatches(identityScope: scope.identityScope, repositoryScope: scope.repositoryScope)
         #expect(mismatches.isEmpty, "\(goldenCase.name) reports what its record does not carry: \(mismatches)")
         if let difference = TokenDiff.firstDifference(expected: expected, actual: actual) {
+            let bytes = try GoldenStore.encoder.encode(output.record.graph.bundle)
+            Attachment.record(String(decoding: bytes, as: UTF8.self), named: "actual-\(goldenCase.name).json")
             Issue.record("\(goldenCase.name) drifted from its golden at \(difference)")
         }
     }
@@ -152,7 +162,11 @@ struct GoldenGraphTests {
 
             try GoldenStore.resources.write(sorted, toFile: "\(goldenCase.name).json")
         }
-        try GoldenStore.resources.write(GoldenStore.encoder.encode(outlines), toFile: "\(GoldenStore.outlinesName).json")
+        let outlineBytes = try GoldenStore.encoder.encode(outlines)
+        try GoldenStore.resources.write(outlineBytes, toFile: "\(GoldenStore.outlinesName).json")
+        if !GoldenStore.resources.isGenerating, try GoldenStore.outlines() != outlines {
+            Attachment.record(String(decoding: outlineBytes, as: UTF8.self), named: "actual-outlines.json")
+        }
         if let directory = GoldenStore.resources.outputDirectory {
             Issue.record("Regenerated \(outlines.count) goldens into \(directory.path) and compared none: copy them into Resources/Goldens and rerun")
         }

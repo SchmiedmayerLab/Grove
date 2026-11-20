@@ -129,6 +129,23 @@ public struct ExchangeBundlePacker: Sendable {
         return unpacked
     }
 
+    /// The exact size of the serialized Bundle, computed without assembling or validating it.
+    ///
+    /// The size includes the Bundle's header, the separators between its entries and the transport identifier. For an
+    /// empty packer, it is the size of a Bundle without entries. Use it while selecting a batch;
+    /// ``bundle(packedAt:transportIdentifier:)`` still validates the completed Bundle.
+    ///
+    /// - Parameters:
+    ///   - packedAt: `Bundle.timestamp`, which enters no identity.
+    ///   - transportIdentifier: `Bundle.identifier`, which names no record and enters no identity.
+    public func bundleByteCount(
+        packedAt: Date,
+        transportIdentifier: BusinessIdentifier? = nil
+    ) throws(ExchangeGraphError) -> Int {
+        let header = try bundleBytes(entries: [], packedAt: packedAt, transportIdentifier: transportIdentifier)
+        return header.count + byteCount + max(0, entries.count - 1)
+    }
+
     /// The Bundle of every packed record, validated as ``ExchangeGraph/init(validating:kind:)`` validates stored bytes.
     ///
     /// - Parameters:
@@ -138,14 +155,22 @@ public struct ExchangeBundlePacker: Sendable {
         packedAt: Date,
         transportIdentifier: BusinessIdentifier? = nil
     ) throws(ExchangeGraphError) -> ExchangeGraph {
+        let bundle = try bundleBytes(entries: entries, packedAt: packedAt, transportIdentifier: transportIdentifier)
+        return try ExchangeGraph(validating: bundle, kind: kind.graphKind)
+    }
+
+    private func bundleBytes(
+        entries: [Data],
+        packedAt: Date,
+        transportIdentifier: BusinessIdentifier?
+    ) throws(ExchangeGraphError) -> Data {
         guard (try? ExchangeInstant.fhirInstant(packedAt)) != nil else {
             throw .invalidEntries("A Bundle's packing instant has no FHIR instant")
         }
-        let bundle = kind.graphKind.bundleBytes(
+        return kind.graphKind.bundleBytes(
             entries: entries,
             timestamp: ExchangeInstant.utcLexeme(packedAt),
             transportIdentifier: transportIdentifier
-        )
-        return try ExchangeGraph(validating: bundle.json, kind: kind.graphKind)
+        ).json
     }
 }

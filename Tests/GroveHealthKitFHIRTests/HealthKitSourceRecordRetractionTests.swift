@@ -28,6 +28,7 @@ struct HealthKitSourceRecordRetractionTests {
         )
         var inputs = ExportInputs()
         inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+        inputs.options.syncIdentifier = .authorized
         let graph = try await ExporterFixtures.retraction(deletion, inputs)
         let provenance = try #require(graph.bundle.entry?.compactMap { $0.resource?.get(if: Provenance.self) }.first)
         try #require(provenance.target.count == 1)

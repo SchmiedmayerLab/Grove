@@ -69,12 +69,12 @@ HealthKit does not say whether a source is an application or a device, so a sour
 The writer is an application snapshot of its own, stating its name, its bundle identifier and the source revision's `HKSourceRevision.version` as its build, while the converting application's snapshot states its marketing version and build.
 So even a sample the running application wrote carries the writer beside the converter as a second application Device; the guide allows either form.
 Only snapshots of equal content are one entry: the writer's host is the converter's host entry when they state the same facts.
-A source that states no writer carries the five facts of its `HKSourceRevision` on the Provenance's source entity instead, in the `healthkit-source-revision` extension.
+A source that states no writer carries the five facts of its `HKSourceRevision` on the Provenance's source entity instead, in the `healthkit-source-revision` extension, each unless ``HealthKitFHIRExporter/Options/source`` omits it.
 A sample the store never held has no revision, so it states neither.
 
-Every non-nil `HKDevice` is a recording Device that `Observation.device` references.
-It states every fact HealthKit supplies: `HKDevice.name` as the user-friendly `deviceName`, `manufacturer`, `model` as `modelNumber`, the hardware, firmware and software versions under their MDC codes, `localIdentifier` as a clear identifier of type `device-local-identifier` under the deployment's own system, and the UDI device identifier in `udiCarrier`.
-A record with an Observation output also takes the sample's device metadata keys: the serial number, and the UDI production identifier in the Grove extension on `udiCarrier`, come only from their keys, and the device name, manufacturer and UDI device identifier keys fill what `HKDevice` leaves absent.
+Every non-nil `HKDevice` is a recording Device, unless the device policy omits every fact it states. Recognizable device metadata also creates a recording Device when `HKDevice` is absent. Observations reference it through `Observation.device`; documents include it in `DocumentReference.author`.
+It states every fact HealthKit supplies that ``HealthKitFHIRExporter/Options/device`` includes, by default all of them: `HKDevice.name` as the user-friendly `deviceName`, `manufacturer`, `model` as `modelNumber`, the hardware, firmware and software versions under their MDC codes, `localIdentifier` as a clear identifier of type `device-local-identifier` under the deployment's own system, and the UDI device identifier in `udiCarrier`.
+Every record also takes the sample's device metadata keys: the serial number, and the UDI production identifier in the Grove extension on `udiCarrier`, come only from their keys, and the device name, manufacturer and UDI device identifier keys fill what `HKDevice` leaves absent.
 
 Every recording Device carries `device-snapshot`, the keyed digest of its complete content, which is the selected Bundle node and fullUrl key.
 Equal content is one snapshot, and a snapshot proves no physical unit.

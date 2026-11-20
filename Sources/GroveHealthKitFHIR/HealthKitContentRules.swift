@@ -107,6 +107,13 @@ enum HealthKitContentRules {
     /// quantity contract whose code is missing here does not compile. Body-mass index is a plain ratio in HealthKit;
     /// `mV` is the ECG claim's voltage unit.
     static let ucumUnits: [String: HKUnit] = [
+        "%": .percent(),
+        "1": .count(),
+        "s": .second(),
+        "kcal/(kg.h)": .kilocalorie().unitDivided(by: .gramUnit(with: .kilo)).unitDivided(by: .hour()),
+        "S": .siemen(),
+        "dB": .decibelHearingLevel(),
+        "lx": .lux(),
         "/min": .count().unitDivided(by: .minute()),
         "Cel": .degreeCelsius(),
         "L": .liter(),
