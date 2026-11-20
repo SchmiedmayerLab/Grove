@@ -31,6 +31,8 @@ struct SensorKitECGAssembly {
     struct Output {
         var sessions: [SensorKitECGSession] = []
         var skippedSessionCount = 0
+        /// Whether the callback carried data of an unfinished session or started one.
+        var addedData = false
     }
 
     private struct Pending {
@@ -98,6 +100,7 @@ struct SensorKitECGAssembly {
             throw SensorKitECGSession.ProcessingError.assemblyCapacityExceeded
         }
         entryCount += addedEntryCount
+        output.addedData = !accepted.isEmpty
         for group in accepted {
             pending[group.identifier, default: Pending(firstTimestamp: timestamp, lastTimestamp: timestamp)].append(group, at: timestamp)
         }

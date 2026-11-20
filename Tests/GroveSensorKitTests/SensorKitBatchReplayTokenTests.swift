@@ -83,6 +83,25 @@ struct SensorKitBatchReplayTokenTests {
         #expect(throws: GroveSensorKit.SensorKit.BatchReplayError.invalidToken) { try token(nativeTimestamp: nil) }
     }
 
+    @Test
+    @available(iOS 18, *)
+    func cancelledReplayThrowsCancellationError() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 7_000)
+        let anchor = QueryAnchor(
+            timestamp: start, batchSequence: 1, pendingBatch: .sampleCount(deliveryTimestamp: start.addingTimeInterval(30), sampleCount: 3)
+        )
+        let token = try GroveSensorKit.SensorKit.BatchReplayToken(sensorIdentifier: Sensor.onWrist.id, deviceProductType: "Watch1,1", anchor: anchor)
+        // The task waits until it is cancelled, so the replay starts in a cancelled task and touches no SensorKit device.
+        let (gate, open) = AsyncStream<Void>.makeStream()
+        let task = Task {
+            for await _ in gate {}
+            _ = try await GroveSensorKit.SensorKit().replay(token, from: Sensor.onWrist)
+        }
+        task.cancel()
+        open.finish()
+        await #expect(throws: CancellationError.self) { try await task.value }
+    }
+
     @Test(arguments: [0, 16_385])
     func invalidTokenSizeIsRejected(bytes: Int) {
         #expect(throws: GroveSensorKit.SensorKit.BatchReplayError.invalidToken) {
