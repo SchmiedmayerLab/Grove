@@ -816,12 +816,14 @@ extension FetchDelegate {
         }
         logSkippedECGSessions(output.skippedSessionCount)
         let sessions = try representations(of: output.sessions)
-        // The batch end after this result stays a candidate until a later result confirms it, so it isn't delivered
-        // here.
         lock.withLock {
             resultsAfterBatchEnd.append(result)
             collect(sessions, at: result.timestamp, sourceDevice: result.sourceDevice, containsNativeSamples: !result.groups.isEmpty)
         }
+        // A batch end at this result's timestamp waits for a later result. One before it, which this result confirmed
+        // by ending the sessions that blocked it, is delivered once full; the delivery processes this retained result
+        // again.
+        try deliverBatchIfFull()
     }
 
     /// Makes room for a result that exceeds the ECG limits: delivers the current batch, or, with no samples
@@ -908,7 +910,9 @@ extension FetchDelegate {
             devices.formUnion(trailingSourceDevices)
         }
         let end = BatchEnd(sampleCount: samples.count, boundary: boundaryTimestamp, sourceDevices: devices)
-        if result != nil {
+        // A result after the boundary confirms the batch end: the one about to be processed, or one already received.
+        // Only a batch end at the latest timestamp waits for a later result.
+        if result != nil || lastSeenTimestamp.map({ $0 > boundaryTimestamp }) == true {
             confirm(end)
         } else {
             candidateBatchEnd = end
