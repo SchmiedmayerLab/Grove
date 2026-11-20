@@ -11,6 +11,7 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
+import GroveFHIRContract
 
 
 /// A content-free SensorKit messages-usage interval summary: counts only, never content or identities.
@@ -154,7 +155,7 @@ public struct SensorKitAccelerometerRecord: Sendable {
         let sampleCount: Int
         let batchCount: Int
 
-        /// Requires every row to carry a timestamp, x, y and z, an unsigned batch identifier and a device.
+        /// Requires every row to carry an unsigned batch identifier; the format's schema guarantees the other columns.
         init(_ reader: RecordingCSVReader) throws {
             guard !reader.rows.isEmpty else {
                 throw SensorKitRecordError.emptySamples
@@ -164,9 +165,6 @@ public struct SensorKitAccelerometerRecord: Sendable {
             var batches: Set<Batch> = []
             for row in reader.rows {
                 let timestamp = try row.requiredNumber("timestamp")
-                _ = try row.requiredNumber("x")
-                _ = try row.requiredNumber("y")
-                _ = try row.requiredNumber("z")
                 guard let identifier = row["identifier"], UInt64(identifier) != nil else {
                     throw RecordingCSVReader.RowValueError.malformedInteger(
                         column: "identifier",
@@ -250,9 +248,7 @@ public struct SensorKitWristTemperatureRecord: Sendable {
             throw SensorKitRecordError.emptySamples
         }
         let instants = try reader.rows.map { row in
-            _ = try row.requiredNumber("value")
-            _ = try row.requiredNumber("errorEstimate")
-            return Date(timeIntervalSince1970: try row.requiredNumber("timestamp"))
+            Date(timeIntervalSince1970: try row.requiredNumber("timestamp"))
         }
         guard let coverageStart = instants.min(), let coverageEnd = instants.max() else {
             throw SensorKitRecordError.emptySamples

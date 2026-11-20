@@ -32,52 +32,38 @@ public struct RecordingCSVWriter: ~Copyable {
 
     /// An error from writing a row.
     public enum WriterError: Error, Equatable {
+        /// The registry publishes no column set for this format.
+        case notTabular(RegisteredRecordingFormat)
         /// The row's field count does not match the declared column count.
         case columnCountMismatch(expected: Int, actual: Int)
         /// A number the registry's decimal form cannot represent.
         case nonFiniteNumber(column: String)
         /// CR is prohibited everywhere in a registered tabular payload, including quoted fields.
         case carriageReturn(column: String)
-        /// The registry publishes no column set for this format.
-        case notTabular(RegisteredRecordingFormat)
+        /// A field violates its column's registered value type or absence rule.
+        case invalidValue(column: String)
     }
 
-    private let columns: [String]
+    private let schema: [RecordingCSVColumn]
     private var bytes: [UInt8] = []
 
-    /// Creates a writer for one closed column set, and writes the header row.
-    public init(columns: [String]) {
-        self.columns = columns
-        appendRow(columns.map(Field.text))
-    }
-
-    /// Creates a writer for the exact column set the registry publishes for a tabular format.
+    /// Creates a writer for a tabular registry format, and writes the header row.
+    ///
+    /// The writer enforces the format's exact columns, value types and absence rules.
     public init(format: RegisteredRecordingFormat) throws(WriterError) {
-        guard let columns = format.csvColumns else {
+        guard let schema = format.csvSchema else {
             throw .notTabular(format)
         }
-        self.init(columns: columns)
+        self.schema = schema
+        Self.encode(schema.map { .text($0.name) }, into: &bytes)
     }
 
     /// Appends one source sample, in source order.
-    public mutating func append(_ fields: [Field]) throws {
-        guard fields.count == columns.count else {
-            throw WriterError.columnCountMismatch(expected: columns.count, actual: fields.count)
-        }
-        // Every field is checked before any is written, so a refused row leaves no partial line behind.
-        for (column, field) in zip(columns, fields) {
-            switch field {
-            case .number(let value) where !value.isFinite:
-                throw WriterError.nonFiniteNumber(column: column)
-            case .timestamp(let date) where !date.timeIntervalSince1970.isFinite:
-                throw WriterError.nonFiniteNumber(column: column)
-            case .text(let value) where value.utf8.contains(0x0D):
-                throw WriterError.carriageReturn(column: column)
-            default:
-                break
-            }
-        }
-        appendRow(fields)
+    ///
+    /// Every field is checked before any is written, so a refused row leaves no partial line behind.
+    public mutating func append(_ fields: [Field]) throws(WriterError) {
+        try Self.validate(fields, schema: schema)
+        Self.encode(fields, into: &bytes)
     }
 
     /// The complete payload.
@@ -85,46 +71,68 @@ public struct RecordingCSVWriter: ~Copyable {
         Data(bytes)
     }
 
-    private mutating func appendRow(_ fields: [Field]) {
+    /// Checks that `fields` form one valid row of `schema`.
+    static func validate(_ fields: [Field], schema: [RecordingCSVColumn]) throws(WriterError) {
+        guard fields.count == schema.count else {
+            throw .columnCountMismatch(expected: schema.count, actual: fields.count)
+        }
+        for (field, column) in zip(fields, schema) {
+            switch field {
+            case .number(let value) where !value.isFinite:
+                throw .nonFiniteNumber(column: column.name)
+            case .timestamp(let date) where !date.timeIntervalSince1970.isFinite:
+                throw .nonFiniteNumber(column: column.name)
+            case .text(let value) where value.utf8.contains(0x0D):
+                throw .carriageReturn(column: column.name)
+            default:
+                break
+            }
+            guard column.admits(text(field)) else {
+                throw .invalidValue(column: column.name)
+            }
+        }
+    }
+
+    /// Appends one encoded row of `fields`, terminated by LF, to `bytes`.
+    static func encode(_ fields: [Field], into bytes: inout [UInt8]) {
         for (index, field) in fields.enumerated() {
             if index > 0 {
                 bytes.append(0x2C)
             }
-            append(field)
+            let value = text(field)
+            // Quote exactly when the value contains a comma, a double quote, or LF. CR is rejected
+            // before encoding because the registered grammar prohibits it even inside quotes.
+            guard needsQuotes(value) else {
+                bytes.append(contentsOf: value.utf8)
+                continue
+            }
+            bytes.append(0x22)
+            for byte in value.utf8 {
+                bytes.append(byte)
+                if byte == 0x22 {
+                    bytes.append(byte)
+                }
+            }
+            bytes.append(0x22)
         }
         bytes.append(0x0A)
     }
 
-    private mutating func append(_ field: Field) {
+    /// The unquoted text of a field.
+    static func text(_ field: Field) -> String {
         switch field {
-        case .absent:
-            break
-        case .integer(let value):
-            bytes.append(contentsOf: String(value).utf8)
-        case .number(let value):
-            bytes.append(contentsOf: Self.number(value).utf8)
-        case .timestamp(let date):
-            bytes.append(contentsOf: Self.number(date.timeIntervalSince1970).utf8)
-        case .text(let value):
-            // Quote exactly when the value contains a comma, a double quote, or LF. CR is rejected
-            // before encoding because the registered grammar prohibits it even inside quotes.
-            guard value.utf8.contains(where: { $0 == 0x2C || $0 == 0x22 || $0 == 0x0A }) else {
-                bytes.append(contentsOf: value.utf8)
-                return
-            }
-            bytes.append(0x22)
-            if value.utf8.contains(0x22) {
-                bytes.append(contentsOf: value.replacingOccurrences(of: "\"", with: "\"\"").utf8)
-            } else {
-                bytes.append(contentsOf: value.utf8)
-            }
-            bytes.append(0x22)
+        case .absent: ""
+        case .text(let value): value
+        case .integer(let value): String(value)
+        // The one locale-independent shortest round-trip algorithm shared by every Swift producer.
+        case .number(let value): String(groveFHIRPlainDecimal: value)
+        case .timestamp(let date): String(groveFHIRPlainDecimal: date.timeIntervalSince1970)
         }
     }
 
-    /// The one locale-independent shortest round-trip algorithm shared by every Swift producer.
-    private static func number(_ value: Double) -> String {
-        String(groveFHIRPlainDecimal: value)
+    /// Whether `value` contains a comma, a double quote or LF, so the registered grammar quotes it.
+    static func needsQuotes(_ value: String) -> Bool {
+        value.utf8.contains { $0 == 0x2C || $0 == 0x22 || $0 == 0x0A }
     }
 }
 

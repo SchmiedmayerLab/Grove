@@ -192,6 +192,23 @@ class SensorSwiftContractTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must declare registry formats"):
                 MODULE.generate(sensor, adapter, registry)
 
+    def test_csv_preserves_types_and_absence_rules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sensor, _, registry = self.write_catalogs(directory)
+            value = json.loads(registry.read_text())
+            column = {"name": "value", "type": "number", "nullable": True}
+            value["formats"]["grove-csv-1"].update({"encoding": "csv", "columns": [column]})
+            registry.write_text(json.dumps(value))
+            generated = MODULE.generate_registry(sensor, registry)
+            self.assertIn('.init(name: "value", type: .number, nullable: true)', generated)
+            self.assertIn("csvSchema?.map(\\.name)", generated)
+            for invalid in [{"type": "arbitrary"}, {"nullable": "true"}]:
+                column.update(invalid)
+                registry.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, "invalid column type or nullability"):
+                    MODULE.generate_registry(sensor, registry)
+                column.update({"type": "number", "nullable": True})
+
     def test_rejects_duplicate_assertions(self):
         with tempfile.TemporaryDirectory() as directory:
             sensor, adapter, registry = self.write_catalogs(
