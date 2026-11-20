@@ -294,7 +294,7 @@ struct HealthKitSyncIdentifierTests {
         }
     }
 
-    @Test("Only the primary output states the readable sync identifier: a workout's segments and an ECG's heart rate do not")
+    @Test("Every Observation states the writer record, and only the primary the readable sync identifier: a workout's segments and an ECG's heart rate do not")
     func childrenStateNoReadableSyncIdentifier() throws {
         let original = GoldenFixtures.workout(withEvents: true, device: GoldenFixtures.watch, userEntered: true)
         let workout = try StoredSampleFixtures.stored(
@@ -315,6 +315,17 @@ struct HealthKitSyncIdentifierTests {
             for child in observations.dropFirst() {
                 #expect(child.identifier?.contains { (try? RoledIdentifier($0)) == nil } == false, "\(conversion.source.typeIdentifier)")
             }
+            // Every Observation output carries the writer-record identity and its version (healthkit mapping.md, logical
+            // identity and revisions), the same on each.
+            let writerRecords = observations.map { observation in
+                observation.identifier?.compactMap { try? RoledIdentifier($0) }.filter { $0.role == .writerRecord } ?? []
+            }
+            #expect(writerRecords.allSatisfy { $0.count == 1 }, "\(conversion.source.typeIdentifier)")
+            #expect(Set(writerRecords.flatMap { $0.map(\.identifier) }).count == 1, "\(conversion.source.typeIdentifier)")
+            #expect(
+                observations.allSatisfy { $0.extension?.filter { $0.url == Canonicals.writerRecordVersion }.count == 1 },
+                "\(conversion.source.typeIdentifier)"
+            )
             #expect(Self.syncIdentifiers(in: conversion).count == 1)
             #expect(conversion.withheldMetadataKeys.isEmpty)
         }
