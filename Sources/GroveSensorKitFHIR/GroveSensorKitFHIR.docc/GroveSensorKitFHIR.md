@@ -251,7 +251,7 @@ The exporter has no retraction: it takes no input that names a record to take ba
 ### Declare native recording bytes
 
 Opaque native bytes can carry identifying or sensitive provider content.
-Creating ``SensorKitNativeRecording`` therefore requires one explicit ``SensorRawPayloadAdmission``: caller-authorized opaque disclosure or verified sanitized input.
+Creating ``SensorKitNativeRecording`` therefore requires one explicit `GroveFHIRContract.RecordingPayloadAdmission`: caller-authorized opaque disclosure or verified sanitized input.
 Grove validates the registered payload grammar but does not sanitize sensitive content. The admission choice is never serialized.
 The registered format determines the media types that the payload is allowed to use, and formats with one representation derive their media type automatically:
 
@@ -278,7 +278,7 @@ A recording that is already stored in a file is attached as a `GroveFHIRContract
 func prepareRotationRecording(
     from sourceURL: URL,
     maximumByteCount: Int,
-    admission: SensorRawPayloadAdmission
+    admission: RecordingPayloadAdmission
 ) throws -> SensorKitNativeRecording {
     let file = try RecordingFile.stage(copying: sourceURL, maximumByteCount: maximumByteCount)
     return try SensorKitNativeRecording(
@@ -357,7 +357,6 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitRecord``
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
-- ``SensorRawPayloadAdmission``
 
 ### Preparing fetched batches
 

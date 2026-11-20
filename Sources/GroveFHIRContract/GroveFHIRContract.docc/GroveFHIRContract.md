@@ -213,6 +213,7 @@ These operations are synchronous disk operations and belong on a background exec
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+- ``RecordingPayloadAdmission``
 
 ### Recordings
 

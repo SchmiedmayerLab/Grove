@@ -99,7 +99,7 @@ extension SensorKitTabularRecording {
             sourceRecordID: SensorKitSourceRecordID,
             title: String,
             sidecarPath: String,
-            admission: SensorRawPayloadAdmission
+            admission: RecordingPayloadAdmission
         ) throws -> SensorKitRecord {
             // The file writer already validated the exact registered grammar, so the override skips a second
             // parse. Summary constructors read the immutable file for clinical facts and enforce every
