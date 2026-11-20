@@ -195,6 +195,12 @@ struct HealthKitContentCompiler {
             let observation = try self.observation(rule, contract: contract, type: type)
             let outputs = [HealthKitOutputSlot.primary(role: contract.id)]
             return HealthKitContentPlan(type, entry: entry, route: .observation(observation), outputs: outputs, metadata: observation.metadataRule)
+        case .food:
+            let contract = try contract(of: row)
+            let content = try HealthKitFoodContent(contract: contract)
+            return HealthKitContentPlan(
+                type, entry: entry, route: .food(content), outputs: [.primary(role: contract.id)]
+            )
         case .electrocardiogram:
             let content = try HealthKitECGContent(sourceType: type)
             let outputs = [content.waveformSlot, content.averageHeartRateSlot]

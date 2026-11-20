@@ -89,7 +89,7 @@ A record has no sequence and no event: its identity is its content.
 A conversion Provenance's entry key is the record version, a keyed digest of the source record, the Provenance and the outputs in target order, over their canonical JSON tokens, and the Provenance repeats it in its `grove-record-version` extension.
 An exact retry repeats the version.
 Any other content, a later `Provenance.recorded` included, is a new version of the same source record; a receiver keeps every version and selects the current one.
-Each record of an ECG, the ECG and each correlated symptom, is a record of its own.
+Each record of an ECG, the ECG and each correlated symptom, is a record of its own, and so is each member of a food correlation.
 
 ## Configuring opaque identities
 
