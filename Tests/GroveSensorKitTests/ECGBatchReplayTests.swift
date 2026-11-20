@@ -191,9 +191,9 @@ struct ECGBatchReplayTests {
             )
         }
         let held = NativeStream.session("held-session")
-        // The second result ends the unusable session, which blocked a batch end after the complete session, without
-        // a sample, and starts the held session. The batch end after the complete session is then already confirmed,
-        // so a replay with its sample count delivers it before the held session can join it.
+        // The second result ends the unusable session without a sample, which removes the block on the batch end
+        // after the complete session, and starts the held session. That batch end is then already confirmed, so a
+        // replay with its sample count delivers it before the held session can join it.
         let results = [
             stream.result(complete + [unusable[0]], at: 1),
             stream.result(Array(unusable.dropFirst()) + Array(held.prefix(2)), at: 2)
