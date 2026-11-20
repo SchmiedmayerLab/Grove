@@ -29,11 +29,13 @@ public protocol SensorKitTabularSample: SensorKitSampleSafeRepresentation {
 
 /// A complete registry-conformant tabular payload prepared from already-fetched SensorKit values.
 public struct SensorKitTabularRecording: Sendable {
-    private enum StructuredProjection: Sendable {
+    enum StructuredProjection: Sendable {
         case accelerometer
         case wristTemperature(algorithmVersion: String)
         case none
     }
+
+    static let wristTemperatureSourceToken = "SRSensor.wristTemperature"
 
     public let sourceToken: String
     public let format: RegisteredRecordingFormat
@@ -70,21 +72,13 @@ public struct SensorKitTabularRecording: Sendable {
         var writer = try Self.writer(for: .wristTemperatureSamples)
         let temperatures = Array(session.temperatures)
         for sample in temperatures {
-            try writer.append([
-                .timestamp(sample.timestamp),
-                .number(sample.value.converted(to: .celsius).value),
-                .number(sample.errorEstimate.converted(to: .celsius).value),
-                .text(try Self.condition(sample.condition))
-            ])
+            try writer.append(Self.wristTemperatureFields(sample))
         }
         let data = writer.data()
-        var evidence = Data()
-        var versionLength = UInt64(session.version.utf8.count).bigEndian
-        withUnsafeBytes(of: &versionLength) { evidence.append(contentsOf: $0) }
-        evidence.append(contentsOf: session.version.utf8)
+        var evidence = Self.wristTemperatureEvidencePrefix(version: session.version)
         evidence.append(data)
         try self.init(
-            sourceToken: "SRSensor.wristTemperature",
+            sourceToken: Self.wristTemperatureSourceToken,
             format: .wristTemperatureSamples,
             data: data,
             intervals: temperatures.map { $0.timestamp..<$0.timestamp },
@@ -107,34 +101,13 @@ public struct SensorKitTabularRecording: Sendable {
             payload: location.payload(bytes: data),
             admission: admission
         ) { _ in }
-        switch structuredProjection {
-        case .accelerometer:
-            if let accelerometerSummary {
-                return .accelerometer(SensorKitAccelerometerRecord(
-                    sourceRecordID: sourceRecordID,
-                    nativeRecording: nativeRecording,
-                    summary: accelerometerSummary
-                ))
-            }
-            // The rows state no summary; reading them again reports why.
-            return .accelerometer(try SensorKitAccelerometerRecord(
-                sourceRecordID: sourceRecordID,
-                nativeRecording: nativeRecording
-            ))
-        case .wristTemperature(let algorithmVersion):
-            return .wristTemperature(try SensorKitWristTemperatureRecord(
-                sourceRecordID: sourceRecordID,
-                algorithmVersion: algorithmVersion,
-                nativeRecording: nativeRecording
-            ))
-        case .none:
-            return .raw(try SensorKitRawRecord(
-                sourceRecordID: sourceRecordID,
-                sourceToken: sourceToken,
-                effectivePeriod: effectivePeriod,
-                nativeRecording: nativeRecording
-            ))
-        }
+        return try structuredProjection.record(
+            sourceRecordID: sourceRecordID,
+            nativeRecording: nativeRecording,
+            sourceToken: sourceToken,
+            effectivePeriod: effectivePeriod,
+            accelerometerSummary: accelerometerSummary
+        )
     }
 
     private init(
@@ -179,6 +152,24 @@ public struct SensorKitTabularRecording: Sendable {
     }
 
     @available(iOS 17, *)
+    static func wristTemperatureFields(_ sample: SRWristTemperature) throws -> [RecordingCSVWriter.Field] {
+        [
+            .timestamp(sample.timestamp),
+            .number(sample.value.converted(to: .celsius).value),
+            .number(sample.errorEstimate.converted(to: .celsius).value),
+            .text(try condition(sample.condition))
+        ]
+    }
+
+    static func wristTemperatureEvidencePrefix(version: String) -> Data {
+        var evidence = Data()
+        var versionLength = UInt64(version.utf8.count).bigEndian
+        withUnsafeBytes(of: &versionLength) { evidence.append(contentsOf: $0) }
+        evidence.append(contentsOf: version.utf8)
+        return evidence
+    }
+
+    @available(iOS 17, *)
     private static func condition(_ condition: SRWristTemperature.Condition) throws -> String {
         let known = SRWristTemperature.Condition.offWrist.rawValue
             | SRWristTemperature.Condition.onCharger.rawValue
@@ -194,6 +185,46 @@ public struct SensorKitTabularRecording: Sendable {
         if condition.contains(.onCharger) { values.append("onCharger") }
         if condition.contains(.inMotion) { values.append("inMotion") }
         return values.joined(separator: ",")
+    }
+}
+
+
+extension SensorKitTabularRecording.StructuredProjection {
+    func record(
+        sourceRecordID: SensorKitSourceRecordID,
+        nativeRecording: SensorKitNativeRecording,
+        sourceToken: String,
+        effectivePeriod: DateInterval,
+        accelerometerSummary: SensorKitAccelerometerRecord.Summary? = nil
+    ) throws -> SensorKitRecord {
+        switch self {
+        case .accelerometer:
+            if let accelerometerSummary {
+                return .accelerometer(SensorKitAccelerometerRecord(
+                    sourceRecordID: sourceRecordID,
+                    nativeRecording: nativeRecording,
+                    summary: accelerometerSummary
+                ))
+            }
+            // The rows state no summary; reading them again reports why.
+            return .accelerometer(try SensorKitAccelerometerRecord(
+                sourceRecordID: sourceRecordID,
+                nativeRecording: nativeRecording
+            ))
+        case .wristTemperature(let algorithmVersion):
+            return .wristTemperature(try SensorKitWristTemperatureRecord(
+                sourceRecordID: sourceRecordID,
+                algorithmVersion: algorithmVersion,
+                nativeRecording: nativeRecording
+            ))
+        case .none:
+            return .raw(try SensorKitRawRecord(
+                sourceRecordID: sourceRecordID,
+                sourceToken: sourceToken,
+                effectivePeriod: effectivePeriod,
+                nativeRecording: nativeRecording
+            ))
+        }
     }
 }
 

@@ -218,21 +218,21 @@ extension SensorKitConverter {
     }
 
     static func attachment(_ recording: SensorKitNativeRecording) throws -> Attachment {
-        guard let size = Int32(exactly: recording.bytes.count) else {
+        guard let size = Int32(exactly: recording.byteCount) else {
             throw SensorKitConversionError.payloadTooLarge(
-                byteCount: recording.bytes.count
+                byteCount: recording.byteCount
             )
         }
         var attachment = Attachment(
             contentType: recording.contentType.asFHIRStringPrimitive(),
-            hash: FHIRPrimitive(Base64Binary(with: recording.bytes.attachmentSHA1)),
+            hash: FHIRPrimitive(Base64Binary(with: recording.attachmentSHA1)),
             size: FHIRPrimitive(FHIRUnsignedInteger(size)),
             title: recording.title.asFHIRStringPrimitive()
         )
         switch recording.payload {
         case .inline(let data):
             attachment.data = FHIRPrimitive(Base64Binary(with: data))
-        case .sidecar(let path, _):
+        case .sidecar(let path, _), .file(let path, _):
             attachment.url = FHIRPrimitive(FHIRURI(stringLiteral: path))
         }
         return attachment

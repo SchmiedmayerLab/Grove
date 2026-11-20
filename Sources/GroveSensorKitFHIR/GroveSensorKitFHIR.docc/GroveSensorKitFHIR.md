@@ -252,7 +252,7 @@ The exporter has no retraction: it takes no input that names a record to take ba
 
 Opaque native bytes can carry identifying or sensitive provider content.
 Creating ``SensorKitNativeRecording`` therefore requires one explicit ``SensorRawPayloadAdmission``: caller-authorized opaque disclosure or verified sanitized input.
-Grove does not inspect or sanitize those bytes, and the admission choice is never serialized.
+Grove validates the registered payload grammar but does not sanitize sensitive content. The admission choice is never serialized.
 The registered format determines the media types that the payload is allowed to use, and formats with one representation derive their media type automatically:
 
 ```swift
@@ -269,6 +269,59 @@ Some registry formats admit more than one exact media type.
 A producer can use such a format only when its generated adapter row admits that format, and it must then supply one of the registered media types explicitly.
 Construction rejects an unregistered media type and does not infer a FHIR release from payload bytes.
 If the source payload already is a complete R4 `collection` Bundle, declare the registry's `fhir-collection-bundle` format; its initializer validates that envelope before conversion.
+
+### File-backed sidecars
+
+A recording that is already stored in a file is attached as a `GroveFHIRContract.RecordingFile` snapshot, which validation, hashing, conversion and later readers all use, even if the original file changes or is removed:
+
+```swift
+func prepareRotationRecording(
+    from sourceURL: URL,
+    maximumByteCount: Int,
+    admission: SensorRawPayloadAdmission
+) throws -> SensorKitNativeRecording {
+    let file = try RecordingFile.stage(copying: sourceURL, maximumByteCount: maximumByteCount)
+    return try SensorKitNativeRecording(
+        title: "Rotation recording",
+        format: .triaxialRotationSamples,
+        payload: .file(path: "recordings/rotation.csv", contents: file),
+        admission: admission
+    )
+}
+```
+
+A file payload states the same relative URL, size and SHA-1 attachment checksum as a Data sidecar, and it embeds neither the bytes nor a local path. Validation and summaries read every row, so call them from a background executor, including for Data payloads.
+
+| Payload | Validation and summary memory |
+| --- | --- |
+| Registered CSV | Incremental parsing, with at most 4 MiB per encoded row and 1 MiB per decoded field. An accelerometer summary counts the distinct batches in memory, at most 1,000,000 per recording (about 16 MiB); a recording that states more is refused. |
+| JSON and PPG | Complete decoding, limited to 64 MiB before allocation. A larger payload is refused. |
+| Clinical documents | Byte-preserved; Grove does not decode the issuing document format. |
+
+The limits apply to Data and file payloads alike, and no path truncates bytes or splits a recording to satisfy one.
+
+### Generate a tabular recording directly into a file
+
+``SensorKitTabularRecording/File`` consumes a sample sequence once with the field mapping of ``SensorKitTabularRecording`` and writes the CSV directly into a recording file, so its bytes, retry evidence and FHIR output equal those of the Data representation:
+
+```swift
+let recording = try SensorKitTabularRecording.File(
+    samples: batch.samples,
+    deviceProductType: batch.info.device.productType,
+    maximumByteCount: recordingByteBudget
+)
+var retryHasher = SHA256()
+try recording.readRetryEvidenceChunks { retryHasher.update(data: $0) }
+let record = try recording.sensorKitRecord(
+    sourceRecordID: sourceRecordID,
+    title: "Accelerometer",
+    sidecarPath: sidecarPath,
+    admission: .callerAuthorizedOpaquePayload
+)
+try recording.file.readChunks { try destination.write(contentsOf: $0) }
+```
+
+For a wrist-temperature session, `readRetryEvidenceChunks` includes the algorithm-version prefix, which the sidecar bytes don't. Disk, batch-limit, byte-budget and cancellation failures are not clinical refusals: they abort publication and leave the batch available for a retry.
 
 ### What converts
 
@@ -309,6 +362,7 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 ### Preparing fetched batches
 
 - ``SensorKitTabularRecording``
+- ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
 - ``SensorKitRecordingLocation``
