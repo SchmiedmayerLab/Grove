@@ -215,6 +215,10 @@ extension AnchoredFetcher {
             delegate.processECGGroups(groups, timestamp: timestamp, sourceDevice: sourceDevice)
         }
 
+        func loggedSkippedECGSessionCountForTesting() -> Int {
+            delegate.loggedSkippedECGSessionCount()
+        }
+
         func stopForTesting() {
             delegate.stop()
         }
@@ -285,6 +289,8 @@ private struct ECGResult {
     let groups: [SensorKitECGSession.InputGroup]
     let timestamp: SRAbsoluteTime
     let sourceDevice: SensorKit.SourceDeviceInfo?
+    /// The zero-based order in which the result arrived in the native fetch.
+    let number: Int
 }
 
 
@@ -383,6 +389,14 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
     /// The largest native timestamp of a result with data in this fetch, or the boundary of the last delivered batch.
     /// An ECG result that carries no data of a session the fetch is assembling doesn't count.
     nonisolated(unsafe) private var lastSeenTimestamp: SRAbsoluteTime?
+    /// The number of ECG results received in this native fetch.
+    nonisolated(unsafe) private var receivedECGResultCount = 0
+    /// The last step of ECG processing whose skipped sessions were logged: `2 * number` of its result for the sessions
+    /// it supersedes, `2 * number + 1` for the sessions it adds, or `.max` for the end of the fetch. Processing a result
+    /// again, after a delivery or to make room, repeats logged steps.
+    nonisolated(unsafe) private var lastLoggedECGStep = -1
+    /// The skipped ECG sessions logged in this native fetch, for tests.
+    nonisolated(unsafe) private var skippedECGSessionLogCount = 0
     
     private let semaphore = DispatchSemaphore(value: 0)
     nonisolated(unsafe) private var nextBatchContinuation: CheckedContinuation<Delivery, any Error>?
@@ -611,7 +625,7 @@ private final class FetchDelegate<Sample: SensorKitSampleProtocol>: NSObject, SR
                 throw SensorKitECGSession.ProcessingError.inconsistentSession
             }
             let groups = SRElectrocardiogramSample.inputGroups(native)
-            try process(ECGResult(groups: groups, timestamp: timestamp, sourceDevice: fetchResult.sourceDevice))
+            try process(receivedECGResult(groups, at: timestamp, sourceDevice: fetchResult.sourceDevice))
         }
     }
 
@@ -684,7 +698,18 @@ extension FetchDelegate {
         sourceDevice: SensorKit.SourceDeviceInfo?
     ) -> Bool {
         processResult {
-            try process(ECGResult(groups: groups, timestamp: timestamp, sourceDevice: sourceDevice))
+            try process(receivedECGResult(groups, at: timestamp, sourceDevice: sourceDevice))
+        }
+    }
+
+    private func receivedECGResult(
+        _ groups: [SensorKitECGSession.InputGroup], at timestamp: SRAbsoluteTime, sourceDevice: SensorKit.SourceDeviceInfo?
+    ) -> ECGResult {
+        lock.withLock {
+            defer {
+                receivedECGResultCount += 1
+            }
+            return ECGResult(groups: groups, timestamp: timestamp, sourceDevice: sourceDevice, number: receivedECGResultCount)
         }
     }
 
@@ -806,7 +831,7 @@ extension FetchDelegate {
             recordBatchEnd(before: result.timestamp)
             return output
         }
-        logSkippedECGSessions(superseded.skippedSessionCount)
+        logSkippedECGSessions(superseded.skippedSessionCount, atStep: 2 * result.number)
         if try deliverBatchIfFull() {
             // The delivery started over with the retained results, so the result is processed from its start against
             // them. Each round delivers a batch, so this ends.
@@ -825,7 +850,7 @@ extension FetchDelegate {
             try process(result)
             return
         }
-        logSkippedECGSessions(output.skippedSessionCount)
+        logSkippedECGSessions(output.skippedSessionCount, atStep: 2 * result.number + 1)
         let sessions = try representations(of: output.sessions)
         lock.withLock {
             resultsAfterBatchEnd.append(result)
@@ -877,7 +902,7 @@ extension FetchDelegate {
         }
         let finished = ecgAssembly.finishPending()
         append(try representations(of: finished.sessions))
-        logSkippedECGSessions(finished.skippedSessionCount)
+        logSkippedECGSessions(finished.skippedSessionCount, atStep: .max)
     }
 
     private func representations(of sessions: [SensorKitECGSession]) throws -> [Sample.SafeRepresentation] {
@@ -959,8 +984,22 @@ extension FetchDelegate {
         }
     }
 
-    private func logSkippedECGSessions(_ count: Int) {
-        if count > 0 {
+    /// The skipped ECG sessions logged in this native fetch, for tests.
+    func loggedSkippedECGSessionCount() -> Int {
+        lock.withLock { skippedECGSessionLogCount }
+    }
+
+    /// Logs the sessions skipped at `step`, unless processing a result again repeats a logged step.
+    private func logSkippedECGSessions(_ count: Int, atStep step: Int) {
+        let isNew = lock.withLock {
+            guard step > lastLoggedECGStep else {
+                return false
+            }
+            lastLoggedECGStep = step
+            skippedECGSessionLogCount += count
+            return true
+        }
+        if isNew, count > 0 {
             logger.notice("Skipped \(count, privacy: .public) unusable ECG sessions")
         }
     }
