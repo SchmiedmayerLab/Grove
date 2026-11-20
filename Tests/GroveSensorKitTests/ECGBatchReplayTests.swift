@@ -207,6 +207,35 @@ struct ECGBatchReplayTests {
 
     @Test
     @available(iOS 18, *)
+    func sessionSkippedBeforeADeliveryIsLoggedOnce() async throws {
+        let stream = NativeStream()
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: stream.start)
+        let unusable = NativeStream.session("unusable-session", offset: -30).map { group in
+            SensorKitECGSession.InputGroup(
+                identifier: group.identifier,
+                state: group.state,
+                guidance: group.guidance,
+                readings: group.readings.map { .init(date: $0.date, frequency: $0.frequency, lead: $0.lead, samples: []) }
+            )
+        }
+        // The second result skips the unusable session and confirms the batch end before it, so the batch is delivered
+        // and the fetch processes that result again, where it skips the session's fragments a second time.
+        let results = [
+            stream.result(NativeStream.session("complete-session", offset: -60) + [unusable[0]], at: 1),
+            stream.result(Array(unusable.dropFirst()) + Array(NativeStream.session("held-session").prefix(2)), at: 2)
+        ]
+        let fetcher = Fixture.fetcher(anchor: anchor, batchSize: 1)
+        try fetcher.startNativeFetchForTesting()
+        let feed = Fixture.feed(results, to: fetcher)
+        while let batch = try await fetcher.next(isolation: nil) {
+            try await batch.acknowledge()
+        }
+        await feed.value
+        #expect(fetcher.loggedSkippedECGSessionCountForTesting() == 1)
+    }
+
+    @Test
+    @available(iOS 18, *)
     func resultWithoutSessionDataDoesNotMoveAFinishedSessionsBoundary() async throws {
         // The results are older than the hold cutoff, so the end of a fetch finishes an unfinished session.
         let stream = NativeStream(start: Date.now.addingTimeInterval(-26 * 3600))
