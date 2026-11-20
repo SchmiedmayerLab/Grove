@@ -8,12 +8,30 @@
 
 public import Foundation
 import GroveFoundation
+import OSLog
 public import SensorKit
 
 
 /// An ECG Session recorded by SensorKit.
 @available(iOS 17.4, *)
 public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
+    /// Why an ECG session could not be assembled.
+    ///
+    /// Only ``assemblyCapacityExceeded`` reaches a caller: it fails an anchored, sample-count ECG fetch without
+    /// advancing its cursor. The other cases name why a session is skipped: a time-range fetch skips such a session, and
+    /// an anchored fetch skips it and counts it in its log, so one unusable session never blocks the sessions after it.
+    public enum ProcessingError: Error, Equatable, Sendable {
+        /// A session lacks its begin or active state, or its voltage samples (or, where one is required, its end state).
+        case incompleteSession
+        /// A session states one state more than once, mixes frequencies, leads or guidance, or has no identifier.
+        case inconsistentSession
+        /// A session's start, frequency or sample dates are not finite, or two samples share a date.
+        case invalidTiming
+        /// The sessions of one unacknowledged batch exceed the ``SensorKitECGProcessingLimits``. Retry the fetch with
+        /// larger limits; the cursor stays where it was.
+        case assemblyCapacityExceeded
+    }
+
     /// A Batch of voltage samples that are associated with the same time offset.
     public struct Batch: Hashable, Sendable {
         /// A voltage sample.
@@ -112,56 +130,36 @@ public struct SensorKitECGSession: SensorKitSampleSafeRepresentation {
 extension SRElectrocardiogramSample: SensorKitSampleProtocol {
     public static func processIntoSafeRepresentation(
         _ samples: some Sequence<(timestamp: Date, sample: SRElectrocardiogramSample)>
-    ) -> [SensorKitECGSession] {
-        let samplesBySession = Dictionary(grouping: samples.lazy.map(\.sample), by: \.session)
-        guard !samplesBySession.isEmpty || samplesBySession.contains(where: { !$0.value.isEmpty }) else {
-            return []
+    ) throws -> [SensorKitECGSession] {
+        // A time-range fetch keeps a session without its end state and skips one without its begin state or voltage
+        // samples, or with inconsistent facts; the anchored assembly logs its skips the same way.
+        let groups = inputGroups(samples)
+        let sessions = SensorKitECGSession.processLeniently(groups)
+        let skipped = Set(groups.map(\.identifier)).count - sessions.count
+        if skipped > 0 {
+            Logger(subsystem: "org.grovealliance.sensorKit", category: "SensorKitECGSession")
+                .notice("Skipped \(skipped, privacy: .public) unusable ECG sessions")
         }
-        // NOTE: it seems that an `SRElectrocardiogramSession` object does not, as one might intuitively expect,
-        // correspond to a single session for which the ECG sensor was active.
-        // Instead, there will be multiple `SRElectrocardiogramSession` objects for a single logical session
-        // (they will all have the same `identifier`), each representing a different state of the session.
-        let sessionsByIdentifier = Dictionary(grouping: samplesBySession.keys, by: \.identifier)
-        let safeSessions = sessionsByIdentifier.compactMap { identifier, sessions -> SensorKitECGSession? in
-            guard let beginSession = sessions.first(where: { $0.state == .begin }),
-                  let activeSession = sessions.first(where: { $0.state == .active }) else {
-                return nil
-            }
-            assert(
-                sessions.compactMapIntoSet { samplesBySession[$0]?.reduce(0) { $0 + $1.data.count } }.count { $0 > 0 } == 1
-            ) // only one session should have samples?
-            guard let samples = samplesBySession[activeSession]?.sorted(using: KeyPathComparator(\.date)), !samples.isEmpty else {
-                return nil
-            }
-            assert(samples.mapIntoSet(\.lead).count == 1) // all samples should have same frequency?
-            assert(samples.mapIntoSet(\.frequency).count == 1) // all samples should have same frequency?
-            assert(samples.mapIntoSet(\.date).count == samples.count)
-            // swiftlint:disable:next force_unwrapping
-            let startDate = samplesBySession[beginSession]?.min(of: \.date) ?? samples.first!.date // we just sorted samples by date.
-            return SensorKitECGSession(
-                startDate: startDate,
-                sessionIdentifier: identifier,
-                sessionStates: sessions.map(\.state),
-                frequency: samples.first!.frequency, // swiftlint:disable:this force_unwrapping
-                lead: samples.first!.lead, // swiftlint:disable:this force_unwrapping
-                guidance: activeSession.sessionGuidance,
-                batches: samples.map { (sample: SRElectrocardiogramSample) -> SensorKitECGSession.Batch in
-                    SensorKitECGSession.Batch(
-                        offset: sample.date.timeIntervalSince(startDate),
+        return sessions
+    }
+
+    static func inputGroups(
+        _ samples: some Sequence<(timestamp: Date, sample: SRElectrocardiogramSample)>
+    ) -> [SensorKitECGSession.InputGroup] {
+        Dictionary(grouping: samples.lazy.map(\.sample), by: \.session).map { session, samples in
+            SensorKitECGSession.InputGroup(
+                identifier: session.identifier,
+                state: session.state,
+                guidance: session.sessionGuidance,
+                readings: samples.map { sample in
+                    SensorKitECGSession.InputReading(
+                        date: sample.date,
+                        frequency: sample.frequency,
+                        lead: sample.lead,
                         samples: sample.data.map(SensorKitECGSession.Batch.VoltageSample.init)
                     )
                 }
             )
         }
-        return safeSessions.sorted {
-            ($0.startDate, $0.sessionIdentifier) < ($1.startDate, $1.sessionIdentifier)
-        }
-    }
-}
-
-
-extension Sequence {
-    func min<T: Comparable>(of keyPath: KeyPath<Element, T>) -> T? {
-        self.min { $0[keyPath: keyPath] < $1[keyPath: keyPath] }?[keyPath: keyPath]
     }
 }

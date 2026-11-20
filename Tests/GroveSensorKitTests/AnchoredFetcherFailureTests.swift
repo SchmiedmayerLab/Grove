@@ -39,7 +39,24 @@ private final class PassingSample: NSObject, SensorKitSampleProtocol {
     }
 }
 
-@Suite("Anchored fetch failure handling")
+/// A sample whose safe representation exists only when it is usable.
+private final class SelectiveSample: NSObject, SensorKitSampleProtocol {
+    typealias SafeRepresentation = AnchoredFetcherSafeSample
+
+    let isUsable: Bool
+
+    init(isUsable: Bool) {
+        self.isUsable = isUsable
+    }
+
+    static func processIntoSafeRepresentation(
+        _ samples: some Sequence<(timestamp: Date, sample: SelectiveSample)>
+    ) -> [AnchoredFetcherSafeSample] {
+        samples.filter(\.sample.isUsable).map { AnchoredFetcherSafeSample(timeRange: $0.timestamp..<$0.timestamp) }
+    }
+}
+
+@Suite("Anchored fetch failure handling", .timeLimit(.minutes(1)))
 struct AnchoredFetcherFailureTests {
     @Test("Native sample materialization exceptions become fetch errors")
     @available(iOS 18, *)
@@ -292,6 +309,8 @@ struct AnchoredFetcherFailureTests {
             for sourceDevice in [peripherals[0], peripherals[1], peripherals[0]] {
                 _ = reader.processForTesting(sample: PassingSample(), timestamp: timestamp, sourceDevice: sourceDevice)
             }
+            // The results share one timestamp, so the end of the fetch confirms the batch.
+            reader.completeFetchForTesting()
         }
         let batch = try #require(try await fetcher.next(isolation: nil))
         await results.value
@@ -318,11 +337,100 @@ struct AnchoredFetcherFailureTests {
             for sourceDevice in [peripheral, nil] {
                 _ = reader.processForTesting(sample: PassingSample(), timestamp: timestamp, sourceDevice: sourceDevice)
             }
+            reader.completeFetchForTesting()
         }
         let batch = try #require(try await fetcher.next(isolation: nil))
         await results.value
         #expect(batch.info.sourceDevices == [peripheral])
         #expect(!batch.info.sourceDevicesSuppliedEverySample)
+    }
+
+    @Test("A sample-count batch ends at its last sample, and a fetch without samples keeps the cursor")
+    @available(iOS 18, *)
+    func sampleCountBoundaryIsTheLastSample() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_975)
+        let origin = SRAbsoluteTime(start)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let sensor = Sensor<SelectiveSample>(
+            srSensor: .ambientLightSensor, displayName: "Selective test sensor", dataQuarantineDuration: .zero, sensorKitFetchReturnType: .object
+        )
+        func fetch(_ results: [(isUsable: Bool, seconds: Double)]) async throws -> SensorKit.AnchoredBatch<AnchoredFetcherSafeSample>? {
+            let fetcher = AnchoredFetcher<SelectiveSample>.SampleCountBasedFetcher(
+                sensor: sensor, batchSize: 10, anchor: anchor, device: .current, startFetch: { _, _ in }
+            )
+            try fetcher.startNativeFetchForTesting()
+            for result in results {
+                let timestamp = SRAbsoluteTime(rawValue: origin.rawValue + result.seconds)
+                #expect(fetcher.processForTesting(sample: SelectiveSample(isUsable: result.isUsable), timestamp: timestamp))
+            }
+            // The completion parks its thread until a consumer asks for the batch, so it runs on a thread of its own.
+            nonisolated(unsafe) let reader = fetcher
+            let (completed, continuation) = AsyncStream<Void>.makeStream()
+            Thread.detachNewThread {
+                reader.completeFetchForTesting()
+                continuation.finish()
+            }
+            let batch = try await fetcher.next(isolation: nil)
+            for await _ in completed {}
+            return batch
+        }
+        // The result without a sample follows the batch's last sample, so it stays after the boundary.
+        let batch = try #require(try await fetch([(true, 1), (false, 2)]))
+        #expect(batch.samples.count == 1)
+        try await batch.acknowledge()
+        #expect(try anchor.value.nativeTimestamp == origin.rawValue + 1)
+        #expect(try await fetch([(false, 2)]) == nil)
+        #expect(try anchor.value.nativeTimestamp == origin.rawValue + 1)
+        #expect(try anchor.value.pendingBatch == nil)
+    }
+
+    @Test("A full sample-count batch holds every result at its boundary's timestamp")
+    @available(iOS 18, *)
+    func fullBatchHoldsEveryResultAtItsBoundaryTimestamp() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_975)
+        let origin = SRAbsoluteTime(start)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let fetcher = Self.selectiveFetcher(anchor: anchor, batchSize: 1)
+        try fetcher.startNativeFetchForTesting()
+        // The first result fills the batch, but the second shares its timestamp, so a fetch from that boundary would
+        // not read it again: both belong to the first batch.
+        let feed = Self.feed([1, 1, 2].map { SRAbsoluteTime(rawValue: origin.rawValue + $0) }, to: fetcher)
+        var counts: [Int] = []
+        var boundaries: [Double?] = []
+        while let batch = try await fetcher.next(isolation: nil) {
+            counts.append(batch.samples.count)
+            try await batch.acknowledge()
+            boundaries.append(try anchor.value.nativeTimestamp)
+        }
+        for await _ in feed {}
+        #expect(counts == [2, 1])
+        #expect(boundaries == [origin.rawValue + 1, origin.rawValue + 2])
+    }
+
+    @Test("Cancelling a fetch that restarts on a pending batch keeps the batch")
+    @available(iOS 18, *)
+    func cancellationKeepsThePendingBatch() async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_975)
+        let origin = SRAbsoluteTime(start)
+        let anchor = ManagedQueryAnchor.ephemeral(startDate: start)
+        let first = Self.selectiveFetcher(anchor: anchor, batchSize: 1)
+        try first.startNativeFetchForTesting()
+        let feed = Self.feed([1, 2].map { SRAbsoluteTime(rawValue: origin.rawValue + $0) }, to: first)
+        // The batch is delivered but never acknowledged, so the anchor keeps it pending.
+        #expect(try await first.next(isolation: nil) != nil)
+        first.stopForTesting()
+        for await _ in feed {}
+        let pending = try #require(try anchor.value.pendingBatch)
+        // `next()` starts the native fetch after its own cancellation check, so a cancellation after the start reaches
+        // the fetch that restarts on the pending batch.
+        let (started, startedContinuation) = AsyncStream<Void>.makeStream()
+        let restarted = Self.selectiveFetcher(anchor: anchor, batchSize: 1) { _, _ in startedContinuation.finish() }
+        nonisolated(unsafe) let iterator = restarted
+        let task = Task { try await iterator.next(isolation: nil) == nil }
+        for await _ in started {}
+        task.cancel()
+        #expect(try await task.value)
+        #expect(try anchor.value.pendingBatch == pending)
     }
 
     @Test("Reset during a native sample-count fetch rejects its terminal cursor")
@@ -391,5 +499,36 @@ struct AnchoredFetcherFailureTests {
             dataQuarantineDuration: .zero,
             sensorKitFetchReturnType: .object
         )
+    }
+}
+
+
+extension AnchoredFetcherFailureTests {
+    @available(iOS 18, *)
+    fileprivate static func selectiveFetcher(
+        anchor: ManagedQueryAnchor, batchSize: Int, startFetch: @escaping (SRSensorReader, SRFetchRequest) -> Void = { _, _ in }
+    ) -> AnchoredFetcher<SelectiveSample>.SampleCountBasedFetcher {
+        let sensor = Sensor<SelectiveSample>(
+            srSensor: .ambientLightSensor, displayName: "Selective test sensor", dataQuarantineDuration: .zero, sensorKitFetchReturnType: .object
+        )
+        return .init(sensor: sensor, batchSize: batchSize, anchor: anchor, device: .current, startFetch: startFetch)
+    }
+
+    /// Delivers one usable sample at each timestamp and then the fetch completion on a thread of its own, since a full
+    /// batch parks that thread until the consumer asks for it.
+    @available(iOS 18, *)
+    fileprivate static func feed(
+        _ timestamps: [SRAbsoluteTime], to fetcher: AnchoredFetcher<SelectiveSample>.SampleCountBasedFetcher
+    ) -> AsyncStream<Void> {
+        nonisolated(unsafe) let reader = fetcher
+        let (completed, continuation) = AsyncStream<Void>.makeStream()
+        Thread.detachNewThread {
+            for timestamp in timestamps where !reader.processForTesting(sample: SelectiveSample(isUsable: true), timestamp: timestamp) {
+                break
+            }
+            reader.completeFetchForTesting()
+            continuation.finish()
+        }
+        return completed
     }
 }
