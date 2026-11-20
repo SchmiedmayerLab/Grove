@@ -126,7 +126,7 @@ Three options decide which facts a record states, each with the same four forms:
 `.all`, the default, states every fact HealthKit supplies.
 `.nonIdentifying` omits a fixed list of facts, which each policy states below.
 `.omit` states none.
-`.custom` decides each fact with your closure. For source and device facts the closure is called once per fact when the exporter is created; for metadata it is called for each key of each sample.
+`.custom` decides each fact with your closure. For source and device facts the closure is called once per fact when the exporter is created; for metadata it is called for each key of each sample that no structured mapping represents.
 
 ```swift
 var options = HealthKitFHIRExporter.Options()
@@ -147,7 +147,7 @@ The device policy governs the recording Device whether an `HKDevice` property or
 The keyed `recording-device` unit identity that ``HealthKitFHIRExporter/Options/unitToken`` picks still travels on a Device that is stated.
 `.omit` states no recording Device.
 Under a policy that omits facts, a recording Device is stated only when at least one fact remains.
-A device metadata key whose fact the policy omits is not preserved in the metadata extension either.
+A device metadata key whose fact the policy omits is not preserved in the metadata extension either, and the metadata summary counts it in none of its counts.
 
 ``HealthKitFHIRExporter/Options/nonIdentifying`` is the default options with all three policies set to `.nonIdentifying`.
 It omits the identifying Apple metadata keys that <doc:ConfiguringTheExporter#Preserving-source-metadata> lists, the source name, a source bundle identifier of the form `com.apple.health.<UUID>`, and the device name, local identifier, serial number and UDI identifiers.
@@ -160,6 +160,7 @@ options.device = .omit
 ```
 
 An omission an option chose never warns, and the record does not report its key as withheld.
+A policy decides what a record states, so changing one changes the record version of every record exported again, and a Device that states other facts is another snapshot; the source-record and source-output identities stay the same.
 
 ### Identifier disclosures
 

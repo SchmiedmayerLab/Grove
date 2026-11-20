@@ -100,6 +100,8 @@ extension HealthKitFHIRExporter {
         }
 
         /// Counts for otherwise unmapped sample metadata; values carried by structured mappings are not counted.
+        /// `excludedSampleKeys` counts the keys ``HealthKitFHIRExporter/Options/metadata`` excludes. A device metadata key
+        /// whose fact ``HealthKitFHIRExporter/Options/device`` omits is counted in none of the three.
         /// Contained-object omissions remain in `warnings`.
         /// Keys and values are deliberately absent from this aggregate diagnostic.
         public struct MetadataSummary: Sendable, Equatable {

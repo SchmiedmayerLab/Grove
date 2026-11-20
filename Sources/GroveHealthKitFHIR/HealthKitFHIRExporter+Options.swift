@@ -174,8 +174,8 @@ extension HealthKitFHIRExporter {
 
     /// Which token, if any, proves the physical unit behind a sample's `HKDevice`.
     ///
-    /// It picks the token and nothing else: every `HKDevice` is a recording Device, stating each fact HealthKit supplies
-    /// that ``Options/device`` includes. A token enters the keyed `recording-device` identity, scoped to the writing source's
+    /// It picks the token and nothing else: every `HKDevice` that ``Options/device`` states is a recording Device, stating
+    /// each fact HealthKit supplies that the policy includes. A token enters the keyed `recording-device` identity, scoped to the writing source's
     /// `HKSource.bundleIdentifier`, so a source without one states no unit. Facts alone never prove a unit.
     public enum UnitTokenPolicy: Sendable {
         /// `HKDevice.localIdentifier`, when the sample states one. It is local to the host that recorded the sample and
@@ -388,7 +388,8 @@ extension HealthKitFHIRExporter.FactPolicy {
     ///
     /// - parameter decide: A closure that decides one fact. For source and device facts it is called once per fact when
     ///   the exporter is created, so every record of the exporter gets the same answer. For metadata it is called once
-    ///   for each metadata key present in each `HKSample`.
+    ///   for each key of each sample's metadata that no structured mapping represents and ``Options/device`` does not
+    ///   omit.
     public static func custom(_ decide: @escaping @Sendable (Fact) -> Decision) -> Self {
         Self(decide)
     }

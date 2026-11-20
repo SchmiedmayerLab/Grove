@@ -259,7 +259,7 @@ extension GoldenCase {
             inputs.options.syncIdentifier = .authorized
             return try await GoldenFixtures.export(attributedHeartRate(uuid: 40, writer: GoldenFixtures.foreignWriter), inputs)
         },
-        // The setting that discloses the UUID also discloses the sync identifier, under a system naming its writer.
+        // Disclosing the UUID and the sync identifier states the sync identifier under a system naming its writer.
         GoldenCase("sync-identifier-disclosure") {
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: ExporterGolden.deploymentNativeIdentifierSystem)
