@@ -104,11 +104,11 @@ uiTests = ["iOS"]
 
 [GroveFHIR]
 platforms = ["iOS", "macOS", "Linux"]
-targets = ["GroveFHIRContract", "GroveFHIR", "GroveFHIRMockPatients"]
-tests = ["GroveFHIRTests"]
+targets = ["GroveFHIRContract", "GroveFHIR", "GroveFHIRMockPatients", "GroveProviderFHIR"]
+tests = ["GroveFHIRTests", "GroveProviderFHIRTests"]
 uiTests = ["iOS"]
-# The shared contract module builds on Linux and is gated here, where it lives.
-linuxTargets = ["GroveFHIRContract"]
+# The shared contract module and the provider converters build on Linux and are gated here, where they live.
+linuxTargets = ["GroveFHIRContract", "GroveProviderFHIR"]
 
 [GroveFileFormats]
 platforms = ["iOS", "macOS", "watchOS", "visionOS", "tvOS"]

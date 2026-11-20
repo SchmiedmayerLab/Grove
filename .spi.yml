@@ -24,6 +24,7 @@ builder:
         - GroveFHIR
         - GroveFHIRContract
         - GroveFHIRMockPatients
+        - GroveProviderFHIR
         - EDFFormat
         - GroveFirebaseAccount
         - GroveFirebaseConfiguration

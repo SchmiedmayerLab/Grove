@@ -474,6 +474,10 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             },
             "providers-adapter.json": {
                 **base,
+                "identity": {"adapterId": "providers"},
+                "providerExtension": {"url": "https://grovealliance.org/fhir/providers/StructureDefinition/provider"},
+                "sourceTypeExtension": {"url": "https://grovealliance.org/fhir/providers/StructureDefinition/provider-source-type"},
+                "statusVocabulary": {"supported": "Converted.", "unmodeled": "Not modeled."},
                 "providers": [
                     {
                         "id": "google-health-api",

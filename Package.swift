@@ -228,6 +228,7 @@ var products: [Product] = [
     .library(name: "GroveFHIRContract", targets: ["GroveFHIRContract"]),
     .library(name: "GroveFHIR", targets: ["GroveFHIR"]),
     .library(name: "GroveFHIRMockPatients", targets: ["GroveFHIRMockPatients"]),
+    .library(name: "GroveProviderFHIR", targets: ["GroveProviderFHIR"]),
     // MARK: GroveFileFormats
     .library(name: "EDFFormat", targets: ["EDFFormat"]),
     // MARK: GroveFoundation
@@ -362,6 +363,25 @@ var targets: [Target] = [
         dependencies: [
             .target(name: "FHIRPathParser")
         ],
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    // MARK: GroveProviderFHIR
+    .target(
+        name: "GroveProviderFHIR",
+        dependencies: [
+            .target(name: "GroveFHIRContract"),
+            .target(name: "FHIRModelsExtensions"),
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+        ],
+        exclude: targetExcludes("GroveProviderFHIR"),
+        swiftSettings: defaultSwiftSettings,
+        plugins: [] + defaultPlugins
+    ),
+    .testTarget(
+        name: "GroveProviderFHIRTests",
+        dependencies: ["GroveProviderFHIR", "GroveFHIRContract"],
+        exclude: testTargetExcludes("GroveProviderFHIRTests"),
         swiftSettings: defaultSwiftSettings,
         plugins: [] + defaultPlugins
     ),
