@@ -244,7 +244,7 @@ A structured stream prepares each sample instead, such as `try SensorKitPrepared
 
 A sidecar keeps large bytes out of the record: the DocumentReference states the path you chose as `Attachment.url`, verbatim, with the bytes' size and SHA-1, and never fetches or carries them.
 The path is a relative reference your deployment resolves, typically against the storage root you upload sidecars to, so ship the bytes there, unchanged, before the batch is acknowledged, and keep them immutable; a receiver checks what it fetched against the size and hash.
-A path must be relative, with no empty, `.` or `..` segment, query or fragment.
+A path must be relative, with no empty, `.` or `..` segment, query, fragment or percent-encoded byte.
 
 The exporter has no retraction: it takes no input that names a record to take back.
 
