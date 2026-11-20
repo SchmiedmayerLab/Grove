@@ -300,26 +300,20 @@ extension HealthKitSampleMetadata {
         return record
     }
 
-    /// Every key of `record` that `carried` lacks, and every key a `contained` object states unless the record carries
-    /// the equal value under it, each once and sorted. Manual entry stated `false` is never withheld, as the guide
-    /// represents it by omission (healthkit mapping.md: "omission means the converter does not know the capture mode").
+    /// Every key of `record` that `carried` lacks, and every key a `contained` object states, each once and sorted.
+    ///
+    /// A record value never represents a contained object's, not even an equal one under the same key: a contained value
+    /// counts as represented only where a clinical mapping incorporates it (healthkit mapping.md, withheld metadata), and
+    /// the caller leaves those out. Manual entry stated `false` is never withheld, as the guide represents it by omission
+    /// (healthkit mapping.md: "omission means the converter does not know the capture mode").
     static func withheldKeys(record: [String: Any], contained: [[String: Any]], carried: [String: Any]) -> [String] {
         var withheld = Set(record.keys.filter { carried[$0] == nil })
         for metadata in contained {
-            for (key, value) in metadata where !isCarried(key, value: value, carried: carried) {
+            for (key, value) in metadata where !(key == HKMetadataKeyWasUserEntered && (value as? Bool) == false) {
                 withheld.insert(key)
             }
         }
         return withheld.sorted()
-    }
-
-    /// Whether a contained object's `value` for `key` is carried: manual entry explicitly `false`, which every path
-    /// represents by omission, or the very value the record carries under the key.
-    private static func isCarried(_ key: String, value: Any, carried: [String: Any]) -> Bool {
-        if key == HKMetadataKeyWasUserEntered, (value as? Bool) == false {
-            return true
-        }
-        return (carried[key] as? NSObject)?.isEqual(value) == true
     }
 
     /// The keys the sample, or an object it contains, carried that the graph's `outputs` and the `device` they reference do
