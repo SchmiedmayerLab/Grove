@@ -192,6 +192,9 @@ extension ExchangeGraph {
         if case .documentReference(let document) = resource {
             try validateRecordingDocumentTypedIdentity(document, identifiers: identifiers)
         }
+        if case .observation(let observation) = resource {
+            try validateObservationSyncIdentifier(observation, typed: identifiers)
+        }
         return (fullURL, ActiveOutput(sourceRecord: sourceRecords[0], resourceType: resource.resourceType))
     }
 
@@ -501,20 +504,87 @@ extension ExchangeGraph {
         sourceDerivedOutputCount: Int
     ) -> Bool {
         let all = document.identifier ?? []
+        let nonGrove = nonGroveIdentifiers(all)
+        let syncIdentifiers = nonGrove.filter(isSyncIdentifier)
+        let native = nonGrove.filter { !isSyncIdentifier($0) }
+        guard all.count == typed.count + nonGrove.count,
+              native.count <= 1,
+              syncIdentifiers.count <= 1 else {
+            return false
+        }
+        guard let governed = native.first else {
+            return syncIdentifiers.isEmpty
+        }
+        guard sourceDerivedOutputCount == 1, isGovernedSourceIdentifier(governed) else {
+            return false
+        }
+        guard let syncIdentifier = syncIdentifiers.first else {
+            return true
+        }
+        return readableSyncIdentifierIsValid(syncIdentifier, beside: governed, typed: typed, extensions: document.extension ?? [])
+    }
+
+    /// An Observation states a readable sync identifier only as a document does: once, beside its one native record
+    /// identifier, the writer-record identity and its version.
+    private static func validateObservationSyncIdentifier(
+        _ observation: Observation,
+        typed: [RoledIdentifier]
+    ) throws(ExchangeGraphError) {
+        let nonGrove = nonGroveIdentifiers(observation.identifier ?? [])
+        let syncIdentifiers = nonGrove.filter(isSyncIdentifier)
+        guard !syncIdentifiers.isEmpty else {
+            return
+        }
+        let native = nonGrove.filter { !isSyncIdentifier($0) }
+        guard syncIdentifiers.count == 1, native.count == 1,
+              readableSyncIdentifierIsValid(syncIdentifiers[0], beside: native[0], typed: typed, extensions: observation.extension ?? []) else {
+            throw .invalidEntries(
+                "An Observation states a readable sync identifier once, beside its native record identifier, the writer record "
+                    + "and its version, under a system extending the native one"
+            )
+        }
+    }
+
+    /// Whether a readable sync identifier travels as the guide requires: on a HealthKit output, beside the writer-record
+    /// identity and its one version, with its one type coding, under the native record identifier's exact system, then
+    /// the sync-identifier path segment, then one bundle identifier (healthkit mapping.md, readable sync identifier).
+    private static func readableSyncIdentifierIsValid(
+        _ syncIdentifier: Identifier,
+        beside native: Identifier,
+        typed: [RoledIdentifier],
+        extensions: [Extension]
+    ) -> Bool {
+        guard let nativeSystem = native.system?.value?.url.absoluteString,
+              let system = syncIdentifier.system?.value?.url.absoluteString else {
+            return false
+        }
+        let prefix = HealthKitContract.syncIdentifierSystemPrefix(in: nativeSystem)
+        return extensions.contains { $0.url == HealthKitContract.sourceTypeExtension }
+            && typed.contains { $0.role == .writerRecord }
+            && extensions.filter { $0.url == Canonicals.writerRecordVersion }.count == 1
+            && isGovernedSourceIdentifier(syncIdentifier)
+            && syncIdentifier.type?.coding?.count == 1
+            && syncIdentifier.type?.text == nil
+            && system.hasPrefix(prefix)
+            && HealthKitContract.isSyncIdentifierWriterSegment(String(system.dropFirst(prefix.count)))
+    }
+
+    /// The identifiers that carry no Grove identifier-role coding: the governed source identifiers.
+    private static func nonGroveIdentifiers(_ identifiers: [Identifier]) -> [Identifier] {
         let roleSystem = Canonicals.identifierRoleCodeSystem.value?.url.absoluteString
-        let nonGrove = all.filter { identifier in
+        return identifiers.filter { identifier in
             identifier.type?.coding?.contains {
                 $0.system?.value?.url.absoluteString == roleSystem
             } != true
         }
-        guard all.count == typed.count + nonGrove.count,
-              nonGrove.count <= 1 else {
-            return false
-        }
-        guard let governed = nonGrove.first else {
-            return true
-        }
-        return sourceDerivedOutputCount == 1 && isGovernedSourceIdentifier(governed)
+    }
+
+    /// Whether the identifier is typed as a readable HealthKit sync identifier.
+    private static func isSyncIdentifier(_ identifier: Identifier) -> Bool {
+        identifier.type?.coding?.contains {
+            $0.system == HealthKitContract.syncIdentifierTypeSystem
+                && $0.code?.value?.string == HealthKitContract.syncIdentifierTypeCode
+        } == true
     }
 
     private static func isGovernedSourceIdentifier(_ identifier: Identifier) -> Bool {

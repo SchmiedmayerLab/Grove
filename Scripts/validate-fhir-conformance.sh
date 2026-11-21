@@ -23,8 +23,8 @@ GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
 # Grove pins a grove-fhir release by its version and by the commit its tag named when pinned. A tag can be moved, as
 # grove-fhir's 0.6.0 was, and a moved tag would change the contract checked here without any change to Grove.
 # .github/workflows/tests.yml defaults to the same version.
-PINNED_GROVE_FHIR_VERSION=0.8.0
-PINNED_GROVE_FHIR_COMMIT=cde0cdb92e4f63e96b463085f2a5765a77f5211f
+PINNED_GROVE_FHIR_VERSION=0.8.2
+PINNED_GROVE_FHIR_COMMIT=8c18d9b8ba36eff3f6003c65cdc9cae74a6d3228
 GROVE_FHIR_REF="${GROVE_FHIR_REF:-$PINNED_GROVE_FHIR_VERSION}"
 GUIDE_SOURCE="${GROVE_FHIR_GUIDE_SOURCE:-}"
 

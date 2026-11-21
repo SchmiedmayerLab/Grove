@@ -29,6 +29,8 @@ import tarfile
 from pathlib import Path
 
 OUTPUT = Path("Tests/GroveHealthKitFHIRTests/Resources/GuideExamples/guide-examples-healthkit.jsonl")
+# The IG Publisher of grove-fhir 0.8.1 and later packs examples into `examples/`; earlier releases used `example/`.
+EXAMPLE_FOLDERS = ("package/example/", "package/examples/")
 
 
 def generate(guides: Path) -> str:
@@ -40,7 +42,7 @@ def generate(guides: Path) -> str:
     examples = []
     with tarfile.open(package) as archive:
         for member in archive.getmembers():
-            if not (member.isfile() and member.name.startswith("package/example/") and member.name.endswith(".json")):
+            if not (member.isfile() and member.name.startswith(EXAMPLE_FOLDERS) and member.name.endswith(".json")):
                 continue
             handle = archive.extractfile(member)
             if handle is None:

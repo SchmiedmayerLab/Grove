@@ -18,8 +18,8 @@ import Testing
 
 /// Spec F9: a blood-pressure correlation's systolic and diastolic members belong to its record. The correlation's own
 /// time zone and manual-entry flag decide when it states them; otherwise the members state the zone every member
-/// naming one names, and manual entry only when every member states it. Their keys are reported with the
-/// correlation's, once, unless the record carries the equal value (spec F10). No other sample, a food correlation
+/// naming one names, and manual entry only when every member states it. Their other keys are reported with the
+/// correlation's, once, even where the record carries the equal value (spec F10). No other sample, a food correlation
 /// included, reads members for its zone or manual entry.
 @Suite
 struct HealthKitBloodPressureMemberTests {
@@ -202,7 +202,7 @@ extension HealthKitBloodPressureMemberTests {
         #expect(refusal.diagnostic.code == "mobile-input.unsupported-source-value")
     }
 
-    @Test("Members' keys join the correlation's, each once, unless the record carries the equal value")
+    @Test("Members' keys join the correlation's, each once")
     func memberKeysJoinTheUnmodeledWarning() async throws {
         let parts = Parts(
             [HKMetadataKeyTimeZone: Self.pacific, "com.example.y": "correlation"],
@@ -226,7 +226,9 @@ extension HealthKitBloodPressureMemberTests {
             == [HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion].sorted())
         #expect(conversion.warnings == [Self.unmodeled])
         #expect(conversion.writer != nil, "the correlation's writer travels")
-        #expect(conversion.observation.extension?.map(\.url) == [Canonicals.healthKitSourceTypeExtension], "no writer-record version")
+        #expect(conversion.observation.extension?.map(\.url) == [
+            Canonicals.healthKitSourceTypeExtension
+        ], "source metadata creates no writer-record version")
         #expect(conversion.record.json == unsynced.graph.json)
     }
 }
