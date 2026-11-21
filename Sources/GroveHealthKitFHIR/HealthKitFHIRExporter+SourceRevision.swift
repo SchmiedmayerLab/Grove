@@ -15,6 +15,17 @@ import ModelsR4
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitAssembly.SourceFacts {
+    /// Whether `revision` names a source, which only a sample the store held does.
+    ///
+    /// HealthKit declares `sourceRevision` nonnull, but a sample the store never held has none: depending on the
+    /// operating system it reads as a revision of empty strings, or as no object at all, which this takes as `nil`.
+    static func namesSource(_ revision: HKSourceRevision?) -> Bool {
+        guard let revision else {
+            return false
+        }
+        return !revision.source.name.isEmpty || !revision.source.bundleIdentifier.isEmpty
+    }
+
     /// The guide's five ordered source-revision members, of which a string fact HealthKit does not supply, or supplies
     /// empty, is left out. This describes the record without classifying its writer.
     ///
@@ -30,7 +41,7 @@ extension HealthKitAssembly.SourceFacts {
         _ revision: HKSourceRevision,
         facts: Set<HealthKitFHIRExporter.SourceFact>
     ) -> Extension? {
-        guard !facts.isEmpty, !revision.source.name.isEmpty || !revision.source.bundleIdentifier.isEmpty else {
+        guard !facts.isEmpty, namesSource(revision) else {
             return nil
         }
         var members: [Extension] = []

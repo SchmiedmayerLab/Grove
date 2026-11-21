@@ -22,6 +22,19 @@ extension HealthKitFHIRExporter {
         /// Any sample; an `HKElectrocardiogram`, `HKHeartbeatSeriesSample` or `HKWorkoutRoute` passed here is refused, as
         /// its companion data is missing.
         case sample(HKSample)
+        /// A sample `source` created and did not save into HealthKit, for example because the user does not let it
+        /// write the sample's type.
+        ///
+        /// HealthKit attributes a sample only when it saves it: until then the sample's revision names no source, and
+        /// such a sample states no writer, no source revision and no gateway role. The exporter therefore states the
+        /// revision HealthKit would stamp if `source` saved the sample now: `source`, the producer's
+        /// `ApplicationDevice.build` as its version, the producer host's `HostDevice.productType`, and the operating
+        /// system version the process runs on. The record then states what it would for the sample saved and fetched
+        /// back, under the same options. Export it from the build that created it, as a later build states itself.
+        ///
+        /// A sample whose revision names a source, one the store held, keeps its own. An `HKElectrocardiogram`,
+        /// `HKHeartbeatSeriesSample` or `HKWorkoutRoute` is refused, as for ``sample(_:)``.
+        case unsavedSample(HKSample, source: HKSource = .default())
         /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes a
         /// record of its own.
         case electrocardiogram(HKElectrocardiogram, voltages: [HKElectrocardiogram.VoltageMeasurement], symptoms: [HKCategorySample])
@@ -44,11 +57,27 @@ extension HealthKitFHIRExporter {
 
         var sample: HKSample {
             switch self {
-            case .sample(let sample): sample
+            case .sample(let sample), .unsavedSample(let sample, _): sample
             case .electrocardiogram(let ecg, _, _): ecg
             case .heartbeatSeries(let series, _): series
             case .workoutRoute(let route, _): route
             }
+        }
+
+        /// The source revision HealthKit would stamp if an unsaved sample's `source` saved it now, which the record states
+        /// in place of the sample's own; `nil` for every other record, and for an unsaved sample whose revision names a
+        /// source. See ``unsavedSample(_:source:)``.
+        func unsavedSampleRevision(producer facts: ConversionFacts) -> HKSourceRevision? {
+            guard case let .unsavedSample(sample, source) = self,
+                  !HealthKitAssembly.SourceFacts.namesSource(sample.sourceRevision) else {
+                return nil
+            }
+            return HKSourceRevision(
+                source: source,
+                version: facts.application.build,
+                productType: facts.host.productType,
+                operatingSystemVersion: ProcessInfo.processInfo.operatingSystemVersion
+            )
         }
     }
 

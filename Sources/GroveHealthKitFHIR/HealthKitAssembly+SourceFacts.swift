@@ -30,14 +30,16 @@ extension HealthKitAssembly {
         let withholdsSyncIdentifier: Bool
         let wasUserEntered: Bool
 
-        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it.
+        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it. The
+        /// record states `revisionOverride` in place of the sample's own revision when one is given.
         init(
             _ sample: HKSample,
             metadata: HealthKitSampleMetadata,
             policies: HealthKitFHIRExporter.ResolvedPolicies,
-            disclosure: Disclosure
+            disclosure: Disclosure,
+            revisionOverride: HKSourceRevision? = nil
         ) throws {
-            let revision = sample.sourceRevision
+            let revision = revisionOverride ?? sample.sourceRevision
             var device = sample.device.map(RecordingDevice.init) ?? RecordingDevice()
             device.fill(from: metadata)
             device.keep(disclosure.deviceFacts)
