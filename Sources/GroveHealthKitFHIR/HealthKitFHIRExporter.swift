@@ -25,8 +25,10 @@ public final class HealthKitFHIRExporter: Sendable {
     public enum ConfigurationError: Error, Equatable, Sendable {
         /// The disclosed native identifier's system is one of the deployment's own identity systems.
         case reservedNativeIdentifierSystem(IdentifierSystem)
-        /// The disclosed native identifier's system cannot name readable sync identifiers: it names no authority, such as
-        /// a `urn:oid:` system, or it has a query or a fragment.
+        /// The disclosed native identifier's system cannot be extended by a path: it names no authority, such as a
+        /// `urn:oid:` system, or it has a query or a fragment. A stated system is refused only while
+        /// ``Options/syncIdentifier`` is authorized, as the readable sync identifier's system extends it. For a derived
+        /// system, which always extends it, it is the repository scope's system.
         case nativeIdentifierSystemNotExtensible(IdentifierSystem)
         /// The disclosed native identifier's type is the `healthkit-sync-id` coding, which types readable sync identifiers
         /// alone.
@@ -46,7 +48,11 @@ public final class HealthKitFHIRExporter: Sendable {
     ) throws(ConfigurationError) {
         // Neither the native record identifier nor a readable sync identifier derived from it may use a Grove system, the
         // readable sync identifier's system extends the native one's path, and only a readable sync identifier is typed as one.
-        if case let .authorized(system, type) = options.nativeIdentifier {
+        let nativeIdentifier = options.nativeIdentifier.policy(in: repositoryScope, identityScope: producer.identityScope)
+        if options.nativeIdentifier.isAuthorized, !nativeIdentifier.isAuthorized {
+            throw .nativeIdentifierSystemNotExtensible(repositoryScope.system)
+        }
+        if case let .authorized(system, type) = nativeIdentifier {
             if let type, type.system.rawValue == HealthKitContract.syncIdentifierTypeSystem.value?.url.absoluteString,
                type.code == HealthKitContract.syncIdentifierTypeCode {
                 throw .reservedNativeIdentifierType(type)
@@ -55,7 +61,8 @@ public final class HealthKitFHIRExporter: Sendable {
             guard !producer.identityScope.systems.all.contains(where: { $0 == system || $0.rawValue.hasPrefix(syncIdentifierPrefix) }) else {
                 throw .reservedNativeIdentifierSystem(system)
             }
-            guard GovernedSourceIdentifierDisclosurePolicy.acceptsSyncIdentifierPath(system) else {
+            // Only a disclosed sync identifier extends the system's path; a derived system always extends the scope's.
+            guard options.syncIdentifier != .authorized || GovernedSourceIdentifierDisclosurePolicy.acceptsSyncIdentifierPath(system) else {
                 throw .nativeIdentifierSystemNotExtensible(system)
             }
         }

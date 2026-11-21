@@ -256,12 +256,14 @@ extension GoldenCase {
         GoldenCase("native-identifier-disclosure") {
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+            inputs.options.syncIdentifier = .authorized
             return try await GoldenFixtures.export(attributedHeartRate(uuid: 40, writer: GoldenFixtures.foreignWriter), inputs)
         },
-        // The setting that discloses the UUID also discloses the sync identifier, under a system naming its writer.
+        // Disclosing the UUID and the sync identifier states the sync identifier under a system naming its writer.
         GoldenCase("sync-identifier-disclosure") {
             var inputs = ExportInputs()
             inputs.options.nativeIdentifier = .authorized(system: ExporterGolden.deploymentNativeIdentifierSystem)
+            inputs.options.syncIdentifier = .authorized
             return try await GoldenFixtures.export(attributedHeartRate(uuid: 56, writer: GoldenFixtures.foreignWriter, metadata: syncMetadata), inputs)
         },
         // Every device metadata key beside an HKDevice that states only its model: the keys fill what it leaves absent.

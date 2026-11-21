@@ -66,6 +66,7 @@ extension ContentCorpusRecorder {
         inputs.options.route = .authorized
         if disclosure == .nativeIdentifier {
             inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+            inputs.options.syncIdentifier = .authorized
         }
         let deletion = HealthKitFHIRExporter.Deletion(
             uuid: ContentCorpusSamples.uuid,

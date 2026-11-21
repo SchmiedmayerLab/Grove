@@ -77,10 +77,13 @@ struct HealthKitAssembly: Sendable {
     let scope: ExchangeEnvelope.Scope
     /// The exporter's options: what every graph discloses.
     let options: HealthKitFHIRExporter.Options
+    /// What the options disclose about a sample's origin, resolved once for the scope's store.
+    let disclosure: SourceFacts.Disclosure
 
     init(scope: ExchangeEnvelope.Scope, options: HealthKitFHIRExporter.Options = HealthKitFHIRExporter.Options()) {
         self.scope = scope
         self.options = options
+        self.disclosure = SourceFacts.Disclosure(options, scope: scope)
     }
 
     /// Converts one sample only when the closed catalog admits its exact published contract.
@@ -127,7 +130,7 @@ struct HealthKitAssembly: Sendable {
         guard !outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
         }
-        let facts = try SourceFacts(sample, metadata: metadata, policies: request.policies, options: options)
+        let facts = try SourceFacts(sample, metadata: metadata, policies: request.policies, disclosure: disclosure)
         var outputs = outputs
         outputs[0].clearIdentifiers = facts.nativeIdentifiers
         // One record states one entry method: its metadata decides it for every output it yields.
@@ -143,7 +146,7 @@ struct HealthKitAssembly: Sendable {
             }
             outputs[index].writerRecord = facts.writerRecord
         }
-        let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice)
+        let unmapped = metadata.unmappedValues(in: outputs, device: facts.recordingDevice, omittedDeviceKeys: disclosure.omittedDeviceKeys)
         let sourceMetadata = HealthKitSourceMetadata(sample: sample, values: unmapped, policy: options.metadata)
         if let container = sourceMetadata.container {
             outputs[0].trailingExtensions.append(container)
@@ -160,15 +163,7 @@ struct HealthKitAssembly: Sendable {
         var validation = Swift.Duration.zero
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts))
             .assemble(draft, onValidation: options.measuresThroughput ? { validation += .seconds($0) } : nil)
-        var withheld = metadata.withheldKeys(
-            in: outputs,
-            device: facts.recordingDevice,
-            preservedSampleKeys: sourceMetadata.preservedKeys,
-            excludedSampleKeys: sourceMetadata.excludedKeys
-        )
-        if facts.withholdsSyncIdentifier {
-            withheld = (withheld + [HKMetadataKeySyncIdentifier]).sorted()
-        }
+        let withheld = withheldKeys(of: metadata, in: outputs, facts: facts, sourceMetadata: sourceMetadata)
         return Conversion(
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
@@ -178,6 +173,24 @@ struct HealthKitAssembly: Sendable {
             metadataSummary: sourceMetadata.summary,
             validation: validation
         )
+    }
+
+    /// The metadata keys the record withholds, sorted: what `outputs` and the facts' recording Device do not represent, the
+    /// metadata extension does not preserve and no policy omits, and the sync identifier whose text could not be disclosed.
+    private func withheldKeys(
+        of metadata: HealthKitSampleMetadata,
+        in outputs: [ExchangeOutputDraft],
+        facts: SourceFacts,
+        sourceMetadata: HealthKitSourceMetadata
+    ) -> [String] {
+        let withheld = metadata.withheldKeys(
+            in: outputs,
+            device: facts.recordingDevice,
+            omittedDeviceKeys: disclosure.omittedDeviceKeys,
+            preservedSampleKeys: sourceMetadata.preservedKeys,
+            excludedSampleKeys: sourceMetadata.excludedKeys
+        )
+        return facts.withholdsSyncIdentifier ? (withheld + [HKMetadataKeySyncIdentifier]).sorted() : withheld
     }
 
     /// What the decorated `outputs` do not carry of the record's metadata: the `withheld` keys, as the registered

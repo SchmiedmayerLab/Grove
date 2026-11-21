@@ -41,6 +41,7 @@ struct HealthKitWorkoutSegmentTests {
         )
         var inputs = ExportInputs.applicationWriter
         inputs.options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+        inputs.options.syncIdentifier = .authorized
         let conversion = try AssemblyFixtures.conversion(sample, inputs)
         let entries = try #require(conversion.record.bundle.entry)
         let observations = entries.compactMap { $0.resource?.get(if: Observation.self) }
