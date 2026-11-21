@@ -23,7 +23,8 @@ public import HealthKit
 public struct HealthKitRecordingFile: Sendable {
     /// Why a recording file could not be created.
     public enum RecordingError: Error, Equatable, Sendable {
-        /// The attachment path is not a relative reference without empty or dot segments, a query or a fragment.
+        /// The attachment path is not a relative reference without empty or dot segments, a query, a fragment or a
+        /// percent-encoded byte.
         case invalidRelativePath
         /// The sequence delivered another number of elements than the series sample states.
         case elementCountMismatch
