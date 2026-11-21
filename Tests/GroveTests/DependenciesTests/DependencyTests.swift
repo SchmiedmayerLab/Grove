@@ -181,6 +181,70 @@ private final class TestModuleCircle2: Module {
     @Dependency var module = TestModuleCircle1()
 }
 
+/// Peer modules both listed in configuration with a mutual required dependency (issue #18).
+private final class TestPeerCycleModuleA: Module {
+    @Dependency(TestPeerCycleModuleB.self) var moduleB
+}
+
+private final class TestPeerCycleModuleB: Module {
+    @Dependency(TestPeerCycleModuleA.self) var moduleA
+}
+
+/// Distinct three-module peer cycle: A → B → C → A (all configured).
+private final class TestLongCycleModuleA: Module {
+    @Dependency(TestLongCycleModuleB.self) var moduleB
+}
+
+private final class TestLongCycleModuleB: Module {
+    @Dependency(TestLongCycleModuleC.self) var moduleC
+}
+
+private final class TestLongCycleModuleC: Module {
+    @Dependency(TestLongCycleModuleA.self) var moduleA
+}
+
+private final class TestAcyclicModuleA: Module {
+    @Dependency(TestAcyclicModuleB.self) var moduleB
+}
+
+private final class TestAcyclicModuleB: Module {
+    @Dependency(TestAcyclicModuleC.self) var moduleC
+}
+
+private final class TestAcyclicModuleC: Module {}
+
+private final class TestDiamondModuleLeft: Module {
+    @Dependency(TestDiamondModuleShared.self) var shared
+}
+
+private final class TestDiamondModuleRight: Module {
+    @Dependency(TestDiamondModuleShared.self) var shared
+}
+
+private final class TestDiamondModuleShared: Module {}
+
+private final class TestDiamondModuleTop: Module {
+    @Dependency(TestDiamondModuleLeft.self) var left
+    @Dependency(TestDiamondModuleRight.self) var right
+}
+
+/// Issue #18 optional-cycle cases: optional edges are weak, but type-order DFS still walked them and crashed.
+private final class TestOptionalPeerCycleModuleA: Module {
+    @Dependency(TestOptionalPeerCycleModuleB.self) var moduleB: TestOptionalPeerCycleModuleB?
+}
+
+private final class TestOptionalPeerCycleModuleB: Module {
+    @Dependency(TestOptionalPeerCycleModuleA.self) var moduleA: TestOptionalPeerCycleModuleA?
+}
+
+private final class TestMixedOptionalPeerCycleModuleA: Module {
+    @Dependency(TestMixedOptionalPeerCycleModuleB.self) var moduleB
+}
+
+private final class TestMixedOptionalPeerCycleModuleB: Module {
+    @Dependency(TestMixedOptionalPeerCycleModuleA.self) var moduleA: TestMixedOptionalPeerCycleModuleA?
+}
+
 
 // Test that deprecated declaration still compile as expected
 @available(*, deprecated, message: "Propagate deprecation warning")
@@ -677,7 +741,132 @@ struct DependencyTests { // swiftlint:disable:this type_body_length
         #expect(requestedModule == "TestModuleCircle1")
         #expect(dependencyChain == ["TestModuleCircle1", "TestModuleCircle2"])
     }
+
+    @Test
+    func peerModuleCycle() throws {
+        // Exact #18 reproduction: both peers are configured; mutual required @Dependency must error
+        // instead of infinite-recursing in type-order DFS.
+        let error = try #require(throws: DependencyManagerError.self) {
+            try DependencyManager.resolve([TestPeerCycleModuleA(), TestPeerCycleModuleB()])
+        }
+
+        guard case let .searchStackCycle(module, requestedModule, dependencyChain) = error else {
+            Issue.record("Received unexpected error: \(error)")
+            return
+        }
+
+        #expect(Set(dependencyChain) == ["TestPeerCycleModuleA", "TestPeerCycleModuleB"])
+        #expect(dependencyChain.count == 2)
+        #expect(dependencyChain.contains(module))
+        #expect(dependencyChain.contains(requestedModule))
+    }
+
+    @Test
+    func longerPeerModuleCycle() throws {
+        // A → B → C → A, all configured as peers.
+        let error = try #require(throws: DependencyManagerError.self) {
+            try DependencyManager.resolve([
+                TestLongCycleModuleA(),
+                TestLongCycleModuleB(),
+                TestLongCycleModuleC()
+            ])
+        }
+
+        guard case let .searchStackCycle(module, requestedModule, dependencyChain) = error else {
+            Issue.record("Received unexpected error: \(error)")
+            return
+        }
+
+        #expect(Set(dependencyChain) == [
+            "TestLongCycleModuleA",
+            "TestLongCycleModuleB",
+            "TestLongCycleModuleC"
+        ])
+        #expect(dependencyChain.count == 3)
+        #expect(dependencyChain.contains(module))
+        #expect(dependencyChain.contains(requestedModule))
+    }
+
+    @Test
+    func acyclicPeerDependenciesResolve() throws {
+        let modules = DependencyManager.resolveWithoutErrors([
+            TestAcyclicModuleA(),
+            TestAcyclicModuleB(),
+            TestAcyclicModuleC()
+        ])
+
+        #expect(modules.count == 3)
+        // Dependencies must configure before dependents.
+        let indexC = try #require(modules.firstIndex(where: { $0 is TestAcyclicModuleC }))
+        let indexB = try #require(modules.firstIndex(where: { $0 is TestAcyclicModuleB }))
+        let indexA = try #require(modules.firstIndex(where: { $0 is TestAcyclicModuleA }))
+        #expect(indexC < indexB)
+        #expect(indexB < indexA)
+    }
+
+    @Test
+    func diamondPeerDependenciesResolve() throws {
+        let modules = DependencyManager.resolveWithoutErrors([
+            TestDiamondModuleTop(),
+            TestDiamondModuleLeft(),
+            TestDiamondModuleRight(),
+            TestDiamondModuleShared()
+        ])
+
+        #expect(modules.count == 4)
+        let indexShared = try #require(modules.firstIndex(where: { $0 is TestDiamondModuleShared }))
+        let indexLeft = try #require(modules.firstIndex(where: { $0 is TestDiamondModuleLeft }))
+        let indexRight = try #require(modules.firstIndex(where: { $0 is TestDiamondModuleRight }))
+        let indexTop = try #require(modules.firstIndex(where: { $0 is TestDiamondModuleTop }))
+        #expect(indexShared < indexLeft)
+        #expect(indexShared < indexRight)
+        #expect(indexLeft < indexTop)
+        #expect(indexRight < indexTop)
+    }
     
+    
+    @Test
+    func optionalPeerModuleCycleDoesNotCrash() throws {
+        // Issue #18 notes optional mutual deps still crashed. They remain unsupported, but must error clearly.
+        let error = try #require(throws: DependencyManagerError.self) {
+            try DependencyManager.resolve([
+                TestOptionalPeerCycleModuleA(),
+                TestOptionalPeerCycleModuleB()
+            ])
+        }
+
+        guard case let .searchStackCycle(_, _, dependencyChain) = error else {
+            Issue.record("Received unexpected error: \(error)")
+            return
+        }
+
+        #expect(Set(dependencyChain) == [
+            "TestOptionalPeerCycleModuleA",
+            "TestOptionalPeerCycleModuleB"
+        ])
+    }
+
+    @Test
+    func mixedOptionalPeerModuleCycleDoesNotCrash() throws {
+        // One required + one optional edge: still a graph cycle for type-order DFS; must not infinite-recurse.
+        let error = try #require(throws: DependencyManagerError.self) {
+            try DependencyManager.resolve([
+                TestMixedOptionalPeerCycleModuleA(),
+                TestMixedOptionalPeerCycleModuleB()
+            ])
+        }
+
+        guard case let .searchStackCycle(_, _, dependencyChain) = error else {
+            Issue.record("Received unexpected error: \(error)")
+            return
+        }
+
+        #expect(Set(dependencyChain) == [
+            "TestMixedOptionalPeerCycleModuleA",
+            "TestMixedOptionalPeerCycleModuleB"
+        ])
+    }
+
     @Test
     func missingRequiredModule() throws {
         class Module1: Module {
