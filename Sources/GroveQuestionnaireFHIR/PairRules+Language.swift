@@ -9,6 +9,7 @@
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairRules {
     private static let translationURL = "http://hl7.org/fhir/StructureDefinition/translation"
 

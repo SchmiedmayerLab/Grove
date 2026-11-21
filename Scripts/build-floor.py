@@ -28,6 +28,9 @@ import tomllib
 from build_support import run_build, run_cli, run_command
 
 
+# The platform names a manifest condition can list for Apple platforms.
+APPLE_PLATFORMS = {"ios", "macos", "maccatalyst", "tvos", "watchos", "visionos"}
+
 # Existing platform limitations, independent of the deployment floor. The
 # XCUIApplication authorization helper has only iOS/visionOS branches and leaves
 # a bodyless -> Bool method on macOS/watchOS. Keep exceptions small and justified.
@@ -85,7 +88,10 @@ def select_products(manifest, packages, platform):
     # condition is a hard requirement: its consumer cannot compile where that
     # dependency is absent (for example, FHIRModels on lowered watchOS).
     # Trait-conditioned edges do not count: consumers are source-gated and
-    # compile to empty without their trait. Propagate unsupportedness through
+    # compile to empty without their trait. A condition that names no Apple
+    # platform does not count either: it supplies a substitute for an Apple
+    # framework elsewhere (swift-crypto for CryptoKit on Linux), so the target
+    # still builds on every Apple platform. Propagate unsupportedness through
     # active local edges, exactly as for the normal package graph.
     unsupported = set()
     for name, target in targets.items():
@@ -93,7 +99,7 @@ def select_products(manifest, packages, platform):
             kind, _, condition = dependency_edge(dependency)
             if kind == "product" and condition and not condition.get("traits"):
                 platforms = condition.get("platformNames")
-                if platforms and platform.lower() not in platforms:
+                if platforms and platform.lower() not in platforms and APPLE_PLATFORMS.intersection(platforms):
                     unsupported.add(name)
                     break
     changed = True

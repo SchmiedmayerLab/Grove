@@ -11,6 +11,7 @@ import Foundation
 // Expression shape and execution paths deliberately preserve tri-state evaluation.
 // swiftlint:disable cyclomatic_complexity discouraged_optional_boolean
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairRules {
     static func validateItemExpressionShapes(
         _ items: [FHIRJSONObject],
@@ -184,6 +185,7 @@ extension PairRules {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairContext {
     // Core enableWhen has one explicit branch for every R4 operator.
     // swiftlint:disable:next cyclomatic_complexity

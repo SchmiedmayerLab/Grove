@@ -303,6 +303,7 @@ def generate_healthkit(catalog_directory: Path) -> str:
     lines.extend([
         "",
         "    /// The inventory row of a sample's type, or `nil` for a type the inventory does not list.",
+        "    @available(macOS 13, *)",
         "    public init?(_ sample: HKSample) {",
         "        self.init(rawValue: sample.sampleType.identifier)",
         "    }",

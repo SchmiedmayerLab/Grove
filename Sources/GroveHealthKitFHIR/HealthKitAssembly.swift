@@ -159,7 +159,7 @@ struct HealthKitAssembly: Sendable {
         )
         var validation = Swift.Duration.zero
         let assembled = try ExchangeGraphAssembler(envelope: ExchangeEnvelope(scope: scope, facts: request.facts))
-            .assemble(draft, onValidation: options.measuresThroughput ? { validation += $0 } : nil)
+            .assemble(draft, onValidation: options.measuresThroughput ? { validation += .seconds($0) } : nil)
         var withheld = metadata.withheldKeys(
             in: outputs,
             device: facts.recordingDevice,

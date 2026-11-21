@@ -227,6 +227,7 @@ extension HealthKitFHIRExporter {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.MetadataPolicy {
     /// Every supported key, custom and identifying keys included. The default.
     public static let all = Self { _ in .include }
@@ -250,6 +251,7 @@ extension HealthKitFHIRExporter.MetadataPolicy {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter.MetadataPolicy {
     /// Well-known HealthKit metadata keys that map to values likely containing identifying information.
     private static let identifyingKeys: Set<String> = [
