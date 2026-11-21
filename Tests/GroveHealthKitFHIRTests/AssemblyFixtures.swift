@@ -31,8 +31,10 @@ enum AssemblyFixtures {
             inputs: inputs
         )
         switch record {
-        case .sample(let sample), .unsavedSample(let sample, _):
+        case .sample(let sample):
             return try exporter.assembly.convert(sample, plan: plan, request: request)
+        case .unsavedSample(let unsavedSample, _):
+            return try exporter.assembly.convert(unsavedSample.sample, plan: plan, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             var symptomRequests: [UUID: HealthKitAssembly.Request] = [:]
             for symptom in symptoms {

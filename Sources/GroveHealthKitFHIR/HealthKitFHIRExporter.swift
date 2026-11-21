@@ -266,8 +266,10 @@ extension HealthKitFHIRExporter {
     ) throws -> [HealthKitAssembly.Conversion] {
         let request = assemblyRequest(for: plan.record.sample, revisionOverride: plan.revisionOverride, policies: primary, at: instant)
         switch plan.record {
-        case .sample(let sample), .unsavedSample(let sample, _):
+        case .sample(let sample):
             return try assembly.convert(sample, plan: content, request: request)
+        case .unsavedSample(let unsavedSample, source: _):
+            return try assembly.convert(unsavedSample.sample, plan: content, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             // An ECG whose evidence did not validate when it was planned is refused now, for the same reason.
             let evidence = try plan.evidence ?? content.ecgEvidence(ecg, voltages: voltages)

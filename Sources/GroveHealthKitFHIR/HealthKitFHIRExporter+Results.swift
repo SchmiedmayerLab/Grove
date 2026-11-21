@@ -32,9 +32,9 @@ extension HealthKitFHIRExporter {
         /// system version the process runs on. The record then states what it would for the sample saved and fetched
         /// back, under the same options. Export it from the build that created it, as a later build states itself.
         ///
-        /// A sample whose revision names a source, one the store held, keeps its own. An `HKElectrocardiogram`,
-        /// `HKHeartbeatSeriesSample` or `HKWorkoutRoute` is refused, as for ``sample(_:)``.
-        case unsavedSample(HKSample, source: HKSource = .default())
+        /// A sample whose revision names a source, one the store held, keeps its own. ``UnsavedSample`` lists the kinds
+        /// of sample this takes.
+        case unsavedSample(UnsavedSample, source: HKSource = .default())
         /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes a
         /// record of its own.
         case electrocardiogram(HKElectrocardiogram, voltages: [HKElectrocardiogram.VoltageMeasurement], symptoms: [HKCategorySample])
@@ -43,6 +43,20 @@ extension HealthKitFHIRExporter {
         /// A workout route with its locations, exported as a recording document only under
         /// ``Options/route`` `.authorized`.
         case workoutRoute(HKWorkoutRoute, locations: [CLLocation])
+
+        /// A sample of ``unsavedSample(_:source:)``: one of the kinds of sample the exporter states an unsaved one's
+        /// origin for.
+        public enum UnsavedSample: Sendable {
+            /// A quantity sample.
+            case quantitySample(HKQuantitySample)
+
+            var sample: HKSample {
+                switch self {
+                case .quantitySample(let sample):
+                    sample
+                }
+            }
+        }
 
         /// One beat instant in a heartbeat series, as `HKHeartbeatSeriesQuery` enumerates it.
         public struct Heartbeat: Hashable, Sendable {
@@ -57,7 +71,8 @@ extension HealthKitFHIRExporter {
 
         var sample: HKSample {
             switch self {
-            case .sample(let sample), .unsavedSample(let sample, _): sample
+            case .sample(let sample): sample
+            case .unsavedSample(let unsavedSample, source: _): unsavedSample.sample
             case .electrocardiogram(let ecg, _, _): ecg
             case .heartbeatSeries(let series, _): series
             case .workoutRoute(let route, _): route
@@ -68,8 +83,8 @@ extension HealthKitFHIRExporter {
         /// in place of the sample's own; `nil` for every other record, and for an unsaved sample whose revision names a
         /// source. See ``unsavedSample(_:source:)``.
         func unsavedSampleRevision(producer facts: ConversionFacts) -> HKSourceRevision? {
-            guard case let .unsavedSample(sample, source) = self,
-                  !HealthKitAssembly.SourceFacts.namesSource(sample.sourceRevision) else {
+            guard case let .unsavedSample(unsavedSample, source) = self,
+                  !HealthKitAssembly.SourceFacts.namesSource(unsavedSample.sample.sourceRevision) else {
                 return nil
             }
             return HKSourceRevision(

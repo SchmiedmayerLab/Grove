@@ -57,7 +57,7 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
         let unsaved = try GoldenFixtures.heartRate(uuid: uuid)
         #expect(!HealthKitAssembly.SourceFacts.namesSource(unsaved.sourceRevision))
         let saved = try GoldenFixtures.heartRate(uuid: uuid, writer: Self.savingWriter)
-        let unsavedRecord = try await Self.record(.unsavedSample(unsaved, source: Self.source))
+        let unsavedRecord = try await Self.record(.unsavedSample(.quantitySample(unsaved), source: Self.source))
         let savedRecord = try await Self.record(.sample(saved))
         #expect(unsavedRecord == savedRecord)
         // The saved sample states its writer as the Provenance author, and the converting build as its gateway.
@@ -78,7 +78,7 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
     @Test("An unsaved sample whose revision names a source keeps its own revision")
     func heldSampleKeepsItsRevision() async throws {
         let held = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xA2), writer: GoldenFixtures.foreignWriter)
-        let asUnsaved = try await Self.record(.unsavedSample(held, source: Self.source))
+        let asUnsaved = try await Self.record(.unsavedSample(.quantitySample(held), source: Self.source))
         let asSample = try await Self.record(.sample(held))
         #expect(asUnsaved == asSample)
     }
@@ -87,7 +87,7 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
     func unnamedSourceStatesNothing() async throws {
         let unsaved = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(0xA3))
         let unnamed = try StoredSampleFixtures.source(name: "", bundleIdentifier: "")
-        let asUnsaved = try await Self.record(.unsavedSample(unsaved, source: unnamed))
+        let asUnsaved = try await Self.record(.unsavedSample(.quantitySample(unsaved), source: unnamed))
         let asSample = try await Self.record(.sample(unsaved))
         #expect(asUnsaved == asSample)
     }
