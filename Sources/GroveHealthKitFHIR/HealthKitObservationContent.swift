@@ -259,6 +259,7 @@ extension BloodPressureMember {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HKSample {
     /// The sample as the class its plan reads; a sample of another class has an invalid shape.
     fileprivate func cast<Sample: HKSample>(to _: Sample.Type) throws(HealthKitConversionError.ValueFailure) -> Sample {

@@ -10,6 +10,7 @@ import CoreFoundation
 import Foundation
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension PairRules {
     static func expressionString(from extensionObject: FHIRJSONObject) -> String? {
         guard let expression = extensionObject["valueExpression"] as? FHIRJSONObject else {

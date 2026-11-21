@@ -80,7 +80,7 @@ struct HealthKitMetadataConsumptionTests {
             varied: shared + [[HKMetadataKeyAppleECGAlgorithmVersion: 2]],
             carried: observationKeys.union([HKMetadataKeyAppleECGAlgorithmVersion])
         ) { try Warnings.electrocardiogram(metadata: $0) },
-        MetadataConsumptionRow(testDescription: "heartbeat series", varied: shared, carried: []) { try Warnings.heartbeatSeries(metadata: $0) }
+        MetadataConsumptionRow(testDescription: "heartbeat series", varied: shared, carried: observationKeys) { try Warnings.heartbeatSeries(metadata: $0) }
     ]
 
     /// A category sample over a minute stating exactly `metadata`.
@@ -127,7 +127,7 @@ struct HealthKitMetadataConsumptionTests {
         }
     }
 
-    @Test("A blood-pressure member's key is reported unless the record carries the equal value; its zone and manual entry never are")
+    @Test("A blood-pressure member's key is reported even where the record carries the equal value; its zone and manual entry never are")
     func bloodPressureMembers() throws {
         let zone = GoldenFixtures.timeZoneMetadata
         let berlin: [String: any Sendable] = [HKMetadataKeyTimeZone: "Europe/Berlin"]
@@ -144,16 +144,21 @@ struct HealthKitMetadataConsumptionTests {
             correlation: zone.merging(["com.example.zeta": "z"]) { $1 },
             systolic: [HKMetadataKeyWasUserEntered: true, "com.example.cuff": "x"]
         )
-        #expect(merged.withheldMetadataKeys == ["com.example.cuff", "com.example.zeta"])
+        #expect(merged.withheldMetadataKeys == ["com.example.cuff"])
         // The systolic member states manual entry that the record, whose diastolic member states none, does not establish.
         #expect(merged.warnings == [Warnings.unmodeled, HealthKitBloodPressureMemberTests.recordingMethod])
         let unentered: [String: any Sendable] = [HKMetadataKeyWasUserEntered: false]
         #expect(try Self.bloodPressure(correlation: zone, systolic: unentered, diastolic: unentered).withheldMetadataKeys.isEmpty)
         let entered = zone.merging([HKMetadataKeyWasUserEntered: true]) { $1 }
         #expect(try Self.bloodPressure(correlation: entered, systolic: [HKMetadataKeyWasUserEntered: true]).withheldMetadataKeys.isEmpty)
+        // The correlation's device name is its recording Device's; the same name on a member is the member's own, and a
+        // parent value with the same key does not represent it (healthkit mapping.md, Blood-pressure correlation objects).
+        let cuff: [String: any Sendable] = [HKMetadataKeyDeviceName: "Cuff"]
+        let named = try Self.bloodPressure(correlation: zone.merging(cuff) { $1 }, systolic: cuff)
+        #expect(named.withheldMetadataKeys == [HKMetadataKeyDeviceName])
     }
 
-    @Test("A workout event's key is reported unless the workout carries the equal value")
+    @Test("A workout event's key is reported, even one the workout carries with the equal value")
     func workoutEventKeys() throws {
         let begin = GoldenFixtures.sampleStart
         let lap = HKWorkoutEvent(
@@ -172,7 +177,8 @@ struct HealthKitMetadataConsumptionTests {
             metadata: GoldenFixtures.timeZoneMetadata
         )
         let conversion = try Warnings.convert(StoredSampleFixtures.stored(workout, uuid: GoldenFixtures.uuid(0xE9)))
-        #expect(conversion.withheldMetadataKeys == ["com.example.lap"])
+        // The lap's zone equals the workout's, but a segment states the session's zone, never its event's.
+        #expect(conversion.withheldMetadataKeys == [HKMetadataKeyTimeZone, "com.example.lap"].sorted())
         #expect(conversion.warnings == [Warnings.unmodeled])
     }
 
@@ -208,11 +214,11 @@ struct HealthKitMetadataConsumptionTests {
         let workout = try StoredSampleFixtures.workout(built, activities: [(activity, events: [segment])])
         #expect(workout.workoutEvents == [lap])
         let conversion = try Warnings.convert(StoredSampleFixtures.stored(workout, uuid: GoldenFixtures.uuid(0xEA)))
-        #expect(conversion.withheldMetadataKeys == ["com.example.activity", "com.example.lap", "com.example.segment"])
+        #expect(conversion.withheldMetadataKeys == [HKMetadataKeyTimeZone, "com.example.activity", "com.example.lap", "com.example.segment"].sorted())
         #expect(conversion.warnings == [Warnings.unmodeled])
     }
 
-    @Test("A contained object's key is withheld unless the record carries the equal value; manual entry false never is")
+    @Test("A contained object's key is withheld even where the record carries the equal value; manual entry false never is")
     func containedKeys() {
         let zone = HKMetadataKeyTimeZone
         let entered = HKMetadataKeyWasUserEntered
@@ -222,7 +228,7 @@ struct HealthKitMetadataConsumptionTests {
             HealthKitSampleMetadata.withheldKeys(record: record, contained: contained, carried: carried)
         }
         #expect(withheld([]) == ["org.example.unread"])
-        #expect(withheld([[zone: "America/Los_Angeles"], [entered: true]]) == ["org.example.unread"], "the carried values")
+        #expect(withheld([[zone: "America/Los_Angeles"], [entered: true]]) == [entered, "org.example.unread", zone].sorted(), "the carried values")
         #expect(withheld([[zone: "Europe/Berlin"]]) == ["org.example.unread", zone].sorted(), "another value")
         #expect(withheld([["org.example.unread": 1]]) == ["org.example.unread"], "a key the record states but does not carry")
         #expect(withheld([["org.example.activity": "a"]]) == ["org.example.activity", "org.example.unread"], "a key the record lacks")

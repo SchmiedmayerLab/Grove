@@ -192,6 +192,7 @@ struct HealthKitFHIRExporterTests {
             options.unitToken = .none
             options.writer = .omit
             options.nativeIdentifier = .authorized(system: GoldenFixtures.nativeIdentifierSystem)
+            options.syncIdentifier = .authorized
             options.role = .gatewayForOwnWrites
         }
         let sample = try GoldenFixtures.heartRate(uuid: GoldenFixtures.uuid(9), device: GoldenFixtures.watch, writer: GoldenFixtures.foreignWriter)

@@ -46,6 +46,7 @@ enum ExporterGolden {
     static var deploymentOptions: HealthKitFHIRExporter.Options {
         var options = HealthKitFHIRExporter.Options()
         options.nativeIdentifier = .authorized(system: deploymentNativeIdentifierSystem)
+        options.syncIdentifier = .authorized
         options.role = .gatewayForOwnWrites
         options.writer = .applications([deploymentApplication.bundleIdentifier])
         return options

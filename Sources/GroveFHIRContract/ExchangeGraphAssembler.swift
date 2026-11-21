@@ -93,10 +93,10 @@ package struct ExchangeGraphAssembler: Sendable {
         self.envelope = envelope
     }
 
-    /// Assembles, encodes and validates one record, handing `onValidation` how long encoding and validating took.
+    /// Assembles, encodes and validates one record, handing `onValidation` how many seconds encoding and validating took.
     package func assemble(
         _ draft: ExchangeRecordDraft,
-        onValidation: ((Swift.Duration) -> Void)? = nil
+        onValidation: ((TimeInterval) -> Void)? = nil
     ) throws -> AssembledExchangeRecord {
         guard !draft.outputs.isEmpty else {
             throw ExchangeAssemblyError.noOutputs
@@ -164,14 +164,14 @@ extension ExchangeGraphAssembler {
     ///   - entries: Every other entry of the record, in Bundle order: its outputs and its shared nodes.
     ///   - subject: The participant the record is about.
     ///   - identityScope: The deployment's scope, whose key mints the version.
-    ///   - onValidation: Told how long encoding and validating took.
+    ///   - onValidation: Told how many seconds encoding and validating took.
     package static func conversionRecord(
         provenance: Provenance,
         sourceRecord: RoledIdentifier,
         entries: [BundleEntry],
         subject: BusinessIdentifier,
         identityScope: OpaqueIdentityScope,
-        onValidation: ((Swift.Duration) -> Void)? = nil
+        onValidation: ((TimeInterval) -> Void)? = nil
     ) throws -> ExchangeRecord {
         let digest = try recordContentDigest(of: provenance, entries: entries)
         let key = try identityScope.recordVersion(sourceRecord: sourceRecord.identifier, contentDigest: digest)
@@ -192,7 +192,7 @@ extension ExchangeGraphAssembler {
         entries: [BundleEntry],
         timestamp: FHIRPrimitive<Instant>,
         subject: BusinessIdentifier,
-        onValidation: ((Swift.Duration) -> Void)? = nil
+        onValidation: ((TimeInterval) -> Void)? = nil
     ) throws(ExchangeGraphError) -> ExchangeRecord {
         let bundle = Bundle(
             entry: entries,
@@ -200,10 +200,11 @@ extension ExchangeGraphAssembler {
             timestamp: timestamp,
             type: FHIRPrimitive(.collection)
         )
-        let start = onValidation == nil ? nil : ContinuousClock.now
+        // The system uptime is monotonic and, unlike `ContinuousClock`, available at the iOS 15 deployment floor.
+        let start = onValidation == nil ? nil : ProcessInfo.processInfo.systemUptime
         let graph = try ExchangeGraph(kind: kind, bundle: bundle)
         if let start {
-            onValidation?(ContinuousClock.now - start)
+            onValidation?(ProcessInfo.processInfo.systemUptime - start)
         }
         let records = try graph.records(subject: subject)
         guard records.count == 1 else {
@@ -274,16 +275,17 @@ extension ExchangeGraphAssembler {
         if let writerRecord {
             identifiers.append(writerRecord.identity.fhirIdentifier)
         }
+        // The version travels beside the writer-record identity on every output that states one.
+        let writerVersion = writerRecord.map { writerRecord in
+            Extension(url: Canonicals.writerRecordVersion, value: .string(writerRecord.version.asFHIRStringPrimitive()))
+        }
         let resource: ExchangeOutputDraft.Resource
         switch output.resource {
         case .observation(var observation):
             observation.identifier = identifiers
             decorate(&observation, links: output.links, wasUserEntered: output.wasUserEntered, surroundings: surroundings)
-            if let writerRecord {
-                observation.extension.append(Extension(
-                    url: Canonicals.writerRecordVersion,
-                    value: .string(writerRecord.version.asFHIRStringPrimitive())
-                ))
+            if let writerVersion {
+                observation.extension.append(writerVersion)
             }
             output.trailingExtensions.forEach { observation.extension.append($0) }
             resource = .observation(observation)
@@ -291,6 +293,9 @@ extension ExchangeGraphAssembler {
             document.identifier = identifiers
             document.date = FHIRPrimitive(try ExchangeInstant.fhirInstant(draft.instant))
             decorate(&document, links: output.links, surroundings: surroundings)
+            if let writerVersion {
+                document.extension.append(writerVersion)
+            }
             output.trailingExtensions.forEach { document.extension.append($0) }
             resource = .document(document)
         }

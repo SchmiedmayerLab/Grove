@@ -309,6 +309,19 @@ class FloorBuildTests(unittest.TestCase):
         self.assertEqual(set(updated_products), set(products) | {"FHIRFacadeLibrary"})
         self.assertEqual(set(updated_modules), set(modules) | {"FHIR", "FHIRFacade"})
 
+    def test_a_substitute_for_an_apple_framework_does_not_exclude_apple_platforms(self):
+        manifest, packages = self.graph()
+        targets = {target["name"]: target for target in manifest["targets"]}
+        original = BUILD_FLOOR.select_products(manifest, packages, "iOS")
+        # swift-crypto stands in for CryptoKit on Linux; Base still builds on iOS, and so does everything using it.
+        targets["Base"]["dependencies"].append({"product": ["Crypto", "swift-crypto", None, {"platformNames": ["linux"]}]})
+        self.assertEqual(BUILD_FLOOR.select_products(manifest, packages, "iOS"), original)
+        # A requirement that names Apple platforms still excludes the others.
+        targets["Base"]["dependencies"][-1]["product"][3]["platformNames"] = ["linux", "macos"]
+        _, modules = BUILD_FLOOR.select_products(manifest, packages, "iOS")
+        self.assertNotIn("Base", modules)
+        self.assertNotIn("Facade", modules)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,6 +19,7 @@ import HealthKit
 /// whether the export call named it before with other content, then its content (values, units, effective times),
 /// then what it states about its origin (its recording device, its writer, its sync identifier and version). A content
 /// fault thus reads the same under every writer policy.
+@available(iOS 18, macOS 15, watchOS 11, *)
 public enum HealthKitConversionError: Error, Equatable, Sendable {
     /// The identifier is not in the adapter inventory at all.
     case unregisteredSourceType(String)
@@ -85,6 +86,7 @@ public enum HealthKitConversionError: Error, Equatable, Sendable {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConversionError {
     /// A fail-closed reason why caller-supplied HealthKit ECG evidence was rejected.
     public enum ECGEvidenceFailure: Hashable, Sendable {
@@ -198,6 +200,7 @@ extension HealthKitConversionError {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConversionError.ValueFailure {
     var rule: ExchangeGraphRule {
         switch self {
@@ -226,6 +229,7 @@ extension HealthKitConversionError.ValueFailure {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConversionError.ClinicalRecordFailure {
     var rule: ExchangeGraphRule {
         switch self {
@@ -237,6 +241,7 @@ extension HealthKitConversionError.ClinicalRecordFailure {
 }
 
 
+@available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitConversionError {
     /// Narrows any failure raised while converting one record to this published domain.
     init(conversionFailure error: any Error, source: HealthKitSourceType?) {

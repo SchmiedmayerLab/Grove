@@ -205,6 +205,7 @@ struct BenchScope {
         var options = HealthKitFHIRExporter.Options()
         if style == .deployment {
             options.nativeIdentifier = .authorized(system: Self.nativeRecordSystem)
+            options.syncIdentifier = .authorized
         }
         return try! HealthKitFHIRExporter(producer: producer, repositoryScope: repositoryScope, options: options)
     }

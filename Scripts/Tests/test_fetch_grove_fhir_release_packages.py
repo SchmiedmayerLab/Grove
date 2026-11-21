@@ -145,6 +145,20 @@ class InstallReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.ReleaseError, "not 0.8.0 built from"):
             self.install()
 
+    def test_a_publication_manifest_records_the_source_of_newer_releases(self):
+        del self.network.assets[f"build-provenance-{RELEASE}.json"]
+        del self.network.checksums[f"build-provenance-{RELEASE}.json"]
+        for revision, accepted in ((COMMIT, True), ("0" * 40, False)):
+            manifest = json.dumps({"releaseVersion": RELEASE, "sourceRevision": revision}).encode()
+            self.network.assets[f"publication-manifest-{RELEASE}.json"] = manifest
+            self.network.checksums[f"publication-manifest-{RELEASE}.json"] = hashlib.sha256(manifest).hexdigest()
+            with self.subTest(accepted=accepted):
+                if accepted:
+                    self.install()
+                else:
+                    with self.assertRaisesRegex(MODULE.ReleaseError, "not 0.8.0 built from"):
+                        self.install()
+
     def test_a_dependency_that_fails_the_registry_checksum_is_rejected(self):
         self.network.terminology_shasum = "0" * 40
 

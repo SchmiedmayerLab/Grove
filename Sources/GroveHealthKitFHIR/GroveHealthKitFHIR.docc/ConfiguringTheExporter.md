@@ -18,7 +18,7 @@ The Grove Mobile implementation guide (`https://grovealliance.org/fhir/mobile`) 
 
 An exporter is configured once per participant and installation, and every record it exports states that configuration.
 Its `ExchangeProducer` holds the subject, the deployment's identity scope, the converting application and its host, and the participant's known studies.
-The exporter adds the repository scope, which names this installation's HealthKit store, and ``HealthKitFHIRExporter/Options``: whether the source revision's writer is stated (only when you classify it as an application; by default it is omitted), which token proves the physical unit behind a sample's `HKDevice`, how your application relates to the measurement, and which disclosures the deployment authorizes.
+The exporter adds the repository scope, which names this installation's HealthKit store, and ``HealthKitFHIRExporter/Options``: whether the source revision's writer is stated (only when you classify it as an application; by default it is omitted), which token proves the physical unit behind a sample's `HKDevice`, how your application relates to the measurement, which metadata, source and device facts travel, and which disclosures the deployment authorizes.
 
 ```swift
 let producer = try ExchangeProducer(
@@ -103,7 +103,7 @@ Every output carries typed `source-record` and `source-output` identifiers; reco
 
 ## Choosing the unit token and disclosures
 
-Every non-nil `HKDevice` is a recording Device, stating every fact HealthKit supplies: its name, manufacturer, model, versions, local identifier and UDI, and the sample's device metadata keys where the record has an Observation output.
+By default every non-nil `HKDevice` is a recording Device, stating its name, manufacturer, model, versions, local identifier and UDI. Sample device metadata supplements missing facts for both Observation and document outputs. Recognizable device metadata creates a recording Device even when `HKDevice` is absent; descriptive facts alone do not establish a stable physical-unit identity.
 An `HKDevice` property wins over its key, a key fills only an absent field, and the serial number and the UDI production identifier come only from their keys.
 These facts prove no physical unit; two Devices of equal content are one snapshot, not one unit.
 
@@ -111,9 +111,102 @@ These facts prove no physical unit; two Devices of equal content are one snapsho
 The default `.localIdentifier` uses `HKDevice.localIdentifier`, `.custom` takes your own token, and `.none` states no unit.
 The token enters the keyed `recording-device` identity, scoped to the writing source's `HKSource.bundleIdentifier`, as a local identifier is local to one host and writable by any application.
 
-Grove carries every source fact, and a deployment that shares data applies its own policy to the sensitive ones, such as a serial number or a name a person gave a device.
-What the guide leaves to a disclosure defaults to omission: the workout route and the clear native identifier are emitted only under an explicit authorized option, and an omission an option chose never warns.
-``HealthKitFHIRExporter/Options/nativeIdentifier`` governs both paths: the primary output of an export and the target of a retraction carry the HealthKit UUID under the same authorized system.
+The token is never emitted, so a Device that ``HealthKitFHIRExporter/Options/device`` states without its local identifier keeps its unit identity. A Device with no fact left is not stated, and a record without a recording Device states no unit.
+
+### Fact policies
+
+Three options decide which facts a record states, each with the same four forms:
+
+| Option | Governs | Keyed by |
+|---|---|---|
+| ``HealthKitFHIRExporter/Options/metadata`` | the typed metadata extension, as <doc:ConfiguringTheExporter#Preserving-source-metadata> describes | the metadata key |
+| ``HealthKitFHIRExporter/Options/source`` | the source-revision extension | ``HealthKitFHIRExporter/SourceFact`` |
+| ``HealthKitFHIRExporter/Options/device`` | the recording Device | ``HealthKitFHIRExporter/DeviceFact`` |
+
+`.all`, the default, states every fact HealthKit supplies.
+`.nonIdentifying` omits a fixed list of facts, which each policy states below.
+`.omit` states none.
+`.custom` decides each fact with your closure. For source and device facts the closure is called once per fact when the exporter is created; for metadata it is called for each key of each sample that no structured mapping represents.
+
+```swift
+var options = HealthKitFHIRExporter.Options()
+options.source = .nonIdentifying
+options.device = .custom { $0 == .serialNumber ? .omit : .include }
+```
+
+The source-revision extension states the source name, bundle identifier, version, product type and operating-system version of a sample whose writer is not stated.
+The source name of an iPhone or Apple Watch is the name the person gave the device, and HealthKit gives such a source a bundle identifier of the form `com.apple.health.` followed by a UUID, which it assigns to that one device.
+`.nonIdentifying` omits the source name and a bundle identifier of exactly that form, as ``HealthKitFHIRExporter/SourceFact/deviceBundleIdentifier``; every other bundle identifier, such as an application's, still travels.
+The match is by form and best effort, the member is omitted as a whole, and it changes nothing else: the writer, the sync identifier's system and the keyed identities use the exact bundle identifier.
+Every other bundle identifier is no fact a policy decides: the guide lets a policy withhold `sourceBundleIdentifier` only in that form, so the extension states any other whenever it is stated.
+`.omit`, or any policy that includes no fact, states no source-revision extension.
+The source policy does not change a writer that ``HealthKitFHIRExporter/Options/writer`` states.
+
+The device policy governs the recording Device whether an `HKDevice` property or a device metadata key supplies a fact.
+`.nonIdentifying` omits the device name, the local identifier, the serial number, the UDI device identifier and the UDI production identifier.
+The keyed `recording-device` unit identity that ``HealthKitFHIRExporter/Options/unitToken`` picks still travels on a Device that is stated.
+`.omit` states no recording Device.
+Under a policy that omits facts, a recording Device is stated only when at least one fact remains.
+A device metadata key whose fact the policy omits is not preserved in the metadata extension either, and the metadata summary counts it in none of its counts.
+
+``HealthKitFHIRExporter/Options/nonIdentifying`` is the default options with all three policies set to `.nonIdentifying`.
+It omits the identifying Apple metadata keys that <doc:ConfiguringTheExporter#Preserving-source-metadata> lists, the source name, a source bundle identifier of the form `com.apple.health.<UUID>`, and the device name, local identifier, serial number and UDI identifiers.
+These still travel: the keyed `recording-device` unit identity under `unitToken`, every other source bundle identifier, such as an application's, custom metadata keys, and a writer stated through ``HealthKitFHIRExporter/Options/writer``.
+It is a plain value, and every option can be changed afterwards:
+
+```swift
+var options = HealthKitFHIRExporter.Options.nonIdentifying
+options.device = .omit
+```
+
+An omission an option chose never warns, and the record does not report its key as withheld.
+A policy decides what a record states, so changing one changes the record version of every record exported again, and a Device that states other facts is another snapshot; the source-record and source-output identities stay the same.
+
+### Identifier disclosures
+
+Workout routes and clear identifiers default to omission and are emitted only under an explicit authorized option.
+``HealthKitFHIRExporter/Options/nativeIdentifier`` discloses the clear HealthKit UUID: the primary output of an export and the target of a retraction carry it under the same system.
+`.authorized` derives that system from the repository scope: the scope's system, then a token, then `healthkit-native-record`.
+The token is an HMAC of the repository scope under the key of the producer's `OpaqueIdentityScope`, so the scope's value is not part of the system and cannot be confirmed from it without the key.
+One key and repository scope always yield the same system, and another scope or another key yields another.
+A retraction issued after the key changed therefore names the UUID under another system than the export did; use an explicit system where retractions must match across a key change.
+`.authorized(system:type:)` states a system you own instead, which must be scoped to one participant's HealthKit store.
+
+A system that is extended by a path must name an authority and have no query and no fragment, as an `https` URL does: the repository scope's system under `.authorized`, and a system you state while ``HealthKitFHIRExporter/Options/syncIdentifier`` is authorized. The exporter refuses any other, a `urn:oid:` system included, with ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
+For the derived form this is the repository scope's system.
+
+### Sync identifiers
+
+A sample's `HKMetadataKeySyncIdentifier` and `HKMetadataKeySyncVersion` name one logical record of its writing application and that record's version.
+Under every option, the primary output carries them as the keyed `writer-record` identifier, scoped to the subject and the source's bundle identifier, and the Grove Writer Record Version extension: an Observation, or the document of a heartbeat series, workout route, clinical record or CDA document. Every other Observation of the record restates both: a workout's segments and an ECG's average heart rate.
+The keyed identifier links the versions of one logical record without revealing the sync identifier.
+
+``HealthKitFHIRExporter/Options/syncIdentifier`` discloses the exact sync identifier text.
+It takes effect only while ``HealthKitFHIRExporter/Options/nativeIdentifier`` is authorized as well, because its system extends the native identifier's.
+With both authorized, the primary output carries a second readable identifier beside the HealthKit UUID:
+
+| Element | Content |
+|---|---|
+| `Identifier.type` | the `healthkit-sync-id` coding of the HealthKit identifier types |
+| `Identifier.system` | the native identifier's system, then `healthkit-sync-identifier`, then the source's bundle identifier |
+| `Identifier.value` | the exact sync identifier text |
+
+The native identifier's system is scoped to one participant's HealthKit store, so equal sync identifiers of two participants, like those of two writing applications, have different systems.
+Disclosing the sync identifier discloses the bundle identifier of the application that wrote such a sample, even where ``HealthKitFHIRExporter/Options/writer`` states no writer.
+A bundle identifier that contains anything but ASCII letters, digits, hyphens and periods cannot name the system: the readable identifier is then withheld, and the record reports `HKMetadataKeySyncIdentifier` as a withheld key.
+While the sync identifier is not disclosed, its text is exported in no element, only the keyed `writer-record` identifier represents it, and nothing is reported as withheld for it.
+
+The sync pair is never an entry of the metadata extension. A sample whose source states no bundle identifier has no writer record, so its record reports both keys as withheld.
+The readable identifier is traceability, not identity: source-record and source-output identities, Bundle entry keys, deduplication, receipts and retractions do not read it, and disclosing or omitting it changes only the record version.
+A malformed pair refuses the record under every option.
+
+## Preserving source metadata
+
+``HealthKitFHIRExporter/Options/metadata`` defaults to `.all`, preserving otherwise unmapped sample metadata on the primary output. Values faithfully represented by clinical elements, recording Devices or other IG-defined constructs are not duplicated. When an `HKDevice` fact conflicts with sample metadata, the device fact takes precedence and the different metadata value remains in the typed extension. `.nonIdentifying` preserves every key except the identifying Apple keys: the external UUID, the device serial number, name and UDI identifiers, and the digital signature; custom keys are preserved. `.omit` preserves none. Both are explicit deployment exclusions: the excluded keys are counted and never warned about. The recording Device states its device metadata keys under every metadata policy; ``HealthKitFHIRExporter/Options/device`` decides those facts. Strings, finite numbers, Booleans, dates, known SDK enumerations and quantities with supported compatible units retain their types. Custom keys are preserved; arrays, nested dictionaries, binary values and unsupported quantity dimensions remain observable omissions. The sync identifier and version are identity rather than metadata, as <doc:ConfiguringTheExporter#Sync-identifiers> describes, and the identifier disclosures remain independent of the metadata policy.
+
+The container uses `https://grovealliance.org/fhir/core/StructureDefinition/metadata`. Each `entry` has a `key` child containing the exact runtime key and a `value` child containing its typed value. Metadata participates in record versioning: changing the exported metadata changes the record version while source and output identifiers remain stable. Preserve staged records verbatim for retries.
+
+Clinical source bytes remain unchanged; their DocumentReference wrapper carries the metadata. Metadata on contained workout parts or correlation objects is not flattened into the parent's extension. Read each export's metadata summary and omission warnings to distinguish successful conversion from complete preservation.
 
 ## Understanding the two kinds of time
 

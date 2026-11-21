@@ -14,10 +14,39 @@ public import HealthKit
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// The HealthKit-specific choices of one exporter: how sources and physical units are stated, and which disclosures
-    /// the deployment authorizes. Every source and device fact HealthKit supplies travels: a consumer filters what it does
-    /// not need.
+    /// Which sample metadata the typed metadata extension preserves, by metadata key.
+    ///
+    /// Under every policy the sync identifier and version are identity, never metadata (see
+    /// ``Options/syncIdentifier``), and the device metadata keys the guide maps to the recording Device follow
+    /// ``Options/device``.
+    public typealias MetadataPolicy = FactPolicy<String>
+    /// Which facts of a sample's `HKSourceRevision` the source-revision extension states. See ``SourceFact``.
+    public typealias SourcePolicy = FactPolicy<SourceFact>
+    /// Which facts the recording Device states. See ``DeviceFact``.
+    public typealias DevicePolicy = FactPolicy<DeviceFact>
+
+    /// The HealthKit-specific choices of one exporter: how sources and physical units are stated, which metadata, source
+    /// and device facts travel, and which disclosures the deployment authorizes.
+    ///
+    /// By default every metadata, source and device fact HealthKit supplies travels, and no clear identifier and no
+    /// workout route does. ``nonIdentifying`` is the preset that omits the facts its three policies list.
     public struct Options: Sendable {
+        /// The default options with ``metadata``, ``source`` and ``device`` set to their `nonIdentifying` policies.
+        ///
+        /// It omits the identifying Apple metadata keys, the source name, a source bundle identifier of the form
+        /// `com.apple.health.<UUID>`, and the device name, local identifier, serial number and UDI identifiers. These
+        /// still travel: the keyed `recording-device` unit identity that ``unitToken`` picks, every other source
+        /// bundle identifier, such as an application's, custom metadata keys, and a writer that ``writer`` states.
+        ///
+        /// It is a plain value: every option, these three included, can be changed afterwards.
+        public static var nonIdentifying: Options {
+            var options = Options()
+            options.metadata = .nonIdentifying
+            options.source = .nonIdentifying
+            options.device = .nonIdentifying
+            return options
+        }
+
         /// Whether the source is stated as an author. A source no author states carries the source-revision facts instead.
         public var writer: WriterPolicy = .omit
         /// Which token proves the physical unit behind a sample's `HKDevice`. See ``UnitTokenPolicy``.
@@ -29,9 +58,24 @@ extension HealthKitFHIRExporter {
         public var unitToken: UnitTokenPolicy = .localIdentifier
         /// How the converting application relates to each measurement. See ``RolePolicy``.
         public var role: RolePolicy = .assembler
-        /// Discloses the clear HealthKit UUID as an identifier under a system the deployment owns, on the primary
-        /// output and on retraction targets. This is the only way it reaches the wire.
-        public var nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy = .omit
+        /// Discloses the clear HealthKit UUID as an identifier, on the primary output and on retraction targets. This is
+        /// the only way it reaches the wire. See ``NativeIdentifierDisclosure``.
+        ///
+        /// ``HealthKitFHIRExporter`` refuses a system that is one of the deployment's identity systems, a system whose
+        /// path cannot be extended while ``syncIdentifier`` is authorized, and a type that is the `healthkit-sync-id`
+        /// coding, each with its ``HealthKitFHIRExporter/ConfigurationError``.
+        public var nativeIdentifier: NativeIdentifierDisclosure = .omit
+        /// Discloses the exact `HKMetadataKeySyncIdentifier` text of a sample that carries a sync identifier and version,
+        /// on the primary output, as an identifier whose system is the native identifier's system, then
+        /// `healthkit-sync-identifier`, then the writing source's bundle identifier.
+        ///
+        /// It takes effect only while ``nativeIdentifier`` is authorized as well, because its system extends that one.
+        /// Authorizing it discloses the bundle identifier of the application that wrote such a sample, even where
+        /// ``writer`` states no writer. A bundle identifier that contains anything but ASCII letters, digits, hyphens
+        /// and periods cannot name that system: the text is then withheld and `HKMetadataKeySyncIdentifier` is reported
+        /// as a withheld key. While the text is not disclosed, it reaches the wire in no element: only the keyed
+        /// writer-record identity represents it.
+        public var syncIdentifier: Disclosure = .omit
         /// Whether a workout route becomes a recording document; a route re-identifies readily.
         ///
         /// A route deletion is retracted only while this is `.authorized`: retraction follows the policy in force
@@ -41,6 +85,29 @@ extension HealthKitFHIRExporter {
         /// retracts a route only when the producer establishes that it disclosed it (HealthKit guide `implementation.md`,
         /// retracting a source record); keep one route policy for an installation to keep that true.
         public var route: Disclosure = .omit
+        /// Which sample metadata without a faithful structured mapping the primary output preserves in its typed
+        /// extension. See ``MetadataPolicy``.
+        ///
+        /// A key the policy excludes is counted in ``HealthKitFHIRExporter/Export/MetadataSummary``, separately from
+        /// unsupported values, and never warned about. No policy changes a clinical mapping, the recording Device or the
+        /// writer record.
+        public var metadata: MetadataPolicy = .all
+        /// Which facts of the sample's `HKSourceRevision` the source-revision extension states. See ``SourceFact``.
+        ///
+        /// It governs only that extension, which a record carries when no writer is stated. The writer ``writer``
+        /// states carries its name, bundle identifier, version and host under every policy. A bundle identifier other
+        /// than a ``SourceFact/deviceBundleIdentifier``, such as an application's, is no fact a policy decides: the guide
+        /// keeps it whenever the extension is stated, and only a policy that includes no fact, such as `.omit`, states
+        /// no extension.
+        public var source: SourcePolicy = .all
+        /// Which facts the recording Device states, whether an `HKDevice` property or a device metadata key supplies
+        /// them. See ``DeviceFact``.
+        ///
+        /// A device metadata key whose fact the policy omits is not preserved in the metadata extension either, and is
+        /// never warned about. Under a policy that omits facts, a Device is stated only when at least one fact remains. ``unitToken`` enters only the
+        /// keyed `recording-device` identity, so a Device without its local identifier still states its unit, and a
+        /// record without a Device states none.
+        public var device: DevicePolicy = .all
         /// At most how many child tasks build one call's records at once; `nil`, the default, builds on one per active
         /// core, and `1` builds on the calling task alone. It changes how fast a call runs, never what it exports.
         public var maximumConcurrency: Int?
@@ -61,8 +128,7 @@ extension HealthKitFHIRExporter {
     /// says. A sample's sync identifier and version likewise
     /// travel as its writer-record identity, scoped to the source's bundle identifier, under every policy; a
     /// malformed pair (a half pair, a blank or non-text identifier, a version that is not a non-negative integral
-    /// number) refuses the record, a recording document too, although a document carries no writer-record identity
-    /// (HealthKit guide `mapping.md`, logical identity and revisions).
+    /// number) refuses the record (HealthKit guide `mapping.md`, logical identity and revisions).
     public enum WriterPolicy: Sendable {
         /// No writer is stated, and the Provenance names no author. The default.
         case omit
@@ -108,8 +174,8 @@ extension HealthKitFHIRExporter {
 
     /// Which token, if any, proves the physical unit behind a sample's `HKDevice`.
     ///
-    /// It picks the token and nothing else: every `HKDevice` is a recording Device, stating each fact HealthKit supplies,
-    /// `localIdentifier` included. A token enters the keyed `recording-device` identity, scoped to the writing source's
+    /// It picks the token and nothing else: every `HKDevice` that ``Options/device`` states is a recording Device, stating
+    /// each fact HealthKit supplies that the policy includes. A token enters the keyed `recording-device` identity, scoped to the writing source's
     /// `HKSource.bundleIdentifier`, so a source without one states no unit. Facts alone never prove a unit.
     public enum UnitTokenPolicy: Sendable {
         /// `HKDevice.localIdentifier`, when the sample states one. It is local to the host that recorded the sample and
@@ -176,6 +242,251 @@ extension HealthKitFHIRExporter {
     public enum Disclosure: Hashable, Sendable {
         case omit
         case authorized
+    }
+
+    /// Discloses the clear HealthKit UUID as an identifier under a system scoped to one participant's HealthKit store.
+    ///
+    /// While ``Options/syncIdentifier`` is authorized, the system must name an authority and have no query and no
+    /// fragment, as an `https` URL without them does, so that the segments of a sync identifier's system extend its path.
+    /// A derived system always extends the repository scope's system, which therefore always needs that form.
+    public struct NativeIdentifierDisclosure: Hashable, Sendable {
+        enum Storage: Hashable, Sendable {
+            case omit
+            case derived
+            case explicit(system: IdentifierSystem, type: GovernedSourceIdentifierDisclosurePolicy.IdentifierType?)
+        }
+
+        /// No clear identifier is emitted. The default.
+        public static let omit = Self(storage: .omit)
+        /// The identifier is emitted under a system the exporter derives from its repository scope: the scope's system,
+        /// then a token keyed with the deployment's identity key, then `healthkit-native-record`.
+        ///
+        /// The token is an HMAC of the repository scope under the producer's `OpaqueIdentityScope` key, so the scope's
+        /// value is not part of the system and cannot be confirmed from it without the key. The same key and repository
+        /// scope always yield the same system, and another scope or another key yields another. A repository scope
+        /// whose system cannot be extended is refused with
+        /// ``HealthKitFHIRExporter/ConfigurationError/nativeIdentifierSystemNotExtensible(_:)``.
+        public static let authorized = Self(storage: .derived)
+
+        let storage: Storage
+
+        /// Whether the clear HealthKit UUID is disclosed, under a derived or a stated system.
+        public var isAuthorized: Bool {
+            storage != .omit
+        }
+
+        /// The identifier is emitted under `system`, which the deployment owns and scopes to one participant's HealthKit
+        /// store, with the optional `type`.
+        public static func authorized(
+            system: IdentifierSystem,
+            type: GovernedSourceIdentifierDisclosurePolicy.IdentifierType? = nil
+        ) -> Self {
+            Self(storage: .explicit(system: system, type: type))
+        }
+    }
+
+    /// One fact of a sample's `HKSourceRevision` that a policy decides, as the source-revision extension states it.
+    ///
+    /// Any other `HKSource.bundleIdentifier`, such as an application's, is no such fact: the guide lets a policy withhold
+    /// `sourceBundleIdentifier` only where it is a ``deviceBundleIdentifier``, so the extension states every other one.
+    public enum SourceFact: Hashable, Sendable, CaseIterable {
+        /// `HKSource.name`. For an iPhone or Apple Watch it is the name the person gave the device.
+        case name
+        /// An `HKSource.bundleIdentifier` that is exactly `com.apple.health.` followed by a UUID in the 8-4-4-4-12
+        /// hexadecimal form, which HealthKit assigns to one iPhone or Apple Watch.
+        ///
+        /// The match is by form and best effort. It decides only whether the source-revision extension states the
+        /// `sourceBundleIdentifier` member, which is omitted as a whole and never shortened or rewritten. It classifies
+        /// nothing else: the source is not treated as a device or as an application because of it, and the writer, the
+        /// sync identifier's system and every keyed identity use the exact bundle identifier under every policy.
+        case deviceBundleIdentifier
+        /// `HKSourceRevision.version`.
+        case version
+        /// `HKSourceRevision.productType`.
+        case productType
+        /// `HKSourceRevision.operatingSystemVersion`.
+        case operatingSystemVersion
+    }
+
+    /// One fact of the recording Device, whether an `HKDevice` property or a device metadata key supplies it.
+    public enum DeviceFact: Hashable, Sendable, CaseIterable {
+        /// `HKDevice.name` or `HKMetadataKeyDeviceName`, which can be a name a person gave the device.
+        case name
+        /// `HKDevice.manufacturer` or `HKMetadataKeyDeviceManufacturerName`.
+        case manufacturer
+        /// `HKDevice.model`.
+        case model
+        /// `HKDevice.hardwareVersion`.
+        case hardwareVersion
+        /// `HKDevice.firmwareVersion`.
+        case firmwareVersion
+        /// `HKDevice.softwareVersion`.
+        case softwareVersion
+        /// `HKDevice.localIdentifier`, as the clear `Device.identifier`.
+        case localIdentifier
+        /// `HKDevice.udiDeviceIdentifier` or `HKMetadataKeyUDIDeviceIdentifier`.
+        case udiDeviceIdentifier
+        /// `HKMetadataKeyUDIProductionIdentifier`.
+        case udiProductionIdentifier
+        /// `HKMetadataKeyDeviceSerialNumber`.
+        case serialNumber
+    }
+
+    /// Which facts of one kind an export states: sample metadata keys, ``SourceFact`` or ``DeviceFact``.
+    ///
+    /// Every policy has the same four forms: ``all``, `nonIdentifying`, ``omit`` and ``custom(_:)``. A fact a policy
+    /// omits is never warned about.
+    public struct FactPolicy<Fact: Sendable>: Sendable {
+        /// A decision about a single fact.
+        public enum Decision: Sendable {
+            /// The fact is included in the export.
+            case include
+            /// The fact is omitted from the export.
+            case omit
+        }
+
+        private let decide: @Sendable (Fact) -> Decision
+
+        init(_ decide: @escaping @Sendable (Fact) -> Decision) {
+            self.decide = decide
+        }
+
+        func decision(for fact: Fact) -> Decision {
+            decide(fact)
+        }
+
+        func includes(_ fact: Fact) -> Bool {
+            decide(fact) == .include
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.FactPolicy where Fact: CaseIterable & Hashable {
+    /// Every fact the policy includes, each decided once.
+    var includedFacts: Set<Fact> {
+        Set(Fact.allCases.filter(includes))
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.FactPolicy {
+    /// Every fact. The default.
+    public static var all: Self {
+        Self { _ in .include }
+    }
+
+    /// No fact. For metadata the record states no metadata extension, for the source no source-revision extension, and
+    /// for the device no recording Device.
+    public static var omit: Self {
+        Self { _ in .omit }
+    }
+
+    /// A policy that decides each fact with `decide`.
+    ///
+    /// - parameter decide: A closure that decides one fact. For source and device facts it is called once per fact when
+    ///   the exporter is created, so every record of the exporter gets the same answer. For metadata it is called once
+    ///   for each key of each sample's metadata that no structured mapping represents and ``Options/device`` does not
+    ///   omit.
+    public static func custom(_ decide: @escaping @Sendable (Fact) -> Decision) -> Self {
+        Self(decide)
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.FactPolicy where Fact == String {
+    /// Every supported key except the identifying Apple keys: `HKMetadataKeyExternalUUID`,
+    /// `HKMetadataKeyDeviceSerialNumber`, `HKMetadataKeyDeviceName`, `HKMetadataKeyUDIDeviceIdentifier`,
+    /// `HKMetadataKeyUDIProductionIdentifier` and `HKMetadataKeyDigitalSignature`. Custom keys are preserved.
+    public static var nonIdentifying: Self {
+        let keys = identifyingKeys
+        return Self { keys.contains($0) ? .omit : .include }
+    }
+
+    /// Well-known HealthKit metadata keys that map to values likely containing identifying information.
+    private static var identifyingKeys: Set<String> {
+        [
+            HKMetadataKeyExternalUUID,
+            HKMetadataKeyDeviceSerialNumber,
+            HKMetadataKeyDeviceName,
+            HKMetadataKeyUDIDeviceIdentifier,
+            HKMetadataKeyUDIProductionIdentifier,
+            HKMetadataKeyDigitalSignature
+        ]
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.FactPolicy where Fact == HealthKitFHIRExporter.SourceFact {
+    /// Every fact except the source name and a bundle identifier of the form `com.apple.health.<UUID>`. Every other
+    /// bundle identifier, such as an application's, still travels.
+    public static var nonIdentifying: Self {
+        Self { $0 == .name || $0 == .deviceBundleIdentifier ? .omit : .include }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.FactPolicy where Fact == HealthKitFHIRExporter.DeviceFact {
+    /// Every fact except the device name, the local identifier, the serial number and the two UDI identifiers. The keyed
+    /// `recording-device` unit identity that ``HealthKitFHIRExporter/Options/unitToken`` picks still travels.
+    public static var nonIdentifying: Self {
+        Self { fact in
+            switch fact {
+            case .name, .localIdentifier, .serialNumber, .udiDeviceIdentifier, .udiProductionIdentifier: .omit
+            case .manufacturer, .model, .hardwareVersion, .firmwareVersion, .softwareVersion: .include
+            }
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitFHIRExporter.NativeIdentifierDisclosure {
+    /// The path segment that ends a derived native identifier system.
+    private static let derivedSystemSegment = "healthkit-native-record"
+    /// The source-context type that keys the store token. It is reserved for the token: no record states an identifier of
+    /// this context type, so the token equals no identifier value.
+    private static let storeContextType = "healthkit-store"
+
+    /// The system of the store `repositoryScope` names: the scope's system without trailing slashes, then a token keyed
+    /// with `identityScope`'s key, then `healthkit-native-record`. `nil` when the scope's system has no path to extend.
+    ///
+    /// The token is the digest of the keyed source-context identity of the store, so it is unpadded base64url text, and
+    /// neither states the scope's value nor lets it be confirmed without the key.
+    static func derivedSystem(in repositoryScope: BusinessIdentifier, identityScope: OpaqueIdentityScope) -> IdentifierSystem? {
+        guard GovernedSourceIdentifierDisclosurePolicy.acceptsSyncIdentifierPath(repositoryScope.system),
+              let store = try? identityScope.sourceContext(
+                  adapterID: HealthKitAssembly.adapter.adapterID,
+                  contextType: storeContextType,
+                  repositoryScope: repositoryScope,
+                  nativeContextID: derivedSystemSegment
+              ),
+              let token = store.identifier.value.split(separator: ":").last else {
+            return nil
+        }
+        var base = repositoryScope.system.rawValue[...]
+        while base.hasSuffix("/") {
+            base.removeLast()
+        }
+        return try? IdentifierSystem("\(base)/\(token)/\(derivedSystemSegment)")
+    }
+
+    /// The disclosure the records of the store `repositoryScope` names state: the explicit system, or the derived one.
+    /// A derived system that cannot be formed discloses nothing; ``HealthKitFHIRExporter`` refuses that configuration.
+    func policy(in repositoryScope: BusinessIdentifier, identityScope: OpaqueIdentityScope) -> GovernedSourceIdentifierDisclosurePolicy {
+        switch storage {
+        case .omit:
+            .omit
+        case let .explicit(system, type):
+            .authorized(system: system, type: type)
+        case .derived:
+            Self.derivedSystem(in: repositoryScope, identityScope: identityScope).map { .authorized(system: $0) } ?? .omit
+        }
     }
 }
 

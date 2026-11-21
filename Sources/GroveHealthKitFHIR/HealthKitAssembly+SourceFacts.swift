@@ -25,34 +25,72 @@ extension HealthKitAssembly {
         let sourceRevision: Extension?
         let nativeIdentifiers: [Identifier]
         let writerRecord: ExchangeOutputDraft.WriterRecord?
+        /// Whether the deployment discloses readable identifiers but the writing source's bundle identifier cannot name
+        /// the system of the record's sync identifier, so its text is not exported.
+        let withholdsSyncIdentifier: Bool
         let wasUserEntered: Bool
 
-        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it. `outputs`
-        /// are the record's: only an Observation output takes the sample's device metadata keys. The record states
-        /// `revisionOverride` in place of the sample's own revision when one is given.
+        /// The facts of `sample`, whose metadata `metadata` bridged once, under what the policies answered for it. The
+        /// record states `revisionOverride` in place of the sample's own revision when one is given.
         init(
             _ sample: HKSample,
             metadata: HealthKitSampleMetadata,
-            outputs: [ExchangeOutputDraft],
             policies: HealthKitFHIRExporter.ResolvedPolicies,
-            options: HealthKitFHIRExporter.Options,
+            disclosure: Disclosure,
             revisionOverride: HKSourceRevision? = nil
         ) throws {
             let revision = revisionOverride ?? sample.sourceRevision
-            self.recordingDevice = sample.device.map { healthKitDevice in
-                var device = RecordingDevice(healthKitDevice)
-                // A record without an Observation output represents no metadata key (healthkit mapping.md, Withheld metadata).
-                if outputs.contains(where: \.isObservation) {
-                    device.fill(from: metadata)
-                }
+            var device = sample.device.map(RecordingDevice.init) ?? RecordingDevice()
+            device.fill(from: metadata)
+            device.keep(disclosure.deviceFacts)
+            // Every `HKDevice` is a Device while the policy includes every fact. Under a policy that omits facts, a Device
+            // with no fact left is not stated, whatever unit token the sample has.
+            let includesEveryFact = disclosure.deviceFacts.count == HealthKitFHIRExporter.DeviceFact.allCases.count
+            if device.hasFacts || (includesEveryFact && sample.device != nil) {
                 device.identifyUnit(token: policies.unitToken, writer: revision.source)
-                return device
+                self.recordingDevice = device
+            } else {
+                self.recordingDevice = nil
             }
             self.writer = try Self.writer(revision, classification: policies.writer)
-            self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision) : nil
-            self.nativeIdentifiers = [options.nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())].compactMap(\.self)
-            self.writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
+            self.sourceRevision = self.writer == nil ? Self.sourceRevision(revision, facts: disclosure.sourceFacts) : nil
+            let writerRecord = try Self.writerRecord(metadata: metadata.values, writerApplication: revision.source.bundleIdentifier)
+            self.writerRecord = writerRecord
+            // The sync identifier's system extends the native identifier's, so it is disclosed only beside the UUID.
+            let nativeIdentifier = disclosure.nativeIdentifier
+            let syncIdentifier = disclosure.syncIdentifier ? writerRecord.flatMap(nativeIdentifier.syncIdentifier) : nil
+            let uuid = nativeIdentifier.identifier(for: sample.uuid.uuidString.lowercased())
+            self.nativeIdentifiers = [uuid, syncIdentifier].compactMap(\.self)
+            self.withholdsSyncIdentifier = disclosure.syncIdentifier && writerRecord != nil && syncIdentifier == nil
             self.wasUserEntered = metadata.wasUserEntered
+        }
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension HealthKitAssembly.SourceFacts {
+    /// What an exporter's options disclose about every sample's origin, resolved once per exporter: a custom source or
+    /// device policy is asked once per fact, so every record of the exporter gets the same answer.
+    struct Disclosure: Sendable {
+        /// ``HealthKitFHIRExporter/Options/nativeIdentifier`` with its system resolved for the store.
+        let nativeIdentifier: GovernedSourceIdentifierDisclosurePolicy
+        /// Whether the sync identifier text is disclosed: its option is authorized and so is the UUID, whose system
+        /// its own extends.
+        let syncIdentifier: Bool
+        let sourceFacts: Set<HealthKitFHIRExporter.SourceFact>
+        let deviceFacts: Set<HealthKitFHIRExporter.DeviceFact>
+        /// The device metadata keys whose fact the device policy omits: neither stated, preserved nor withheld.
+        let omittedDeviceKeys: Set<String>
+
+        init(_ options: HealthKitFHIRExporter.Options, scope: ExchangeEnvelope.Scope) {
+            let nativeIdentifier = options.nativeIdentifier.policy(in: scope.repositoryScope, identityScope: scope.identityScope)
+            let deviceFacts = options.device.includedFacts
+            self.nativeIdentifier = nativeIdentifier
+            self.syncIdentifier = options.syncIdentifier == .authorized && nativeIdentifier.isAuthorized
+            self.sourceFacts = options.source.includedFacts
+            self.deviceFacts = deviceFacts
+            self.omittedDeviceKeys = Set(RecordingDevice.metadataKeyFacts.filter { !deviceFacts.contains($0.value) }.keys)
         }
     }
 }
@@ -62,6 +100,24 @@ extension HealthKitAssembly {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension RecordingDevice {
+    /// The fact each device metadata key supplies.
+    fileprivate static let metadataKeyFacts: [String: HealthKitFHIRExporter.DeviceFact] = [
+        HKMetadataKeyDeviceSerialNumber: .serialNumber,
+        HKMetadataKeyDeviceName: .name,
+        HKMetadataKeyDeviceManufacturerName: .manufacturer,
+        HKMetadataKeyUDIDeviceIdentifier: .udiDeviceIdentifier,
+        HKMetadataKeyUDIProductionIdentifier: .udiProductionIdentifier
+    ]
+
+    /// Whether the device states at least one fact. Descriptive facts can name source hardware without asserting a stable
+    /// physical-unit identity.
+    fileprivate var hasFacts: Bool {
+        [
+            name, manufacturer, model, hardwareVersion, firmwareVersion, softwareVersion, localIdentifier,
+            udiDeviceIdentifier, udiProductionIdentifier, serialNumber
+        ].contains { $0 != nil }
+    }
+
     /// The hardware `device` names, with every fact it states.
     fileprivate init(_ device: HKDevice) {
         self.init()
@@ -86,6 +142,23 @@ extension RecordingDevice {
         udiDeviceIdentifier = udiDeviceIdentifier ?? stated(HKMetadataKeyUDIDeviceIdentifier)
         udiProductionIdentifier = stated(HKMetadataKeyUDIProductionIdentifier)
         serialNumber = stated(HKMetadataKeyDeviceSerialNumber)
+    }
+
+    /// Clears every fact not among `facts`, whichever of `HKDevice` and the metadata supplied it.
+    fileprivate mutating func keep(_ facts: Set<HealthKitFHIRExporter.DeviceFact>) {
+        func kept(_ fact: HealthKitFHIRExporter.DeviceFact, _ value: String?) -> String? {
+            facts.contains(fact) ? value : nil
+        }
+        name = kept(.name, name)
+        manufacturer = kept(.manufacturer, manufacturer)
+        model = kept(.model, model)
+        hardwareVersion = kept(.hardwareVersion, hardwareVersion)
+        firmwareVersion = kept(.firmwareVersion, firmwareVersion)
+        softwareVersion = kept(.softwareVersion, softwareVersion)
+        localIdentifier = kept(.localIdentifier, localIdentifier)
+        udiDeviceIdentifier = kept(.udiDeviceIdentifier, udiDeviceIdentifier)
+        udiProductionIdentifier = kept(.udiProductionIdentifier, udiProductionIdentifier)
+        serialNumber = kept(.serialNumber, serialNumber)
     }
 
     /// States `token` as the unit `writer` assigned it: without a writer's bundle identifier the record names hardware, not
@@ -186,6 +259,52 @@ extension HealthKitAssembly.SourceFacts {
             throw HealthKitConversionError.ValueFailure.invalidMetadataValue(.syncVersion)
         }
         return NSDecimalString(&integral, Locale(identifier: "en_US_POSIX"))
+    }
+}
+
+
+// MARK: - Readable sync identifier
+
+extension GovernedSourceIdentifierDisclosurePolicy {
+    /// Whether this policy discloses clear source identifiers.
+    var isAuthorized: Bool {
+        if case .authorized = self { true } else { false }
+    }
+
+    /// Whether path segments appended to `system` extend its path: it names an authority and has no query and no
+    /// fragment. A `urn:oid:` or `urn:uuid:` system has no path to extend, and after a query or fragment the segments
+    /// would land in it.
+    static func acceptsSyncIdentifierPath(_ system: IdentifierSystem) -> Bool {
+        guard let components = URLComponents(string: system.rawValue) else {
+            return false
+        }
+        return components.percentEncodedHost != nil
+            && components.percentEncodedQuery == nil
+            && components.percentEncodedFragment == nil
+    }
+
+    /// The readable HealthKit sync identifier of one writer record: the exact sync identifier text, typed
+    /// `healthkit-sync-id`, under the authorized store-scoped system followed by the `healthkit-sync-identifier` path
+    /// segment and the writing application's bundle identifier. Equal text from another writing application or another
+    /// store has another system (HealthKit guide `mapping.md`, readable sync identifier).
+    ///
+    /// It is nil when the deployment omits clear source identifiers, and when the bundle identifier is no writer segment:
+    /// it is never escaped, encoded or substituted.
+    func syncIdentifier(for record: ExchangeOutputDraft.WriterRecord) -> Identifier? {
+        guard case let .authorized(system, _) = self, HealthKitContract.isSyncIdentifierWriterSegment(record.writerApplication) else {
+            return nil
+        }
+        let syncIdentifierSystem = HealthKitContract.syncIdentifierSystemPrefix(in: system.rawValue) + record.writerApplication
+        return Identifier(
+            system: FHIRPrimitive(FHIRURI(stringLiteral: syncIdentifierSystem)),
+            type: CodeableConcept(coding: [
+                Coding(
+                    code: HealthKitContract.syncIdentifierTypeCode.asFHIRStringPrimitive(),
+                    system: HealthKitContract.syncIdentifierTypeSystem
+                )
+            ]),
+            value: record.syncIdentifier.asFHIRStringPrimitive()
+        )
     }
 }
 
