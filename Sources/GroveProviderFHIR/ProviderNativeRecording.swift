@@ -42,7 +42,8 @@ public struct ProviderNativeRecording: Sendable {
         /// The interval is empty, or it is not the representation its provider states: dates for Withings and
         /// timestamps for Oura and Google Health.
         case invalidInterval
-        /// The attachment path is not a relative reference without empty or dot segments, a query or a fragment.
+        /// The attachment path is not a relative reference without empty or dot segments, a query, a fragment or a
+        /// percent-encoded byte.
         case invalidPath
         /// The byte limit is outside 1 through ``ProviderNativeRecording/maximumJSONByteCount``.
         case invalidByteLimit
