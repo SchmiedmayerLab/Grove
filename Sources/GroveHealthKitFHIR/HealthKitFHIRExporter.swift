@@ -155,6 +155,13 @@ extension HealthKitFHIRExporter {
         /// Whether the options export nothing for the record, a workout route while `route` is `.omit`: it hands nothing
         /// over, which is not a refusal.
         let omitted: Bool
+        /// The source revision the record states in place of its sample's own; see
+        /// ``Record/unsavedSampleRevision(producer:)``.
+        ///
+        /// Only ever an override, never the sample's own revision: HealthKit declares `sourceRevision` nonnull, but returns
+        /// no object for a sample the store never held, and a nil reference stored as non-optional reads as `nil` to any
+        /// `Optional` wrapping the plan, which ends the iteration that hands the plans over.
+        let revisionOverride: HKSourceRevision?
         /// What the policies answered for the record, or `nil` for a type the inventory does not list and for an omitted
         /// record.
         let primary: ResolvedPolicies?
@@ -179,7 +186,11 @@ extension HealthKitFHIRExporter {
             self.evidence = evidence
             self.recording = omitted ? nil : content.flatMap { record.recording(content: $0) }
             self.omitted = omitted
-            let primary = omitted || content == nil ? nil : ResolvedPolicies(sample, options: exporter.options)
+            let revisionOverride = record.unsavedSampleRevision(producer: exporter.producer.facts)
+            self.revisionOverride = revisionOverride
+            let primary = omitted || content == nil
+                ? nil
+                : ResolvedPolicies(sample, options: exporter.options, revisionOverride: revisionOverride)
             self.primary = primary
             self.symptoms = primary == nil ? [] : record.symptoms.map { symptom in
                 HealthKitContentPlan.plan(for: symptom) == nil ? nil : ResolvedPolicies(symptom, options: exporter.options)
@@ -253,10 +264,12 @@ extension HealthKitFHIRExporter {
         primary: ResolvedPolicies,
         at instant: Date
     ) throws -> [HealthKitAssembly.Conversion] {
-        let request = assemblyRequest(for: plan.record.sample, policies: primary, at: instant)
+        let request = assemblyRequest(for: plan.record.sample, revisionOverride: plan.revisionOverride, policies: primary, at: instant)
         switch plan.record {
         case .sample(let sample):
             return try assembly.convert(sample, plan: content, request: request)
+        case .unsavedSample(let unsavedSample, source: _):
+            return try assembly.convert(unsavedSample.sample, plan: content, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             // An ECG whose evidence did not validate when it was planned is refused now, for the same reason.
             let evidence = try plan.evidence ?? content.ecgEvidence(ecg, voltages: voltages)
@@ -290,14 +303,23 @@ extension HealthKitFHIRExporter {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// What the assembly builds one record from: the conversion instant, the producer's facts, and what the policies
-    /// answered for its sample.
-    func assemblyRequest(for sample: HKSample, policies: ResolvedPolicies, at instant: Date) -> HealthKitAssembly.Request {
+    /// What the assembly builds one record from: the conversion instant, the producer's facts, the source revision the
+    /// record states in place of its sample's own, if any, and what the policies answered for its sample.
+    func assemblyRequest(
+        for sample: HKSample,
+        revisionOverride: HKSourceRevision? = nil,
+        policies: ResolvedPolicies,
+        at instant: Date
+    ) -> HealthKitAssembly.Request {
         HealthKitAssembly.Request(
             instant: instant,
             facts: producer.facts,
             // The gateway role compares the sample's revision with the producer's build.
-            converterRole: options.role.converterRole(for: sample.sourceRevision, application: producer.facts.application),
+            converterRole: options.role.converterRole(
+                for: revisionOverride ?? sample.sourceRevision,
+                application: producer.facts.application
+            ),
+            sourceRevisionOverride: revisionOverride,
             policies: policies
         )
     }
@@ -322,7 +344,7 @@ extension HealthKitFHIRExporter.Record {
             Result { try content.recordingDocument().beatIntervals(seriesStart: series.startDate, heartbeats: beats) }
         case let .workoutRoute(_, locations):
             Result { try content.recordingDocument().locationTrack(locations) }
-        case .sample, .electrocardiogram:
+        case .sample, .unsavedSample, .electrocardiogram:
             nil
         }
     }
