@@ -7,7 +7,6 @@
 //
 
 public import struct Foundation.URL
-public import ModelsDSTU2
 public import ModelsR4
 
 
@@ -60,11 +59,6 @@ public struct FHIRExtensionURL: Sendable, Hashable {
 extension FHIRExtensionURL {
     /// R4 `FHIRPrimitive<FHIRURI>`
     public var r4: ModelsR4.FHIRPrimitive<ModelsR4.FHIRURI> { // swiftlint:disable:this identifier_name
-        url.asFHIRURIPrimitive()
-    }
-
-    /// DSTU2 `FHIRPrimitive<FHIRURI>`
-    public var dstu2: ModelsDSTU2.FHIRPrimitive<ModelsDSTU2.FHIRURI> {
         url.asFHIRURIPrimitive()
     }
 }
