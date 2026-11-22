@@ -48,11 +48,21 @@ extension HealthKitFHIRExporter {
         /// origin for.
         public enum UnsavedSample: Sendable {
             /// A quantity sample.
+            ///
+            /// - Invariant: The sample must be created by the app, and must not have been saved to HealthKit.
             case quantitySample(HKQuantitySample)
 
+            /// A correlation sample.
+            ///
+            /// - Invariant: The sample must be created by the app, and must not have been saved to HealthKit.
+            case correlation(HKCorrelation)
+
+            /// The underlying `HKSample`.
             var sample: HKSample {
                 switch self {
                 case .quantitySample(let sample):
+                    sample
+                case .correlation(let sample):
                     sample
                 }
             }

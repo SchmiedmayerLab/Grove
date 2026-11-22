@@ -45,6 +45,48 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
         }
     }
 
+    /// A 120/80 reading; the correlation takes `ordinal` and its two members the next two. Each is attributed to
+    /// `writer`, as HealthKit attributes a saved correlation's members to the correlation's source.
+    private static func bloodPressure(uuid ordinal: UInt8, writer: StoredSampleFixtures.Writer?) throws -> HKCorrelation {
+        func member(_ type: HKQuantityTypeIdentifier, _ value: Double, ordinal: UInt8) throws -> HKQuantitySample {
+            let sample = HKQuantitySample(
+                type: HKQuantityType(type),
+                quantity: HKQuantity(unit: .millimeterOfMercury(), doubleValue: value),
+                start: GoldenFixtures.sampleStart,
+                end: GoldenFixtures.sampleStart,
+                metadata: GoldenFixtures.timeZoneMetadata
+            )
+            return try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(ordinal), writer: writer)
+        }
+        let members = [
+            try member(.bloodPressureSystolic, 120, ordinal: ordinal + 1),
+            try member(.bloodPressureDiastolic, 80, ordinal: ordinal + 2)
+        ]
+        guard let writer else {
+            let correlation = HKCorrelation(
+                type: HKCorrelationType(.bloodPressure),
+                start: GoldenFixtures.sampleStart,
+                end: GoldenFixtures.sampleStart,
+                objects: Set<HKSample>(members),
+                metadata: GoldenFixtures.timeZoneMetadata
+            )
+            return try StoredSampleFixtures.stored(correlation, uuid: GoldenFixtures.uuid(ordinal))
+        }
+        // HealthKit's initializer refuses members that are attributed to a writer.
+        return try StoredSampleFixtures.correlation(
+            HKCorrelationType(.bloodPressure),
+            objects: members,
+            facts: StoredSampleFixtures.SampleFacts(
+                uuid: GoldenFixtures.uuid(ordinal),
+                start: GoldenFixtures.sampleStart,
+                end: GoldenFixtures.sampleStart,
+                device: nil,
+                metadata: GoldenFixtures.timeZoneMetadata,
+                writer: writer
+            )
+        )
+    }
+
     private static func record(_ record: HealthKitFHIRExporter.Record) async throws -> ExchangeRecord {
         let exports = try await ExporterFixtures.collect(exporter(), [record])
         try #require(exports.count == 1)
@@ -73,6 +115,19 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
         #expect(plainRecord != savedRecord)
         let plainObservation = try #require(plainRecord.bundle.entry?.compactMap { $0.resource?.get(if: Observation.self) }.first)
         #expect(plainObservation.extension?.contains { $0.url == Canonicals.gatewayDevice } != true)
+    }
+
+    @Test("An unsaved blood-pressure correlation exports as the same correlation saved by the converting build")
+    func unsavedCorrelationStatesTheSavingRevision() async throws {
+        let unsaved = try Self.bloodPressure(uuid: 0xB0, writer: nil)
+        #expect(!HealthKitAssembly.SourceFacts.namesSource(unsaved.sourceRevision))
+        let saved = try Self.bloodPressure(uuid: 0xB0, writer: Self.savingWriter)
+        let unsavedRecord = try await Self.record(.unsavedSample(.correlation(unsaved), source: Self.source))
+        let savedRecord = try await Self.record(.sample(saved))
+        #expect(unsavedRecord == savedRecord)
+        // As a plain sample, the unsaved correlation names no source.
+        let plainRecord = try await Self.record(.sample(unsaved))
+        #expect(plainRecord != savedRecord)
     }
 
     @Test("An unsaved sample whose revision names a source keeps its own revision")
