@@ -208,6 +208,24 @@ struct LLMDemoChatView: View {
 }
 ```
 
+### Embeddings
+
+``LLMEmbeddingProvider`` is a session-free interface for embedding text batches. Concrete providers (for example OpenAI-compatible clients in GroveLLMOpenAI) return ordered ``LLMEmbeddingResult`` values. Chunking, vector storage, retrieval ranking, and authorization remain application responsibilities.
+
+```swift
+import GroveLLM
+
+func embedBatch(using provider: some LLMEmbeddingProvider) async throws -> [[Float]] {
+    let result = try await provider.embed(
+        ["hello", "world"],
+        model: "text-embedding-3-small",
+        dimensions: nil
+    )
+    // result.vectors[i] corresponds to the i-th input text.
+    return result.vectors
+}
+```
+
 ## Topics
 
 ### LLM abstraction
@@ -216,6 +234,12 @@ struct LLMDemoChatView: View {
 - ``LLMSession``
 - ``LLMState``
 - ``LLMError``
+
+### Embeddings
+
+- ``LLMEmbeddingProvider``
+- ``LLMEmbeddingResult``
+- ``LLMEmbeddingUsage``
 
 ### LLM Execution
 
