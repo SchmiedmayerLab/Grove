@@ -95,7 +95,7 @@ extension AccountKey {
     // use by acceptAll
     fileprivate static func anyAccept<Visitor: AccountValueVisitor>(_ visitor: inout Visitor, _ value: Any) {
         guard let value = value as? Value else {
-            preconditionFailure("Tried to visit \(Self.self) with value \(value) which is not of type \(Value.self)")
+            preconditionFailure("Tried to visit \(Self.self) with a value that is not of type \(Value.self)")
         }
 
         accept(&visitor, value)

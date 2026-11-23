@@ -46,7 +46,7 @@ extension AccountKey {
 extension RequiredAccountKey {
     fileprivate static func acceptRequired<Visitor: AccountValueVisitor>(_ visitor: inout Visitor, _ value: Any) {
         guard let value = value as? Value else {
-            preconditionFailure("Tried to visit \(Self.self) with value \(value) which is not of type \(Value.self)")
+            preconditionFailure("Tried to visit \(Self.self) with a value that is not of type \(Value.self)")
         }
         visitor.visit(Self.self, value)
     }
