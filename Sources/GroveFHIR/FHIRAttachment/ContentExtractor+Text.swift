@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 #if canImport(UniformTypeIdentifiers)
 
 public import Foundation
@@ -36,4 +37,5 @@ extension FHIRAttachmentContentExtractor where Self == TextContentExtractor {
     }
 }
 
+#endif
 #endif

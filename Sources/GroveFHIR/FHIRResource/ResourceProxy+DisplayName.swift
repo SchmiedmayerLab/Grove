@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 public import ModelsR4
 
 
@@ -44,3 +45,4 @@ extension ResourceProxy {
         }
     }
 }
+#endif

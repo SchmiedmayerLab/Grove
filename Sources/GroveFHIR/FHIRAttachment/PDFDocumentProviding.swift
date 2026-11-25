@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 // swiftlint:disable file_types_order
 
 // PDFKit is unavailable on watchOS; the PDF-backed attachment handling is gated out there.
@@ -31,4 +32,5 @@ struct DefaultPDFDocumentProvider: PDFDocumentProviding {
     }
 }
 
+#endif
 #endif

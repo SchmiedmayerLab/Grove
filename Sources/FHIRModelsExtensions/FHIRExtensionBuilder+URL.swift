@@ -7,7 +7,9 @@
 //
 
 public import struct Foundation.URL
+#if DSTU2
 public import ModelsDSTU2
+#endif
 public import ModelsR4
 
 
@@ -63,10 +65,14 @@ extension FHIRExtensionURL {
         url.asFHIRURIPrimitive()
     }
 
+    #if DSTU2
     /// DSTU2 `FHIRPrimitive<FHIRURI>`
+    ///
+    /// Requires the package's `DSTU2` trait.
     public var dstu2: ModelsDSTU2.FHIRPrimitive<ModelsDSTU2.FHIRURI> {
         url.asFHIRURIPrimitive()
     }
+    #endif
 }
 
 

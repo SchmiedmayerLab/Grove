@@ -51,8 +51,17 @@ let defaultSwiftSettings: [SwiftSetting] = [
 let textualTrait = "Textual"
 let mlxTrait = "MLX"
 let researchKitTrait = "ResearchKit"
-// MLX and ResearchKit stay opt-in: they pull in large dependencies a consumer may not want in its graph.
-let optionalPackageTraits = [mlxTrait, researchKitTrait]
+let dstu2Trait = "DSTU2"
+// MLX, ResearchKit and DSTU2 stay opt-in: they pull in large dependencies a consumer may not want in its graph.
+// Swift keeps every linked module's types in the binary, used or not, so linking FHIRModels' ModelsDSTU2 alone
+// costs an app about 11 MB of machine code.
+let optionalPackageTraits = [mlxTrait, researchKitTrait, dstu2Trait]
+
+/// The condition of a dependency on FHIRModels' ModelsDSTU2: only with the DSTU2 trait, and on the same platforms as
+/// ``fhirModelsCondition``.
+let fhirModelsDSTU2Condition: TargetDependencyCondition? = isLoweredDeploymentTargetEnabled
+    ? .when(platforms: [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .linux], traits: [dstu2Trait])
+    : .when(traits: [dstu2Trait])
 
 // Rich Markdown rendering is what the chat is expected to look like — tables, code blocks and all — so Textual is
 // on unless a consumer deliberately turns it off, rather than something every app has to remember to ask for.
@@ -320,8 +329,8 @@ var targets: [Target] = [
         name: "FHIRModelsExtensions",
         dependencies: [
             .target(name: "FHIRPathParser"),
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition)
+            .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
+            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsDSTU2Condition)
         ],
         exclude: targetExcludes("FHIRModelsExtensions", additional: ["FHIR+ExtensionUtils.swift.gyb"]),
         swiftSettings: defaultSwiftSettings,
@@ -819,7 +828,7 @@ var targets: [Target] = [
             .target(name: "Grove"),
             .target(name: "FHIRModelsExtensions"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
-            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsCondition)
+            .product(name: "ModelsDSTU2", package: "FHIRModels", condition: fhirModelsDSTU2Condition)
         ],
         exclude: targetExcludes("GroveFHIR"),
         swiftSettings: defaultSwiftSettings,
@@ -2061,6 +2070,10 @@ let package = Package(
         .trait(
             name: mlxTrait,
             description: "Enable local LLM targets that depend on MLX and swift-transformers."
+        ),
+        .trait(
+            name: dstu2Trait,
+            description: "Enable GroveFHIR and the DSTU2 API of FHIRModelsExtensions, which depend on FHIRModels' ModelsDSTU2."
         ),
         .trait(
             name: researchKitTrait,

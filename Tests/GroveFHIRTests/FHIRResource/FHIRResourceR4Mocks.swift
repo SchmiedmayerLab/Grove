@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import Foundation
 import ModelsR4
 
@@ -465,3 +466,4 @@ enum ModelsR4Mocks { // swiftlint:disable:this type_body_length
         )
     }
 }
+#endif

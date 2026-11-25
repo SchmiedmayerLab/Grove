@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 public import Foundation
 public import struct ModelsR4.Bundle
 
@@ -26,3 +27,4 @@ extension Foundation.Bundle {
         }
     }
 }
+#endif

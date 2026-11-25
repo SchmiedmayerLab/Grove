@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 #if canImport(PDFKit) && canImport(UniformTypeIdentifiers)
 
 import Foundation
@@ -155,4 +156,5 @@ struct PDFContentExtractorTests {
     }
 }
 
+#endif
 #endif

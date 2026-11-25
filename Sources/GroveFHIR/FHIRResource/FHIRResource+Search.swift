@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 
 extension FHIRResource {
     func matchesDisplayName(with searchText: String) -> Bool {
@@ -32,3 +33,4 @@ extension Set where Element == FHIRResource {
         }
     }
 }
+#endif

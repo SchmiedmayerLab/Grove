@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 public import Foundation
 public import ModelsDSTU2
 public import ModelsR4
@@ -274,3 +275,4 @@ extension Equatable {
         }
     }
 }
+#endif

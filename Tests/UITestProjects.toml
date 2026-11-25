@@ -74,6 +74,7 @@ test_products = ["XCTestExtensions"]
 [GroveFHIR]
 app_products = ["Grove", "GroveFHIR", "GroveFHIRMockPatients", "GroveViews"]
 test_products = ["XCTestExtensions"]
+traits = ["DSTU2"]
 
 [GroveFirebase]
 app_products = ["Grove", "GroveAccount", "GroveFirebaseAccount", "GroveFirebaseAccountStorage", "GroveFirestore", "GroveFirebaseStorage", "GrovePersonalInfo", "GroveValidation", "GroveViews"]

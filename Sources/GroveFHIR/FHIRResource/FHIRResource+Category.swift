@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 private import enum ModelsDSTU2.ResourceProxy
 private import enum ModelsR4.ResourceProxy
 
@@ -557,3 +558,4 @@ extension FHIRResource {
         }
     }
 }
+#endif

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 
 import GroveFoundation
 
@@ -77,3 +78,4 @@ extension FHIRAttachment {
         self.mimeType = .plainText
     }
 }
+#endif

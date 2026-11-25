@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 private import Foundation
 public import Grove
 public import struct ModelsR4.Bundle
@@ -341,3 +342,4 @@ extension FHIRStore: @MainActor Collection {
         _resources[position._index]
     }
 }
+#endif

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 
 public import Foundation
 public import GroveFoundation
@@ -24,3 +25,4 @@ public protocol FHIRAttachmentContentExtractor {
     /// - Throws: Error if extraction fails.
     func extractContent(from data: Data) throws -> (MIMEType, Data)
 }
+#endif

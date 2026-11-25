@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 
 import ModelsDSTU2
 
@@ -31,3 +32,4 @@ extension ModelsDSTU2.Attachment: FHIRAttachment {
         }
     }
 }
+#endif

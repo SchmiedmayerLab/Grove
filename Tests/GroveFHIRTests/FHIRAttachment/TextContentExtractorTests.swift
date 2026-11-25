@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 #if canImport(UniformTypeIdentifiers)
 
 import Foundation
@@ -45,4 +46,5 @@ struct TextContentExtractorTests {
     }
 }
 
+#endif
 #endif

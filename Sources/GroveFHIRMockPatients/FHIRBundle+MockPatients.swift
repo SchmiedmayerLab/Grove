@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import Foundation
 import GroveFoundation
 @preconcurrency public import struct ModelsR4.Bundle
@@ -247,3 +248,4 @@ extension ModelsR4.Bundle {
         }
     }
 }
+#endif

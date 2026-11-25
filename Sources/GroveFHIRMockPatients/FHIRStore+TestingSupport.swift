@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 public import GroveFHIR
 import ModelsR4
 
@@ -29,3 +30,4 @@ extension FHIRStore {
         ))
     }
 }
+#endif
