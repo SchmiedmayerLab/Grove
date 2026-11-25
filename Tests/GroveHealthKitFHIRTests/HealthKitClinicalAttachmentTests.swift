@@ -178,6 +178,62 @@ struct HealthKitClinicalAttachmentTests {
         #expect(!graph.warnings.contains { $0.location == "HKAttachment.metadata" })
     }
 
+    @Test("An attachment withholds the sync pair its metadata states, under every metadata policy")
+    func attachmentSyncMetadataIsWithheld() async throws {
+        let policies: [HealthKitFHIRExporter.MetadataPolicy] = [
+            .all, .omit, .custom { $0 == HKMetadataKeySyncIdentifier ? .omit : .include }
+        ]
+        for policy in policies {
+            var inputs = ExportInputs()
+            inputs.converter = ExporterGolden.deploymentApplication
+            inputs.studies = ExporterGolden.deploymentStudies
+            inputs.options = ExporterGolden.deploymentOptions
+            inputs.options.syncIdentifier = .omit
+            inputs.options.metadata = policy
+            let exporter = try ExporterFixtures.exporter(inputs)
+            let (_, record) = try await Self.setUp()
+            let attachment = ClinicalAttachment(
+                identifier: GoldenFixtures.uuid(0xC3),
+                name: "note.pdf",
+                contentType: .pdf,
+                creationDate: GoldenFixtures.sampleStart,
+                metadata: [HKMetadataKeySyncIdentifier: "writer-record-7", HKMetadataKeySyncVersion: NSNumber(value: 2), "Pages": "3"],
+                payload: .inline(Data("%PDF".utf8))
+            )
+            let graph = try await Self.export(.clinicalRecord(record, attachments: [attachment]), with: exporter)
+            let json = String(decoding: graph.record.json, as: UTF8.self)
+            #expect(!json.contains("writer-record-7"))
+            #expect(!json.contains(HKMetadataKeySyncIdentifier))
+            #expect(!json.contains(HKMetadataKeySyncVersion))
+            #expect(graph.warnings.contains { $0.location == "HKAttachment.metadata" })
+        }
+    }
+
+    @Test("Validation refuses the native identifier on an attachment, even when the clinical document carries none")
+    func nativeIdentifierOnAttachmentIsRefused() async throws {
+        let (exporter, record) = try await Self.setUp()
+        let graph = try await Self.export(.clinicalRecord(record, attachments: ExporterGolden.clinicalAttachments), with: exporter)
+        var bundle = graph.bundle
+        var entries = try #require(bundle.entry)
+        func document(at index: Int) -> DocumentReference? {
+            entries[index].resource?.get(if: DocumentReference.self)
+        }
+        let clinicalIndex = try #require(entries.indices.first { document(at: $0).map(Self.profiles) == [Self.clinicalProfile] })
+        let attachmentIndex = try #require(entries.indices.first { document(at: $0).map(Self.profiles) == [Self.attachmentProfile] })
+        var clinical = try #require(document(at: clinicalIndex))
+        var attachment = try #require(document(at: attachmentIndex))
+        // The deployment discloses the HealthKit UUID: the one identifier without a Grove role coding.
+        let native = try #require(clinical.identifier?.first { $0.type == nil })
+        clinical.identifier?.removeAll { $0 == native }
+        attachment.identifier?.append(native)
+        entries[clinicalIndex].resource = ResourceProxy(with: clinical)
+        entries[attachmentIndex].resource = ResourceProxy(with: attachment)
+        bundle.entry = entries
+        #expect(throws: ExchangeGraphError.ruleViolation(.sensorRecordingDocumentIdentityAndContent)) {
+            _ = try ExchangeGraph(kind: .active, bundle: bundle)
+        }
+    }
+
     @Test("A file R4 cannot size, or a sidecar without a SHA-1 digest, refuses the record")
     func malformedAttachmentsAreRefused() async throws {
         let (exporter, record) = try await Self.setUp()

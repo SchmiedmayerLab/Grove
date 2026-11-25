@@ -143,14 +143,19 @@ extension HealthKitAssembly {
         }
         let clinical = try clinicalDocument(record, plan: plan, document: documentPlan)
         var companions: [ExchangeOutputDraft] = []
-        var unsupportedMetadata = false
+        var withheldMetadata = false
         for (partIndex, attachment) in attachments.inPartOrder.enumerated() {
+            // The sync pair is never generic metadata: only a primary output's writer record represents it, so an
+            // attachment withholds it under every metadata policy, as an output without the writer record does.
+            let syncKeys = attachment.metadata.keys.filter(HealthKitContract.metadataExcludedKeys.contains)
             let metadata = HealthKitSourceMetadata(
                 sample: nil,
-                values: attachment.metadata.mapValues { $0 as Any },
+                values: attachment.metadata
+                    .filter { !HealthKitContract.metadataExcludedKeys.contains($0.key) }
+                    .mapValues { $0 as Any },
                 policy: options.metadata
             )
-            unsupportedMetadata = unsupportedMetadata || metadata.unsupportedCount > 0
+            withheldMetadata = withheldMetadata || metadata.unsupportedCount > 0 || !syncKeys.isEmpty
             companions.append(ExchangeOutputDraft(
                 role: HealthKitContract.clinicalAttachmentOutputRole,
                 discriminator: attachment.identifier.uuidString.lowercased(),
@@ -162,8 +167,8 @@ extension HealthKitAssembly {
                 trailingExtensions: metadata.container.map { [$0] } ?? []
             ))
         }
-        // An attachment's metadata value the extension cannot carry is withheld, as a sample's is.
-        let warnings = unsupportedMetadata
+        // An attachment's metadata value the extension cannot carry, and its sync pair, are withheld, as a sample's are.
+        let warnings = withheldMetadata
             ? [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKAttachment.metadata")]
             : []
         return try documentGraph(for: record, plan: plan, document: clinical, companions: companions, companionWarnings: warnings, request: request)
