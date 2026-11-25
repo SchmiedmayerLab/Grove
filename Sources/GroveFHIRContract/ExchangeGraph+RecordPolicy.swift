@@ -436,10 +436,25 @@ extension ExchangeGraph {
     private static func validateRecordingDocuments(
         _ entries: [BundleEntry], records: [ActiveRecord], document validationDocument: ValidationDocument
     ) throws(ExchangeGraphError) {
+        // An output that is never primary, such as a clinical record's attachment document, never carries the governed
+        // source identifier, and it does not make the record's one source document a companion artifact.
+        let neverPrimary = Set(canonicalStrings(ProfileClaims.neverPrimaryProfiles))
+        var profilesByURL: [String: Set<String>] = [:]
+        for entry in entries {
+            if let url = entry.fullUrl?.value?.url.absoluteString, let resource = entry.resource {
+                profilesByURL[url] = Set(resourceProfiles(resource))
+            }
+        }
+        func isPrimaryCandidate(_ url: String) -> Bool {
+            (profilesByURL[url] ?? []).isDisjoint(with: neverPrimary)
+        }
+        // The count each output is eligible to carry the governed source identifier under: its record's primary candidates,
+        // and none for an output that is never primary itself.
         var outputCounts: [String: Int] = [:]
         for record in records {
+            let primaryCandidates = record.targets.filter(isPrimaryCandidate).count
             for target in record.targets {
-                outputCounts[target] = record.targets.count
+                outputCounts[target] = isPrimaryCandidate(target) ? primaryCandidates : 0
             }
         }
         for (index, entry) in entries.enumerated() {

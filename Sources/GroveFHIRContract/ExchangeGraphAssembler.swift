@@ -239,14 +239,22 @@ extension ExchangeGraphAssembler {
         value: .coding(Coding(code: "manual-entry", display: "Manual entry", system: Canonicals.recordingMethodCodeSystem))
     )
 
-    /// Every output with its identities and links applied; a derived child names the primary it derives from.
+    /// Every output with its identities and links applied; a derived child names the primary it derives from, and an
+    /// appended document the primary document it appends to.
     private func decoratedOutputs(of draft: ExchangeRecordDraft, surroundings: Surroundings) throws -> [DecoratedOutput] {
         var outputs = try draft.outputs.map { try decorate($0, draft: draft, surroundings: surroundings) }
         let primaryURL = outputs[0].url
-        for (index, output) in draft.outputs.enumerated() where output.derivedFromPrimary && index > 0 {
-            if case .observation(var observation) = outputs[index].resource {
-                observation.derivedFrom = [Reference(reference: primaryURL.asFHIRStringPrimitive())]
+        for (index, output) in draft.outputs.enumerated() where index > 0 {
+            let primary = Reference(reference: primaryURL.asFHIRStringPrimitive())
+            switch outputs[index].resource {
+            case .observation(var observation) where output.derivedFromPrimary:
+                observation.derivedFrom = [primary]
                 outputs[index].resource = .observation(observation)
+            case .document(var document) where output.appendsToPrimary:
+                document.relatesTo = [DocumentReferenceRelatesTo(code: FHIRPrimitive(.appends), target: primary)]
+                outputs[index].resource = .document(document)
+            default:
+                break
             }
         }
         let members = zip(draft.outputs, outputs).filter { $0.0.memberOfPrimary }.map(\.1.url)
@@ -265,7 +273,9 @@ extension ExchangeGraphAssembler {
         surroundings: Surroundings
     ) throws -> DecoratedOutput {
         let identity = try draft.sourceRecord.output(role: output.role, discriminator: output.discriminator)
-        let artifact = try output.artifactFormatCode.map { try draft.sourceRecord.artifact(formatCode: $0, partIndex: 0) }
+        let artifact = try output.artifactFormatCode.map {
+            try draft.sourceRecord.artifact(formatCode: $0, partIndex: output.artifactPartIndex)
+        }
         let writerRecord = try output.writerRecord.map(writerRecordIdentity)
         var identifiers = [draft.sourceRecord.identifier.fhirIdentifier, identity.fhirIdentifier]
         if let artifact {

@@ -8,11 +8,13 @@
 
 #if canImport(HealthKit)
 
+import CryptoKit
 import Foundation
 @testable import GroveFHIRContract
 @testable import GroveHealthKitFHIR
 import HealthKit
 import ModelsR4
+import UniformTypeIdentifiers
 
 
 /// The exporter configurations and records the exporter goldens use.
@@ -20,6 +22,33 @@ enum ExporterGolden {
     /// The deployment's own application, in the build it runs.
     static let deploymentApplication = ApplicationDevice.test(name: "Grove Study", bundleIdentifier: "org.example.study", version: "4.1.0", build: "412")
     static let deploymentStudies: [StudyEnrollment] = [.test("study-a")]
+    /// The PDF bytes of ``clinicalAttachments``' sidecar file.
+    static let attachedPDF = Data("%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n%%EOF\n".utf8)
+    /// The bytes of ``clinicalAttachments``' embedded file, whose type declares no MIME type.
+    static let attachedScan = Data([0x47, 0x52, 0x4F, 0x56, 0x45, 0x00, 0x01, 0x02])
+
+    /// Two files HealthKit stores with a clinical record, listed out of their part order: a PDF the caller archived beside
+    /// the Bundle, with metadata, and an earlier scan of a type without a MIME type, embedded.
+    static var clinicalAttachments: [HealthKitFHIRExporter.Record.ClinicalAttachment] {
+        let pdfDigest = sha256Hex(attachedPDF)
+        return [
+            HealthKitFHIRExporter.Record.ClinicalAttachment(
+                identifier: GoldenFixtures.uuid(0xBD),
+                name: "Visit note.pdf",
+                contentType: .pdf,
+                creationDate: GoldenFixtures.sampleStart.addingTimeInterval(3600),
+                metadata: ["ProviderDocumentID": "doc-1", "PageCount": NSNumber(value: 1)],
+                payload: .sidecar(path: "recordings/\(pdfDigest).pdf", byteCount: attachedPDF.count, sha1: attachedPDF.attachmentSHA1)
+            ),
+            HealthKitFHIRExporter.Record.ClinicalAttachment(
+                identifier: GoldenFixtures.uuid(0xBE),
+                name: "scan",
+                contentType: UTType(exportedAs: "org.grovealliance.testing.scan"),
+                creationDate: GoldenFixtures.sampleStart,
+                payload: .inline(attachedScan)
+            )
+        ]
+    }
     /// The deployment's own system for the HealthKit UUID; not an example URL, so the HL7 validator accepts it.
     static let deploymentNativeIdentifierSystem: IdentifierSystem = "https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record"
 
@@ -101,7 +130,13 @@ enum ExporterGolden {
             facts: GoldenCase.seriesFacts(uuid: ordinal, duration: 0)
         )
     }
+
     #endif
+
+    /// The lowercase hexadecimal SHA-256 digest of `data`, as an archive names a file by its content.
+    static func sha256Hex(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
 }
 
 
@@ -185,6 +220,12 @@ extension GoldenCase {
         GoldenCase("exporter-clinical-record-dstu2") {
             let record = try await ExporterGolden.clinicalRecord(uuid: 0xBA, version: .primaryDSTU2(), payload: #"{"resourceType":"Observation","id":"a1c-dstu2","status":"final"}"#)
             return try await ExporterGolden.output(of: [.sample(record)], deployment: false)
+        },
+        // The deployment's clinical record with two files: the clinical-record document unchanged, and one attachment
+        // document per file in part order, each appending to it and stating its subject, date, author and study.
+        GoldenCase("exporter-deployment-clinical-record-attachments") {
+            let record = try await ExporterGolden.clinicalRecord(uuid: 0xBC, version: .primaryR4(), payload: #"{"resourceType":"DiagnosticReport","id":"note-r4","status":"final"}"#)
+            return try await ExporterGolden.output(of: [.clinicalRecord(record, attachments: ExporterGolden.clinicalAttachments)], deployment: true)
         }
     ]
     #endif

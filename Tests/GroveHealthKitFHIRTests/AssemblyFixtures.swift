@@ -52,6 +52,10 @@ enum AssemblyFixtures {
             }
             let recording = try #require(record.recording(content: plan)).get()
             return try exporter.assembly.convertWorkoutRoute(route, recording: recording, plan: plan, request: request)
+        #if !os(watchOS)
+        case let .clinicalRecord(clinicalRecord, attachments):
+            return try exporter.assembly.convertClinicalRecord(clinicalRecord, attachments: attachments, plan: plan, request: request)
+        #endif
         }
     }
 

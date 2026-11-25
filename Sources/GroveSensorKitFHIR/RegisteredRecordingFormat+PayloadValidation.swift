@@ -40,7 +40,7 @@ extension RegisteredRecordingFormat {
     /// Resolves an explicit media type or derives the sole registered representation.
     func resolveContentType(_ contentType: String?) -> String? {
         if let contentType {
-            return registeredContentTypes.contains(contentType) ? contentType : nil
+            return admitsContentType(contentType) ? contentType : nil
         }
         return registeredContentType
     }
@@ -82,6 +82,9 @@ extension RegisteredRecordingFormat {
         case .clinicalDocument:
             // The clinical document is carried byte-preserved: its grammar belongs to the issuing
             // standard, and Grove asserts its identity and media type rather than re-parsing it.
+            break
+        case .sourceFile:
+            // A source file is any file in any format: Grove never opens it, and checks only its size and hash.
             break
         case .fhirCollectionBundle:
             let bundle: ModelsR4.Bundle

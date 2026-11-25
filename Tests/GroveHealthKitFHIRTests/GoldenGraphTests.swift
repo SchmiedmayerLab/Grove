@@ -282,7 +282,7 @@ extension GoldenCase {
     /// Goldens generated on macOS for cases this platform cannot build.
     static var unavailableHere: Set<String> {
         #if os(watchOS)
-        ["clinical-document", "exporter-clinical-record-r4", "exporter-clinical-record-dstu2"]
+        ["clinical-document", "exporter-clinical-record-r4", "exporter-clinical-record-dstu2", "exporter-deployment-clinical-record-attachments"]
         #else
         []
         #endif

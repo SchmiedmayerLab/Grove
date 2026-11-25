@@ -84,6 +84,8 @@ NOT_YET_PAIRED = {
         },
         # Hand-written examples, which no golden is built from yet.
         "unpaired": {
+            "DocumentReference/HealthKitClinicalNoteRecordDocumentExample",
+            "DocumentReference/HealthKitClinicalRecordAttachmentExample",
             "DocumentReference/HealthKitClinicalRecordDocumentExample",
             "DocumentReference/HealthKitDSTU2ClinicalRecordDocumentExample",
             "DocumentReference/HealthKitHeartbeatSeriesRecordingExample",

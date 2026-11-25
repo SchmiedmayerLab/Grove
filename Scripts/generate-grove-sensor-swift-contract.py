@@ -122,7 +122,33 @@ def swift_format_case(value: str) -> str:
     return "".join(parts)
 
 
+def source_declared_content_type(code: str, format_contract: dict[str, Any]) -> tuple[str, str] | None:
+    """The pattern and fallback of a format whose media type the source declares, else `None`.
+
+    Such a format enumerates no media type: any value matching the pattern is admitted, and the
+    fallback stands in when the source declares none.
+    """
+    rule = format_contract.get("contentTypeRule")
+    if rule is None:
+        return None
+    pattern = format_contract.get("contentTypePattern")
+    fallback = format_contract.get("defaultContentType")
+    if (
+        rule != "source-declared"
+        or not isinstance(pattern, str)
+        or not pattern
+        or not isinstance(fallback, str)
+        or not fallback
+        or "contentType" in format_contract
+        or "contentTypes" in format_contract
+    ):
+        raise ValueError(f"registry format declares an invalid source-declared content type: {code}")
+    return pattern, fallback
+
+
 def registered_content_types(code: str, format_contract: dict[str, Any]) -> list[str]:
+    if source_declared_content_type(code, format_contract) is not None:
+        return []
     singular = format_contract.get("contentType")
     plural = format_contract.get("contentTypes")
     if isinstance(singular, str) and singular and plural is None:
@@ -288,6 +314,27 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
         "    /// The registry's exact media type when this format has only one representation.",
         "    public var registeredContentType: String? {",
         "        registeredContentTypes.count == 1 ? registeredContentTypes[0] : nil",
+        "    }",
+        "",
+        "    /// The pattern a source-declared media type must match and the media type that stands in",
+        "    /// when the source declares none, or `nil` for a format whose media types the registry",
+        "    /// enumerates in ``registeredContentTypes``.",
+        "    public var sourceDeclaredContentType: (pattern: String, fallback: String)? {",
+        "        switch self {",
+    ])
+    declared = {
+        code: source_declared_content_type(code, fmt)
+        for code, fmt in formats.items()
+        if source_declared_content_type(code, fmt) is not None
+    }
+    for code in sorted(declared):
+        pattern, fallback = declared[code]
+        lines.append(
+            f"        case .{swift_format_case(code)}: ({swift_string(pattern)}, {swift_string(fallback)})"
+        )
+    lines.extend([
+        "        default: nil",
+        "        }",
         "    }",
         "}",
         "",

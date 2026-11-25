@@ -124,12 +124,14 @@ struct HealthKitAssembly: Sendable {
         }
     }
 
-    /// One source record's graph: the outputs under the sample's envelope, with what the graph does not carry.
+    /// One source record's graph: the outputs under the sample's envelope, with what the graph does not carry, and the
+    /// `additionalWarnings` its caller found beside the sample's metadata.
     func graph(
         for sample: HKSample,
         type: HealthKitSourceType,
         metadata: HealthKitSampleMetadata,
         outputs: [ExchangeOutputDraft],
+        additionalWarnings: [ProducerDiagnostic] = [],
         request: Request
     ) throws -> Conversion {
         guard !outputs.isEmpty else {
@@ -179,7 +181,7 @@ struct HealthKitAssembly: Sendable {
             source: HealthKitFHIRExporter.Export.Source(uuid: sample.uuid, typeIdentifier: type.rawValue),
             identifiers: assembled.identifiers,
             record: assembled.record,
-            warnings: metadataWarnings(for: metadata, outputs: outputs, withheld: withheld),
+            warnings: metadataWarnings(for: metadata, outputs: outputs, withheld: withheld) + additionalWarnings,
             withheldMetadataKeys: withheld,
             metadataSummary: sourceMetadata.summary,
             validation: validation

@@ -128,11 +128,61 @@ extension HealthKitAssembly {
         throw HealthKitConversionError.platformExclusiveSourceType(plan.sourceType)
     }
 
-    /// One document's graph under `sample`'s envelope.
+    #if !os(watchOS)
+    /// Converts a clinical record and the files HealthKit stores with it: the record's clinical-record document, exactly as
+    /// it is without files, and one attachment document per file, in part order, each appending to it and stating its
+    /// subject, date, author and studies.
+    func convertClinicalRecord(
+        _ record: HKClinicalRecord,
+        attachments: [HealthKitFHIRExporter.Record.ClinicalAttachment],
+        plan: HealthKitContentPlan,
+        request: Request
+    ) throws -> [Conversion] {
+        guard case .clinical(let documentPlan) = plan.route else {
+            throw plan.refusal
+        }
+        let clinical = try clinicalDocument(record, plan: plan, document: documentPlan)
+        var companions: [ExchangeOutputDraft] = []
+        var withheldMetadata = false
+        for (partIndex, attachment) in attachments.inPartOrder.enumerated() {
+            // The sync pair is never generic metadata: only a primary output's writer record represents it, so an
+            // attachment withholds it under every metadata policy, as an output without the writer record does.
+            let syncKeys = attachment.metadata.keys.filter(HealthKitContract.metadataExcludedKeys.contains)
+            let metadata = HealthKitSourceMetadata(
+                sample: nil,
+                values: attachment.metadata
+                    .filter { !HealthKitContract.metadataExcludedKeys.contains($0.key) }
+                    .mapValues { $0 as Any },
+                policy: options.metadata
+            )
+            withheldMetadata = withheldMetadata || metadata.unsupportedCount > 0 || !syncKeys.isEmpty
+            companions.append(ExchangeOutputDraft(
+                role: HealthKitContract.clinicalAttachmentOutputRole,
+                discriminator: attachment.identifier.uuidString.lowercased(),
+                resource: .document(try documentPlan.attachmentDocument(attachment)),
+                links: plan.outputs[0].links,
+                appendsToPrimary: true,
+                artifactFormatCode: HealthKitContract.clinicalAttachmentPayloadFormatCode,
+                artifactPartIndex: UInt64(partIndex),
+                trailingExtensions: metadata.container.map { [$0] } ?? []
+            ))
+        }
+        // An attachment's metadata value the extension cannot carry, and its sync pair, are withheld, as a sample's are.
+        let warnings = withheldMetadata
+            ? [ExchangeGraphRule.mobileOmissionUnmodeledMetadata.diagnostic(at: "HKAttachment.metadata")]
+            : []
+        return try documentGraph(for: record, plan: plan, document: clinical, companions: companions, companionWarnings: warnings, request: request)
+    }
+    #endif
+
+    /// One document's graph under `sample`'s envelope, with the `companions` that follow the document, such as a clinical
+    /// record's attachments, and what they withheld as `companionWarnings`.
     func documentGraph(
         for sample: HKSample,
         plan: HealthKitContentPlan,
         document: DocumentReference,
+        companions: [ExchangeOutputDraft] = [],
+        companionWarnings: [ProducerDiagnostic] = [],
         request: Request
     ) throws -> [Conversion] {
         let metadata = HealthKitSampleMetadata(sample, rule: plan.metadata)
@@ -147,7 +197,16 @@ extension HealthKitAssembly {
             document.context = context
         }
         let output = plan.outputs[0].draft(.document(document))
-        return [try graph(for: sample, type: plan.sourceType, metadata: metadata, outputs: [output], request: request)]
+        return [
+            try graph(
+                for: sample,
+                type: plan.sourceType,
+                metadata: metadata,
+                outputs: [output] + companions,
+                additionalWarnings: companionWarnings,
+                request: request
+            )
+        ]
     }
 }
 

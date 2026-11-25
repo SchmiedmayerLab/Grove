@@ -156,6 +156,7 @@ public enum Profile {
     public static let healthkitBleedingDuringPregnancy: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-bleeding-during-pregnancy"
     public static let healthkitBloodAlcoholContent: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-blood-alcohol-content"
     public static let healthkitBloodType: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-blood-type"
+    public static let healthkitClinicalRecordAttachment: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-attachment"
     public static let healthkitClinicalRecordDocument: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-document"
     public static let healthkitContraceptiveUse: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-contraceptive-use"
     public static let healthkitConversionProvenance: FHIRPrimitive<Canonical> = "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-conversion-provenance"
@@ -4212,6 +4213,9 @@ package enum HealthKitContract {
     package static let appleBundleIdentifierTypeCode = "apple-bundle-id"
     package static let clinicalRecordProfile: FHIRPrimitive<Canonical> = Profile.healthkitClinicalRecordDocument
     package static let clinicalFHIRPayloadFormatCode = "fhir-resource"
+    package static let clinicalAttachmentProfile: FHIRPrimitive<Canonical> = Profile.healthkitClinicalRecordAttachment
+    package static let clinicalAttachmentPayloadFormatCode = "source-file"
+    package static let clinicalAttachmentOutputRole = "clinical-record-attachment"
     package static let admittedClinicalFHIRReleaseCodes: Set<String> = [
         "dstu2",
         "r4",
@@ -4849,7 +4853,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierAllergyRecord",
             title: "Allergy Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4857,7 +4861,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierClinicalNoteRecord",
             title: "Clinical Note Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4865,7 +4869,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierConditionRecord",
             title: "Condition Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4873,7 +4877,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierCoverageRecord",
             title: "Coverage Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4881,7 +4885,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierImmunizationRecord",
             title: "Immunization Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4889,7 +4893,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierLabResultRecord",
             title: "Lab Result Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4897,7 +4901,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierMedicationRecord",
             title: "Medication Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4905,7 +4909,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierProcedureRecord",
             title: "Procedure Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -4913,7 +4917,7 @@ package enum HealthKitContract {
             sourceTypeIdentifier: "HKClinicalTypeIdentifierVitalSignRecord",
             title: "Vital Sign Record",
             measurementIDs: [],
-            profiles: [Profile.healthkitClinicalRecordDocument],
+            profiles: [Profile.healthkitClinicalRecordDocument, Profile.healthkitClinicalRecordAttachment],
             implementationStatus: .platformExclusive,
             requirement: nil
         ),
@@ -6455,6 +6459,13 @@ package enum ProfileClaims {
         ),
         DirectProfileClaim(
             profiles: [
+                Profile.healthkitClinicalRecordAttachment,
+            ],
+            requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
+            optionalIdentifierRoles: []
+        ),
+        DirectProfileClaim(
+            profiles: [
                 Profile.groveSensorRecordingDocument,
                 Profile.sensorkitRecordingDocument,
             ],
@@ -6469,6 +6480,14 @@ package enum ProfileClaims {
             requiredIdentifierRoles: ["source-record", "source-output", "source-artifact"],
             optionalIdentifierRoles: []
         ),
+    ]
+
+    /// The output profiles that are never a record's primary output, such as a clinical record's attachment
+    /// documents: they never carry the governed source identifier, and they do not make the record's one source
+    /// document a companion artifact.
+    package static let neverPrimaryProfiles: [FHIRPrimitive<Canonical>] = [
+        Profile.healthkitEcgAverageHeartRateObservation,
+        Profile.healthkitClinicalRecordAttachment,
     ]
 
     /// Every exact active Device direct-profile and typed-identifier mode.
@@ -6543,6 +6562,7 @@ package enum ProfileClaims {
             Profile.healthkitBleedingDuringPregnancy,
             Profile.healthkitBloodAlcoholContent,
             Profile.healthkitBloodType,
+            Profile.healthkitClinicalRecordAttachment,
             Profile.healthkitClinicalRecordDocument,
             Profile.healthkitContraceptiveUse,
             Profile.healthkitCyclingFunctionalThresholdPower,
@@ -6852,6 +6872,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case mobileExchangeIdentitySystemRole = "mobile-exchange.identity-system-role"
     case mobileOutputSourceOutputRequired = "mobile-output.source-output-required"
     case mobileOutputHybridCompanion = "mobile-output.hybrid-companion"
+    case healthkitClinicalAttachmentGraph = "healthkit-clinical.attachment-graph"
     case healthkitEcgOutputGraph = "healthkit-ecg.output-graph"
     case mobileExchangeTransformProvenance = "mobile-exchange.transform-provenance"
     case mobileRetractionLogicalTarget = "mobile-retraction.logical-target"
@@ -6964,6 +6985,8 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
             "Every active clinical output must carry its exact typed source-output identity in addition to source-record identity."
         case .mobileOutputHybridCompanion:
             "A hybrid-required output and its exact source-preservation companion must form the catalog-declared closed, same-source, bidirectionally linked graph."
+        case .healthkitClinicalAttachmentGraph:
+            "A HealthKit clinical-record attachment document relates by appends to exactly the clinical-record document of its own record in the same Bundle, with the same source-record identity, source type, type coding, date, author, and study context.related, including stating none where that document states none, and every attachment of one record has its own source-output identity; mobile-exchange.single-subject holds it to the Bundle's one subject."
         case .healthkitEcgOutputGraph:
             "A HealthKit ECG record must satisfy the catalog-owned waveform, optional average-heart-rate, symptom-member, relationship-direction, identity, and effective-period graph contract."
         case .mobileExchangeTransformProvenance:
@@ -7140,7 +7163,7 @@ public enum ExchangeGraphRule: String, CaseIterable, Sendable {
         switch self {
         case .mobileOmissionSourceOffset, .mobileOmissionUnmodeledMetadata, .mobileOmissionRecordingMethod:
             .warning
-        case .mobileExchangeUnclassified, .mobileExchangeEntryKey, .mobileExchangeDeterministicFullUrl, .mobileExchangeResolvedReference, .mobileExchangeContentSnapshotKey, .mobileExchangeRecordVersionKey, .mobileExchangeRecordVersionExtension, .mobileExchangeContextSnapshotExtension, .mobileExchangeCanonicalJson, .mobileExchangeIdentitySystemRole, .mobileOutputSourceOutputRequired, .mobileOutputHybridCompanion, .healthkitEcgOutputGraph, .mobileExchangeTransformProvenance, .mobileRetractionLogicalTarget, .mobileRetractionTargetRole, .mobileRetractionOpaqueTarget, .mobileRetractionNativeRecordIdentifier, .mobileExchangeCollectionEntryOperation, .mobileSupportQuestionnaireResponseProfile, .mobileDeviceRecordingDeviceDualIdentity, .healthkitClinicalFhirRepresentation, .sensorRecordingDocumentIdentityAndContent, .mobileRetractionNoClinicalCopy, .mobileExchangeLifecycleCoding, .mobileOutputSemanticProfile, .mobileOutputFixedQuantityUnit, .mobileOutputQuantityValueDomain, .mobileExchangeReferenceTargetType, .mobileExchangeReferenceDeclaredType, .mobileExchangeLogicalSourceEntity, .mobileRetractionRoleTargetType, .mobileExchangeSingleSourceEntity, .mobileExchangeReferenceShape, .mobileExchangeLogicalPatientReference, .mobileOutputAdapterOnlyProfile, .mobileExchangeEntryResourceType, .mobileExchangeContainedResourceProhibited, .mobileOutputDocumentProfile, .mobileSupportDeviceProfile, .mobileSupportConnected, .mobileExchangeProvenanceProfile, .mobileInputUnclassified, .mobileInputUnsupportedSourceType, .mobileInputIntentionallyUnsupportedSourceType, .mobileInputNotYetConvertible, .mobileInputPlatformExclusiveSourceType, .mobileInputValueShapeInvalid, .mobileInputValueOutsideDomain, .mobileInputUnsupportedSourceValue, .mobileInputRequiredMetadataMissing, .mobileInputRequiredComponentMissing, .mobileInputEffectivePeriodInvalid, .mobileInputConversionInstantPrecedesSourceVersion, .mobileInputTextNotUnicodeScalar, .mobileInputNativeIdentifierInvalid, .mobileInputRecordingPayloadTooLarge, .mobileInputEmptyRecordingSeries, .healthkitInputEcgEvidence, .healthkitInputClinicalReleaseUnsupported, .healthkitInputClinicalRecordEmpty, .healthkitInputComponentRequiresCorrelation, .healthkitInputSourceApplicationInvalid, .mobileExchangeBundleProfile, .mobileExchangeEntryRequired, .mobileExchangeBundleIdentifier, .mobileExchangeRecordTimes, .mobileExchangeDistinctEntryKey, .mobileExchangeEntryKeySelection, .mobileExchangeIdentifierRole, .mobileExchangeOpaqueResourceIdentity, .mobileExchangeDistinctResourceIdentityRole, .mobileExchangeOutputRequired, .mobileExchangeProvenanceAssembler, .mobileExchangeProvenanceTargets, .mobileExchangeOutputTargetedOnce, .mobileExchangeDistinctSourceRecord, .mobileExchangeCrossRecordReference, .mobileExchangeSingleSubject, .mobileExchangePatientPseudonym, .mobileExchangeAdapterProvenanceGraph, .mobileOutputAdapterSourceMarker, .mobileDeviceHostDeviceIdentity, .mobileSupportStudyContext, .healthkitDeviceApplicationBundleIdentifier, .healthConnectProvenanceDataOriginAgent, .sensorRecordingDocumentEmbeddedIntegrity, .sensorRecordingDocumentFormat, .mobileRetractionProvenance, .mobileRetractionRetractionKey, .mobileRetractionTargetRequired, .mobileRetractionDistinctTarget, .mobileRetractionSourceRecordTarget:
+        case .mobileExchangeUnclassified, .mobileExchangeEntryKey, .mobileExchangeDeterministicFullUrl, .mobileExchangeResolvedReference, .mobileExchangeContentSnapshotKey, .mobileExchangeRecordVersionKey, .mobileExchangeRecordVersionExtension, .mobileExchangeContextSnapshotExtension, .mobileExchangeCanonicalJson, .mobileExchangeIdentitySystemRole, .mobileOutputSourceOutputRequired, .mobileOutputHybridCompanion, .healthkitClinicalAttachmentGraph, .healthkitEcgOutputGraph, .mobileExchangeTransformProvenance, .mobileRetractionLogicalTarget, .mobileRetractionTargetRole, .mobileRetractionOpaqueTarget, .mobileRetractionNativeRecordIdentifier, .mobileExchangeCollectionEntryOperation, .mobileSupportQuestionnaireResponseProfile, .mobileDeviceRecordingDeviceDualIdentity, .healthkitClinicalFhirRepresentation, .sensorRecordingDocumentIdentityAndContent, .mobileRetractionNoClinicalCopy, .mobileExchangeLifecycleCoding, .mobileOutputSemanticProfile, .mobileOutputFixedQuantityUnit, .mobileOutputQuantityValueDomain, .mobileExchangeReferenceTargetType, .mobileExchangeReferenceDeclaredType, .mobileExchangeLogicalSourceEntity, .mobileRetractionRoleTargetType, .mobileExchangeSingleSourceEntity, .mobileExchangeReferenceShape, .mobileExchangeLogicalPatientReference, .mobileOutputAdapterOnlyProfile, .mobileExchangeEntryResourceType, .mobileExchangeContainedResourceProhibited, .mobileOutputDocumentProfile, .mobileSupportDeviceProfile, .mobileSupportConnected, .mobileExchangeProvenanceProfile, .mobileInputUnclassified, .mobileInputUnsupportedSourceType, .mobileInputIntentionallyUnsupportedSourceType, .mobileInputNotYetConvertible, .mobileInputPlatformExclusiveSourceType, .mobileInputValueShapeInvalid, .mobileInputValueOutsideDomain, .mobileInputUnsupportedSourceValue, .mobileInputRequiredMetadataMissing, .mobileInputRequiredComponentMissing, .mobileInputEffectivePeriodInvalid, .mobileInputConversionInstantPrecedesSourceVersion, .mobileInputTextNotUnicodeScalar, .mobileInputNativeIdentifierInvalid, .mobileInputRecordingPayloadTooLarge, .mobileInputEmptyRecordingSeries, .healthkitInputEcgEvidence, .healthkitInputClinicalReleaseUnsupported, .healthkitInputClinicalRecordEmpty, .healthkitInputComponentRequiresCorrelation, .healthkitInputSourceApplicationInvalid, .mobileExchangeBundleProfile, .mobileExchangeEntryRequired, .mobileExchangeBundleIdentifier, .mobileExchangeRecordTimes, .mobileExchangeDistinctEntryKey, .mobileExchangeEntryKeySelection, .mobileExchangeIdentifierRole, .mobileExchangeOpaqueResourceIdentity, .mobileExchangeDistinctResourceIdentityRole, .mobileExchangeOutputRequired, .mobileExchangeProvenanceAssembler, .mobileExchangeProvenanceTargets, .mobileExchangeOutputTargetedOnce, .mobileExchangeDistinctSourceRecord, .mobileExchangeCrossRecordReference, .mobileExchangeSingleSubject, .mobileExchangePatientPseudonym, .mobileExchangeAdapterProvenanceGraph, .mobileOutputAdapterSourceMarker, .mobileDeviceHostDeviceIdentity, .mobileSupportStudyContext, .healthkitDeviceApplicationBundleIdentifier, .healthConnectProvenanceDataOriginAgent, .sensorRecordingDocumentEmbeddedIntegrity, .sensorRecordingDocumentFormat, .mobileRetractionProvenance, .mobileRetractionRetractionKey, .mobileRetractionTargetRequired, .mobileRetractionDistinctTarget, .mobileRetractionSourceRecordTarget:
             .error
         }
     }

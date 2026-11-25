@@ -139,8 +139,13 @@ package struct ExchangeOutputDraft: Sendable {
     package var memberOfPrimary: Bool
     /// Whether this output states the primary under `derivedFrom`; never set on the primary itself.
     package var derivedFromPrimary: Bool
+    /// Whether this document output appends to the primary document through one `relatesTo` of code `appends`; never
+    /// set on the primary itself.
+    package var appendsToPrimary: Bool
     /// The native artifact a document output carries, named by its registered format code.
     package var artifactFormatCode: String?
+    /// The zero-based position of that artifact among the record's parts of the same format.
+    package var artifactPartIndex: UInt64
     /// Identifiers the deployment discloses beside the opaque ones, in order.
     package var clearIdentifiers: [Identifier]
     package var writerRecord: WriterRecord?
@@ -156,7 +161,9 @@ package struct ExchangeOutputDraft: Sendable {
         links: Links = .all,
         memberOfPrimary: Bool = false,
         derivedFromPrimary: Bool = false,
+        appendsToPrimary: Bool = false,
         artifactFormatCode: String? = nil,
+        artifactPartIndex: UInt64 = 0,
         clearIdentifiers: [Identifier] = [],
         writerRecord: WriterRecord? = nil,
         wasUserEntered: Bool = false,
@@ -168,7 +175,9 @@ package struct ExchangeOutputDraft: Sendable {
         self.links = links
         self.memberOfPrimary = memberOfPrimary
         self.derivedFromPrimary = derivedFromPrimary
+        self.appendsToPrimary = appendsToPrimary
         self.artifactFormatCode = artifactFormatCode
+        self.artifactPartIndex = artifactPartIndex
         self.clearIdentifiers = clearIdentifiers
         self.writerRecord = writerRecord
         self.wasUserEntered = wasUserEntered
