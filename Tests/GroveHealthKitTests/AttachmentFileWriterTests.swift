@@ -18,6 +18,8 @@ import Testing
 /// headless test has none of, so these tests feed the writer the chunks HealthKit would.
 @Suite
 struct AttachmentFileWriterTests {
+    private struct StreamFailure: Error {}
+
     private static func temporaryFile() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -52,6 +54,77 @@ struct AttachmentFileWriterTests {
         #expect(written.byteCount == 0)
         #expect(written.sha1 == Data(Insecure.SHA1.hash(data: Data())))
         #expect(written.sha256 == Data(SHA256.hash(data: Data())))
+    }
+
+    @Test("Streamed chunks land in the file; the last one ends the copy")
+    func streamedCopy() async throws {
+        let url = try Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let written = try await AttachmentFileWriter.copy(to: url) { handler in
+            handler(Data("%PDF".utf8), nil, false)
+            handler(Data("-1.7".utf8), nil, true)
+            return Progress(totalUnitCount: 1)
+        }
+        #expect(try Data(contentsOf: url) == Data("%PDF-1.7".utf8))
+        #expect(written.byteCount == 8)
+    }
+
+    @Test("A stream that fails removes its file, and what it reports afterwards changes nothing")
+    func failedStreamRemovesItsFile() async throws {
+        let url = try Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        await #expect(throws: StreamFailure.self) {
+            try await AttachmentFileWriter.copy(to: url) { handler in
+                handler(Data("partial".utf8), nil, false)
+                handler(nil, StreamFailure(), false)
+                // HealthKit reporting more after a failure must not resume the copy a second time.
+                handler(nil, nil, true)
+                return Progress(totalUnitCount: 1)
+            }
+        }
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test("Cancelling the task cancels a stream that is still waiting, and removes its file")
+    func cancellationEndsAWaitingStream() async throws {
+        let url = try Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let progress = Progress(totalUnitCount: 1)
+        let started = AsyncStream<Void>.makeStream()
+        let copy = Task {
+            try await AttachmentFileWriter.copy(to: url) { handler in
+                // Like an attachment HealthKit is still downloading from iCloud: one chunk, then nothing.
+                handler(Data("first".utf8), nil, false)
+                started.continuation.yield()
+                return progress
+            }
+        }
+        for await _ in started.stream {
+            break
+        }
+        copy.cancel()
+        await #expect(throws: CancellationError.self) {
+            try await copy.value
+        }
+        #expect(progress.isCancelled)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test("A task cancelled before the stream starts never starts it")
+    func cancellationBeforeTheStreamStarts() async throws {
+        let url = try Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let copy = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await AttachmentFileWriter.copy(to: url) { _ in
+                Issue.record("A cancelled task started a stream")
+                return Progress(totalUnitCount: 1)
+            }
+        }
+        await #expect(throws: CancellationError.self) {
+            try await copy.value
+        }
+        #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
     @Test("A file already at the location is replaced, not appended to")

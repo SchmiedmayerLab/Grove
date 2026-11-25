@@ -13,17 +13,64 @@ public import Foundation
 public import HealthKit
 
 
-/// Resumes a continuation exactly once, whatever HealthKit's data handler reports after a failure.
+/// Starts streaming one attachment's bytes into `handler`, as `HKAttachmentStore.streamData(for:dataHandler:)` does, and
+/// returns the progress that cancels the stream.
+package typealias AttachmentByteStream = (
+    _ handler: @escaping @Sendable (_ chunk: Data?, _ error: (any Error)?, _ done: Bool) -> Void
+) -> Progress
+
+
+/// Ends one stream exactly once: with its last chunk, its first error, or the task's cancellation, whichever comes first,
+/// whatever the data handler reports afterwards. Cancellation also cancels the stream's progress, so HealthKit stops, for
+/// example, waiting on an iCloud download.
 @available(iOS 18, macOS 15, watchOS 11, *)
-private final class Resumption: @unchecked Sendable {
+private final class StreamControl: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Void, any Error>?
+    private var progress: Progress?
+    private var cancelled = false
 
-    init(_ continuation: CheckedContinuation<Void, any Error>) {
-        self.continuation = continuation
+    /// Holds `continuation` until the stream ends, and returns whether to start it: a task cancelled before the stream
+    /// started resumes it with `CancellationError` at once.
+    func hold(_ continuation: CheckedContinuation<Void, any Error>) -> Bool {
+        let cancelled = lock.withLock {
+            if !self.cancelled {
+                self.continuation = continuation
+            }
+            return self.cancelled
+        }
+        if cancelled {
+            continuation.resume(throwing: CancellationError())
+        }
+        return !cancelled
     }
 
-    func resume(throwing error: (any Error)? = nil) {
+    /// Notes the started stream's `progress`, which is cancelled at once if the task was cancelled while it started.
+    func started(_ progress: Progress) {
+        let cancelled = lock.withLock {
+            self.progress = progress
+            return self.cancelled
+        }
+        if cancelled {
+            progress.cancel()
+        }
+    }
+
+    /// Cancels the stream and ends it with `CancellationError`.
+    func cancel() {
+        let (progress, continuation) = lock.withLock {
+            cancelled = true
+            defer {
+                self.continuation = nil
+            }
+            return (self.progress, self.continuation)
+        }
+        progress?.cancel()
+        continuation?.resume(throwing: CancellationError())
+    }
+
+    /// Ends the stream with `error`, or successfully without one.
+    func end(throwing error: (any Error)? = nil) {
         let continuation = lock.withLock {
             defer {
                 self.continuation = nil
@@ -67,6 +114,20 @@ package final class AttachmentFileWriter: @unchecked Sendable {
         handle = try FileHandle(forWritingTo: url)
     }
 
+    /// Writes the bytes `start` streams into a new file at `url`, and returns what it wrote.
+    ///
+    /// Any failure, of the stream or of finishing the file, and the task's cancellation throw and remove the file.
+    package static func copy(to url: URL, using start: AttachmentByteStream) async throws -> Written {
+        do {
+            let writer = try AttachmentFileWriter(url: url)
+            try await writer.stream(using: start)
+            return try writer.finish()
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            throw error
+        }
+    }
+
     /// Appends `chunk` to the file and to the count and digests.
     package func append(_ chunk: Data) throws {
         try lock.withLock {
@@ -89,27 +150,36 @@ package final class AttachmentFileWriter: @unchecked Sendable {
         }
     }
 
-    /// Streams `attachment`'s bytes from `store` into the file, returning once HealthKit reports the last chunk.
-    func stream(_ attachment: HKAttachment, from store: HKAttachmentStore) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-            let resumption = Resumption(continuation)
-            _ = store.streamData(for: attachment) { [self] chunk, error, done in
-                if let error {
-                    resumption.resume(throwing: error)
+    /// Streams the bytes `start` delivers into the file, returning once the last chunk arrived.
+    ///
+    /// Cancelling the task cancels the stream's progress and throws `CancellationError` at once.
+    package func stream(using start: AttachmentByteStream) async throws {
+        let control = StreamControl()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                guard control.hold(continuation) else {
                     return
                 }
-                if let chunk {
-                    do {
-                        try append(chunk)
-                    } catch {
-                        resumption.resume(throwing: error)
+                control.started(start { [self] chunk, error, done in
+                    if let error {
+                        control.end(throwing: error)
                         return
                     }
-                }
-                if done {
-                    resumption.resume()
-                }
+                    if let chunk {
+                        do {
+                            try append(chunk)
+                        } catch {
+                            control.end(throwing: error)
+                            return
+                        }
+                    }
+                    if done {
+                        control.end()
+                    }
+                })
             }
+        } onCancel: {
+            control.cancel()
         }
     }
 
@@ -147,7 +217,8 @@ extension HKObject {
     ///
     /// Any failure throws and removes every file the call wrote, so a caller never sees part of an object's attachments: an
     /// exporter that cannot read them fails the object's batch and tries again later rather than exporting the object
-    /// without them.
+    /// without them. Cancelling the task cancels the attachment HealthKit is streaming, or waiting to download, and throws
+    /// `CancellationError` in the same way.
     ///
     /// - Parameters:
     ///   - healthStore: The store that holds the object.
@@ -159,15 +230,12 @@ extension HKObject {
         var copies: [HKAttachment.FileCopy] = []
         do {
             for attachment in attachments {
+                // A cancelled task, such as an expiring background task, copies no further attachment.
+                try Task.checkCancellation()
                 let url = directory.appendingPathComponent(attachment.identifier.uuidString.lowercased(), isDirectory: false)
-                let writer = try AttachmentFileWriter(url: url)
-                do {
-                    try await writer.stream(attachment, from: store)
-                } catch {
-                    try? FileManager.default.removeItem(at: url)
-                    throw error
+                let written = try await AttachmentFileWriter.copy(to: url) { handler in
+                    store.streamData(for: attachment, dataHandler: handler)
                 }
-                let written = try writer.finish()
                 copies.append(HKAttachment.FileCopy(
                     attachment: attachment,
                     url: url,
