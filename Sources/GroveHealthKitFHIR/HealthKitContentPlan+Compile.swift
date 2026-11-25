@@ -214,7 +214,9 @@ struct HealthKitContentCompiler {
             return Self.clinical(document, type: type, entry: entry)
         case .clinicalRecord(let typeCode):
             let typeCoding = Coding(typeCode, system: HealthKitContentRules.clinicalRecordTypeSystem)
-            let document = DocumentPlan(sourceType: type, format: .fhirResource, profiles: row.profiles, typeCoding: typeCoding, title: row.title)
+            // The row also admits the attachment documents of the record's files, which claim their own profile.
+            let profiles = row.profiles.filter { $0 != HealthKitContract.clinicalAttachmentProfile }
+            let document = DocumentPlan(sourceType: type, format: .fhirResource, profiles: profiles, typeCoding: typeCoding, title: row.title)
             return Self.clinical(document, type: type, entry: entry)
         }
     }

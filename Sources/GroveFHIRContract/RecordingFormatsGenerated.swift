@@ -29,6 +29,7 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     case pedometerSamples = "pedometer-samples"
     case photoplethysmogramSamples = "photoplethysmogram-samples"
     case providerRecording = "provider-recording"
+    case sourceFile = "source-file"
     case triaxialAccelerationSamples = "triaxial-acceleration-samples"
     case triaxialRotationSamples = "triaxial-rotation-samples"
     case wristTemperatureSamples = "wrist-temperature-samples"
@@ -55,6 +56,7 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
         case .pedometerSamples: ["text/csv"]
         case .photoplethysmogramSamples: ["application/octet-stream"]
         case .providerRecording: ["application/json"]
+        case .sourceFile: []
         case .triaxialAccelerationSamples: ["text/csv"]
         case .triaxialRotationSamples: ["text/csv"]
         case .wristTemperatureSamples: ["text/csv"]
@@ -64,6 +66,16 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     /// The registry's exact media type when this format has only one representation.
     public var registeredContentType: String? {
         registeredContentTypes.count == 1 ? registeredContentTypes[0] : nil
+    }
+
+    /// The pattern a source-declared media type must match and the media type that stands in
+    /// when the source declares none, or `nil` for a format whose media types the registry
+    /// enumerates in ``registeredContentTypes``.
+    public var sourceDeclaredContentType: (pattern: String, fallback: String)? {
+        switch self {
+        case .sourceFile: ("^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}(; [a-z0-9][a-z0-9!#$&^_.+-]{0,126}=([^\\s\";]+|\"[^\"]*\"))*$", "application/octet-stream")
+        default: nil
+        }
     }
 }
 

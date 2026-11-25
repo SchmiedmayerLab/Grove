@@ -820,6 +820,7 @@ def generate(catalog_directory: Path) -> str:
         "sensorRecordingDocumentClaim",
         "healthKitRecordingDocumentClaim",
         "healthKitClinicalRecordDocumentClaim",
+        "healthKitClinicalRecordAttachmentClaim",
         "sensorKitRecordingDocumentClaim",
         "providerRecordingDocumentClaim",
     ]
@@ -1166,6 +1167,20 @@ def generate(catalog_directory: Path) -> str:
         raise ValueError(
             "HealthKit clinical-record admission must preserve exact DSTU2 or R4 in an R4 DocumentReference"
         )
+    clinical_attachments = clinical_admission["attachments"]
+    clinical_attachment_relationship = clinical_attachments["relationship"]
+    if (
+        clinical_attachments["cardinality"] != "0..*"
+        or clinical_attachment_relationship["r4Path"] != "DocumentReference.relatesTo"
+        or clinical_attachment_relationship["direction"] != "attachment-to-clinical-record-only"
+        or not clinical_attachments["outputRole"]
+        or not clinical_attachments["payloadFormat"]
+        or not clinical_attachment_relationship["code"]
+    ):
+        raise ValueError(
+            "HealthKit clinical-record attachments must be 0..* documents that relate to the clinical-record document "
+            "only through DocumentReference.relatesTo"
+        )
     if set(healthkit_catalog["sensorAdapterClaims"]) != {"electrocardiogram"}:
         raise ValueError(
             f"HealthKit sensor adapter claims {sorted(healthkit_catalog['sensorAdapterClaims'])} are not exactly "
@@ -1229,6 +1244,14 @@ def generate(catalog_directory: Path) -> str:
         f"{profile_reference(clinical_admission['profile'])}",
         "    package static let clinicalFHIRPayloadFormatCode = "
         f"{swift_string(clinical_admission['payloadFormat'])}",
+        "    package static let clinicalAttachmentProfile: FHIRPrimitive<Canonical> = "
+        f"{profile_reference(clinical_attachments['profile'])}",
+        "    package static let clinicalAttachmentPayloadFormatCode = "
+        f"{swift_string(clinical_attachments['payloadFormat'])}",
+        "    package static let clinicalAttachmentOutputRole = "
+        f"{swift_string(clinical_attachments['outputRole'])}",
+        "    package static let clinicalAttachmentRelationshipCode = "
+        f"{swift_string(clinical_attachment_relationship['code'])}",
         "    package static let admittedClinicalFHIRReleaseCodes: Set<String> = [",
     ])
     for release in admitted_clinical_releases:
@@ -1400,6 +1423,19 @@ def generate(catalog_directory: Path) -> str:
         lines.append(f"            requiredIdentifierRoles: [{roles}],")
         lines.append(f"            optionalIdentifierRoles: [{optional_roles}]")
         lines.append("        ),")
+    never_primary_profiles = exchange_protocol["governedSourceIdentifier"]["validation"]["neverProfiles"]
+    if not isinstance(never_primary_profiles, list) or len(never_primary_profiles) != len(set(never_primary_profiles)):
+        raise ValueError("exchange-protocol.json must list each never-primary profile once")
+    lines.extend([
+        "    ]",
+        "",
+        "    /// The output profiles that are never a record's primary output, such as a clinical record's attachment",
+        "    /// documents: they never carry the governed source identifier, and they do not make the record's one source",
+        "    /// document a companion artifact.",
+        "    package static let neverPrimaryProfiles: [FHIRPrimitive<Canonical>] = [",
+    ])
+    for profile in never_primary_profiles:
+        lines.append(f"        {profile_reference(profile)},")
     lines.extend([
         "    ]",
         "",

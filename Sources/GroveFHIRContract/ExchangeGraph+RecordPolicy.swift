@@ -436,10 +436,20 @@ extension ExchangeGraph {
     private static func validateRecordingDocuments(
         _ entries: [BundleEntry], records: [ActiveRecord], document validationDocument: ValidationDocument
     ) throws(ExchangeGraphError) {
+        // An output that is never primary, such as a clinical record's attachment document, does not make the record's
+        // one source document a companion artifact, so it is not counted.
+        let neverPrimary = Set(canonicalStrings(ProfileClaims.neverPrimaryProfiles))
+        var profilesByURL: [String: Set<String>] = [:]
+        for entry in entries {
+            if let url = entry.fullUrl?.value?.url.absoluteString, let resource = entry.resource {
+                profilesByURL[url] = Set(resourceProfiles(resource))
+            }
+        }
         var outputCounts: [String: Int] = [:]
         for record in records {
+            let primaryCandidates = record.targets.filter { (profilesByURL[$0] ?? []).isDisjoint(with: neverPrimary) }.count
             for target in record.targets {
-                outputCounts[target] = record.targets.count
+                outputCounts[target] = primaryCandidates
             }
         }
         for (index, entry) in entries.enumerated() {

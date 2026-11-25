@@ -341,7 +341,8 @@ extension ExchangeGraph {
         }
     }
 
-    /// The attachment's format is a registered recording format and its content type one the registry names.
+    /// The attachment's format is a registered recording format and its content type one the registry names, or, for a
+    /// format whose media type the source declares, one that matches the registry's pattern.
     static func validateRecordingFormat(_ document: DocumentReference) throws(ExchangeGraphError) {
         guard let content = document.content.first, let format = content.format else {
             return
@@ -351,7 +352,7 @@ extension ExchangeGraph {
               format.system?.value?.url.absoluteString == RegisteredRecordingFormat.codeSystem,
               let code = format.code?.value?.string,
               let registered = RegisteredRecordingFormat(rawValue: code),
-              contentType.map({ registered.registeredContentTypes.contains($0) }) ?? true else {
+              contentType.map({ registered.admitsContentType($0) }) ?? true else {
             throw diagnostic(.sensorRecordingDocumentFormat, location: "DocumentReference.content[0].format.code")
         }
     }

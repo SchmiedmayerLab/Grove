@@ -40,7 +40,7 @@ public enum SensorKitContract {
 enum SensorKitGenerated {
     static let catalog = SensorKitCatalog(
         schemaVersion: 0,
-        version: "0.8.2",
+        version: "0.8.3",
         fhirVersion: "4.0.1",
         entries: [
             SensorKitCatalogEntry(

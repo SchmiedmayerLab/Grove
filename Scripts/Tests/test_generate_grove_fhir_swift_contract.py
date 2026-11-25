@@ -186,6 +186,15 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     "otherProfilesAllowed": False,
                     "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
                 },
+                "healthKitClinicalRecordAttachmentClaim": {
+                    "cardinality": 1,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-clinical-record-attachment"
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
                 "sensorKitRecordingDocumentClaim": {
                     "cardinality": 2,
                     "profiles": [
@@ -335,6 +344,20 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     },
                     "rejectedFHIRReleases": ["unknown"],
                     "rule": "DSTU2 or R4, byte-preserved.",
+                    "attachments": {
+                        "profile": (
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-clinical-record-attachment"
+                        ),
+                        "cardinality": "0..*",
+                        "payloadFormat": "source-file",
+                        "outputRole": "clinical-record-attachment",
+                        "relationship": {
+                            "r4Path": "DocumentReference.relatesTo",
+                            "code": "appends",
+                            "direction": "attachment-to-clinical-record-only",
+                        },
+                    },
                 },
                 "producerCanonicalization": {
                     "effectivePrecision": "millisecond",
@@ -503,6 +526,14 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
             },
             "exchange-protocol.json": {
                 **base,
+                "governedSourceIdentifier": {
+                    "validation": {
+                        "neverProfiles": [
+                            "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                            "healthkit-clinical-record-attachment"
+                        ],
+                    },
+                },
                 "extensions": {
                     "entryKey": (
                         "https://grovealliance.org/fhir/mobile/StructureDefinition/"

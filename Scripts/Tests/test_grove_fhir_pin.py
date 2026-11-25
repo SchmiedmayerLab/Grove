@@ -22,8 +22,13 @@ def pinned(name):
 
 class GroveFHIRPinTests(unittest.TestCase):
     def test_the_pinned_version_names_a_full_commit(self):
-        self.assertRegex(pinned("PINNED_GROVE_FHIR_VERSION"), r"^\d+\.\d+\.\d+$")
-        self.assertRegex(pinned("PINNED_GROVE_FHIR_COMMIT"), r"^[0-9a-f]{40}$")
+        # A release is pinned by its version and the commit its tag named; a contract change not yet released is pinned
+        # by that commit alone, which then stands as the version too.
+        version = pinned("PINNED_GROVE_FHIR_VERSION")
+        commit = pinned("PINNED_GROVE_FHIR_COMMIT")
+        self.assertRegex(commit, r"^[0-9a-f]{40}$")
+        if version != commit:
+            self.assertRegex(version, r"^\d+\.\d+\.\d+$")
 
     def test_the_workflow_defaults_to_the_version_whose_commit_is_pinned(self):
         # A workflow default the script pins no commit for would skip the moved-tag check.
