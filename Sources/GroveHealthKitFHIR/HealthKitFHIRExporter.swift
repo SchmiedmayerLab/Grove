@@ -284,6 +284,10 @@ extension HealthKitFHIRExporter {
             return try assembly.convertHeartbeatSeries(series, recording: plan.recordingPayload(), plan: content, request: request)
         case let .workoutRoute(route, _):
             return try assembly.convertWorkoutRoute(route, recording: plan.recordingPayload(), plan: content, request: request)
+        #if !os(watchOS)
+        case let .clinicalRecord(record, attachments):
+            return try assembly.convertClinicalRecord(record, attachments: attachments, plan: content, request: request)
+        #endif
         }
     }
 
@@ -346,6 +350,10 @@ extension HealthKitFHIRExporter.Record {
             Result { try content.recordingDocument().locationTrack(locations) }
         case .sample, .unsavedSample, .electrocardiogram:
             nil
+        #if !os(watchOS)
+        case .clinicalRecord:
+            nil
+        #endif
         }
     }
 }

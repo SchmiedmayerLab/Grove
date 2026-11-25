@@ -43,6 +43,12 @@ extension HealthKitFHIRExporter {
         /// A workout route with its locations, exported as a recording document only under
         /// ``Options/route`` `.authorized`.
         case workoutRoute(HKWorkoutRoute, locations: [CLLocation])
+        #if !os(watchOS)
+        /// A clinical record with the files HealthKit stores with it, each exported as a HealthKit Clinical Record
+        /// Attachment beside the record's clinical-record document. ``sample(_:)`` passes a clinical record without
+        /// files; a record whose files cannot be read must not be exported without them.
+        case clinicalRecord(HKClinicalRecord, attachments: [ClinicalAttachment])
+        #endif
 
         /// A sample of ``unsavedSample(_:source:)``: one of the kinds of sample the exporter states an unsaved one's
         /// origin for.
@@ -86,6 +92,9 @@ extension HealthKitFHIRExporter {
             case .electrocardiogram(let ecg, _, _): ecg
             case .heartbeatSeries(let series, _): series
             case .workoutRoute(let route, _): route
+            #if !os(watchOS)
+            case .clinicalRecord(let record, _): record
+            #endif
             }
         }
 

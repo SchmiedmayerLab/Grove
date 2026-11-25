@@ -106,6 +106,7 @@ struct ConformanceFixtureTests {
         "exporter-deployment-retraction",
         "exporter-clinical-record-r4",
         "exporter-clinical-record-dstu2",
+        "exporter-deployment-clinical-record-attachments",
         "walking-steadiness-notification"
     ]
 

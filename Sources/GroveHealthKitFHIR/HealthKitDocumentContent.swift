@@ -13,6 +13,7 @@ import Foundation
 import GroveFHIRContract
 import HealthKit
 import ModelsR4
+import UniformTypeIdentifiers
 
 
 /// The parts of a source type's recording or clinical document that every document of the type shares, and the
@@ -153,6 +154,53 @@ extension DocumentPlan {
             throw HealthKitConversionError.clinicalRecord(.undecodable)
         }
         return try document(resource.data, title: title, contentType: HealthKitContract.clinicalFHIRContentTypeByRelease[release])
+    }
+
+    /// The document carrying one file HealthKit stores with a clinical record of this plan's type, beside the record's
+    /// clinical-record document: the same type and source type under the attachment profile, the media type the file
+    /// declares, its bytes or their location with their size and SHA-1 hash, and its name and creation date.
+    ///
+    /// The assembly links it to the clinical-record document and states the same subject, date, author and studies, as it
+    /// does on every document of one record. A file is never refused for its size; one that R4's `Attachment.size` cannot
+    /// state is the exception, as for every recording.
+    func attachmentDocument(_ attachment: HealthKitFHIRExporter.Record.ClinicalAttachment) throws -> DocumentReference {
+        guard let format = RegisteredRecordingFormat(rawValue: HealthKitContract.clinicalAttachmentPayloadFormatCode) else {
+            throw HealthKitConversionError.ValueFailure.shapeInvalid
+        }
+        let byteCount = attachment.payload.byteCount
+        guard byteCount >= 0 else {
+            throw HealthKitConversionError.ValueFailure.shapeInvalid
+        }
+        guard let size = Int32(exactly: byteCount) else {
+            throw HealthKitConversionError.ValueFailure.recordingPayloadTooLarge(byteCount: byteCount)
+        }
+        var fhirAttachment = Attachment(
+            contentType: format.statedContentType(declared: attachment.contentType.preferredMIMEType)?.asFHIRStringPrimitive(),
+            creation: FHIRPrimitive(try ExchangeInstant.fhirDateTime(attachment.creationDate)),
+            size: FHIRPrimitive(FHIRUnsignedInteger(size)),
+            title: attachment.name.isEmpty ? nil : attachment.name.asFHIRStringPrimitive()
+        )
+        switch attachment.payload {
+        case .inline(let data):
+            fhirAttachment.data = FHIRPrimitive(Base64Binary(with: data))
+            fhirAttachment.hash = FHIRPrimitive(Base64Binary(with: data.attachmentSHA1))
+        case let .sidecar(path, _, sha1):
+            // A SHA-1 digest is 20 bytes; anything else cannot be the digest of the file.
+            guard !path.isEmpty, sha1.count == 20 else {
+                throw HealthKitConversionError.ValueFailure.shapeInvalid
+            }
+            fhirAttachment.url = FHIRPrimitive(FHIRURI(stringLiteral: path))
+            fhirAttachment.hash = FHIRPrimitive(Base64Binary(with: sha1))
+        }
+        var document = skeleton
+        document.meta = Meta(profile: [HealthKitContract.clinicalAttachmentProfile])
+        document.content = [
+            DocumentReferenceContent(
+                attachment: fhirAttachment,
+                format: Coding(format.rawValue, system: RegisteredRecordingFormat.codeSystem)
+            )
+        ]
+        return document
     }
 
     /// The document carrying a CDA document, under the title it states, else the plan's. Only an `HKDocumentQuery`

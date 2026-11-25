@@ -56,6 +56,12 @@ The R4 DocumentReference attachment declares the matching FHIR JSON media type: 
 Grove never converts DSTU2 to R4 or claims conformance over the payload.
 Missing, unknown, and future releases fail before Grove creates a DocumentReference.
 
+Each file HealthKit stores with a clinical record is one more output of the same record: a HealthKit Clinical Record Attachment, itself a document with exactly one attachment and one `source-artifact` identifier.
+It relates to the record's clinical-record document by one `relatesTo` of code `appends`, which literally references that document; the clinical-record document and its payload are the same as without files and name no attachment.
+Its `source-output` identifier uses the output role `clinical-record-attachment` and the lowercase `HKAttachment.identifier` as its discriminator, and its `source-artifact` identifier the `source-file` format and the file's zero-based position among the record's files ordered by creation date, then by identifier.
+It states the type coding, source type, subject, date, author and studies of the clinical-record document, carries the file's source-declared media type, or `application/octet-stream` when it declares none, and states the file's bytes inline or the immutable location the caller gives for them, with their size and SHA-1 hash.
+It is never the record's primary output: it carries no writer-record identifier, writer version, sync identifier or native identifier.
+
 ## The devices
 
 The recording hardware, converting application, and host are separate Device resources because they answer different provenance questions.

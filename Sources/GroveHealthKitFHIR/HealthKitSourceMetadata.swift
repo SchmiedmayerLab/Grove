@@ -31,7 +31,10 @@ struct HealthKitSourceMetadata {
         .init(preservedSampleKeys: preservedKeys.count, unsupportedSampleKeys: unsupportedCount, excludedSampleKeys: excludedKeys.count)
     }
 
-    init(sample: HKSample, values: [String: Any], policy: HealthKitFHIRExporter.MetadataPolicy) {
+    /// The container of `values` that `policy` includes, as the metadata of `sample`, or of an object that is no sample, such
+    /// as a clinical record's attachment, when `sample` is `nil`: such an object states no quantity type, so a quantity
+    /// value it carried would be an unsupported one.
+    init(sample: HKSample?, values: [String: Any], policy: HealthKitFHIRExporter.MetadataPolicy) {
         let allKeys = values.keys
         excludedKeys = allKeys.reduce(into: []) { result, key in
             switch policy.decision(for: key) {
@@ -69,7 +72,7 @@ struct HealthKitSourceMetadata {
     }
 
     /// Encode supported values with their FHIR types; unsupported values remain observable omissions.
-    private static func value(_ value: Any, key: String, sample: HKSample) -> Extension.ValueX? {
+    private static func value(_ value: Any, key: String, sample: HKSample?) -> Extension.ValueX? {
         switch value {
         case let text as String:
             return text.isEmpty ? nil : .string(text.asFHIRStringPrimitive())
@@ -95,6 +98,9 @@ struct HealthKitSourceMetadata {
             }
             return .dateTime(FHIRPrimitive(dateTime))
         case let quantity as HKQuantity:
+            guard let sample else {
+                return nil
+            }
             return metadataQuantity(quantity, key: key, sample: sample).map(Extension.ValueX.quantity)
         default:
             return nil
