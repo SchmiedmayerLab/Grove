@@ -1175,11 +1175,13 @@ def generate(catalog_directory: Path) -> str:
         or clinical_attachment_relationship["direction"] != "attachment-to-clinical-record-only"
         or not clinical_attachments["outputRole"]
         or not clinical_attachments["payloadFormat"]
-        or not clinical_attachment_relationship["code"]
+        # ExchangeGraphAssembler writes the relationship as FHIRModels' typed `.appends`, so the guide must state that
+        # code rather than the generator emitting a string nothing reads.
+        or clinical_attachment_relationship["code"] != "appends"
     ):
         raise ValueError(
             "HealthKit clinical-record attachments must be 0..* documents that relate to the clinical-record document "
-            "only through DocumentReference.relatesTo"
+            "only through DocumentReference.relatesTo with code appends"
         )
     if set(healthkit_catalog["sensorAdapterClaims"]) != {"electrocardiogram"}:
         raise ValueError(
@@ -1250,8 +1252,6 @@ def generate(catalog_directory: Path) -> str:
         f"{swift_string(clinical_attachments['payloadFormat'])}",
         "    package static let clinicalAttachmentOutputRole = "
         f"{swift_string(clinical_attachments['outputRole'])}",
-        "    package static let clinicalAttachmentRelationshipCode = "
-        f"{swift_string(clinical_attachment_relationship['code'])}",
         "    package static let admittedClinicalFHIRReleaseCodes: Set<String> = [",
     ])
     for release in admitted_clinical_releases:

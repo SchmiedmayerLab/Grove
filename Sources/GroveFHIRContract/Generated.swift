@@ -4216,7 +4216,6 @@ package enum HealthKitContract {
     package static let clinicalAttachmentProfile: FHIRPrimitive<Canonical> = Profile.healthkitClinicalRecordAttachment
     package static let clinicalAttachmentPayloadFormatCode = "source-file"
     package static let clinicalAttachmentOutputRole = "clinical-record-attachment"
-    package static let clinicalAttachmentRelationshipCode = "appends"
     package static let admittedClinicalFHIRReleaseCodes: Set<String> = [
         "dstu2",
         "r4",
