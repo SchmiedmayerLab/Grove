@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 @testable import GroveFHIR
 import ModelsR4
 import Testing
@@ -252,3 +253,4 @@ struct FHIRStoreTests {
         #expect(store.first?.id == prior.id)
     }
 }
+#endif

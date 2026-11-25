@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import ModelsR4
 public import SwiftUI
 
@@ -44,3 +45,4 @@ public struct FHIRMockPatientSelection: View {
     
     public init() { }
 }
+#endif

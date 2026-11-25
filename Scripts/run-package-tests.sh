@@ -47,7 +47,7 @@ TESTING_FLOOR_DEPLOYMENT_TARGETS="IPHONEOS_DEPLOYMENT_TARGET=26.0 MACOSX_DEPLOYM
 # device architecture coverage, including watchOS arm64_32, remains in build-floor.py.
 TESTING_ARCHITECTURES="ARCHS=arm64"
 
-# The optional integrations (Textual, MLX, ResearchKit) are behind default-off package traits so that
+# The optional integrations (Textual, MLX, ResearchKit, DSTU2) are behind default-off package traits so that
 # an iOS-15 consumer's default graph stays lean. Tests exercise the FULL feature set, so enable all
 # traits for the test build (the manifest reads this env var; per-platform `.when(platforms:)`
 # conditions still keep watchOS-/macOS-incompatible deps out of those platforms' graphs).

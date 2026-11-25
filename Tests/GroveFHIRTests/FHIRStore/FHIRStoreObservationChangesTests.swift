@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 @testable import GroveFHIR
 import ModelsR4
 import Observation
@@ -188,3 +189,4 @@ struct FHIRStoreObservationChangesTests {
         }
     }
 }
+#endif

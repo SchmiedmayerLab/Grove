@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 @testable import GroveFHIR
 import ModelsDSTU2
 import ModelsR4
@@ -99,3 +100,4 @@ extension FHIRResourceTests {
         #expect(FHIRResource.FHIRResourceCategory.other.storeKeyPath == \FHIRStore.otherResources)
     }
 }
+#endif

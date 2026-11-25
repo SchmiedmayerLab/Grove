@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 @testable import GroveFHIR
 import ModelsR4
 import Testing
@@ -54,3 +55,4 @@ extension FHIRResourceTests {
         #expect(resources.filterByDisplayName(with: "").count == 3)
     }
 }
+#endif

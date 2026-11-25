@@ -6,9 +6,9 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import FHIRModelsExtensions
 import Foundation
-import GroveFHIR
 import ModelsDSTU2
 import Testing
 
@@ -22,3 +22,4 @@ struct FHIRExtensionURLDSTU2Tests {
         #expect(primitive.value?.url == url.url)
     }
 }
+#endif

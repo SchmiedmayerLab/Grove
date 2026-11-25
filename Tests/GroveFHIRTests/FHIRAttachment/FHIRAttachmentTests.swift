@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 #if canImport(UniformTypeIdentifiers)
 
 @testable import GroveFHIR
@@ -133,4 +134,5 @@ struct FHIRAttachmentTests {
     }
 }
 
+#endif
 #endif

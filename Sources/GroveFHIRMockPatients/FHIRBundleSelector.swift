@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import GroveFHIR
 public import struct ModelsR4.Bundle
 public import struct ModelsR4.Patient
@@ -89,3 +90,4 @@ public struct FHIRBundleSelector: View {
         }
     }
 }
+#endif

@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 @testable import GroveFHIR
 import ModelsR4
 import Testing
@@ -120,3 +121,4 @@ extension FHIRResourceTests {
         #expect(ResourceProxy(with: mockPatient).displayName == "Patient")
     }
 }
+#endif

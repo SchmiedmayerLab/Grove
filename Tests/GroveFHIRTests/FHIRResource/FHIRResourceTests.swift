@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import Foundation
 @testable import GroveFHIR
 import ModelsDSTU2
@@ -173,3 +174,4 @@ struct FHIRResourceTests {
         #expect(Set([original, changed, otherType, otherVersion]).count == 3)
     }
 }
+#endif

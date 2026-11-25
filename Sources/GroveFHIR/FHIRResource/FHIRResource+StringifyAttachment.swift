@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 
 private import GroveFoundation
 private import ModelsDSTU2
@@ -119,3 +120,4 @@ extension FHIRAttachment {
         return try extractor.extractContent(from: data)
     }
 }
+#endif

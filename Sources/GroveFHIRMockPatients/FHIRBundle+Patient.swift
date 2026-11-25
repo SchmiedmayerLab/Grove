@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+#if DSTU2
 import struct ModelsR4.Bundle
 import struct ModelsR4.Patient
 
@@ -26,3 +27,4 @@ extension ModelsR4.Bundle {
         return givenName + " " + familyName
     }
 }
+#endif
