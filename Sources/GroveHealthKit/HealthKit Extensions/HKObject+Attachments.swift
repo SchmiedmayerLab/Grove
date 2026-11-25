@@ -107,19 +107,28 @@ package final class AttachmentFileWriter: @unchecked Sendable {
     private var closed = false
 
     /// A writer into a new, empty file at `url`, replacing any file there.
+    ///
+    /// Anything else at `url`, such as a directory, makes it throw and stay untouched. A file it created but couldn't open
+    /// is removed again.
     package init(url: URL) throws {
         guard FileManager.default.createFile(atPath: url.path, contents: nil) else {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSURLErrorKey: url])
         }
-        handle = try FileHandle(forWritingTo: url)
+        do {
+            handle = try FileHandle(forWritingTo: url)
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            throw error
+        }
     }
 
     /// Writes the bytes `start` streams into a new file at `url`, and returns what it wrote.
     ///
-    /// Any failure, of the stream or of finishing the file, and the task's cancellation throw and remove the file.
+    /// Any failure, of the stream or of finishing the file, and the task's cancellation throw and remove the file. Only a
+    /// file this call created is ever removed: if the writer can't be created, whatever is at `url` stays.
     package static func copy(to url: URL, using start: AttachmentByteStream) async throws -> Written {
+        let writer = try AttachmentFileWriter(url: url)
         do {
-            let writer = try AttachmentFileWriter(url: url)
             try await writer.stream(using: start)
             return try writer.finish()
         } catch {

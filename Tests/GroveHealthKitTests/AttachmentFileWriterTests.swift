@@ -127,6 +127,22 @@ struct AttachmentFileWriterTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test("A directory already at the location makes the copy fail and stays, with everything in it")
+    func existingDirectoryIsNeverRemoved() async throws {
+        let url = try Self.temporaryFile()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+        let inside = url.appendingPathComponent("keep", isDirectory: false)
+        try Data("not the copy's to remove".utf8).write(to: inside)
+        await #expect(throws: (any Error).self) {
+            try await AttachmentFileWriter.copy(to: url) { _ in
+                Issue.record("A copy that couldn't create its file started a stream")
+                return Progress(totalUnitCount: 1)
+            }
+        }
+        #expect(try Data(contentsOf: inside) == Data("not the copy's to remove".utf8))
+    }
+
     @Test("A file already at the location is replaced, not appended to")
     func existingFileIsReplaced() throws {
         let url = try Self.temporaryFile()
