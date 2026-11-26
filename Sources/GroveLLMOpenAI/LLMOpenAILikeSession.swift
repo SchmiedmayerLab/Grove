@@ -147,7 +147,7 @@ public final class LLMOpenAILikeSession<
     /// Starts one generation and returns its text.
     ///
     /// The stream buffers up to 4096 undelivered text pieces. A consumer that falls behind further stops the generation
-    /// with ``LLMGenerationStreamError/bufferOverflow``.
+    /// with `LLMGenerationStreamError.bufferOverflow`.
     @discardableResult
     public func generate() async throws -> AsyncThrowingStream<String, any Error> {
         try await startGeneration(capacity: 4096) { event in
@@ -161,7 +161,7 @@ public final class LLMOpenAILikeSession<
     /// Starts one generation and returns its events.
     ///
     /// The stream buffers up to 256 undelivered events. A consumer that falls behind further stops the generation
-    /// with ``LLMGenerationStreamError/bufferOverflow``.
+    /// with `LLMGenerationStreamError.bufferOverflow`.
     public func generateEvents() async throws -> AsyncThrowingStream<LLMGenerationEvent, any Error> {
         try await startGeneration(capacity: 256) { $0 }
     }

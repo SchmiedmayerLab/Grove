@@ -162,6 +162,9 @@ package final class LLMInferenceQueue<Element>: Sendable {
         return stream
     }
 
+    /// Enqueues work that reports its own results.
+    ///
+    /// `discard` runs instead of `work` when the queue releases the job before it started, for example at shutdown.
     package func enqueue(discard: @escaping @Sendable () -> Void, work: @escaping @Sendable () async -> Void) throws {
         let task = InferenceQueueElement(work: work, discard: discard)
 
