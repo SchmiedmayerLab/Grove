@@ -88,6 +88,9 @@ public struct SensorKitTabularRecording: Sendable {
     }
 
     /// Builds the structured projection declared by the catalog, or its raw recording document.
+    ///
+    /// An accelerometer recording with more distinct batches or devices than its summary counts throws a
+    /// ``SensorKitSummaryError`` here; creating the recording does not.
     public func sensorKitRecord(
         sourceRecordID: SensorKitSourceRecordID,
         title: String,

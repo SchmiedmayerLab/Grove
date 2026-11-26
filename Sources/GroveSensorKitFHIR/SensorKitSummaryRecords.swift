@@ -200,7 +200,8 @@ public struct SensorKitAccelerometerRecord: Sendable {
     /// Creates the summary by parsing the exact registered recording.
     ///
     /// Counts and coverage are deliberately not caller inputs: the attached payload is the sole
-    /// authority for every summary fact projected into FHIR.
+    /// authority for every summary fact projected into FHIR. A recording with more distinct batches or devices than the
+    /// summary counts throws a ``SensorKitSummaryError``.
     public init(
         sourceRecordID: SensorKitSourceRecordID,
         nativeRecording: SensorKitNativeRecording

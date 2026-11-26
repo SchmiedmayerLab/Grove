@@ -85,7 +85,7 @@ extension SensorKitTabularRecording {
         }
 
         /// Builds the same structured summary or raw document, referencing the file at an archive-relative path.
-        /// File and batch-limit failures propagate; they must not be treated as clinical record refusals.
+        /// File failures and a ``SensorKitSummaryError`` propagate; they must not be treated as clinical record refusals.
         ///
         /// The file was validated while it was written, so the recording is not parsed again to check it; an
         /// accelerometer summary reads it once for its facts.

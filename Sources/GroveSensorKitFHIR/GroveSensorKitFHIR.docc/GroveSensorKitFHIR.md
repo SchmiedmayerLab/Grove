@@ -294,7 +294,7 @@ A file payload states the same relative URL, size and SHA-1 attachment checksum 
 
 | Payload | Validation and summary memory |
 | --- | --- |
-| Registered CSV | Incremental parsing, with at most 4 MiB per encoded row and 1 MiB per decoded field. An accelerometer summary counts the distinct batches in memory, at most 1,000,000 per recording (about 16 MiB); a recording that states more is refused. |
+| Registered CSV | Incremental parsing, with at most 4 MiB per encoded row and 1 MiB per decoded field. An accelerometer summary counts the distinct batches in memory: at most 1,000,000 per recording from at most 16 devices, retained in about 16.3 MiB for one device and at most about 20.7 MiB plus each device's name and up to a memory page per device; a set that grows briefly also holds its previous buckets, at most about 8.1 MiB more. A recording that states more cannot be summarized, and creating its record throws a ``SensorKitSummaryError``. |
 | JSON and PPG | Complete decoding, limited to 64 MiB before allocation. A larger payload is refused. |
 | Clinical documents | Byte-preserved; Grove does not decode the issuing document format. |
 
@@ -321,7 +321,7 @@ let record = try recording.sensorKitRecord(
 try recording.file.readChunks { try destination.write(contentsOf: $0) }
 ```
 
-For a wrist-temperature session, `readRetryEvidenceChunks` includes the algorithm-version prefix, which the sidecar bytes don't. Disk, batch-limit, byte-budget and cancellation failures are not clinical refusals: they abort publication and leave the batch available for a retry.
+For a wrist-temperature session, `readRetryEvidenceChunks` includes the algorithm-version prefix, which the sidecar bytes don't. Disk, batch-limit, byte-budget and cancellation failures are not clinical refusals: they abort publication and leave the batch available for a retry. A batch-limit failure repeats for the same recording, so fetch its samples in smaller batches.
 
 ### What converts
 
@@ -365,6 +365,7 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
 - ``SensorKitRecordingLocation``
+- ``SensorKitSummaryError``
 
 ### Recording payloads
 
