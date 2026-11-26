@@ -13,7 +13,7 @@
 /// The producer-side assertion that admits an opaque native recording payload.
 /// Grove consumes this value during preflight and never serializes it into FHIR.
 public enum RecordingPayloadAdmission: String, CaseIterable, Hashable, Sendable {
-    /// The caller explicitly authorizes disclosure of exact opaque bytes; Grove does not inspect or sanitize them.
+    /// The caller explicitly authorizes disclosure of exact opaque bytes; Grove validates the registered grammar but does not sanitize their content.
     case callerAuthorizedOpaquePayload = "caller-authorized-opaque-payload"
     /// The producer independently verified that the supplied bytes are sanitized.
     case verifiedSanitizedInput = "verified-sanitized-input"

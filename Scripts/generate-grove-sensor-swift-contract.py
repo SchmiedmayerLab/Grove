@@ -246,7 +246,7 @@ def requirement(entry: dict[str, Any]) -> str | None:
 def admission_lines(assertions: list[str]) -> list[str]:
     """The opaque-payload admission every adapter that admits native recordings shares."""
     descriptions = {
-        "caller-authorized-opaque-payload": "The caller explicitly authorizes disclosure of exact opaque bytes; Grove does not inspect or sanitize them.",
+        "caller-authorized-opaque-payload": "The caller explicitly authorizes disclosure of exact opaque bytes; Grove validates the registered grammar but does not sanitize their content.",
         "verified-sanitized-input": "The producer independently verified that the supplied bytes are sanitized.",
     }
     lines = [
