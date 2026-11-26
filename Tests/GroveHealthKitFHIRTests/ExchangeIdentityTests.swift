@@ -128,7 +128,7 @@ struct GroveFHIRExchangeIdentityTests {
             nativeRecordID: "recording-001"
         )
         let providerOutput = try panel.output(role: "blood-pressure-panel", discriminator: "single")
-        let providerArtifact = try recording.artifact(formatCode: "provider-recording", partIndex: 0)
+        let providerArtifact = try recording.artifact(formatCode: "provider-response-json", partIndex: 0)
         let writer = try Self.scope.writerRecord(
             subject: Self.identifier("https://study.example.org/fhir/identifiers/participant", "participant-001"),
             writerApplication: Self.identifier("https://applications.example.org", "com.withings.wiscale2"),
@@ -142,7 +142,7 @@ struct GroveFHIRExchangeIdentityTests {
         )
         #expect(provider.value == "v0:test-key:1:qfmx1ajnVg_rNE8qiL_hIAWI8GtbVpRtf6T2RWREezM")
         #expect(providerOutput.value == "v0:test-key:1:mum-FTSsu6Kv_QBFNSjcFuznTp5C6D3QnrQ6iwm23Ec")
-        #expect(providerArtifact.value == "v0:test-key:1:0LxvhsWmRngwxPPMqWk7--4qTN8Wa1j-oTbGuMCCgrA")
+        #expect(providerArtifact.value == "v0:test-key:1:pZ9qxa2SmaW5j_jpARGA_0D_lrv-QUeGmoQQK0vxcWw")
         #expect(writer.value == "v0:test-key:1:t3yJ50PlC4YfvU2A4qhUgG17VfFJ_QhTgltKtosdl7w")
         #expect(recordingDevice.value == "v0:test-key:1:EGbYNz6iVTYGCXRIUR-1TVJeTAVmPhsQmT6UF-dC3q0")
     }

@@ -51,12 +51,14 @@ Attachment size and FHIR R4's base64 SHA-1 `Attachment.hash` cover the actual pr
 That hash is change detection, not a signature or authorization credential; a future stronger integrity mechanism must use a separately defined manifest element.
 
 HealthKit clinical records are admitted only when `HKFHIRVersion.fhirRelease` explicitly reports `dstu2` or `r4`.
-The provider-issued bytes are carried unchanged under the release-neutral `fhir-resource` format.
+The provider-issued bytes are carried unchanged under the release-neutral `provider-issued-fhir-json` format, in a document that claims the shared Clinical Records `grove-clinical-record-document` profile beside `healthkit-clinical-record-document`.
 The R4 DocumentReference attachment declares the matching FHIR JSON media type: `application/fhir+json; fhirVersion=1.0` for DSTU2 or `application/fhir+json; fhirVersion=4.0` for R4.
 Grove never converts DSTU2 to R4 or claims conformance over the payload.
 Missing, unknown, and future releases fail before Grove creates a DocumentReference.
 
-Each file HealthKit stores with a clinical record is one more output of the same record: a HealthKit Clinical Record Attachment, itself a document with exactly one attachment and one `source-artifact` identifier.
+A CDA document is carried the same way, byte for byte, under the `cda-document` format and the `grove-clinical-record-document` and `healthkit-cda-document` profiles.
+
+Each file HealthKit stores with a clinical record is one more output of the same record: a HealthKit Clinical Record Attachment, claimed beside the shared Clinical Records `grove-clinical-record-attachment` profile, itself a document with exactly one attachment and one `source-artifact` identifier.
 It relates to the record's clinical-record document by one `relatesTo` of code `appends`, which literally references that document; the clinical-record document and its payload are the same as without files and name no attachment.
 Its `source-output` identifier uses the output role `clinical-record-attachment` and the lowercase `HKAttachment.identifier` as its discriminator, and its `source-artifact` identifier the `source-file` format and the file's zero-based position among the record's files ordered by creation date, then by identifier.
 It states the type coding, source type, subject, date, author and studies of the clinical-record document, carries the file's source-declared media type, or `application/octet-stream` when it declares none, and states the file's bytes inline or the immutable location the caller gives for them, with their size and SHA-1 hash.

@@ -129,7 +129,7 @@ def source_declared_content_type(code: str, format_contract: dict[str, Any]) -> 
     fallback stands in when the source declares none.
     """
     rule = format_contract.get("contentTypeRule")
-    if rule is None:
+    if rule is None or rule == "declared-fhir-release":
         return None
     pattern = format_contract.get("contentTypePattern")
     fallback = format_contract.get("defaultContentType")
@@ -146,8 +146,31 @@ def source_declared_content_type(code: str, format_contract: dict[str, Any]) -> 
     return pattern, fallback
 
 
+def declared_release_content_type(code: str, format_contract: dict[str, Any]) -> str | None:
+    """The pattern of a format whose producer declares the payload's FHIR release in its media type, else `None`.
+
+    Such a format enumerates no media type either: any value matching the pattern is admitted, and there is no
+    fallback, because a producer that cannot state the release must not emit the payload.
+    """
+    if format_contract.get("contentTypeRule") != "declared-fhir-release":
+        return None
+    pattern = format_contract.get("contentTypePattern")
+    if (
+        not isinstance(pattern, str)
+        or not pattern
+        or "defaultContentType" in format_contract
+        or "contentType" in format_contract
+        or "contentTypes" in format_contract
+    ):
+        raise ValueError(f"registry format declares an invalid declared-release content type: {code}")
+    return pattern
+
+
 def registered_content_types(code: str, format_contract: dict[str, Any]) -> list[str]:
-    if source_declared_content_type(code, format_contract) is not None:
+    if (
+        source_declared_content_type(code, format_contract) is not None
+        or declared_release_content_type(code, format_contract) is not None
+    ):
         return []
     singular = format_contract.get("contentType")
     plural = format_contract.get("contentTypes")
@@ -271,17 +294,16 @@ def requirement(entry: dict[str, Any]) -> str | None:
 
 def generate_registry(sensor_path: Path, registry_path: Path) -> str:
     """Project the recording-format registry itself, which every adapter shares."""
-    sensor = read_json(sensor_path)
     registry = read_json(registry_path)
-    sensor_canonical = sensor.get("canonical")
-    if not isinstance(sensor_canonical, str) or not sensor_canonical:
-        raise ValueError("sensor catalog has no canonical")
+    code_system = registry.get("codeSystem")
+    if not isinstance(code_system, str) or not code_system.endswith("/CodeSystem/grove-payload-format"):
+        raise ValueError("the payload-format registry names no grove-payload-format CodeSystem")
     formats = registry.get("formats")
     if not isinstance(formats, dict) or not formats:
-        raise ValueError("the recording-format registry declares no formats")
+        raise ValueError("the payload-format registry declares no formats")
 
     lines = [HEADER.rstrip(), ""]
-    lines.append("/// A payload format published by the Grove recording-format registry.")
+    lines.append("/// A payload format published by the Grove payload-format registry.")
     lines.append("///")
     lines.append("/// The whole registry is projected, not only the formats one adapter admits, so the type")
     lines.append("/// means \"a registered format\" everywhere it appears. Whether a particular source may carry")
@@ -292,7 +314,7 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
     lines.extend([
         "",
         "    /// The CodeSystem every registered format's code belongs to.",
-        f"    package static let codeSystem = {swift_string(sensor_canonical + '/CodeSystem/grove-recording-format')}",
+        f"    package static let codeSystem = {swift_string(code_system)}",
         "",
         "    /// The media types the registry admits for this format.",
     ])
@@ -332,6 +354,21 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
         lines.append(
             f"        case .{swift_format_case(code)}: ({swift_string(pattern)}, {swift_string(fallback)})"
         )
+    lines.extend([
+        "        default: nil",
+        "        }",
+        "    }",
+        "",
+        "    /// The pattern a media type must match that declares the payload's FHIR release in its `fhirVersion`",
+        "    /// parameter, or `nil` for a format without one. Such a format has no fallback: a producer that cannot",
+        "    /// state the release does not emit the payload.",
+        "    public var declaredReleaseContentTypePattern: String? {",
+        "        switch self {",
+    ])
+    for code in sorted(formats):
+        pattern = declared_release_content_type(code, formats[code])
+        if pattern is not None:
+            lines.append(f"        case .{swift_format_case(code)}: {swift_string(pattern)}")
     lines.extend([
         "        default: nil",
         "        }",

@@ -165,8 +165,8 @@
               "title" : "Exact SensorKit ECG session"
             },
             "format" : {
-              "code" : "native-recording",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "code" : "native-recording-json",
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -219,7 +219,7 @@
                 }
               ]
             },
-            "value" : "v0:test:1:6oQl_AMGJI7xOkO820238c3xVr0A6zhzGpgwjt5S4BY"
+            "value" : "v0:test:1:_1EXKwhRkPeHaJxCbtZtiMcPH2b-UrC1ShqbSvxlvoA"
           }
         ],
         "meta" : {
@@ -484,11 +484,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:xI-abedM7yAF1PzgcmPGx3mAHz0g7LLaWGcI4zIHfDE"
+            "value" : "v0:test:1:fySQwt7yLycuyx-YnBLADQvCG2CwhIT6pFYTsh559-s"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:ae05992d-544d-5ed4-a596-a3b4e96b0484",
+      "fullUrl" : "urn:uuid:ef510e89-4f3b-5d65-afe5-de922fe9009a",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -547,7 +547,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:xI-abedM7yAF1PzgcmPGx3mAHz0g7LLaWGcI4zIHfDE"
+              "value" : "v0:test:1:fySQwt7yLycuyx-YnBLADQvCG2CwhIT6pFYTsh559-s"
             }
           }
         ],

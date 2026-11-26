@@ -24,8 +24,8 @@ GUIDES="${GROVE_FHIR_GUIDES:-$(pwd)/.fhir/grove-fhir}"
 # grove-fhir's 0.6.0 was, and a moved tag would change the contract checked here without any change to Grove.
 # .github/workflows/tests.yml defaults to the same version. A contract change not yet released is pinned by its commit
 # alone, as the version too, until its release can be pinned in its place.
-PINNED_GROVE_FHIR_VERSION=d47fd2e475b4a16f0e1e2925d78e3a8e10c286a9
-PINNED_GROVE_FHIR_COMMIT=d47fd2e475b4a16f0e1e2925d78e3a8e10c286a9
+PINNED_GROVE_FHIR_VERSION=db780dfc2067cfdb9e1d6e335ebb1251a5873729
+PINNED_GROVE_FHIR_COMMIT=db780dfc2067cfdb9e1d6e335ebb1251a5873729
 GROVE_FHIR_REF="${GROVE_FHIR_REF:-$PINNED_GROVE_FHIR_VERSION}"
 GUIDE_SOURCE="${GROVE_FHIR_GUIDE_SOURCE:-}"
 
@@ -38,7 +38,7 @@ fi
 
 # One guide list per component; package names and ids derive from it below.
 case "$COMPONENT" in
-    healthkit)     TEST_PACKAGE="GroveHealthKitFHIR"; GUIDE_NAMES=(mobile sensor healthkit) ;;
+    healthkit)     TEST_PACKAGE="GroveHealthKitFHIR"; GUIDE_NAMES=(mobile sensor clinical-records healthkit) ;;
     questionnaire) TEST_PACKAGE="GroveQuestionnaire"; GUIDE_NAMES=(questionnaire) ;;
     sensor)        TEST_PACKAGE="GroveSensorKitFHIR"; GUIDE_NAMES=(mobile sensor sensorkit) ;;
     *)

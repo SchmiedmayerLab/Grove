@@ -112,14 +112,21 @@ class SensorSwiftContractTests(unittest.TestCase):
             "schemaVersion": 0,
             "fhirVersion": "4.0.1",
             "version": "0.6.0",
+            "codeSystem": "https://example.org/mobile/CodeSystem/grove-payload-format",
             "formats": {
                 "grove-csv-1": {"title": "Grove CSV 1", "contentType": "text/csv", "status": "active"},
-                "fhir-resource": {
-                    "title": "FHIR Resource",
+                "versioned-fhir-1": {
+                    "title": "Versioned FHIR 1",
                     "contentTypes": [
                         "application/fhir+json; fhirVersion=1.0",
                         "application/fhir+json; fhirVersion=4.0",
                     ],
+                    "status": "active",
+                },
+                "provider-issued-fhir-json": {
+                    "title": "Provider-Issued FHIR JSON",
+                    "contentTypeRule": "declared-fhir-release",
+                    "contentTypePattern": "^application/fhir\\+json; fhirVersion=[0-9]+\\.[0-9]+$",
                     "status": "active",
                 },
                 "native-json-1": {"title": "Native JSON 1", "contentType": "application/json", "status": "active"},
@@ -144,8 +151,14 @@ class SensorSwiftContractTests(unittest.TestCase):
             # The registry is projected as a closed type, so an unlisted format cannot be named.
             self.assertIn('case groveCSV1 = "grove-csv-1"', projected_registry)
             self.assertIn(
-                'case .fhirResource: ["application/fhir+json; fhirVersion=1.0", '
+                'case .versionedFHIR1: ["application/fhir+json; fhirVersion=1.0", '
                 '"application/fhir+json; fhirVersion=4.0"]',
+                projected_registry,
+            )
+            # A declared-release format enumerates no media type and states its pattern instead.
+            self.assertIn("case .providerIssuedFHIRJSON: []", projected_registry)
+            self.assertIn(
+                'case .providerIssuedFHIRJSON: "^application/fhir\\\\+json; fhirVersion=[0-9]+\\\\.[0-9]+$"',
                 projected_registry,
             )
             self.assertIn("public var registeredContentTypes: [String]", projected_registry)
@@ -156,7 +169,7 @@ class SensorSwiftContractTests(unittest.TestCase):
             )
             self.assertIn(
                 "    package static let codeSystem = "
-                "\"https://example.org/sensor/CodeSystem/grove-recording-format\"",
+                "\"https://example.org/mobile/CodeSystem/grove-payload-format\"",
                 projected_registry,
             )
             self.assertNotIn("RecordingFormatContract", projected_registry)

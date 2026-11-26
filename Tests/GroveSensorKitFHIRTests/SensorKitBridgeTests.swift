@@ -115,7 +115,7 @@ struct GroveSensorKitBridgeTests {
         )
         let native = try SensorKitNativeRecording(
             title: "Exact native report",
-            format: .nativeRecording,
+            format: .nativeRecordingJSON,
             payload: .inline(Data(#"{"version":"1"}"#.utf8)),
             admission: .callerAuthorizedOpaquePayload
         )
@@ -181,7 +181,7 @@ struct GroveSensorKitBridgeTests {
         let payload = try #require(prepared.nativePayload)
         let native = try SensorKitNativeRecording(
             title: "Device usage",
-            format: .nativeRecording,
+            format: .nativeRecordingJSON,
             payload: .inline(payload),
             admission: .callerAuthorizedOpaquePayload
         )

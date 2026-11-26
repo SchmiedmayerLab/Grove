@@ -10,7 +10,7 @@
 
 // swiftlint:disable all
 
-/// A payload format published by the Grove recording-format registry.
+/// A payload format published by the Grove payload-format registry.
 ///
 /// The whole registry is projected, not only the formats one adapter admits, so the type
 /// means "a registered format" everywhere it appears. Whether a particular source may carry
@@ -19,23 +19,23 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     case ambientLightSamples = "ambient-light-samples"
     case ambientPressureSamples = "ambient-pressure-samples"
     case beatIntervalSeries = "beat-interval-series"
-    case clinicalDocument = "clinical-document"
-    case fhirCollectionBundle = "fhir-collection-bundle"
-    case fhirResource = "fhir-resource"
+    case cdaDocument = "cda-document"
     case heartRateSamples = "heart-rate-samples"
     case locationTrackSamples = "location-track-samples"
-    case nativeRecording = "native-recording"
+    case nativeRecordingJSON = "native-recording-json"
     case odometerSamples = "odometer-samples"
     case pedometerSamples = "pedometer-samples"
     case photoplethysmogramSamples = "photoplethysmogram-samples"
-    case providerRecording = "provider-recording"
+    case providerIssuedFHIRJSON = "provider-issued-fhir-json"
+    case providerResponseJSON = "provider-response-json"
+    case sensorSampleCollectionBundle = "sensor-sample-collection-bundle"
     case sourceFile = "source-file"
     case triaxialAccelerationSamples = "triaxial-acceleration-samples"
     case triaxialRotationSamples = "triaxial-rotation-samples"
     case wristTemperatureSamples = "wrist-temperature-samples"
 
     /// The CodeSystem every registered format's code belongs to.
-    package static let codeSystem = "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+    package static let codeSystem = "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
 
     /// The media types the registry admits for this format.
     ///
@@ -46,16 +46,16 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
         case .ambientLightSamples: ["text/csv"]
         case .ambientPressureSamples: ["text/csv"]
         case .beatIntervalSeries: ["text/csv"]
-        case .clinicalDocument: ["application/hl7-cda+xml"]
-        case .fhirCollectionBundle: ["application/fhir+json"]
-        case .fhirResource: ["application/fhir+json; fhirVersion=1.0", "application/fhir+json; fhirVersion=4.0"]
+        case .cdaDocument: ["application/hl7-cda+xml"]
         case .heartRateSamples: ["text/csv"]
         case .locationTrackSamples: ["text/csv"]
-        case .nativeRecording: ["application/json"]
+        case .nativeRecordingJSON: ["application/json"]
         case .odometerSamples: ["text/csv"]
         case .pedometerSamples: ["text/csv"]
         case .photoplethysmogramSamples: ["application/octet-stream"]
-        case .providerRecording: ["application/json"]
+        case .providerIssuedFHIRJSON: []
+        case .providerResponseJSON: ["application/json"]
+        case .sensorSampleCollectionBundle: ["application/fhir+json"]
         case .sourceFile: []
         case .triaxialAccelerationSamples: ["text/csv"]
         case .triaxialRotationSamples: ["text/csv"]
@@ -74,6 +74,16 @@ public enum RegisteredRecordingFormat: String, CaseIterable, Hashable, Sendable 
     public var sourceDeclaredContentType: (pattern: String, fallback: String)? {
         switch self {
         case .sourceFile: ("^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}(; [a-z0-9][a-z0-9!#$&^_.+-]{0,126}=([^\\s\";]+|\"[^\"]*\"))*$", "application/octet-stream")
+        default: nil
+        }
+    }
+
+    /// The pattern a media type must match that declares the payload's FHIR release in its `fhirVersion`
+    /// parameter, or `nil` for a format without one. Such a format has no fallback: a producer that cannot
+    /// state the release does not emit the payload.
+    public var declaredReleaseContentTypePattern: String? {
+        switch self {
+        case .providerIssuedFHIRJSON: "^application/fhir\\+json; fhirVersion=[0-9]+\\.[0-9]+$"
         default: nil
         }
     }

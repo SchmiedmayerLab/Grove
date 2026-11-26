@@ -39,7 +39,7 @@
             },
             "format" : {
               "code" : "heart-rate-samples",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -356,11 +356,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:HlKk-5zQ9oUjDrIKGMhoiqtgNl5iAeQvvbPqTBdX3hU"
+            "value" : "v0:test:1:7tmH-SHLnx7rkqGoWLHBP2ly5BFFfeXJaaCy8nNclq8"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:a9150773-7a8d-59c7-a125-1b4ca9ae2a12",
+      "fullUrl" : "urn:uuid:42a144c6-9508-507e-9700-a7b8c30f73d2",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -419,7 +419,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:HlKk-5zQ9oUjDrIKGMhoiqtgNl5iAeQvvbPqTBdX3hU"
+              "value" : "v0:test:1:7tmH-SHLnx7rkqGoWLHBP2ly5BFFfeXJaaCy8nNclq8"
             }
           }
         ],

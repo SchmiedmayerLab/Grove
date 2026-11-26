@@ -11,13 +11,15 @@ import Foundation
 
 extension RegisteredRecordingFormat {
     /// Whether the registry admits `contentType` for this format: one of the media types it names, or, for a format whose
-    /// media type the source declares, any value its pattern matches.
+    /// media type the source or the producer declares, any value its pattern matches.
     package func admitsContentType(_ contentType: String) -> Bool {
-        guard let declared = sourceDeclaredContentType else {
-            return registeredContentTypes.contains(contentType)
+        if let pattern = sourceDeclaredContentType?.pattern ?? declaredReleaseContentTypePattern {
+            // ICU's `$` also matches before a final line feed, so the match must cover the whole value, as the
+            // guide's validator requires with `re.fullmatch`.
+            return contentType.range(of: pattern, options: .regularExpression)
+                == contentType.startIndex..<contentType.endIndex
         }
-        // The registry's pattern is anchored at both ends, so a match covers the whole value.
-        return contentType.range(of: declared.pattern, options: .regularExpression) != nil
+        return registeredContentTypes.contains(contentType)
     }
 
     /// The media type a document of this format states for a payload whose source declares `declared`.

@@ -38,7 +38,7 @@ enum ExporterGolden {
                 contentType: .pdf,
                 creationDate: GoldenFixtures.sampleStart.addingTimeInterval(3600),
                 metadata: ["ProviderDocumentID": "doc-1", "PageCount": NSNumber(value: 1)],
-                payload: .sidecar(path: "recordings/\(pdfDigest).pdf", byteCount: attachedPDF.count, sha1: attachedPDF.attachmentSHA1)
+                payload: .sidecar(path: "documents/\(pdfDigest).pdf", byteCount: attachedPDF.count, sha1: attachedPDF.attachmentSHA1)
             ),
             HealthKitFHIRExporter.Record.ClinicalAttachment(
                 identifier: GoldenFixtures.uuid(0xBE),

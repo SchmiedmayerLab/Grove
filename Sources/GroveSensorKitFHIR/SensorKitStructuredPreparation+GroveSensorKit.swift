@@ -128,7 +128,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         }
         let nativeRecording = try SensorKitNativeRecording(
             title: title,
-            format: .nativeRecording,
+            format: .nativeRecordingJSON,
             payload: location.payload(bytes: nativePayload),
             admission: admission
         )
@@ -143,7 +143,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .secondsSince1970
         let data = try encoder.encode(value)
-        try RegisteredRecordingFormat.nativeRecording.validatePayload(data)
+        try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(data)
         return data
     }
 }

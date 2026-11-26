@@ -39,7 +39,7 @@
             },
             "format" : {
               "code" : "location-track-samples",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -129,7 +129,7 @@
           "coding" : [
             {
               "code" : "location-track-samples",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           ]
         }
@@ -410,11 +410,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:owo6OrDiCzKtX2cym3_xSGDQ9ztTDR0wbFxIJ5UC0yk"
+            "value" : "v0:test:1:ilMjZ9cOsHS8sdPbIt7i0MyhXdZXVeGD1s3uEATE4ZU"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:4d88fe49-2197-54a6-a8b2-e90ee8826e7f",
+      "fullUrl" : "urn:uuid:e0fdc099-906a-5c43-a661-3b90feab6870",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -500,7 +500,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:owo6OrDiCzKtX2cym3_xSGDQ9ztTDR0wbFxIJ5UC0yk"
+              "value" : "v0:test:1:ilMjZ9cOsHS8sdPbIt7i0MyhXdZXVeGD1s3uEATE4ZU"
             }
           }
         ],

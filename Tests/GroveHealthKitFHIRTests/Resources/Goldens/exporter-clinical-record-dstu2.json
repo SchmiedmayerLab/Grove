@@ -38,8 +38,8 @@
               "title" : "Lab Result Record"
             },
             "format" : {
-              "code" : "fhir-resource",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "code" : "provider-issued-fhir-json",
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -103,11 +103,12 @@
                 }
               ]
             },
-            "value" : "v0:test:1:8rDEE7xtphneUrfgNiC_HhpPvozXPYQGtURrEi2Wv6w"
+            "value" : "v0:test:1:DOh_x9B3fSsIkbV3PKWa63vDust1nXyX5SRjrQ51EiY"
           }
         ],
         "meta" : {
           "profile" : [
+            "https://grovealliance.org/fhir/clinical-records/StructureDefinition/grove-clinical-record-document",
             "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-document"
           ]
         },
@@ -405,11 +406,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:bZhjOQjfzKjNcL1THE-r8wntIUx3hW7JawfGqiClV8I"
+            "value" : "v0:test:1:UGK2t0U4g4odzkG8KHlHDZGsbHbWhZJ9S5J1lhS-JHY"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:e3cf08f5-0daa-5d11-aefb-04a20067ab05",
+      "fullUrl" : "urn:uuid:eba657a1-db4b-5bb1-a8bb-6f11c69bde41",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -495,7 +496,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:bZhjOQjfzKjNcL1THE-r8wntIUx3hW7JawfGqiClV8I"
+              "value" : "v0:test:1:UGK2t0U4g4odzkG8KHlHDZGsbHbWhZJ9S5J1lhS-JHY"
             }
           }
         ],

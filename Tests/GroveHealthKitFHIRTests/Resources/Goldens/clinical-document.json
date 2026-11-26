@@ -35,8 +35,8 @@
               "title" : "Grove Golden Summary"
             },
             "format" : {
-              "code" : "clinical-document",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "code" : "cda-document",
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -100,13 +100,13 @@
                 }
               ]
             },
-            "value" : "v0:test:1:GqFmAyiQxxDL7NfpD2FTjh-dDA8oHplVEJad0faE69Y"
+            "value" : "v0:test:1:S7kZ_2tIBFXLQnn2njsvFH0wmfOITVs47w55dC0bb2g"
           }
         ],
         "meta" : {
           "profile" : [
-            "https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document",
-            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-recording-document"
+            "https://grovealliance.org/fhir/clinical-records/StructureDefinition/grove-clinical-record-document",
+            "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-cda-document"
           ]
         },
         "resourceType" : "DocumentReference",
@@ -121,8 +121,8 @@
         "type" : {
           "coding" : [
             {
-              "code" : "clinical-document",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "code" : "cda-document",
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           ]
         }
@@ -285,11 +285,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:p6Oup7iCmEVaZy6ZNUu5K2qLW51wjvvk34Nf1dlxCYA"
+            "value" : "v0:test:1:aAr7NJH3D4Zflku9Hi-ZE9FqtU_uno9fP0eTD3rLhJk"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:371a97ef-739e-5980-acd9-339c4d327037",
+      "fullUrl" : "urn:uuid:86257a1f-533e-52eb-b78c-d2fdf20e2242",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -348,7 +348,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:p6Oup7iCmEVaZy6ZNUu5K2qLW51wjvvk34Nf1dlxCYA"
+              "value" : "v0:test:1:aAr7NJH3D4Zflku9Hi-ZE9FqtU_uno9fP0eTD3rLhJk"
             }
           }
         ],

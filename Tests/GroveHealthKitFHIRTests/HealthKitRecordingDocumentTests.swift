@@ -167,7 +167,7 @@ struct HealthKitRecordingDocumentTests {
         let content = try #require(document.content.first)
         #expect(content.format?.code?.value?.string == "beat-interval-series")
         #expect(content.format?.system?.value?.url.absoluteString
-            == "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format")
+            == "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format")
         #expect(content.format?.version == nil)
         #expect(content.attachment.contentType?.value?.string == "text/csv")
         #expect(content.attachment.title?.value?.string == "Heartbeat series beat intervals")
@@ -182,7 +182,7 @@ struct HealthKitRecordingDocumentTests {
 
         let coding = try #require(conversion.document.type?.coding?.first)
         #expect(coding.system?.value?.url.absoluteString
-            == "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format")
+            == "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format")
         #expect(coding.code?.value?.string == "beat-interval-series")
         let sourceTypes = conversion.document.extension?.filter {
             $0.url == Canonicals.healthKitSourceTypeExtension
@@ -267,12 +267,12 @@ struct HealthKitRecordingDocumentTests {
         let conversion = try await ExporterFixtures.export(sample, inputs())
         let content = try #require(conversion.document.content.first)
 
-        #expect(content.format?.code?.value?.string == "clinical-document")
+        #expect(content.format?.code?.value?.string == "cda-document")
         #expect(content.attachment.contentType?.value?.string == "application/hl7-cda+xml")
         #expect(content.attachment.title?.value?.string == "Grove Example Summary")
         #expect(content.attachment.size?.value?.integer == Int32(bytes.count))
         #expect(content.attachment.data?.value?.dataString == bytes.base64EncodedString())
-        #expect(conversion.document.type?.coding?.first?.code?.value?.string == "clinical-document")
+        #expect(conversion.document.type?.coding?.first?.code?.value?.string == "cda-document")
         #expect(conversion.document.extension?.contains {
             guard $0.url == Canonicals.healthKitSourceTypeExtension,
                   case .code(let value) = $0.value else {

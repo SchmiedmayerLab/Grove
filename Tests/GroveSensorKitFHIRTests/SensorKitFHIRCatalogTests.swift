@@ -73,8 +73,8 @@ struct SensorKitFHIRCatalogTests {
         )
         #expect(formats["accelerometer"] == [.triaxialAccelerationSamples])
         #expect(formats["ppg"] == [.photoplethysmogramSamples])
-        #expect(formats["device-usage"] == [.fhirCollectionBundle, .nativeRecording])
-        #expect(formats["keyboard-metrics"] == [.nativeRecording])
+        #expect(formats["device-usage"] == [.sensorSampleCollectionBundle, .nativeRecordingJSON])
+        #expect(formats["keyboard-metrics"] == [.nativeRecordingJSON])
         #expect(formats["sleep-sessions"]?.isEmpty == true)
     }
 }

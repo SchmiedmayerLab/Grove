@@ -38,8 +38,8 @@
               "title" : "Lab Result Record"
             },
             "format" : {
-              "code" : "fhir-resource",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "code" : "provider-issued-fhir-json",
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -111,7 +111,7 @@
                 }
               ]
             },
-            "value" : "v0:test:1:Y9a5aldy3eCVYPvWTQ2ZdELA2zCVG7lVtsFo7hP-wdI"
+            "value" : "v0:test:1:1R-1Riiz2d2-7H5gDF86rgXnWUIPndAMx7oEou7k3lE"
           },
           {
             "system" : "https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record",
@@ -120,6 +120,7 @@
         ],
         "meta" : {
           "profile" : [
+            "https://grovealliance.org/fhir/clinical-records/StructureDefinition/grove-clinical-record-document",
             "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-document"
           ]
         },
@@ -182,7 +183,7 @@
             },
             "format" : {
               "code" : "source-file",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -241,6 +242,7 @@
         ],
         "meta" : {
           "profile" : [
+            "https://grovealliance.org/fhir/clinical-records/StructureDefinition/grove-clinical-record-attachment",
             "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-attachment"
           ]
         },
@@ -307,11 +309,11 @@
               "hash" : "eBC71rHlbPXwwJOh2TeAlBaw1kM=",
               "size" : 51,
               "title" : "Visit note.pdf",
-              "url" : "recordings/ee2d14b09b1f174f566d039e4d1c5d6e250feb812d9aa4ca2e595550a2548461.pdf"
+              "url" : "documents/ee2d14b09b1f174f566d039e4d1c5d6e250feb812d9aa4ca2e595550a2548461.pdf"
             },
             "format" : {
               "code" : "source-file",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -401,6 +403,7 @@
         ],
         "meta" : {
           "profile" : [
+            "https://grovealliance.org/fhir/clinical-records/StructureDefinition/grove-clinical-record-attachment",
             "https://grovealliance.org/fhir/healthkit/StructureDefinition/healthkit-clinical-record-attachment"
           ]
         },
@@ -857,11 +860,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:7vM4exemEw7EMWWInYa2qqnVmrKxzT4SN-ld8TiGcEs"
+            "value" : "v0:test:1:WGEAEZV17TV6IOOsHlK-Sx-Zgi3uEalsyapmOuM447g"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:065358e8-60c7-5b15-a410-a822331d7f20",
+      "fullUrl" : "urn:uuid:68621cfa-20f1-591a-b3cf-db7aaeb8cd20",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -947,7 +950,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:7vM4exemEw7EMWWInYa2qqnVmrKxzT4SN-ld8TiGcEs"
+              "value" : "v0:test:1:WGEAEZV17TV6IOOsHlK-Sx-Zgi3uEalsyapmOuM447g"
             }
           }
         ],

@@ -21,8 +21,12 @@ import UniformTypeIdentifiers
 struct HealthKitClinicalAttachmentTests {
     private typealias ClinicalAttachment = HealthKitFHIRExporter.Record.ClinicalAttachment
 
-    private static let attachmentProfile = HealthKitContract.clinicalAttachmentProfile.value?.url.absoluteString ?? ""
-    private static let clinicalProfile = HealthKitContract.clinicalRecordProfile.value?.url.absoluteString ?? ""
+    /// An attachment claims the shared Clinical Records attachment profile and HealthKit's.
+    private static let attachmentProfiles = [Profile.groveClinicalRecordAttachment, HealthKitContract.clinicalAttachmentProfile]
+        .compactMap { $0.value?.url.absoluteString }
+    /// A clinical-record document claims the shared Clinical Records document profile and HealthKit's.
+    private static let clinicalProfiles = [Profile.groveClinicalRecordDocument, HealthKitContract.clinicalRecordProfile]
+        .compactMap { $0.value?.url.absoluteString }
 
     /// The deployment's exporter, which names a study, and its clinical record.
     private static func setUp() async throws -> (HealthKitFHIRExporter, HKClinicalRecord) {
@@ -74,8 +78,8 @@ struct HealthKitClinicalAttachmentTests {
         let graph = try await Self.export(.clinicalRecord(record, attachments: ExporterGolden.clinicalAttachments), with: exporter)
 
         let documents = Self.documents(of: graph)
-        let clinical = try #require(documents.first { Self.profiles($0.document) == [Self.clinicalProfile] })
-        let attachments = documents.filter { Self.profiles($0.document) == [Self.attachmentProfile] }
+        let clinical = try #require(documents.first { Self.profiles($0.document) == Self.clinicalProfiles })
+        let attachments = documents.filter { Self.profiles($0.document) == Self.attachmentProfiles }
         #expect(attachments.count == 2)
         // The clinical-record document is the record's primary and says nothing of its files.
         #expect(clinical.document == bare.document)
@@ -107,7 +111,7 @@ struct HealthKitClinicalAttachmentTests {
             sourceType: HKClinicalTypeIdentifier.labResultRecord.rawValue,
             nativeRecordID: record.uuid.uuidString.lowercased()
         )
-        let attachments = Self.documents(of: graph).map(\.document).filter { Self.profiles($0) == [Self.attachmentProfile] }
+        let attachments = Self.documents(of: graph).map(\.document).filter { Self.profiles($0) == Self.attachmentProfiles }
         // The scan was created first, so it is part 0 though the caller listed it second.
         let inPartOrder = ExporterGolden.clinicalAttachments.inPartOrder
         #expect(inPartOrder.map(\.name) == ["scan", "Visit note.pdf"])
@@ -128,7 +132,7 @@ struct HealthKitClinicalAttachmentTests {
         let graph = try await Self.export(.clinicalRecord(record, attachments: ExporterGolden.clinicalAttachments), with: exporter)
         let contents = Self.documents(of: graph)
             .map(\.document)
-            .filter { Self.profiles($0) == [Self.attachmentProfile] }
+            .filter { Self.profiles($0) == Self.attachmentProfiles }
             .map(\.content)
         #expect(contents.allSatisfy { $0.count == 1 })
         let scan = try #require(contents.first?.first)
@@ -149,7 +153,7 @@ struct HealthKitClinicalAttachmentTests {
         // The PDF's bytes stay where the caller put them; the document names the place, their size and their hash.
         #expect(pdf.attachment.contentType?.value?.string == "application/pdf")
         #expect(pdf.attachment.data == nil)
-        #expect(pdf.attachment.url?.value?.url.absoluteString == "recordings/\(ExporterGolden.sha256Hex(ExporterGolden.attachedPDF)).pdf")
+        #expect(pdf.attachment.url?.value?.url.absoluteString == "documents/\(ExporterGolden.sha256Hex(ExporterGolden.attachedPDF)).pdf")
         #expect(pdf.attachment.size?.value?.integer == Int32(ExporterGolden.attachedPDF.count))
         #expect(pdf.attachment.hash?.value?.dataString == ExporterGolden.attachedPDF.attachmentSHA1.base64EncodedString())
         #expect(pdf.attachment.title?.value?.string == "Visit note.pdf")
@@ -159,7 +163,7 @@ struct HealthKitClinicalAttachmentTests {
     func attachmentMetadata() async throws {
         let (exporter, record) = try await Self.setUp()
         let graph = try await Self.export(.clinicalRecord(record, attachments: ExporterGolden.clinicalAttachments), with: exporter)
-        let attachments = Self.documents(of: graph).map(\.document).filter { Self.profiles($0) == [Self.attachmentProfile] }
+        let attachments = Self.documents(of: graph).map(\.document).filter { Self.profiles($0) == Self.attachmentProfiles }
         func metadataKeys(_ document: DocumentReference) -> [String] {
             (document.extension ?? [])
                 .filter { $0.url.value?.url.absoluteString == HealthKitContract.metadataExtensionURL }
@@ -218,8 +222,8 @@ struct HealthKitClinicalAttachmentTests {
         func document(at index: Int) -> DocumentReference? {
             entries[index].resource?.get(if: DocumentReference.self)
         }
-        let clinicalIndex = try #require(entries.indices.first { document(at: $0).map(Self.profiles) == [Self.clinicalProfile] })
-        let attachmentIndex = try #require(entries.indices.first { document(at: $0).map(Self.profiles) == [Self.attachmentProfile] })
+        let clinicalIndex = try #require(entries.indices.first { document(at: $0).map(Self.profiles) == Self.clinicalProfiles })
+        let attachmentIndex = try #require(entries.indices.first { document(at: $0).map(Self.profiles) == Self.attachmentProfiles })
         var clinical = try #require(document(at: clinicalIndex))
         var attachment = try #require(document(at: attachmentIndex))
         // The deployment discloses the HealthKit UUID: the one identifier without a Grove role coding.
@@ -251,11 +255,11 @@ struct HealthKitClinicalAttachmentTests {
             }
             return error
         }
-        let tooLarge = try await refusal(.sidecar(path: "recordings/large.pdf", byteCount: Int(Int32.max) + 1, sha1: Data(count: 20)))
+        let tooLarge = try await refusal(.sidecar(path: "documents/large.pdf", byteCount: Int(Int32.max) + 1, sha1: Data(count: 20)))
         #expect(tooLarge?.diagnostic.code == ExchangeGraphRule.mobileInputRecordingPayloadTooLarge.rawValue)
-        #expect(try await refusal(.sidecar(path: "recordings/file.pdf", byteCount: 4, sha1: Data(count: 19))) != nil)
+        #expect(try await refusal(.sidecar(path: "documents/file.pdf", byteCount: 4, sha1: Data(count: 19))) != nil)
         #expect(try await refusal(.sidecar(path: "", byteCount: 4, sha1: Data(count: 20))) != nil)
-        #expect(try await refusal(.sidecar(path: "recordings/file.pdf", byteCount: 4, sha1: Data(count: 20))) == nil)
+        #expect(try await refusal(.sidecar(path: "documents/file.pdf", byteCount: 4, sha1: Data(count: 20))) == nil)
     }
 
     @Test("Two files of one record with the same identifier cannot both be outputs")
@@ -281,8 +285,16 @@ struct HealthKitClinicalAttachmentTests {
         #expect(format.admitsContentType("text/plain; charset=utf-8"))
         #expect(!format.admitsContentType("Image/JPEG"))
         #expect(!format.admitsContentType("text"))
-        #expect(RegisteredRecordingFormat.fhirResource.sourceDeclaredContentType == nil)
-        #expect(RegisteredRecordingFormat.fhirResource.statedContentType(declared: "application/pdf") == nil)
+        #expect(RegisteredRecordingFormat.providerIssuedFHIRJSON.sourceDeclaredContentType == nil)
+        #expect(RegisteredRecordingFormat.providerIssuedFHIRJSON.statedContentType(declared: "application/pdf") == nil)
+        // A provider-issued FHIR payload admits any release its producer declares, and nothing without one.
+        let fhir = RegisteredRecordingFormat.providerIssuedFHIRJSON
+        #expect(fhir.registeredContentTypes.isEmpty)
+        #expect(fhir.admitsContentType("application/fhir+json; fhirVersion=1.0"))
+        #expect(fhir.admitsContentType("application/fhir+json; fhirVersion=4.0"))
+        #expect(fhir.admitsContentType("application/fhir+json; fhirVersion=5.0"))
+        #expect(!fhir.admitsContentType("application/fhir+json"))
+        #expect(!fhir.admitsContentType("application/fhir+json; fhirVersion=4"))
         #expect(RegisteredRecordingFormat.beatIntervalSeries.statedContentType(declared: "application/pdf") == "text/csv")
     }
 }

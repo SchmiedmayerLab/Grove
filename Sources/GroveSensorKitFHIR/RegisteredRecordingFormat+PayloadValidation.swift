@@ -52,7 +52,7 @@ extension RegisteredRecordingFormat {
     /// on the media type alone.
     func validatePayload(_ data: Data) throws(RegisteredRecordingPayloadError) {
         switch self {
-        case .nativeRecording, .providerRecording:
+        case .nativeRecordingJSON, .providerResponseJSON:
             do {
                 var scanner = StrictJSONScanner(data)
                 try scanner.validate()
@@ -79,14 +79,14 @@ extension RegisteredRecordingFormat {
             } catch {
                 throw .invalidTabularPayload
             }
-        case .clinicalDocument:
-            // The clinical document is carried byte-preserved: its grammar belongs to the issuing
+        case .cdaDocument:
+            // The CDA document is carried byte-preserved: its grammar belongs to the issuing
             // standard, and Grove asserts its identity and media type rather than re-parsing it.
             break
         case .sourceFile:
             // A source file is any file in any format: Grove never opens it, and checks only its size and hash.
             break
-        case .fhirCollectionBundle:
+        case .sensorSampleCollectionBundle:
             let bundle: ModelsR4.Bundle
             do {
                 bundle = try JSONDecoder().decode(ModelsR4.Bundle.self, from: data)
@@ -123,7 +123,7 @@ extension RegisteredRecordingFormat {
                     throw .forbiddenEntryResponse(index: index)
                 }
             }
-        case .fhirResource:
+        case .providerIssuedFHIRJSON:
             do {
                 try FHIRJSONResourcePayload.validate(data)
             } catch {

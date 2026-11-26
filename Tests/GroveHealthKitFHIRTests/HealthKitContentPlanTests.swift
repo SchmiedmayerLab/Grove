@@ -20,8 +20,12 @@ import Testing
 /// the known types state a metadata component, and every unit the plans read measures what it reads.
 @Suite
 struct HealthKitContentPlanTests {
-    /// The profiles a recording or clinical-record document claims.
-    private static let documentProfiles = [Profile.healthkitRecordingDocument, Profile.healthkitClinicalRecordDocument]
+    /// The profiles a recording, clinical-record, or CDA document claims.
+    private static let documentProfiles = [
+        Profile.healthkitRecordingDocument,
+        Profile.healthkitClinicalRecordDocument,
+        Profile.healthkitCdaDocument
+    ]
 
     @Test("The compiler reconciles every rule and every coded value with its contract")
     func compileDefectsAreEmpty() {

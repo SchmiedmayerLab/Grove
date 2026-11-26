@@ -100,7 +100,7 @@ enum SensorKitGenerated {
                 structuredContract: .deviceUsage,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-device-usage-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.fhirCollectionBundle, .nativeRecording],
+                rawFormats: [.sensorSampleCollectionBundle, .nativeRecordingJSON],
                 requirement: nil
             ),
             SensorKitCatalogEntry(
@@ -112,7 +112,7 @@ enum SensorKitGenerated {
                 structuredContract: .electrocardiogram,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-ecg-observation", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-ecg-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.fhirCollectionBundle, .nativeRecording],
+                rawFormats: [.sensorSampleCollectionBundle, .nativeRecordingJSON],
                 requirement: "All batches form one complete uniform series at the exact reported frequency, one exact lead orientation is retained, and no voltage sample is omitted. The duration ends at the final sample instant: final batch offset + (final batch sample count - 1) / frequency. Non-uniform, incomplete, mixed-lead, or inconsistent input fails closed."
             ),
             SensorKitCatalogEntry(
@@ -124,7 +124,7 @@ enum SensorKitGenerated {
                 structuredContract: nil,
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: "The Grove FHIR contracts publish no structured profile for the heterogeneous face metrics."
             ),
             SensorKitCatalogEntry(
@@ -148,7 +148,7 @@ enum SensorKitGenerated {
                 structuredContract: .keyboardMetrics,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-keyboard-metrics-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: nil
             ),
             SensorKitCatalogEntry(
@@ -160,7 +160,7 @@ enum SensorKitGenerated {
                 structuredContract: nil,
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: "Media interactions do not have a source-neutral clinical Observation representation under the Grove FHIR contracts."
             ),
             SensorKitCatalogEntry(
@@ -172,7 +172,7 @@ enum SensorKitGenerated {
                 structuredContract: .messagesUsage,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-messages-usage-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: nil
             ),
             SensorKitCatalogEntry(
@@ -196,7 +196,7 @@ enum SensorKitGenerated {
                 structuredContract: .onWrist,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-on-wrist-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.fhirCollectionBundle, .nativeRecording],
+                rawFormats: [.sensorSampleCollectionBundle, .nativeRecordingJSON],
                 requirement: "Use onWristDate only when onWrist is true and offWristDate only when onWrist is false; the stale opposite-state date must not bracket the current state."
             ),
             SensorKitCatalogEntry(
@@ -220,7 +220,7 @@ enum SensorKitGenerated {
                 structuredContract: .phoneUsage,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-phone-usage-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: nil
             ),
             SensorKitCatalogEntry(
@@ -256,7 +256,7 @@ enum SensorKitGenerated {
                 structuredContract: nil,
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: "Speech metrics have no source-neutral clinical Observation representation under the Grove FHIR contracts."
             ),
             SensorKitCatalogEntry(
@@ -280,7 +280,7 @@ enum SensorKitGenerated {
                 structuredContract: nil,
                 structuredProfiles: [],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.nativeRecording],
+                rawFormats: [.nativeRecordingJSON],
                 requirement: "Speech metrics have no source-neutral clinical Observation representation under the Grove FHIR contracts."
             ),
             SensorKitCatalogEntry(
@@ -292,7 +292,7 @@ enum SensorKitGenerated {
                 structuredContract: .visit,
                 structuredProfiles: ["https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-visit-observation"],
                 rawProfiles: ["https://grovealliance.org/fhir/sensor/StructureDefinition/grove-sensor-recording-document", "https://grovealliance.org/fhir/sensorkit/StructureDefinition/sensorkit-recording-document"],
-                rawFormats: [.fhirCollectionBundle, .nativeRecording],
+                rawFormats: [.sensorSampleCollectionBundle, .nativeRecordingJSON],
                 requirement: "The widest arrival-start through departure-end Period is the effective interval; exact arrival and departure uncertainty windows remain separate Period components. This output does not assert a clinical Encounter. When SensorKit supplies locationId, preserve it exactly as Observation.focus on an identifier-only logical Location Reference under the deployment's source-store-scoped namespace; no content-empty Location resource is created."
             ),
             SensorKitCatalogEntry(
