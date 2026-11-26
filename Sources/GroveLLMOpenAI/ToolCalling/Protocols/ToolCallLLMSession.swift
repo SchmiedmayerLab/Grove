@@ -8,6 +8,7 @@
 
 package import Atomics
 import Foundation
+import GeneratedOpenAIClient
 package import GroveFoundation
 package import GroveLLM
 
@@ -118,8 +119,15 @@ extension ToolCallLLMSession {
 
         let functionCallResponseStr: String?
         do {
+            // A generation that already ended runs no further tools. Plain task cancellation is left to the tool.
+            if RetryMiddleware.invocationIsCancelled?() == true {
+                throw CancellationError()
+            }
             // Errors thrown by the functions are surfaced to the user as an LLM generation error
             functionCallResponseStr = try await function.execute(with: arguments)
+        } catch where RetryMiddleware.invocationIsCancelled?() == true {
+            await self.decrementToolCallCounter()
+            throw CancellationError()
         } catch {
             Self.logger.error("ToolCallLLMSession: Function call execution error - \(error)")
             await self.decrementToolCallCounter()

@@ -86,7 +86,13 @@ struct ResponsesStreamBuilder {
 
     /// `response.incomplete`, the truncated-but-continuable end state.
     mutating func incomplete(responseId: String = "resp_incomplete") {
-        append(["type": "response.incomplete", "response": ["id": responseId, "status": "incomplete"]])
+        append([
+            "type": "response.incomplete",
+            "response": [
+                "id": responseId, "status": "incomplete", "incomplete_details": ["reason": "max_output_tokens"],
+                "usage": ["input_tokens": 7, "output_tokens": 4]
+            ]
+        ])
     }
 
     /// A chunk of refusal text.

@@ -41,12 +41,13 @@ extension LLMOpenAILikeSession {
     ///
     /// - Returns: The function calls the model requested, if any.
     func fetchResponseWithoutStreaming(
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async throws -> [LLMOpenAIStreamResult.FunctionCall] {
         let response: Operations.createResponse.Output
         do {
-            response = try await openAiClient.createResponse(openAIResponsesQuery(stream: false))
+            let query = try await openAIResponsesQuery(stream: false)
+            response = try await openAiClient.request(for: continuationObserver) { try await $0.createResponse(query) }
         } catch let error as ClientError {
             Self.logger.error("GroveLLMOpenAI: Connectivity Issues with the OpenAI API: \(error)")
             throw ResponsesGenerationError(llmError: LLMOpenAIError.connectivityIssues(error))
@@ -68,24 +69,34 @@ extension LLMOpenAILikeSession {
         // A failed generation arrives as a 200 with `status: "failed"`, so the status decides whether this counts
         // as an answer at all. Committing first would mark the input as delivered and chain the next turn onto a
         // response the server never produced.
+        continuationObserver.observe(
+            id: payload.value3.id,
+            model: payload.value2.model?.value1?.value1,
+            input: payload.value3.usage?.input_tokens,
+            output: payload.value3.usage?.output_tokens,
+            reason: payload.value3.incomplete_details?.reason.map { OpenAIGeneration.reason($0.rawValue) }
+        )
         if payload.value3.status == .failed {
             let message = payload.value3.error?.message ?? "Unknown error"
             Self.logger.error("GroveLLMOpenAI: Response failed: \(message)")
-            throw ResponsesGenerationError(llmError: LLMOpenAIError.generationError)
         }
+        // A gateway may omit the status of a complete unstreamed body.
+        let status = try OpenAIGeneration.responseStatus(payload.value3.status?.rawValue ?? "completed")
 
         // The server now holds everything this request carried; only re-send what comes after it.
         responsesConversation.withLock { state in
             state.commitPendingContext(responseId: payload.value3.id)
         }
 
-        return await surface(payload.value3.output, with: continuationObserver, interactionId: interactionId)
+        let calls = await surface(payload.value3.output, with: continuationObserver, interactionId: interactionId)
+        continuationObserver.endResponse(status, hasTools: !calls.isEmpty)
+        return status == .incomplete ? [] : calls
     }
 
     /// Pushes a complete response's output into the context and the continuation, in the order a stream would have.
     private func surface(
         _ output: [Components.Schemas.OutputItem],
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async -> [LLMOpenAIStreamResult.FunctionCall] {
         var functionCalls: [LLMOpenAIStreamResult.FunctionCall] = []
@@ -123,40 +134,40 @@ extension LLMOpenAILikeSession {
     /// Puts one assistant message — its text and the sources behind it — into the context.
     private func surface(
         _ message: Components.Schemas.OutputMessage,
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async {
-                // A refusal is the model's user-facing answer; it surfaces exactly like output text.
-                let text = message.content
-                    .map { content in
-                        switch content {
-                        case .output_text(let output): output.text
-                        case .refusal(let refusal): refusal.refusal
-                        }
-                    }
-                    .joined()
-                let annotations: [Components.Schemas.Annotation] = message.content.flatMap { content in
-                    guard case .output_text(let output) = content else {
-                        return [Components.Schemas.Annotation]()
-                    }
-                    return output.annotations
+        // A refusal is the model's user-facing answer; it surfaces exactly like output text.
+        let text = message.content
+            .map { content in
+                switch content {
+                case .output_text(let output): output.text
+                case .refusal(let refusal): refusal.refusal
                 }
-                let citations = Self.citations(from: annotations)
-                guard !text.isEmpty else {
-                    return
-                }
-                await MainActor.run {
-                    context.completeAssistantThinkingStreaming(for: interactionId)
-                    if schema.injectIntoContext {
-                        context.append(assistantOutputDelta: text, isComplete: true, interactionId: interactionId)
-                    }
-                }
-                continuationObserver.continuation.yield(text)
-                // Sources are merged onto the answer, so they can only be written once the answer is in the context.
-                if !citations.isEmpty {
-                    await MainActor.run {
-                        context.append(citations: citations, interactionId: interactionId)
-                    }
-                }
+            }
+            .joined()
+        let annotations: [Components.Schemas.Annotation] = message.content.flatMap { content in
+            guard case .output_text(let output) = content else {
+                return [Components.Schemas.Annotation]()
+            }
+            return output.annotations
+        }
+        let citations = Self.citations(from: annotations)
+        guard !text.isEmpty else {
+            return
+        }
+        await MainActor.run {
+            context.completeAssistantThinkingStreaming(for: interactionId)
+            if schema.injectIntoContext {
+                context.append(assistantOutputDelta: text, isComplete: true, interactionId: interactionId)
+            }
+        }
+        continuationObserver.text(text)
+        // Sources are merged onto the answer, so they can only be written once the answer is in the context.
+        if !citations.isEmpty {
+            await MainActor.run {
+                context.append(citations: citations, interactionId: interactionId)
+            }
+        }
     }
 }

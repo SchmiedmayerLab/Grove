@@ -108,6 +108,7 @@ extension LLMOpenAILikeSession {
                             ? nil
                             : modelParameters.logitBias,
                         n: modelParameters.completionsPerOutput,
+                        stream_options: .init(include_usage: true),
                         tools: functions.isEmpty ? nil : functions,
                         tool_choice: nil
                     )

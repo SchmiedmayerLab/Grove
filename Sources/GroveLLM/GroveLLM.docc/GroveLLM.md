@@ -214,6 +214,8 @@ struct LLMDemoChatView: View {
 
 - ``LLMSchema``
 - ``LLMSession``
+- ``LLMGenerationSession``
+- <doc:GenerationEvents>
 - ``LLMState``
 - ``LLMError``
 

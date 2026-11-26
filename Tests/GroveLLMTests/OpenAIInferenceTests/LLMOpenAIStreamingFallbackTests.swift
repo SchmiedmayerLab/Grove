@@ -12,6 +12,8 @@ import GeneratedOpenAIClient
 @testable import GroveLLM
 @testable import GroveLLMOpenAI
 import GroveTesting
+import HTTPTypes
+import OpenAPIRuntime
 import Synchronization
 import Testing
 
@@ -35,6 +37,32 @@ private struct FallbackTestFunction: LLMTool {
 /// would repeat what the user already read.
 @Suite("LLM OpenAI Streaming Fallback")
 final class LLMOpenAIStreamingFallbackTests {
+    /// Answers each transport attempt from a handler, as the session's own client would see the network.
+    private final class AttemptTransport: ClientTransport {
+        let calls = Mutex<[Bool]>([])
+        let respond: @Sendable (_ streamed: Bool) throws -> (HTTPResponse, HTTPBody?)
+
+        init(respond: @escaping @Sendable (_ streamed: Bool) throws -> (HTTPResponse, HTTPBody?)) {
+            self.respond = respond
+        }
+
+        func send(
+            _ request: HTTPRequest, body: HTTPBody?, baseURL: URL, operationID: String
+        ) async throws -> (HTTPResponse, HTTPBody?) {
+            let bytes = try await Data(collecting: body ?? HTTPBody(), upTo: 1 << 20)
+            let json = try JSONSerialization.jsonObject(with: bytes) as? [String: Any]
+            let streamed = json?["stream"] as? Bool ?? false
+            calls.withLock { $0.append(streamed) }
+            return try respond(streamed)
+        }
+    }
+
+    private struct Outcome {
+        var requests: [LLMRequestResult] = []
+        var final: LLMGenerationResult?
+        var error: (any Error)?
+    }
+
     private var platformTask: Task<Void, Never>?
 
     /// Whether the request asked the server to stream.
@@ -43,6 +71,155 @@ final class LLMOpenAIStreamingFallbackTests {
             return false
         }
         return body.value3.stream ?? false
+    }
+
+    /// The client the session builds, on the given transport.
+    private static func client(for session: LLMOpenAISession, transport: AttemptTransport) throws -> Client {
+        try Client(
+            serverURL: #require(URL(string: "https://gateway.invalid/v1")),
+            transport: RetryMiddleware.Transport(transport),
+            middlewares: [RetryMiddleware(policy: session.platform.configuration.retryPolicy, delay: .none)]
+        )
+    }
+
+    private static func collect(_ stream: AsyncThrowingStream<LLMGenerationEvent, any Error>) async -> Outcome {
+        var outcome = Outcome()
+        do {
+            for try await event in stream {
+                switch event {
+                case .textDelta: break
+                case .requestFinished(let result): outcome.requests.append(result)
+                case .finished(let result): outcome.final = result
+                }
+            }
+        } catch {
+            outcome.error = error
+        }
+        return outcome
+    }
+
+    @MainActor
+    @Test("Retries and the unstreamed fallback through the session's client report every transport attempt")
+    func reportsEveryTransportAttempt() async throws {
+        let session = try makeSession(retryPolicy: .attempts(2))
+        session.context.append(userMessage: "Hello!")
+        let transport = AttemptTransport { streamed in
+            guard !streamed else {
+                return (HTTPResponse(status: .internalServerError), nil)
+            }
+            return (
+                HTTPResponse(status: .ok, headerFields: [.contentType: "application/json"]),
+                HTTPBody(try ResponsesPayloadBuilder().json(id: "resp_unstreamed"))
+            )
+        }
+        session.openAiClient = try Self.client(for: session, transport: transport)
+
+        let outcome = await Self.collect(try await session.generateEvents())
+        let requests = outcome.requests, final = outcome.final, error = outcome.error
+        #expect(error == nil)
+        #expect(transport.calls.withLock { $0 } == [true, true, false])
+        #expect(requests.map(\.request) == [1, 1, 2])
+        #expect(requests.map(\.attempt) == [1, 2, 1])
+        #expect(requests.map(\.status) == [.failed, .failed, .completed])
+        #expect(requests.map(\.providerID) == [nil, nil, "resp_unstreamed"])
+        #expect(requests.last?.usage == .init(inputTokens: 11, outputTokens: 5))
+        #expect(final == .init(status: .completed, attempts: 3, usage: .init()))
+    }
+
+    @MainActor
+    @Test("Disabled retries and fallback send exactly one request through the session's client")
+    func disabledReplacementRequests() async throws {
+        let session = try makeSession(streamingFallback: false)
+        session.context.append(userMessage: "Hello!")
+        let transport = AttemptTransport { _ in (HTTPResponse(status: .internalServerError), nil) }
+        session.openAiClient = try Self.client(for: session, transport: transport)
+
+        let outcome = await Self.collect(try await session.generateEvents())
+        let requests = outcome.requests, final = outcome.final, error = outcome.error
+        #expect(error != nil)
+        #expect(transport.calls.withLock { $0 } == [true])
+        #expect(requests.map(\.status) == [.failed])
+        #expect(final == .init(status: .failed, attempts: 1, usage: .init()))
+    }
+
+    @MainActor
+    @Test("A transport cancellation the caller did not request fails without a replacement request")
+    func transportCancellationFails() async throws {
+        let session = try makeSession(retryPolicy: .attempts(2))
+        session.context.append(userMessage: "Hello!")
+        let transport = AttemptTransport { _ in throw URLError(.cancelled) }
+        session.openAiClient = try Self.client(for: session, transport: transport)
+
+        let outcome = await Self.collect(try await session.generateEvents())
+        let requests = outcome.requests, final = outcome.final, error = outcome.error
+        #expect(error is LLMOpenAIError)
+        #expect(transport.calls.withLock { $0 } == [true])
+        #expect(requests.map(\.status) == [.failed])
+        #expect(final == .init(status: .failed, attempts: 1, usage: .init()))
+    }
+
+    @MainActor
+    @Test("An unstreamed body without a status counts as completed")
+    func acceptsUnstreamedBodyWithoutStatus() async throws {
+        let session = try makeSession()
+        session.context.append(userMessage: "Hello!")
+
+        let client = LLMOpenAIInferenceTests.MockChatClient()
+        client.createResponseHandler = { input in
+            guard !Self.isStreaming(input) else {
+                return .undocumented(statusCode: 500, .init())
+            }
+            var builder = ResponsesPayloadBuilder()
+            builder.message("Hello world!")
+            return try builder.output(status: nil)
+        }
+        session.openAiClient = client
+
+        var output = ""
+        for try await piece in try await session.generate() {
+            output.append(piece)
+        }
+        #expect(output == "Hello world!")
+    }
+
+    @MainActor
+    @Test("EOF without a terminal event preserves delivered text and sends no replacement request", arguments: ["", "partial"])
+    func rejectsUnfinishedResponse(text: String) async throws {
+        let session = try makeSession()
+        session.context.append(userMessage: "Hello!")
+
+        let requests = Mutex<[Bool]>([])
+        let client = LLMOpenAIInferenceTests.MockChatClient()
+        client.createResponseHandler = { input in
+            requests.withLock { $0.append(Self.isStreaming(input)) }
+            var builder = ResponsesStreamBuilder()
+            builder.created()
+            if !text.isEmpty {
+                builder.outputTextDelta(text)
+            }
+            return builder.output()
+        }
+        session.openAiClient = client
+
+        var received = ""
+        var final: LLMGenerationResult?
+        var request: LLMRequestResult?
+        do {
+            for try await event in try await session.generateEvents() {
+                switch event {
+                case .textDelta(let text): received.append(text)
+                case .requestFinished(let result): request = result
+                case .finished(let result): final = result
+                }
+            }
+            Issue.record("Expected an interrupted response")
+        } catch let error as LLMOpenAIError {
+            #expect(error == .generationError)
+        }
+        #expect(received == text)
+        #expect(request?.reason == .interrupted)
+        #expect(final == .init(status: .failed, attempts: 1, usage: .init()))
+        #expect(requests.withLock { $0 } == [true])
     }
 
     @MainActor
@@ -67,10 +244,19 @@ final class LLMOpenAIStreamingFallbackTests {
         session.openAiClient = client
 
         var output = ""
-        for try await piece in try await session.generate() {
-            output.append(piece)
+        var attempts: [LLMRequestResult] = []
+        var final: LLMGenerationResult?
+        for try await event in try await session.generateEvents() {
+            switch event {
+            case .textDelta(let delta): output.append(delta)
+            case .requestFinished(let result): attempts.append(result)
+            case .finished(let result): final = result
+            }
         }
-
+        #expect(attempts.map(\.request) == [1, 2])
+        #expect(attempts.map(\.status) == [.failed, .completed])
+        #expect(attempts.map(\.usage) == [.init(), .init(inputTokens: 11, outputTokens: 5)])
+        #expect(final == .init(status: .completed, attempts: 2, usage: .init()))
         #expect(requests.withLock { $0 } == [true, false], "the streamed attempt should come first, then the retry")
         #expect(output == "Hello world!")
         #expect(session.context.last?.role == .assistant)
@@ -258,10 +444,11 @@ final class LLMOpenAIStreamingFallbackTests {
     @MainActor
     private func makeSession(
         streamingFallback: Bool = true,
+        retryPolicy: RetryPolicy = .never,
         @LLMToolBuilder _ functions: () -> _LLMToolCollection = { _LLMToolCollection() }
     ) throws -> LLMOpenAISession {
         let platform = LLMOpenAIPlatform(
-            configuration: .init(authToken: .constant("mocked-token"), streamingFallback: streamingFallback)
+            configuration: .init(authToken: .constant("mocked-token"), streamingFallback: streamingFallback, retryPolicy: retryPolicy)
         )
         let runner = LLMRunner { platform }
         withDependencyResolution { runner }

@@ -17,7 +17,26 @@ package final class LLMInferenceQueue<Element>: Sendable {
     package typealias InferenceTask = @Sendable (InferenceResultStream.Continuation) async -> Void
     package typealias InferenceResultStream = AsyncThrowingStream<Element, any Error>
 
-    private typealias InferenceQueueElement = (InferenceTask, InferenceResultStream.Continuation)
+    private final class InferenceQueueElement: Sendable {
+        private let pending = Mutex(true)
+        private let work: @Sendable () async -> Void
+        private let discard: @Sendable () -> Void
+
+        init(work: @escaping @Sendable () async -> Void, discard: @escaping @Sendable () -> Void) {
+            self.work = work
+            self.discard = discard
+        }
+
+        func run() async {
+            pending.withLock { $0 = false }
+            await work()
+        }
+
+        // A cancelled queue can release buffered elements without iterating them.
+        deinit {
+            if pending.withLock({ $0 }) { discard() }
+        }
+    }
 
     /// Errors that can occur during task queue operation.
     package enum QueueError: Error, Sendable {
@@ -99,11 +118,12 @@ package final class LLMInferenceQueue<Element>: Sendable {
             }
         }
 
+        defer { shutdown() }
         try await withThrowingDiscardingTaskGroup { group in
             // Start processing `InferenceTask`s as they come in
-            for await (job, continuation) in stream {
+            for await job in stream {
                 try await self.semaphore.waitCheckingCancellation()
-                
+
                 group.addTask(priority: self.taskPriority) {
                     self.platformStateStorage.withLock { platformState in
                         if platformState != .processing {
@@ -111,7 +131,7 @@ package final class LLMInferenceQueue<Element>: Sendable {
                         }
                     }
 
-                    await job(continuation)
+                    await job.run()
 
                     if !self.semaphore.signal() {       // indicates if other tasks are waiting
                         self.platformStateStorage.withLock { platformState in
@@ -123,8 +143,6 @@ package final class LLMInferenceQueue<Element>: Sendable {
 
             // Cancel all tasks currently in process when stream/continuation finishes
             group.cancelAll()
-            // Shutdown the queue
-            self.shutdown()
         }
     }
 
@@ -140,8 +158,15 @@ package final class LLMInferenceQueue<Element>: Sendable {
     /// After enqueuing, the queue processor will pick up this work and start yielding tokens to the respective `AsyncThrowingStream.
     package func submit(_ work: @escaping InferenceTask) throws -> InferenceResultStream {
         let (stream, continuation) = InferenceResultStream.makeStream(bufferingPolicy: .unbounded)
-        // Package the work and continuation into a inference task tuple
-        let task: InferenceQueueElement = (work, continuation)
+        try enqueue(discard: { continuation.finish(throwing: CancellationError()) }) { await work(continuation) }
+        return stream
+    }
+
+    /// Enqueues work that reports its own results.
+    ///
+    /// `discard` runs instead of `work` when the queue releases the job before it started, for example at shutdown.
+    package func enqueue(discard: @escaping @Sendable () -> Void, work: @escaping @Sendable () async -> Void) throws {
+        let task = InferenceQueueElement(work: work, discard: discard)
 
         // Either append to buffer in idle state or obtain continuation in processing state
         let queueContinuation: AsyncStream<InferenceQueueElement>.Continuation? = try state.withLock { state in
@@ -168,8 +193,6 @@ package final class LLMInferenceQueue<Element>: Sendable {
                 fatalError("Unknown yield return case from the continuation of the LLM Inference Task Queue.")
             }
         }
-
-        return stream
     }
 
     /// Stops the task queue and prevents any further submissions.
@@ -178,18 +201,15 @@ package final class LLMInferenceQueue<Element>: Sendable {
     /// cancels any in-flight `Task`s. After shutdown, the queue transitions to the
     /// `.shutdown` state and any subsequent `submit(...)` calls will throw.
     ///
-    /// - Note: Calling `shutdown()` when the queue isn’t yet running or has already been shut down has no effect.
+    /// - Note: Jobs waiting for the queue to start are discarded.
     package func shutdown() {
-        state.withLock { state in
-            switch state {
-            case .processing(_, let continuation):
-                state = .shutdown
-                continuation.finish() // also cancels the processing task group
-            case .initialized:
-                state = .shutdown
-            case .shutdown:
-                return
-            }
+        let previous = state.withLock { current in
+            let previous = current
+            current = .shutdown
+            return previous
+        }
+        if case .processing(_, let continuation) = previous {
+            continuation.finish()
         }
     }
 }

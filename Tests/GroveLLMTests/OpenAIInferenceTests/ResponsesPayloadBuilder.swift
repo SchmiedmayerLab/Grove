@@ -81,13 +81,17 @@ struct ResponsesPayloadBuilder {
     /// The envelope carries every field a real reply does — including the ones the server sends as `null` — because
     /// the generated schema makes them required, and a fixture that omits them would fail to decode for a reason
     /// that has nothing to do with what the test is checking.
-    func response(id: String = "resp_mock") throws -> Components.Schemas.Response {
-        let envelope: [String: Any] = [
+    func response(id: String = "resp_mock", status: String? = "completed") throws -> Components.Schemas.Response {
+        try JSONDecoder().decode(Components.Schemas.Response.self, from: json(id: id, status: status))
+    }
+
+    /// The encoded envelope of ``response(id:status:)``; a `nil` status omits the field.
+    func json(id: String = "resp_mock", status: String? = "completed") throws -> Data {
+        var envelope: [String: Any] = [
             "id": id,
             "object": "response",
             "created_at": 1_786_764_904,
             "completed_at": 1_786_764_904,
-            "status": "completed",
             "model": "gpt-5.4",
             "output": output,
             "metadata": [:],
@@ -106,12 +110,14 @@ struct ResponsesPayloadBuilder {
                 "total_tokens": 16
             ]
         ]
-        let data = try JSONSerialization.data(withJSONObject: envelope)
-        return try JSONDecoder().decode(Components.Schemas.Response.self, from: data)
+        if let status {
+            envelope["status"] = status
+        }
+        return try JSONSerialization.data(withJSONObject: envelope)
     }
 
     /// The decoded response, wrapped as a successful non-streamed API output.
-    func output(id: String = "resp_mock") throws -> Operations.createResponse.Output {
-        .ok(.init(body: .json(try response(id: id))))
+    func output(id: String = "resp_mock", status: String? = "completed") throws -> Operations.createResponse.Output {
+        .ok(.init(body: .json(try response(id: id, status: status))))
     }
 }

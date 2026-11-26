@@ -121,6 +121,27 @@ extension LLMOpenAIInferenceTests {
             try data.append("data: \(createMockFunctionCallResponse(functionName, arguments))\n\n")
         }
         
+        mutating func appendUsage() throws {
+            let chunk = try Self.utf8String(from: .init(
+                id: Self.responseChunkId,
+                choices: [],
+                created: Self.responseTimestamp,
+                model: "grove-mock",
+                object: .chat_period_completion_period_chunk,
+                usage: .init(completion_tokens: 2, prompt_tokens: 3, total_tokens: 5)
+            ))
+            data.append("data: \(chunk)\n\n")
+        }
+
+        /// Appends a chunk that ends the first choice with the given provider finish reason.
+        mutating func appendFinish(reason: String) {
+            data.append(
+                #"data: {"id":"\#(Self.responseChunkId)","object":"chat.completion.chunk","created":\#(Self.responseTimestamp),"#
+                    + #""model":"grove-mock","choices":[{"index":0,"delta":{},"finish_reason":"\#(reason)"}]}"#
+                    + "\n\n"
+            )
+        }
+
         /// Appends the `[DONE]` marker to signify the end of the stream.
         mutating func done() {
             data.append("data: [DONE]\n\n")
@@ -130,16 +151,18 @@ extension LLMOpenAIInferenceTests {
         /// suitable for use as a mock API response.
         /// - Returns: An OpenAI API chat completion response.
         func toChatOutput() -> Operations.createChatCompletion.Output {
+            .ok(.init(body: .text_event_hyphen_stream(httpBody())))
+        }
+
+        /// The built events as the body of a `text/event-stream` HTTP response.
+        func httpBody() -> HTTPBody {
             let stream = AsyncStream<String> { continuation in
                 for chunk in data {
                     continuation.yield(chunk)
                 }
                 continuation.finish()
             }
-            
-            let body = HTTPBody(stream, length: .unknown)
-            
-            return .ok(.init(body: .text_event_hyphen_stream(body)))
+            return HTTPBody(stream, length: .unknown)
         }
     }
 }

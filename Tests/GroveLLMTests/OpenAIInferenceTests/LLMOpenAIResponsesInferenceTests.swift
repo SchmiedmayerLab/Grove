@@ -213,6 +213,83 @@ class LLMOpenAIResponsesInferenceTests: LLMOpenAIInferenceTests {
     }
 
     @MainActor
+    @Test("A Responses tool round reports both requests and completes after the second")
+    func reportsToolRoundRequests() async throws {
+        let session = try makeSession(modelType: .gpt5_mini) {
+            LLMOpenAITestFunction()
+        }
+        session.context.append(userMessage: "Run the test")
+
+        let client = MockChatClient()
+        var requestCount = 0
+        client.createResponseHandler = { _ in
+            defer { requestCount += 1 }
+            var builder = ResponsesStreamBuilder()
+            builder.created()
+            if requestCount == 0 {
+                builder.functionCall(name: LLMOpenAITestFunction().name, arguments: "{}")
+            } else {
+                builder.outputTextDelta("Done.")
+                builder.outputTextDone()
+            }
+            builder.completed(responseId: "resp_\(requestCount)")
+            return builder.output()
+        }
+        session.openAiClient = client
+
+        var requests: [LLMRequestResult] = []
+        var final: LLMGenerationResult?
+        for try await event in try await session.generateEvents() {
+            switch event {
+            case .textDelta: break
+            case .requestFinished(let result): requests.append(result)
+            case .finished(let result): final = result
+            }
+        }
+        #expect(requests.map(\.request) == [1, 2])
+        #expect(requests.map(\.status) == [.completed, .completed])
+        #expect(requests.map(\.reason) == [.toolCalls, nil])
+        #expect(requests.map(\.providerID) == ["resp_0", "resp_1"])
+        #expect(final == .init(status: .completed, attempts: 2, usage: .init()))
+    }
+
+    @MainActor
+    @Test("A failed response delivers its failed outcome before the stream throws and keeps delivered text")
+    func reportsResponseFailure() async throws {
+        let session = try makeSession(modelType: .gpt5_mini)
+        session.context.append(userMessage: "Hello!")
+
+        let client = MockChatClient()
+        var requests = 0
+        client.createResponseHandler = { _ in
+            requests += 1
+            var builder = ResponsesStreamBuilder()
+            builder.created()
+            builder.outputTextDelta("partial")
+            builder.failed(message: "the model is on fire")
+            return builder.output()
+        }
+        session.openAiClient = client
+
+        var events: [LLMGenerationEvent] = []
+        await #expect(throws: LLMOpenAIError.generationError) {
+            for try await event in try await session.generateEvents() {
+                events.append(event)
+            }
+        }
+        #expect(requests == 1)
+        #expect(events.count == 3)
+        #expect(events.first == .textDelta("partial"))
+        guard events.count == 3, case .requestFinished(let request) = events[1] else {
+            Issue.record("Missing request outcome")
+            return
+        }
+        #expect(request.status == .failed)
+        #expect(request.request == 1)
+        #expect(events.last == .finished(.init(status: .failed, attempts: 1, usage: .init())))
+    }
+
+    @MainActor
     @Test("Malformed and unrecognized events are skipped rather than aborting the stream")
     func toleratesUnknownEvents() async throws {
         let session = try makeSession(modelType: .gpt5_mini)

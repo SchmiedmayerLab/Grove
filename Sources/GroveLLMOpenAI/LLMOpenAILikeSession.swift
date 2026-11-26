@@ -72,7 +72,7 @@ import Synchronization
 @Observable
 public final class LLMOpenAILikeSession<
     PlatformDefinition: LLMOpenAILikePlatformDefinition
->: LLMSession, ToolCallLLMSession, SchemaProvidingLLMSession, Sendable {
+>: LLMGenerationSession, ToolCallLLMSession, SchemaProvidingLLMSession, Sendable {
     /// A Swift Logger that logs important information from the ``LLMOpenAISession``.
     package static var logger: Logger {
         Logger(subsystem: "org.grovealliance", category: "GroveLLMOpenAI")
@@ -86,8 +86,8 @@ public final class LLMOpenAILikeSession<
     /// Counter for tracking nested tool calls
     package let toolCallCounter = ManagedAtomic<Int>(0)
     package let toolCallCompletionState = LLMState.generating
-    /// Holds the currently generating continuations so that we can cancel them if required.
-    let continuationHolder = LLMInferenceQueueContinuationHolder()
+    /// Holds the active generations so that ``cancel()`` can stop them.
+    let generations = Mutex<[UUID: OpenAIGeneration]>([:])
 
     /// The state of the server-side Responses API conversation, guarded against the streaming task and the
     /// consuming task touching it concurrently — e.g. when a view disappears mid-generation.
@@ -144,55 +144,87 @@ public final class LLMOpenAILikeSession<
     }
     
     
+    /// Starts one generation and returns its text.
+    ///
+    /// The stream buffers up to 4096 undelivered text pieces. A consumer that falls behind further stops the generation
+    /// with `LLMGenerationStreamError.bufferOverflow`.
     @discardableResult
     public func generate() async throws -> AsyncThrowingStream<String, any Error> {
-        // Inject system prompts into context
-        if await self.context.isEmpty {
+        try await startGeneration(capacity: 4096) { event in
+            guard case .textDelta(let text) = event else {
+                return nil
+            }
+            return text
+        }
+    }
+
+    /// Starts one generation and returns its events.
+    ///
+    /// The stream buffers up to 256 undelivered events. A consumer that falls behind further stops the generation
+    /// with `LLMGenerationStreamError.bufferOverflow`.
+    public func generateEvents() async throws -> AsyncThrowingStream<LLMGenerationEvent, any Error> {
+        try await startGeneration(capacity: 256) { $0 }
+    }
+
+    private func startGeneration<Value: Sendable>(
+        capacity: Int,
+        selecting select: @escaping @Sendable (LLMGenerationEvent) -> Value?
+    ) async throws -> AsyncThrowingStream<Value, any Error> {
+        try Task.checkCancellation()
+        if await context.isEmpty {
             await MainActor.run {
-                for prompt in self.schema.parameters.systemPrompts {
-                    self.context.append(systemMessage: prompt, to: .leadingSystemMessages)
+                for prompt in schema.parameters.systemPrompts {
+                    context.append(systemMessage: prompt, to: .leadingSystemMessages)
                 }
             }
         }
-
-        return try self.platform.queue.submit { continuation in
-            // starts tracking the continuation for cancellation
-            let continuationObserver = ContinuationObserver(track: continuation)
-            defer {
-                // To be on the safe side, finish the continuation (has no effect if multiple finish calls)
-                continuationObserver.continuation.finish()
+        try Task.checkCancellation()
+        let (invocation, stream) = OpenAIGeneration.stream(capacity: capacity, selecting: select)
+        let id = UUID()
+        generations.withLock { $0[id] = invocation }
+        do {
+            try platform.queue.enqueue(discard: { [weak self] in
+                invocation.finish(throwing: CancellationError())
+                self?.generations.withLock { _ = $0.removeValue(forKey: id) }
+            }) {
+                defer { self.generations.withLock { _ = $0.removeValue(forKey: id) } }
+                let task = Task { await self.runGeneration(invocation) }
+                invocation.attach(task)
+                await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
             }
+        } catch {
+            generations.withLock { _ = $0.removeValue(forKey: id) }
+            throw error
+        }
+        return stream
+    }
 
-            // Retains the continuation during inference for potential cancellation
-            await self.continuationHolder.withContinuationHold(continuation: continuation) {
-                if continuationObserver.isCancelled {
-                    Self.logger.warning("GroveLLMOpenAI: Generation cancelled by the user.")
-                    return
-                }
-
-                // Setup the model, if not already done
-                if self.client.withLock({ $0 == nil }) {
-                    guard await self.setup(with: continuationObserver) else {
-                        return
-                    }
-                }
-
-                // Execute the inference using the API the selected model is served over
-                switch self.apiMode {
-                case .chatCompletions:
-                    await self._generate(with: continuationObserver)
-                case .responses:
-                    await self._generateWithResponses(with: continuationObserver)
-                }
+    private func runGeneration(_ invocation: OpenAIGeneration) async {
+        defer { invocation.finish() }
+        guard !invocation.isCancelled else {
+            return
+        }
+        if client.withLock({ $0 == nil }), !(await setup(with: invocation)) {
+            return
+        }
+        await RetryMiddleware.$invocationIsCancelled.withValue({ invocation.isCancelled }) {
+            switch apiMode {
+            case .chatCompletions: await _generate(with: invocation)
+            case .responses: await _generateWithResponses(with: invocation)
             }
         }
     }
-    
+
+    func finishGenerationWithError<E: LLMError>(_ error: E, on invocation: OpenAIGeneration) async {
+        invocation.finish(throwing: error)
+        await MainActor.run { self.state = .error(error: error) }
+    }
+
     public func cancel() {
-        // cancel all currently generating continuations
-        self.continuationHolder.cancelAll()
+        let active = generations.withLock { Array($0.values) }
+        for invocation in active { invocation.finish(throwing: CancellationError()) }
     }
-    
+
     deinit {
         self.cancel()
     }
