@@ -39,7 +39,7 @@ public struct RecordingCSVFileWriter: ~Copyable {
         }
         let limits = RecordingCSVReader.Limits(maximumByteCount: maximumByteCount)
         var builder = try RecordingFile.Builder(maximumByteCount: maximumByteCount)
-        try Self.append(schema.map { .text($0.name) }, limits: limits, to: &builder)
+        try builder.append(RecordingCSVWriter.encodedHeader(schema, limits: limits))
         self.schema = schema
         self.limits = limits
         self.builder = consume builder
@@ -54,8 +54,16 @@ public struct RecordingCSVFileWriter: ~Copyable {
         guard var builder = builder.take() else {
             throw RecordingCSVWriter.WriterError.closed
         }
-        try RecordingCSVWriter.validate(fields, schema: schema)
-        try Self.append(fields, limits: limits, to: &builder)
+        let count = try RecordingCSVWriter.validatedByteCount(
+            fields,
+            schema: schema,
+            limits: limits,
+            remaining: limits.maximumByteCount - builder.byteCount
+        )
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(count)
+        RecordingCSVWriter.encode(fields, into: &bytes)
+        try builder.append(bytes)
         self.builder = consume builder
     }
 
@@ -67,23 +75,5 @@ public struct RecordingCSVFileWriter: ~Copyable {
             throw RecordingCSVWriter.WriterError.closed
         }
         return try builder.finish()
-    }
-}
-
-
-extension RecordingCSVFileWriter {
-    fileprivate static func append(
-        _ fields: [RecordingCSVWriter.Field],
-        limits: RecordingCSVReader.Limits,
-        to builder: inout RecordingFile.Builder
-    ) throws {
-        let count = try RecordingCSVWriter.encodedByteCount(fields, limits: limits)
-        guard count <= limits.maximumByteCount - builder.byteCount else {
-            throw RecordingCSVWriter.WriterError.payloadLimitExceeded
-        }
-        var bytes: [UInt8] = []
-        bytes.reserveCapacity(count)
-        RecordingCSVWriter.encode(fields, into: &bytes)
-        try builder.append(bytes)
     }
 }

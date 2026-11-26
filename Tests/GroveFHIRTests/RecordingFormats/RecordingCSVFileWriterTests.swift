@@ -43,6 +43,9 @@ struct RecordingCSVFileWriterTests {
         #expect(throws: RecordingCSVWriter.WriterError.payloadLimitExceeded) {
             _ = try RecordingCSVFileWriter(format: .beatIntervalSeries, maximumByteCount: header.count - 1)
         }
+        var short = try RecordingCSVFileWriter(format: .beatIntervalSeries, maximumByteCount: header.count + 3)
+        #expect(throws: RecordingCSVWriter.WriterError.payloadLimitExceeded) { try short.append([.integer(1), .integer(0)]) }
+        #expect(throws: RecordingCSVWriter.WriterError.closed) { try short.append([.integer(1), .integer(0)]) }
     }
 
     @Test
@@ -72,6 +75,41 @@ struct RecordingCSVFileWriterTests {
         var fieldWriter = try RecordingCSVFileWriter(format: .heartRateSamples, maximumByteCount: 8 * 1024 * 1024)
         #expect(throws: RecordingCSVWriter.WriterError.fieldLimitExceeded) {
             try fieldWriter.append([.integer(1), .integer(1), .integer(1), .text(field + "é")])
+        }
+    }
+
+    @Test
+    func numericTextIsBudgetedBeforeColumnValidation() throws {
+        let field = String(repeating: ".", count: RecordingCSVReader.Limits.default.maximumFieldByteCount)
+        for (text, error) in [(field, RecordingCSVWriter.WriterError.invalidValue(column: "value")), (field + ".", .fieldLimitExceeded)] {
+            var writer = try RecordingCSVFileWriter(format: .heartRateSamples, maximumByteCount: 2 * 1024 * 1024)
+            #expect(throws: error) { try writer.append([.integer(1), .text(text), .integer(2), .text("watch")]) }
+            #expect(throws: RecordingCSVWriter.WriterError.closed) { try writer.append([]) }
+        }
+    }
+
+    @Test
+    func escapedFileRowAtTheRecordLimitStreamsSuccessfully() throws {
+        let limits = RecordingCSVReader.Limits.default
+        let numeric = Array(repeating: RecordingCSVWriter.Field.integer(0), count: 11)
+        let first = String(repeating: "\"", count: limits.maximumFieldByteCount)
+        // Eleven "0," prefixes, four enclosing quotes, one comma and LF leave the rest for doubled quotes.
+        let secondCount = (limits.maximumRecordByteCount - 28) / 2 - first.utf8.count
+        let second = String(repeating: "\"", count: secondCount)
+        let columns = try #require(RegisteredRecordingFormat.odometerSamples.csvColumns)
+        let total = columns.joined(separator: ",").utf8.count + 1 + limits.maximumRecordByteCount
+        var exact = try RecordingCSVFileWriter(format: .odometerSamples, maximumByteCount: total)
+        try exact.append(numeric + [.text(first), .text(second)])
+        let file = try exact.finish()
+        #expect(file.byteCount == total)
+        var reader = try RecordingCSVReader.Stream(format: .odometerSamples)
+        var rows = 0
+        try file.readChunks { try reader.read($0) { _ in rows += 1 } }
+        try reader.finish()
+        #expect(rows == 1)
+        var over = try RecordingCSVFileWriter(format: .odometerSamples, maximumByteCount: total + 1)
+        #expect(throws: RecordingCSVWriter.WriterError.recordLimitExceeded) {
+            try over.append(numeric + [.text(first), .text(second + "x")])
         }
     }
 
