@@ -22,7 +22,7 @@ extension LLMOpenAILikeSession {
     /// The Responses API equivalent of ``_generate(with:)``: it consumes the SSE event stream, surfacing text deltas,
     /// reasoning summaries, and function calls, and carries multi-turn state via `previous_response_id`.
     func _generateWithResponses( // swiftlint:disable:this identifier_name
-        with continuationObserver: ContinuationObserver<String, any Error>
+        with continuationObserver: OpenAIGeneration
     ) async {
         guard !continuationObserver.isCancelled else {
             Self.logger.warning("GroveLLMOpenAI: Generation cancelled by the user.")
@@ -46,14 +46,18 @@ extension LLMOpenAILikeSession {
             let functionCalls: [LLMOpenAIStreamResult.FunctionCall]
             do {
                 functionCalls = try await respond(with: continuationObserver, interactionId: interactionId)
+            } catch where RetryMiddleware.isCancellation(error) {
+                await cleanUpInterruptedStreaming(interactionId: interactionId)
+                continuationObserver.finish(throwing: CancellationError())
+                break
             } catch let error as ResponsesGenerationError {
                 await cleanUpInterruptedStreaming(interactionId: interactionId)
-                await finishGenerationWithError(error.llmError, on: continuationObserver.continuation)
+                await finishGenerationWithError(error.llmError, on: continuationObserver)
                 return
             } catch {
                 Self.logger.error("GroveLLMOpenAI: Unknown Generation error occurred - \(error)")
                 await cleanUpInterruptedStreaming(interactionId: interactionId)
-                await finishGenerationWithError(LLMOpenAIError.generationError, on: continuationObserver.continuation)
+                await finishGenerationWithError(LLMOpenAIError.generationError, on: continuationObserver)
                 return
             }
 
@@ -64,6 +68,11 @@ extension LLMOpenAILikeSession {
             }
 
             guard await runToolCalls(functionCalls, with: continuationObserver, interactionId: interactionId) else {
+                if continuationObserver.isCancelled {
+                    continuationObserver.finish(throwing: CancellationError())
+                } else {
+                    await finishGenerationWithError(LLMOpenAIError.generationError, on: continuationObserver)
+                }
                 return
             }
         }
@@ -75,18 +84,22 @@ extension LLMOpenAILikeSession {
 
     /// Produces a single response, streamed where the server manages it.
     ///
-    /// A stream that fails before yielding anything is retried unstreamed, so that a gateway implementing
-    /// `/v1/responses` without streaming still answers. Nothing has reached the user at that point, so the retry
-    /// cannot duplicate output; a stream that breaks *after* output has arrived is not retried, and what was
-    /// received stands.
+    /// A stream the provider rejects before sending any response event, or a body that is not an event stream, is
+    /// retried unstreamed, so that a gateway implementing `/v1/responses` without streaming still answers. Nothing
+    /// has reached the user at that point, so the retry cannot duplicate output. A stream that reports a failure,
+    /// produces output, or ends without its terminal event is not retried, because the provider may already have
+    /// processed the request; what was received stands.
     private func respond(
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async throws -> [LLMOpenAIStreamResult.FunctionCall] {
         do {
             return try await streamResponse(with: continuationObserver, interactionId: interactionId)
         } catch let error as ResponsesGenerationError {
+            continuationObserver.endRequest(.failed)
+            try RetryMiddleware.checkCancellation()
             guard platform.configuration.streamingFallback,
+                  !error.preventsFallback,
                   !error.hasProducedOutput,
                   !error.hasCommittedConversation,
                   !continuationObserver.isCancelled,
@@ -97,20 +110,23 @@ extension LLMOpenAILikeSession {
                 "GroveLLMOpenAI: Streaming the response failed (\(error.llmError.localizedDescription)); retrying without streaming."
             )
             await cleanUpInterruptedStreaming(interactionId: interactionId)
+            try Task.checkCancellation()
             return try await fetchResponseWithoutStreaming(with: continuationObserver, interactionId: interactionId)
         }
     }
 
     /// Consumes a single streamed response, returning the function calls the model requested, if any.
     private func streamResponse( // swiftlint:disable:this function_body_length cyclomatic_complexity
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async throws -> [LLMOpenAIStreamResult.FunctionCall] {
         var functionCalls: [LLMOpenAIStreamResult.FunctionCall] = []
+        var receivedTerminalEvent = false
         var hasProducedOutput = false
         var hasCommittedConversation = false
         do {
-            let response = try await openAiClient.createResponse(openAIResponsesQuery())
+            let query = try await openAIResponsesQuery()
+            let response = try await openAiClient.request(for: continuationObserver) { try await $0.createResponse(query) }
             if case let .undocumented(statusCode: statusCode, payload) = response {
                 let llmError = handleErrorCode(statusCode)
                 #if DEBUG
@@ -125,15 +141,19 @@ extension LLMOpenAILikeSession {
 
             let eventStream = try response.ok.body.text_event_hyphen_stream.asDecodedServerSentEvents()
 
-            for try await event in eventStream {
+            events: for try await event in eventStream {
                 if continuationObserver.isCancelled {
                     Self.logger.warning("GroveLLMOpenAI: Generation cancelled by the user.")
                     functionCalls = []
                     break
                 }
-                guard let jsonData = event.data?.data(using: .utf8),
-                      let payload = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+                guard let data = event.data else {
+                    continue
+                }
+                if data == "[DONE]" { break events }
+                guard let payload = try? JSONSerialization.jsonObject(with: Data(data.utf8)) as? [String: Any],
                       let rawType = payload["type"] as? String else {
+                    // A malformed terminal event leaves the stream without its terminal marker, which fails below.
                     continue
                 }
                 guard let eventType = ResponseStreamEventType(rawValue: rawType) else {
@@ -141,6 +161,9 @@ extension LLMOpenAILikeSession {
                     continue
                 }
 
+                if payload["response"] != nil {
+                    continuationObserver.observe(responseEvent: Data(data.utf8))
+                }
                 switch eventType {
                 case .responseCreated:
                     await MainActor.run {
@@ -158,7 +181,7 @@ extension LLMOpenAILikeSession {
                             context.append(assistantOutputDelta: delta, isComplete: false, interactionId: interactionId)
                         }
                     }
-                    continuationObserver.continuation.yield(delta)
+                    continuationObserver.text(delta)
                     hasProducedOutput = true
                 case .responseOutputTextDone, .responseRefusalDone:
                     if schema.injectIntoContext {
@@ -174,6 +197,7 @@ extension LLMOpenAILikeSession {
                         }
                     }
                 case .responseOutputItemDone:
+                    hasProducedOutput = true
                     if let item = payload["item"] as? [String: Any], item["type"] as? String == "message" {
                         let citations = Self.citations(fromOutputItem: item)
                         if !citations.isEmpty {
@@ -208,6 +232,7 @@ extension LLMOpenAILikeSession {
                         context.beginAssistantThinkingPlaceholder(with: interactionId)
                     }
                 case .responseReasoningSummaryTextDelta:
+                    hasProducedOutput = true
                     guard let delta = payload["delta"] as? String else {
                         continue
                     }
@@ -221,31 +246,38 @@ extension LLMOpenAILikeSession {
                 case .responseCompleted, .responseIncomplete:
                     // An incomplete response — e.g. the output token limit was reached — still ends the stream with
                     // a continuable response the server retains; it differs from `completed` only in being truncated.
-                    if eventType == .responseIncomplete {
+                    receivedTerminalEvent = true
+                    let response = payload["response"] as? [String: Any]
+                    let status: LLMGenerationStatus
+                    do {
+                        status = try OpenAIGeneration.responseStatus(
+                            response?["status"] as? String,
+                            expected: eventType == .responseIncomplete ? "incomplete" : "completed"
+                        )
+                    } catch {
+                        throw ResponsesGenerationError(llmError: LLMOpenAIError.generationError, preventsFallback: true)
+                    }
+                    continuationObserver.endResponse(status, hasTools: !functionCalls.isEmpty)
+                    if status == .incomplete {
+                        functionCalls.removeAll()
                         Self.logger.warning("GroveLLMOpenAI: Response ended incomplete; the output may be truncated.")
                     }
-                    if let response = payload["response"] as? [String: Any], let responseId = response["id"] as? String {
+                    if let responseId = response?["id"] as? String {
                         // The server now holds everything this request carried; only re-send what comes after it.
                         self.responsesConversation.withLock { state in
                             state.commitPendingContext(responseId: responseId)
                         }
                         hasCommittedConversation = true
                     }
-                case .responseFailed:
+                    break events
+                case .responseFailed, .error:
                     let error = (payload["response"] as? [String: Any])?["error"] as? [String: Any]
-                    let message = error?["message"] as? String ?? "Unknown error"
+                    let message = error?["message"] as? String ?? payload["message"] as? String ?? "Unknown error"
                     Self.logger.error("GroveLLMOpenAI: Response failed: \(message)")
                     throw ResponsesGenerationError(
                         llmError: LLMOpenAIError.generationError,
                         hasProducedOutput: hasProducedOutput,
-                        hasCommittedConversation: hasCommittedConversation
-                    )
-                case .error:
-                    let message = payload["message"] as? String ?? "Unknown error"
-                    Self.logger.error("GroveLLMOpenAI: Stream reported an error: \(message)")
-                    throw ResponsesGenerationError(
-                        llmError: LLMOpenAIError.generationError,
-                        hasProducedOutput: hasProducedOutput,
+                        preventsFallback: true,
                         hasCommittedConversation: hasCommittedConversation
                     )
                 default:
@@ -260,6 +292,10 @@ extension LLMOpenAILikeSession {
             if continuationObserver.isCancelled {
                 await cleanUpInterruptedStreaming(interactionId: interactionId)
             } else {
+                guard receivedTerminalEvent else {
+                    continuationObserver.observe(id: nil, model: nil, input: nil, output: nil, reason: .interrupted)
+                    throw ResponsesGenerationError(llmError: LLMOpenAIError.generationError, preventsFallback: true)
+                }
                 await MainActor.run {
                     context.completeAssistantThinkingStreaming(for: interactionId)
                     // A failed image item can be part of an otherwise successful (or truncated) response.
@@ -268,6 +304,8 @@ extension LLMOpenAILikeSession {
                 }
             }
             return functionCalls
+        } catch where RetryMiddleware.isCancellation(error) {
+            throw CancellationError()
         } catch let error as ResponsesGenerationError {
             throw error
         } catch let error as ClientError {
@@ -275,6 +313,7 @@ extension LLMOpenAILikeSession {
             throw ResponsesGenerationError(
                 llmError: LLMOpenAIError.connectivityIssues(error),
                 hasProducedOutput: hasProducedOutput,
+                preventsFallback: RetryMiddleware.isTransportCancellation(error),
                 hasCommittedConversation: hasCommittedConversation
             )
         } catch let error as LLMOpenAIError {
@@ -292,10 +331,11 @@ extension LLMOpenAILikeSession {
             // `ResponsesGenerationError`, or the caller cannot tell that the unstreamed retry is worth attempting.
             Self.logger.error("GroveLLMOpenAI: Streaming the response failed - \(error)")
             throw ResponsesGenerationError(
-                        llmError: LLMOpenAIError.generationError,
-                        hasProducedOutput: hasProducedOutput,
-                        hasCommittedConversation: hasCommittedConversation
-                    )
+                llmError: LLMOpenAIError.generationError,
+                hasProducedOutput: hasProducedOutput,
+                preventsFallback: RetryMiddleware.isTransportCancellation(error),
+                hasCommittedConversation: hasCommittedConversation
+            )
         }
     }
 
@@ -327,6 +367,8 @@ struct ResponsesGenerationError: Error {
     let llmError: any LLMError
     /// Whether any output had already reached the user when this failed, which rules out retrying the request.
     var hasProducedOutput = false
+    /// The provider may have processed the request even though the stream ended before its terminal event.
+    var preventsFallback = false
     /// Whether the server had already taken ownership of this request's input.
     ///
     /// Past the commit the input is server-side state; retrying would send an empty input against a

@@ -38,7 +38,7 @@ extension LLMOpenAILikeSession {
     /// - Returns: `false` when the turn has to stop, which is when a call failed unexpectedly.
     func runToolCalls(
         _ functionCalls: [LLMOpenAIStreamResult.FunctionCall],
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async -> Bool {
         let toolCalls: [LLMContextEntity.ToolCall] = functionCalls.compactMap { functionCall in
@@ -74,7 +74,7 @@ extension LLMOpenAILikeSession {
     /// every retry, which takes the conversation down for good rather than just losing one answer.
     private func executeFunctionCalls(
         _ functionCalls: [LLMOpenAIStreamResult.FunctionCall],
-        with continuationObserver: ContinuationObserver<String, any Error>,
+        with continuationObserver: OpenAIGeneration,
         interactionId: LLMInteractionId
     ) async throws {
         let answered = try await withThrowingTaskGroup(of: String?.self, returning: Set<String>.self) { group in

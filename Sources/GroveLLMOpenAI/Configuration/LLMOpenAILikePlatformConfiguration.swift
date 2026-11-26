@@ -23,7 +23,8 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
     public let authToken: RemoteLLMInferenceAuthToken
     /// How the API a request is served over is picked.
     public let apiMode: LLMOpenAIAPIModePolicy
-    /// Whether a Responses API request that fails before producing any output is retried without streaming.
+    /// Whether a Responses API request whose stream the provider rejects before sending any response event is retried
+    /// without streaming.
     public let streamingFallback: Bool
     /// Indicates the maximum number of concurrent streams to the OpenAI API.
     public let concurrentStreams: Int
@@ -47,9 +48,11 @@ public struct LLMOpenAILikePlatformConfiguration<PlatformDefinition: LLMOpenAILi
     ///   - apiMode: How the API a request is served over is picked. Defaults to letting each model decide, which is
     ///     what the platform's own endpoint expects. Prefer `.fixed(.responses)` for compatible gateways; use
     ///     `.fixed(.chatCompletions)` only when the gateway does not implement the Responses API.
-    ///   - streamingFallback: Whether a Responses API request that fails before producing any output is retried
-    ///     without streaming. Defaults to `true`, which keeps a gateway that serves `/v1/responses` but cannot
-    ///     stream it usable — the answer arrives in one piece instead of not at all.
+    ///   - streamingFallback: Whether a Responses API request whose stream the provider rejects before sending any
+    ///     response event, or answers with a body that is not an event stream, is retried without streaming.
+    ///     Defaults to `true`, which keeps a gateway that serves `/v1/responses` but cannot stream it usable: the
+    ///     answer arrives in one piece instead of not at all. A stream that reports a failure, produces output or ends
+    ///     without its terminal event is not retried.
     ///   - concurrentStreams: Indicates the maximum number of concurrent streams to the OpenAI API, defaults to `10`.
     ///   - timeout: Indicates the maximum network timeout of OpenAI requests in seconds. defaults to `60`.
     ///   - retryPolicy: The retry policy that should be used, defaults to `3` retry attempts.

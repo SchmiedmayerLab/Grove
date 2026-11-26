@@ -45,12 +45,18 @@ struct LLMOpenAIImageStreamingTests {
         }
         session.openAiClient = client
 
-        for try await _ in try await session.generate() { }
+        if ending == "eof" {
+            await #expect(throws: LLMOpenAIError.generationError) {
+                for try await _ in try await session.generate() { }
+            }
+        } else {
+            for try await _ in try await session.generate() { }
+            #expect(session.state == .ready)
+        }
 
         let images = session.context.filter { $0._imageContent != nil }
         #expect(images.count == 2)
         #expect(images.first?.interactionId == unrelatedInteraction)
         #expect(images.last?._imageContent?.base64Image == "aGVsbG8=")
-        #expect(session.state == .ready)
     }
 }

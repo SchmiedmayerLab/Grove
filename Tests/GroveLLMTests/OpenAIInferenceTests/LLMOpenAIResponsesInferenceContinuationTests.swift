@@ -57,9 +57,18 @@ extension LLMOpenAIResponsesInferenceTests {
         session.openAiClient = client
 
         var output = ""
-        for try await piece in try await session.generate() {
-            output.append(piece)
+        var request: LLMRequestResult?
+        var final: LLMGenerationResult?
+        for try await event in try await session.generateEvents() {
+            switch event {
+            case .textDelta(let delta): output.append(delta)
+            case .requestFinished(let result): request = result
+            case .finished(let result): final = result
+            }
         }
+        #expect(request?.providerID == "resp_truncated")
+        #expect(request?.reason == .outputLimit)
+        #expect(final == .init(status: .incomplete, attempts: 1, usage: .init(inputTokens: 7, outputTokens: 4)))
         #expect(output == "Once upon a ti")
         #expect(session.lastResponseId == "resp_truncated", "A truncated response remains the continuation point")
         #expect(session.state == .ready)

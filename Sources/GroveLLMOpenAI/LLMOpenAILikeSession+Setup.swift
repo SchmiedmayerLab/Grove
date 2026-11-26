@@ -21,9 +21,9 @@ extension LLMOpenAILikeSession {
     /// Set up the OpenAI LLM execution client.
     ///
     /// - Parameters:
-    ///   - continuationObserver: A `ContinuationObserver` that tracks a Swift `AsyncThrowingStream` continuation for cancellation.
+    ///   - continuationObserver: The generation receiving output and tracking invocation cancellation.
     /// - Returns: `true` if the setup was successful, `false` otherwise.
-    func setup(with continuationObserver: ContinuationObserver<String, any Error>) async -> Bool {
+    func setup(with continuationObserver: OpenAIGeneration) async -> Bool {
         await MainActor.run {
             self.state = .loading
         }
@@ -42,7 +42,7 @@ extension LLMOpenAILikeSession {
 
         // Check access to the specified OpenAI model
         if self.schema.parameters.modelAccessTest,
-           await !self.modelAccessTest(continuation: continuationObserver.continuation) {
+           await !self.modelAccessTest(continuation: continuationObserver) {
             return false
         }
         
@@ -62,7 +62,7 @@ extension LLMOpenAILikeSession {
             transport: {
                 let session = URLSession.shared
                 session.configuration.timeoutIntervalForRequest = platform.configuration.timeout
-                return URLSessionTransport(configuration: .init(session: session))
+                return RetryMiddleware.Transport(URLSessionTransport(configuration: .init(session: session)))
             }(),
             middlewares: [
                 // Injects the bearer auth token for account verification into request headers
@@ -82,7 +82,7 @@ extension LLMOpenAILikeSession {
     /// - Parameters:
     ///   - continuation: A Swift `AsyncThrowingStream` that streams the generated output.
     /// - Returns: `true` if the model access test was successful, `false` otherwise.
-    private func modelAccessTest(continuation: AsyncThrowingStream<String, any Error>.Continuation) async -> Bool {
+    private func modelAccessTest(continuation: OpenAIGeneration) async -> Bool {
         do {
             if case let .undocumented(statusCode, _) = try await openAiClient
                 .retrieveModel(.init(path: .init(model: schema.parameters.modelType.rawValue))) {

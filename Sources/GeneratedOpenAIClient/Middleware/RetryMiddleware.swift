@@ -7,6 +7,9 @@
 //
 
 package import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 package import HTTPTypes
 package import OpenAPIRuntime
 
@@ -14,6 +17,11 @@ package import OpenAPIRuntime
 /// Middleware that retries HTTP requests based on defined conditions.
 @available(iOS 18, macOS 15, watchOS 11, *)
 package struct RetryMiddleware: Sendable {
+    @TaskLocal package static var onAttempt: (@Sendable (AttemptEvent) -> Void)?
+
+    /// The queued generation can lose its consumer while the task running the queue remains active.
+    @TaskLocal package static var invocationIsCancelled: (@Sendable () -> Bool)?
+
     /// Signals that trigger evaluation of the retry policy.
     package var signals: Set<RetryableSignal>
     /// Policy that governs retry attempts.
@@ -44,6 +52,27 @@ package struct RetryMiddleware: Sendable {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension RetryMiddleware: ClientMiddleware {
+    package static func checkCancellation() throws {
+        try Task.checkCancellation()
+        if invocationIsCancelled?() == true {
+            throw CancellationError()
+        }
+    }
+
+    /// Recognizes a cancellation of the task or of the invocation it serves.
+    package static func isCancellation(_ error: any Error) -> Bool {
+        let cause = (error as? ClientError)?.underlyingError ?? error
+        return Task.isCancelled || invocationIsCancelled?() == true || cause is CancellationError
+    }
+
+    /// Recognizes a request the transport cancelled, for example when its URL session was invalidated.
+    ///
+    /// Such a request is never retried, but it is a failure unless ``isCancellation(_:)`` also holds.
+    package static func isTransportCancellation(_ error: any Error) -> Bool {
+        let cause = (error as? ClientError)?.underlyingError ?? error
+        return (cause as? URLError)?.code == .cancelled
+    }
+
     package func intercept(
         _ request: HTTPRequest,
         body: HTTPBody?,
@@ -51,6 +80,7 @@ extension RetryMiddleware: ClientMiddleware {
         operationID: String,
         next: (HTTPRequest, HTTPBody?, URL) async throws -> (HTTPResponse, HTTPBody?)
     ) async throws -> (HTTPResponse, HTTPBody?) {
+        try Self.checkCancellation()
         guard case .attempts(let maxAttempts) = policy else {
             return try await next(request, body, baseURL)
         }
@@ -60,6 +90,7 @@ extension RetryMiddleware: ClientMiddleware {
         }
 
         for attempt in 1...maxAttempts {
+            try Self.checkCancellation()
             do {
                 let (response, responseBody) = try await next(request, body, baseURL)
 
@@ -70,6 +101,12 @@ extension RetryMiddleware: ClientMiddleware {
 
                 return (response, responseBody)
             } catch {
+                if Self.isCancellation(error) {
+                    throw CancellationError()
+                }
+                if Self.isTransportCancellation(error) {
+                    throw error
+                }
                 if signals.contains(.onError) && attempt < maxAttempts {
                     try await pauseBeforeRetry(attempt)
                     continue
@@ -108,5 +145,37 @@ extension RetryMiddleware: ClientMiddleware {
             interval = base * pow(2, Double(attempt - 1))
         }
         try await Task.sleep(for: .seconds(interval))
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension RetryMiddleware {
+    package enum AttemptEvent: Sendable {
+        case dispatch, failed, cancelled
+    }
+
+    /// Observe the actual dispatch inside the retry chain, after all request-building middleware.
+    package struct Transport: ClientTransport {
+        let underlying: any ClientTransport
+
+        package init(_ underlying: any ClientTransport) {
+            self.underlying = underlying
+        }
+
+        package func send(
+            _ request: HTTPRequest, body: HTTPBody?, baseURL: URL, operationID: String
+        ) async throws -> (HTTPResponse, HTTPBody?) {
+            try RetryMiddleware.checkCancellation()
+            RetryMiddleware.onAttempt?(.dispatch)
+            do {
+                let response = try await underlying.send(request, body: body, baseURL: baseURL, operationID: operationID)
+                if !(200..<300).contains(response.0.status.code) { RetryMiddleware.onAttempt?(.failed) }
+                return response
+            } catch {
+                RetryMiddleware.onAttempt?(RetryMiddleware.isCancellation(error) ? .cancelled : .failed)
+                throw error
+            }
+        }
     }
 }

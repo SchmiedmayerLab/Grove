@@ -17,9 +17,9 @@ extension LLMOpenAILikeSession {
     /// Based on the input prompt, generate the output via the OpenAI API.
     ///
     /// - Parameters:
-    ///   - continuationObserver: A `ContinuationObserver` that tracks a Swift `AsyncThrowingStream` continuation for cancellation.
+    ///   - continuationObserver: The generation receiving output and tracking invocation cancellation.
     func _generate( // swiftlint:disable:this identifier_name function_body_length cyclomatic_complexity
-        with continuationObserver: ContinuationObserver<String, any Error>
+        with continuationObserver: OpenAIGeneration
     ) async {
         // Check if the generation has been cancelled
         if continuationObserver.isCancelled {
@@ -44,7 +44,8 @@ extension LLMOpenAILikeSession {
             var llmStreamResults: [Int: LLMOpenAIStreamResult] = [:]
             
             do {
-                let response = try await openAiClient.createChatCompletion(openAIChatQuery())
+                let query = try await openAIChatQuery()
+                let response = try await openAiClient.request(for: continuationObserver) { try await $0.createChatCompletion(query) }
 
                 if case let .undocumented(statusCode: statusCode, payload) = response {
                     let llmError = handleErrorCode(statusCode)
@@ -55,18 +56,13 @@ extension LLMOpenAILikeSession {
                         Self.logger.warning("GroveLLMOpenAI: Undocumented request body:\n\(text)")
                     }
                     #endif
-                    await finishGenerationWithError(llmError, on: continuationObserver.continuation)
+                    await finishGenerationWithError(llmError, on: continuationObserver)
                     return
                 }
 
-                let chatStream = try response.ok.body.text_event_hyphen_stream
-                    .asDecodedServerSentEventsWithJSONData(
-                        of: Components.Schemas.CreateChatCompletionStreamResponse.self,
-                        decoder: .init(),
-                        while: { incomingData in incomingData != ArraySlice<UInt8>(Data("[DONE]".utf8)) }
-                    )
-
-                for try await chatStreamResult in chatStream {
+                let chatStream = try response.ok.body.text_event_hyphen_stream.asDecodedServerSentEvents()
+                var providerStream = OpenAIChatStream()
+                for try await event in chatStream {
                     // Check if the generation has been cancelled
                     if continuationObserver.isCancelled {
                         Self.logger.warning("GroveLLMOpenAI: Generation cancelled by the user.")
@@ -76,26 +72,20 @@ extension LLMOpenAILikeSession {
                         break
                     }
 
-                    guard let choices = chatStreamResult.data?.choices else {
-                        Self.logger.error("GroveLLMOpenAI: Couldn't obtain choices from stream response.")
-                        return
+                    guard let data = event.data else {
+                        continue
                     }
-
-                    // Important to iterate over all choices as LLM could choose to call multiple functions / generate multiple choices
-                    for choice in choices {
-                        llmStreamResults[choice.index] = llmStreamResults[
-                            choice.index,
-                            default: .init()
-                        ].append(choice: choice)
+                    guard let chunk = try providerStream.consume(data, for: continuationObserver) else {
+                        break
                     }
-                    
-                    // Append assistant messages during the streaming to ensure that they are visible to the user during processing
-                    let assistantResults = llmStreamResults.values.filter { llmStreamResult in
-                        llmStreamResult.role == .assistant && !(llmStreamResult.deltaContent?.isEmpty ?? true)
+                    var content: String?
+                    for choice in chunk.choices {
+                        let result = llmStreamResults[choice.index, default: .init()].append(choice: choice)
+                        if content == nil, result.role == .assistant, let delta = result.deltaContent, !delta.isEmpty {
+                            content = delta
+                        }
                     }
-                    
-                    // Only consider the first found assistant content result
-                    guard let content = assistantResults.first?.deltaContent else {
+                    guard let content else {
                         continue
                     }
 
@@ -107,25 +97,35 @@ extension LLMOpenAILikeSession {
                     }
 
                     // Yield string piece into continuation
-                    continuationObserver.continuation.yield(content)
+                    continuationObserver.text(content)
                 }
                 
+                if continuationObserver.isCancelled || Task.isCancelled {
+                    throw CancellationError()
+                }
+                try providerStream.finish(continuationObserver)
+                if providerStream.incomplete { llmStreamResults.removeAll() }
                 if schema.injectIntoContext {
                     await MainActor.run {
                         context.markAssistantOutputCompleted()
                     }
                 }
+            } catch where RetryMiddleware.isCancellation(error) {
+                await cleanUpInterruptedStreaming(interactionId: interactionId)
+                continuationObserver.finish(throwing: CancellationError())
+                break
             } catch let error as ClientError {
                 Self.logger.error("GroveLLMOpenAI: Connectivity Issues with the OpenAI API: \(error)")
-                await finishGenerationWithError(LLMOpenAIError.connectivityIssues(error), on: continuationObserver.continuation)
+                await finishGenerationWithError(LLMOpenAIError.connectivityIssues(error), on: continuationObserver)
                 return
             } catch let error as LLMOpenAIError {
+                await cleanUpInterruptedStreaming(interactionId: interactionId)
                 Self.logger.error("GroveLLMOpenAI: \(error.localizedDescription)")
-                await finishGenerationWithError(error, on: continuationObserver.continuation)
+                await finishGenerationWithError(error, on: continuationObserver)
                 return
             } catch {
                 Self.logger.error("GroveLLMOpenAI: Unknown Generation error occurred - \(error)")
-                await finishGenerationWithError(LLMOpenAIError.generationError, on: continuationObserver.continuation)
+                await finishGenerationWithError(LLMOpenAIError.generationError, on: continuationObserver)
                 return
             }
 
@@ -186,7 +186,8 @@ extension LLMOpenAILikeSession {
                     try await group.waitForAll()
                 }
             } catch {
-                // Stop LLM inference in case of an unexpected error during the function call
+                // The calls report their own failures, so only cancellation reaches this point.
+                continuationObserver.finish(throwing: CancellationError())
                 return
             }
         }

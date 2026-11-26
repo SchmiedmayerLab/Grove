@@ -174,6 +174,15 @@ legacy path carries text, inline images, and function calling, but not file atta
 state, or reasoning summaries. Attempting to send a file this way produces ``LLMOpenAIError`` instead of silently
 sending an empty user message.
 
+#### Request Outcomes and Usage
+
+``LLMOpenAISession`` conforms to `LLMGenerationSession`. `generateEvents()` reports each transport attempt,
+including retries of the retry policy, the unstreamed fallback and every tool round, with the token usage the
+provider reported, and the outcome of the whole generation. `generate()` runs the same generation and returns only its
+text. Chat Completions requests ask the provider to include usage in the stream. The session buffers up to 256
+undelivered events for `generateEvents()` and 4096 text pieces for `generate()`; a consumer that falls behind
+further stops the generation with `LLMGenerationStreamError.bufferOverflow`.
+
 #### Tool Calling
 
 The OpenAI GPT-based LLMs provide function calling capabilities in order to enable a structured, bidirectional, and reliable communication between the OpenAI LLMs and external tools, such as the Grove ecosystem.
