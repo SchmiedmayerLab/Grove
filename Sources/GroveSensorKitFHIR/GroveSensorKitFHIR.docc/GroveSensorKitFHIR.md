@@ -268,7 +268,7 @@ recording.contentType // "text/csv", derived from the format registry
 Some registry formats admit more than one exact media type.
 A producer can use such a format only when its generated adapter row admits that format, and it must then supply one of the registered media types explicitly.
 Construction rejects an unregistered media type and does not infer a FHIR release from payload bytes.
-If the source payload already is a complete R4 `collection` Bundle, declare the registry's `fhir-collection-bundle` format; its initializer validates that envelope before conversion.
+If the source payload already is a complete R4 `collection` Bundle, declare the registry's `sensor-sample-collection-bundle` format; its initializer validates that envelope before conversion.
 
 ### What converts
 

@@ -177,20 +177,55 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                     "otherProfilesAllowed": False,
                     "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
                 },
-                "healthKitClinicalRecordDocumentClaim": {
+                "clinicalRecordDocumentClaim": {
+                    "resourceType": "DocumentReference",
                     "cardinality": 1,
                     "profiles": [
+                        "https://grovealliance.org/fhir/clinical-records/StructureDefinition/"
+                        "grove-clinical-record-document",
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "clinicalRecordAttachmentClaim": {
+                    "resourceType": "DocumentReference",
+                    "cardinality": 1,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/clinical-records/StructureDefinition/"
+                        "grove-clinical-record-attachment",
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "healthKitClinicalRecordDocumentClaim": {
+                    "cardinality": 2,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/clinical-records/StructureDefinition/"
+                        "grove-clinical-record-document",
                         "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
-                        "healthkit-clinical-record-document"
+                        "healthkit-clinical-record-document",
+                    ],
+                    "otherProfilesAllowed": False,
+                    "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
+                },
+                "healthKitCDADocumentClaim": {
+                    "cardinality": 2,
+                    "profiles": [
+                        "https://grovealliance.org/fhir/clinical-records/StructureDefinition/"
+                        "grove-clinical-record-document",
+                        "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
+                        "healthkit-cda-document",
                     ],
                     "otherProfilesAllowed": False,
                     "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
                 },
                 "healthKitClinicalRecordAttachmentClaim": {
-                    "cardinality": 1,
+                    "cardinality": 2,
                     "profiles": [
+                        "https://grovealliance.org/fhir/clinical-records/StructureDefinition/"
+                        "grove-clinical-record-attachment",
                         "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
-                        "healthkit-clinical-record-attachment"
+                        "healthkit-clinical-record-attachment",
                     ],
                     "otherProfilesAllowed": False,
                     "requiredIdentifierRoles": ["source-record", "source-output", "source-artifact"],
@@ -332,7 +367,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
                         "https://grovealliance.org/fhir/healthkit/StructureDefinition/"
                         "healthkit-clinical-record-document"
                     ),
-                    "payloadFormat": "fhir-resource",
+                    "payloadFormat": "provider-issued-fhir-json",
                     "sourceFHIRReleaseField": "HKFHIRVersion.fhirRelease",
                     "admittedFHIRReleases": ["dstu2", "r4"],
                     "fhirRepresentation": {
@@ -805,7 +840,7 @@ class GenerateGroveFHIRSwiftContractTests(unittest.TestCase):
         self.assertIn('package static let appleBundleIdentifierTypeCode = "apple-bundle-id"', generated)
         self.assertIn("package static let clinicalRecordProfile", generated)
         self.assertNotIn("clinicalFHIRReleaseExtension", generated)
-        self.assertIn('package static let clinicalFHIRPayloadFormatCode = "fhir-resource"', generated)
+        self.assertIn('package static let clinicalFHIRPayloadFormatCode = "provider-issued-fhir-json"', generated)
         self.assertIn("package static let admittedClinicalFHIRReleaseCodes: Set<String>", generated)
         self.assertIn("package static let clinicalFHIRContentTypeByRelease: [String: String]", generated)
         self.assertIn('        "dstu2",', generated)

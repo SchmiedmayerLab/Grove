@@ -819,7 +819,10 @@ def generate(catalog_directory: Path) -> str:
     document_claim_names = [
         "sensorRecordingDocumentClaim",
         "healthKitRecordingDocumentClaim",
+        "clinicalRecordDocumentClaim",
+        "clinicalRecordAttachmentClaim",
         "healthKitClinicalRecordDocumentClaim",
+        "healthKitCDADocumentClaim",
         "healthKitClinicalRecordAttachmentClaim",
         "sensorKitRecordingDocumentClaim",
         "providerRecordingDocumentClaim",
@@ -1154,7 +1157,7 @@ def generate(catalog_directory: Path) -> str:
     admitted_clinical_releases = clinical_admission["admittedFHIRReleases"]
     clinical_content_types = clinical_representation["contentTypeByRelease"]
     if (
-        clinical_admission["payloadFormat"] != "fhir-resource"
+        clinical_admission["payloadFormat"] != "provider-issued-fhir-json"
         or admitted_clinical_releases != ["dstu2", "r4"]
         or clinical_admission["rejectedFHIRReleases"] != ["unknown"]
         or clinical_representation["resourceType"] != "DocumentReference"

@@ -38,7 +38,7 @@ struct SensorKitGoldenCase: Sendable, CustomTestStringConvertible {
                 batches: [.init(offsetSeconds: 0, millivolts: [0.011, 0.023]), .init(offsetSeconds: 0.004, millivolts: [-0.005, 0.014])],
                 nativeRecording: try SensorKitNativeRecording(
                     title: "Exact SensorKit ECG session",
-                    format: .nativeRecording,
+                    format: .nativeRecordingJSON,
                     payload: .inline(Data(#"{"flags":[0,2,1,0]}"#.utf8)),
                     admission: .verifiedSanitizedInput
                 )
@@ -110,8 +110,8 @@ struct SensorKitGoldenDigest: Sendable, CustomTestStringConvertible {
 @Suite
 struct SensorKitGoldenTests {
     static let table = [
-        SensorKitGoldenDigest(name: "electrocardiogram", digest: "3EODYeRKL44T05RTYkC3LbzgpFksvC8804ufdpk3ti0"),
-        SensorKitGoldenDigest(name: "raw-heart-rate-sidecar", digest: "BHXZQgLYcrH5pAaWi__6zMCpxtXmfIh_xHcHkUwSjYo"),
+        SensorKitGoldenDigest(name: "electrocardiogram", digest: "loFnTcg3_EKxy-KRkbuR9zvegGfTPV1FqPZm0QcR2yo"),
+        SensorKitGoldenDigest(name: "raw-heart-rate-sidecar", digest: "WbqEvL7Fhjt6fqjzv01tEi5x7K-uENJiWu8t4yp6ME0"),
         SensorKitGoldenDigest(name: "rotation-rate", digest: "W4y5ASTJLsldmM1h8ZKEnonJAd-IjvWvQ4R2129x1OM"),
         SensorKitGoldenDigest(name: "visit", digest: "DAcgCUI1ZCOUOOJRvIxvsrpZEMzjc2JUc1XQYrl5Ycg")
     ]

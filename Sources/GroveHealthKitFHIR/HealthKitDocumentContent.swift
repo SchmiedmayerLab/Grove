@@ -193,7 +193,8 @@ extension DocumentPlan {
             fhirAttachment.hash = FHIRPrimitive(Base64Binary(with: sha1))
         }
         var document = skeleton
-        document.meta = Meta(profile: [HealthKitContract.clinicalAttachmentProfile])
+        // An attachment claims the shared Clinical Records attachment profile beside its HealthKit one.
+        document.meta = Meta(profile: [Profile.groveClinicalRecordAttachment, HealthKitContract.clinicalAttachmentProfile])
         document.content = [
             DocumentReferenceContent(
                 attachment: fhirAttachment,

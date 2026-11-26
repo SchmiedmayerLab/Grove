@@ -29,7 +29,7 @@ struct GroveSensorKitFHIRConverterTests {
 
     private static func native(
         admission: SensorRawPayloadAdmission = .verifiedSanitizedInput,
-        format: RegisteredRecordingFormat = .nativeRecording
+        format: RegisteredRecordingFormat = .nativeRecordingJSON
     ) throws -> SensorKitNativeRecording {
         let payload: Data
         switch format {
@@ -274,7 +274,7 @@ struct GroveSensorKitFHIRConverterTests {
         #expect(method.display?.value?.string == "Guided")
         let format = try #require(document.content.first?.format)
         #expect(format.system?.value?.url.absoluteString == RegisteredRecordingFormat.codeSystem)
-        #expect(format.code?.value?.string == "native-recording")
+        #expect(format.code?.value?.string == "native-recording-json")
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
         #expect(try graph.provenance.target.count == 2)
         #expect(try graph.provenance.meta?.profile == [
@@ -556,10 +556,10 @@ struct GroveSensorKitFHIRConverterTests {
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.heartRate",
             effectivePeriod: DateInterval(start: Self.start, duration: 1),
-            nativeRecording: try Self.native(format: .nativeRecording)
+            nativeRecording: try Self.native(format: .nativeRecordingJSON)
         )
         await #expect(throws: SensorKitConversionError.invalidRecord(
-            .recordingFormatNotAdmitted("native-recording")
+            .recordingFormatNotAdmitted("native-recording-json")
         )) {
             try await SensorKitExporterFixtures.graph(.raw(record))
         }

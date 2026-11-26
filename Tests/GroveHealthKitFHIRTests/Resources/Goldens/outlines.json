@@ -302,7 +302,7 @@
         "identifiers" : [
           "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:1KLEBhU35GE7bcLZ8_vWmici5Op3CrzR_No7MGJvD4o",
           "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:keBDoyNksAXgYsWVUD4BFLHyipaDAc9Ycnhbv0SQXTY",
-          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:GqFmAyiQxxDL7NfpD2FTjh-dDA8oHplVEJad0faE69Y"
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:S7kZ_2tIBFXLQnn2njsvFH0wmfOITVs47w55dC0bb2g"
         ],
         "resourceType" : "DocumentReference"
       },
@@ -331,7 +331,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:371a97ef-739e-5980-acd9-339c4d327037",
+        "fullUrl" : "urn:uuid:86257a1f-533e-52eb-b78c-d2fdf20e2242",
         "identifiers" : [
 
         ],
@@ -621,7 +621,7 @@
         "identifiers" : [
           "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:n7olNQTu9n8ejH_8Ri89RIeYCdubpvhza11Dem-Bp1g",
           "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:wvo023yNyjR7BIhh_qtuM14UFTeC7ZMjdsu-ibC2fq4",
-          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:8rDEE7xtphneUrfgNiC_HhpPvozXPYQGtURrEi2Wv6w"
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:DOh_x9B3fSsIkbV3PKWa63vDust1nXyX5SRjrQ51EiY"
         ],
         "resourceType" : "DocumentReference"
       },
@@ -662,7 +662,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:e3cf08f5-0daa-5d11-aefb-04a20067ab05",
+        "fullUrl" : "urn:uuid:eba657a1-db4b-5bb1-a8bb-6f11c69bde41",
         "identifiers" : [
 
         ],
@@ -684,7 +684,7 @@
         "identifiers" : [
           "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:uK449kCRy1LWpHWupLJdSSDRiP43MTQsefAmqUlnm3E",
           "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:9i-0E-cUI0TsDSczTjTYcI9NgI0Sj37B0cjB_iIbHwU",
-          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:Fs_PIKZck9PmqbpCcF-8I9WDRBXXoWGI6FwxRuhGM70"
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:4RlAQJuj5nH4swhs2zAT2O92y9_x3xa3eF0aIyKrzW8"
         ],
         "resourceType" : "DocumentReference"
       },
@@ -725,7 +725,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:e187d4ee-2680-5d77-b551-29c3d24559e9",
+        "fullUrl" : "urn:uuid:b17ea72c-e8f3-5e7c-85e2-55fd481f8c25",
         "identifiers" : [
 
         ],
@@ -961,7 +961,7 @@
         "identifiers" : [
           "source-record|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-record/test/1|v0:test:1:O0gVDaHtmWONfVKxe5fd9SjKsPHddmD3ttRBexls3iw",
           "source-output|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-output/test/1|v0:test:1:6XbIlFbYd9UhY1KUJJLu3dr0m6NYsTEGTlUQFOgg7uY",
-          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:Y9a5aldy3eCVYPvWTQ2ZdELA2zCVG7lVtsFo7hP-wdI",
+          "source-artifact|https://grovealliance.org/fhir/testing/identifiers/healthkit/source-artifact/test/1|v0:test:1:1R-1Riiz2d2-7H5gDF86rgXnWUIPndAMx7oEou7k3lE",
           "-|https://grovealliance.org/fhir/testing/identifiers/native-healthkit-record|3a7e5c10-0000-4000-8000-0000000000bc"
         ],
         "resourceType" : "DocumentReference"
@@ -1060,7 +1060,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:065358e8-60c7-5b15-a410-a822331d7f20",
+        "fullUrl" : "urn:uuid:68621cfa-20f1-591a-b3cf-db7aaeb8cd20",
         "identifiers" : [
 
         ],
@@ -2354,7 +2354,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:36aa43b0-943e-548a-87fd-965c8e6635c7",
+        "fullUrl" : "urn:uuid:2c5fdb74-9c58-5539-b53c-05a081e30a97",
         "identifiers" : [
 
         ],
@@ -2420,7 +2420,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:293c3697-e03d-5134-b5f4-8d65a1a3ea59",
+        "fullUrl" : "urn:uuid:579603e7-25fe-5969-b77c-5ecfa33ce3f0",
         "identifiers" : [
 
         ],
@@ -3338,7 +3338,7 @@
         "extensions" : [
           "https://grovealliance.org/fhir/mobile/StructureDefinition/grove-record-version"
         ],
-        "fullUrl" : "urn:uuid:4d88fe49-2197-54a6-a8b2-e90ee8826e7f",
+        "fullUrl" : "urn:uuid:e0fdc099-906a-5c43-a661-3b90feab6870",
         "identifiers" : [
 
         ],

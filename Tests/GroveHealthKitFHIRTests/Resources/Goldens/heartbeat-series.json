@@ -39,7 +39,7 @@
             },
             "format" : {
               "code" : "beat-interval-series",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           }
         ],
@@ -129,7 +129,7 @@
           "coding" : [
             {
               "code" : "beat-interval-series",
-              "system" : "https://grovealliance.org/fhir/sensor/CodeSystem/grove-recording-format"
+              "system" : "https://grovealliance.org/fhir/mobile/CodeSystem/grove-payload-format"
             }
           ]
         }
@@ -410,11 +410,11 @@
                 }
               ]
             },
-            "value" : "v0:test:1:1aEldSs-qKDpDPHeOTpwqM6uuMjq1I1Kmp4OSKgAil8"
+            "value" : "v0:test:1:OM3U_R4tlfWMOS3IugMQe8gzf4d1VWBI6S7Ww31Giew"
           }
         }
       ],
-      "fullUrl" : "urn:uuid:36aa43b0-943e-548a-87fd-965c8e6635c7",
+      "fullUrl" : "urn:uuid:2c5fdb74-9c58-5539-b53c-05a081e30a97",
       "resource" : {
         "activity" : {
           "coding" : [
@@ -500,7 +500,7 @@
                   }
                 ]
               },
-              "value" : "v0:test:1:1aEldSs-qKDpDPHeOTpwqM6uuMjq1I1Kmp4OSKgAil8"
+              "value" : "v0:test:1:OM3U_R4tlfWMOS3IugMQe8gzf4d1VWBI6S7Ww31Giew"
             }
           }
         ],

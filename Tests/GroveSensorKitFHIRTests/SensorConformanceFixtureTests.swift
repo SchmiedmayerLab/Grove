@@ -33,7 +33,7 @@ struct SensorConformanceFixtureTests {
     private static func nativeRecording(title: String) throws -> SensorKitNativeRecording {
         try SensorKitNativeRecording(
             title: title,
-            format: .nativeRecording,
+            format: .nativeRecordingJSON,
             payload: .inline(Data(#"{"source":"SensorKit","complete":true}"#.utf8)),
             admission: .verifiedSanitizedInput
         )

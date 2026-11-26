@@ -115,13 +115,16 @@ struct RecordingCSVWriterTests {
     }
 
     @Test
-    func fhirResourcePublishesItsVersionedRepresentations() {
-        #expect(RegisteredRecordingFormat.fhirResource.registeredContentTypes == [
-            "application/fhir+json; fhirVersion=1.0",
-            "application/fhir+json; fhirVersion=4.0"
-        ])
-        #expect(RegisteredRecordingFormat.fhirResource.registeredContentType == nil)
-        #expect(RegisteredRecordingFormat.fhirCollectionBundle.registeredContentType == "application/fhir+json")
+    func providerIssuedFHIRJSONAdmitsAnyDeclaredRelease() {
+        let format = RegisteredRecordingFormat.providerIssuedFHIRJSON
+        #expect(format.registeredContentTypes.isEmpty)
+        #expect(format.registeredContentType == nil)
+        #expect(format.declaredReleaseContentTypePattern != nil)
+        #expect(format.admitsContentType("application/fhir+json; fhirVersion=1.0"))
+        #expect(format.admitsContentType("application/fhir+json; fhirVersion=4.0"))
+        #expect(format.admitsContentType("application/fhir+json; fhirVersion=5.0"))
+        #expect(!format.admitsContentType("application/fhir+json"))
+        #expect(RegisteredRecordingFormat.sensorSampleCollectionBundle.registeredContentType == "application/fhir+json")
     }
 }
 
@@ -255,13 +258,13 @@ struct RegisteredRecordingPayloadTests {
 
     @Test("The replacement FHIR collection format accepts one closed R4 collection Bundle")
     func collectionBundleIsAccepted() throws {
-        try RegisteredRecordingFormat.fhirCollectionBundle.validatePayload(Self.validCollection)
+        try RegisteredRecordingFormat.sensorSampleCollectionBundle.validatePayload(Self.validCollection)
     }
 
     @Test("A bare resource array is not a registered FHIR payload")
     func resourceArrayIsRejected() {
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirCollectionBundle.validatePayload(
+            try RegisteredRecordingFormat.sensorSampleCollectionBundle.validatePayload(
                 Data(#"[{"resourceType":"Patient"}]"#.utf8)
             )
         }
@@ -282,37 +285,37 @@ struct RegisteredRecordingPayloadTests {
             }
             """#.utf8)
         #expect(throws: RegisteredRecordingPayloadError.forbiddenEntryRequest(index: 0)) {
-            try RegisteredRecordingFormat.fhirCollectionBundle.validatePayload(transaction)
+            try RegisteredRecordingFormat.sensorSampleCollectionBundle.validatePayload(transaction)
         }
     }
 
     @Test("The release-neutral FHIR format accepts one resource object, never an array")
     func fhirResourceShapeIsClosed() throws {
-        try RegisteredRecordingFormat.fhirResource.validatePayload(
+        try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
             Data(#"{"resourceType":"Patient"}"#.utf8)
         )
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirResource.validatePayload(
+            try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
                 Data(#"[{"resourceType":"Patient"}]"#.utf8)
             )
         }
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirResource.validatePayload(
+            try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
                 Data(#"{"resourceType":""}"#.utf8)
             )
         }
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirResource.validatePayload(
+            try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
                 Data(#"{"resourceType":"observation"}"#.utf8)
             )
         }
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirResource.validatePayload(
+            try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
                 Data(#"{"resourceType":"Patient","resourceType":"Observation"}"#.utf8)
             )
         }
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirResource.validatePayload(
+            try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
                 Data([0xEF, 0xBB, 0xBF]) + Data(#"{"resourceType":"Patient"}"#.utf8)
             )
         }
@@ -320,7 +323,7 @@ struct RegisteredRecordingPayloadTests {
             #"{"resourceType":"Patient"}"#.data(using: .utf16LittleEndian)
         )
         #expect(throws: RegisteredRecordingPayloadError.invalidFHIRJSON) {
-            try RegisteredRecordingFormat.fhirResource.validatePayload(
+            try RegisteredRecordingFormat.providerIssuedFHIRJSON.validatePayload(
                 utf16Payload
             )
         }
@@ -333,7 +336,7 @@ struct RegisteredRecordingPayloadTests {
         #expect(throws: SensorKitRecordError.invalidContentType) {
             try SensorKitNativeRecording(
                 title: "Provider-issued FHIR resource",
-                format: .fhirResource,
+                format: .providerIssuedFHIRJSON,
                 payload: .inline(payload),
                 admission: .callerAuthorizedOpaquePayload
             )
@@ -341,7 +344,7 @@ struct RegisteredRecordingPayloadTests {
         #expect(throws: SensorKitRecordError.invalidContentType) {
             try SensorKitNativeRecording(
                 title: "Provider-issued FHIR resource",
-                format: .fhirResource,
+                format: .providerIssuedFHIRJSON,
                 contentType: "application/fhir+json",
                 payload: .inline(payload),
                 admission: .callerAuthorizedOpaquePayload
@@ -350,7 +353,7 @@ struct RegisteredRecordingPayloadTests {
 
         let recording = try SensorKitNativeRecording(
             title: "Provider-issued FHIR resource",
-            format: .fhirResource,
+            format: .providerIssuedFHIRJSON,
             contentType: "application/fhir+json; fhirVersion=1.0",
             payload: .inline(payload),
             admission: .callerAuthorizedOpaquePayload
@@ -360,20 +363,20 @@ struct RegisteredRecordingPayloadTests {
 
     @Test("Native JSON accepts objects and arrays but rejects lossy envelopes")
     func nativeJSONEnvelopeIsStrict() throws {
-        try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1}"#.utf8))
-        try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"[1,true,null]"#.utf8))
+        try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(Data(#"{"a":1}"#.utf8))
+        try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(Data(#"[1,true,null]"#.utf8))
 
         #expect(throws: RegisteredRecordingPayloadError.expectedJSONObjectOrArray) {
-            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"42"#.utf8))
+            try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(Data(#"42"#.utf8))
         }
         #expect(throws: RegisteredRecordingPayloadError.duplicateJSONMember("a")) {
-            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1,"\u0061":2}"#.utf8))
+            try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(Data(#"{"a":1,"\u0061":2}"#.utf8))
         }
         #expect(throws: RegisteredRecordingPayloadError.JSONByteOrderMark) {
-            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data([0xEF, 0xBB, 0xBF]) + Data(#"{}"#.utf8))
+            try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(Data([0xEF, 0xBB, 0xBF]) + Data(#"{}"#.utf8))
         }
         #expect(throws: RegisteredRecordingPayloadError.nonFiniteJSONNumber) {
-            try RegisteredRecordingFormat.nativeRecording.validatePayload(Data(#"{"a":1e9999}"#.utf8))
+            try RegisteredRecordingFormat.nativeRecordingJSON.validatePayload(Data(#"{"a":1e9999}"#.utf8))
         }
     }
 
@@ -382,7 +385,7 @@ struct RegisteredRecordingPayloadTests {
         func recording(at path: String) throws -> SensorKitNativeRecording {
             try SensorKitNativeRecording(
                 title: "Native recording",
-                format: .nativeRecording,
+                format: .nativeRecordingJSON,
                 payload: .sidecar(path: path, bytes: Data("{}".utf8)),
                 admission: .callerAuthorizedOpaquePayload
             )

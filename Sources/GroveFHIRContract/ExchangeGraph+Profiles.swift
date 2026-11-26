@@ -196,8 +196,10 @@ extension ExchangeGraph {
         _ document: DocumentReference,
         claim: DirectProfileClaim
     ) throws(ExchangeGraphError) {
-        guard canonicalStrings(claim.profiles)
-            == [HealthKitContract.clinicalRecordProfile.value?.url.absoluteString].compactMap(\.self)
+        // The HealthKit clinical-record claim pairs the shared Clinical Records document profile with HealthKit's own,
+        // which alone admits only the releases HealthKit reports.
+        guard let clinicalRecordProfile = HealthKitContract.clinicalRecordProfile.value?.url.absoluteString,
+              canonicalStrings(claim.profiles).contains(clinicalRecordProfile)
         else {
             return
         }

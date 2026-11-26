@@ -27,7 +27,7 @@ struct GroveSensorKitRecordingSummaryTests {
 
     private static func accelerometerRecord(format: RegisteredRecordingFormat = .triaxialAccelerationSamples) throws -> SensorKitAccelerometerRecord {
         let payload = switch format {
-        case .nativeRecording:
+        case .nativeRecordingJSON:
             Data("{}".utf8)
         default:
             Data("timestamp,identifier,x,y,z,device\n1787009400,1,0.1,0.2,0.3,Watch\n".utf8)
@@ -168,7 +168,7 @@ struct GroveSensorKitRecordingSummaryTests {
     @Test
     func summaryRecordingRejectsAnUnregisteredFormat() throws {
         #expect(throws: SensorKitRecordError.invalidRecordingFormat) {
-            _ = try Self.accelerometerRecord(format: .nativeRecording)
+            _ = try Self.accelerometerRecord(format: .nativeRecordingJSON)
         }
     }
 }

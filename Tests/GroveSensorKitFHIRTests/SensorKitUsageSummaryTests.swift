@@ -25,7 +25,7 @@ struct GroveSensorKitUsageSummaryTests {
         }
     }
 
-    private static func native(format: RegisteredRecordingFormat = .nativeRecording) throws -> SensorKitNativeRecording {
+    private static func native(format: RegisteredRecordingFormat = .nativeRecordingJSON) throws -> SensorKitNativeRecording {
         try SensorKitNativeRecording(
             title: "Exact SensorKit native report",
             format: format,
@@ -77,7 +77,7 @@ struct GroveSensorKitUsageSummaryTests {
             "unique-contacts": 3
         ])
         #expect(observation.derivedFrom?.first?.reference?.value?.string == entries[1].fullUrl?.value?.url.absoluteString)
-        #expect(document.content.first?.format?.code?.value?.string == "native-recording")
+        #expect(document.content.first?.format?.code?.value?.string == "native-recording-json")
         #expect(graph.outputIdentifiers == (try SensorFHIRIdentityTestSupport.sensorKitOutputs(
             sourceRecordID: try Self.sourceID,
             sourceToken: "SRSensor.messagesUsageReport",

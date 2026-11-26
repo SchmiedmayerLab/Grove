@@ -44,10 +44,11 @@ struct HealthKitContentCompiler {
         (MeasurementCatalog.all + HealthKitMeasurementCatalog.all + [HealthKitContract.bodyMassIndex]).map { ($0.id, $0) }
     ) { first, _ in first }
 
-    /// The profiles of a recording or clinical-record document: a row claiming one converts through a document rule.
+    /// The profiles of a recording, clinical-record, or CDA document: a row claiming one converts through a document rule.
     private static let documentProfiles: Set<FHIRPrimitive<Canonical>> = [
         Profile.healthkitRecordingDocument,
-        Profile.healthkitClinicalRecordDocument
+        Profile.healthkitClinicalRecordDocument,
+        Profile.healthkitCdaDocument
     ]
 
     /// The contracts rows are compiled against, by measurement id.
@@ -142,6 +143,11 @@ struct HealthKitContentCompiler {
         [Profile.groveSensorRecordingDocument] + row.profiles
     }
 
+    /// A clinical-record or CDA document claims the shared Clinical Records document profile and its HealthKit one.
+    private static func clinicalProfiles(_ adapterProfiles: [FHIRPrimitive<Canonical>]) -> [FHIRPrimitive<Canonical>] {
+        [Profile.groveClinicalRecordDocument] + adapterProfiles
+    }
+
     /// A clinical type's plan. watchOS has no clinical records, so it refuses the type there, yet keeps its output:
     /// a record another platform emitted can still be retracted.
     private static func clinical(_ document: DocumentPlan, type: HealthKitSourceType, entry: HealthKitCatalog.Entry) -> HealthKitContentPlan {
@@ -210,13 +216,19 @@ struct HealthKitContentCompiler {
             let outputs = [HealthKitOutputSlot.document(role: HealthKitContentRules.nativeRecordingRole, format: format)]
             return HealthKitContentPlan(type, entry: entry, route: .recording(document), outputs: outputs)
         case .clinicalDocument(let title):
-            let document = DocumentPlan(sourceType: type, format: .clinicalDocument, profiles: Self.recordingProfiles(of: row), title: title)
+            let document = DocumentPlan(sourceType: type, format: .cdaDocument, profiles: Self.clinicalProfiles(row.profiles), title: title)
             return Self.clinical(document, type: type, entry: entry)
         case .clinicalRecord(let typeCode):
             let typeCoding = Coding(typeCode, system: HealthKitContentRules.clinicalRecordTypeSystem)
             // The row also admits the attachment documents of the record's files, which claim their own profile.
-            let profiles = row.profiles.filter { $0 != HealthKitContract.clinicalAttachmentProfile }
-            let document = DocumentPlan(sourceType: type, format: .fhirResource, profiles: profiles, typeCoding: typeCoding, title: row.title)
+            let profiles = Self.clinicalProfiles(row.profiles.filter { $0 != HealthKitContract.clinicalAttachmentProfile })
+            let document = DocumentPlan(
+                sourceType: type,
+                format: .providerIssuedFHIRJSON,
+                profiles: profiles,
+                typeCoding: typeCoding,
+                title: row.title
+            )
             return Self.clinical(document, type: type, entry: entry)
         }
     }
