@@ -124,6 +124,9 @@ struct RecordingCSVWriterTests {
         #expect(format.admitsContentType("application/fhir+json; fhirVersion=4.0"))
         #expect(format.admitsContentType("application/fhir+json; fhirVersion=5.0"))
         #expect(!format.admitsContentType("application/fhir+json"))
+        // A trailing line feed is no part of a media type, though ICU's `$` matches before it.
+        #expect(!format.admitsContentType("application/fhir+json; fhirVersion=4.0\n"))
+        #expect(!RegisteredRecordingFormat.sourceFile.admitsContentType("application/pdf\n"))
         #expect(RegisteredRecordingFormat.sensorSampleCollectionBundle.registeredContentType == "application/fhir+json")
     }
 }
