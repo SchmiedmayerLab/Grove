@@ -170,11 +170,16 @@ extension HealthKitFHIRExporter {
         /// does not list.
         struct Companion: Sendable {
             let sample: HKSample
+            /// The revision the companion states in place of its own, as ``Plan/revisionOverride`` does for the record.
+            let revisionOverride: HKSourceRevision?
             let policies: ResolvedPolicies?
 
-            init(_ sample: HKSample, options: Options) {
+            init(_ sample: HKSample, options: Options, revisionOverride: HKSourceRevision? = nil) {
                 self.sample = sample
-                self.policies = HealthKitContentPlan.plan(for: sample) == nil ? nil : ResolvedPolicies(sample, options: options)
+                self.revisionOverride = revisionOverride
+                self.policies = HealthKitContentPlan.plan(for: sample) == nil
+                    ? nil
+                    : ResolvedPolicies(sample, options: options, revisionOverride: revisionOverride)
             }
         }
 
@@ -229,14 +234,21 @@ extension HealthKitFHIRExporter {
                 ? nil
                 : ResolvedPolicies(sample, options: exporter.options, revisionOverride: revisionOverride)
             self.primary = primary
-            let companions: [HKSample] = if primary == nil {
+            self.companions = if primary == nil {
                 []
             } else if case .food? = content?.route, let correlation = sample as? HKCorrelation {
-                correlation.objects.sorted { $0.uuid.uuidString < $1.uuid.uuidString }
+                // HealthKit attributes a saved correlation's members to the correlation's source, so a member of an
+                // unsaved correlation that names no source states the correlation's revision.
+                correlation.objects.sorted { $0.uuid.uuidString < $1.uuid.uuidString }.map { member in
+                    Companion(
+                        member,
+                        options: exporter.options,
+                        revisionOverride: HealthKitAssembly.SourceFacts.namesSource(member.sourceRevision) ? nil : revisionOverride
+                    )
+                }
             } else {
-                record.symptoms
+                record.symptoms.map { Companion($0, options: exporter.options) }
             }
-            self.companions = companions.map { Companion($0, options: exporter.options) }
         }
 
         /// ``recording``'s bytes, or what serializing them threw.
@@ -314,7 +326,8 @@ extension HealthKitFHIRExporter {
             at: conversionInstants[plan.source.uuid] ?? instant
         )
         switch plan.record {
-        case .sample(let sample):
+        case .sample, .unsavedSample:
+            let sample = plan.record.sample
             if case .food(let food) = content.route, let correlation = sample as? HKCorrelation {
                 return try assembly.convertFood(
                     correlation,
@@ -325,8 +338,6 @@ extension HealthKitFHIRExporter {
                 )
             }
             return try assembly.convert(sample, plan: content, request: request)
-        case .unsavedSample(let unsavedSample, source: _):
-            return try assembly.convert(unsavedSample.sample, plan: content, request: request)
         case let .electrocardiogram(ecg, voltages, symptoms):
             // An ECG whose evidence did not validate when it was planned is refused now, for the same reason.
             let evidence = try plan.evidence ?? content.ecgEvidence(ecg, voltages: voltages)
@@ -359,7 +370,12 @@ extension HealthKitFHIRExporter {
             guard let policies = companion.policies, requests[uuid] == nil else {
                 continue
             }
-            requests[uuid] = assemblyRequest(for: companion.sample, policies: policies, at: conversionInstants[uuid] ?? instant)
+            requests[uuid] = assemblyRequest(
+                for: companion.sample,
+                revisionOverride: companion.revisionOverride,
+                policies: policies,
+                at: conversionInstants[uuid] ?? instant
+            )
         }
         return requests
     }

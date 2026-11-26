@@ -110,7 +110,7 @@ Exporting a sample again at another instant is a new version of the same source 
 A food correlation exports as one eating-occasion Observation that references its nutrient members, each exported as a record of its own under the same disclosure options; a member also passed as its own record in the same call is exported twice.
 A blood-pressure reading exports only as its `HKCorrelation`: a systolic or diastolic sample on its own is refused with ``HealthKitConversionError/componentRequiresCorrelation(_:)``.
 A sample your application created but did not save into HealthKit, for example because the user does not let it write the sample's type, names no source until HealthKit saves it.
-Export it as ``HealthKitFHIRExporter/Record/unsavedSample(_:source:)`` from the build that created it, which takes a quantity sample or a correlation for now: the exporter states the source revision HealthKit would stamp on saving it, so the record states the writer, source revision and gateway role it would for the saved sample.
+Export it as ``HealthKitFHIRExporter/Record/unsavedSample(_:source:)`` from the build that created it, which takes a quantity sample or a correlation for now: the exporter states the source revision HealthKit would stamp on saving it, so the record states the writer, source revision and gateway role it would for the saved sample. The members of an unsaved food correlation state the same revision, as HealthKit attributes a saved correlation's members to its source.
 
 To upload, add the staged records to an `ExchangeBundlePacker` and send the `json` of the `ExchangeGraph` that `bundle(packedAt:)` returns.
 Records of one Bundle state each shared node once, and packing or repacking them changes no record.

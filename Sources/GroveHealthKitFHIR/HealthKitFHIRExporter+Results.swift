@@ -33,7 +33,8 @@ extension HealthKitFHIRExporter {
         /// back, under the same options. Export it from the build that created it, as a later build states itself.
         ///
         /// A sample whose revision names a source, one the store held, keeps its own. ``UnsavedSample`` lists the kinds
-        /// of sample this takes.
+        /// of sample this takes. A food correlation's members that name no source state the same revision, as HealthKit
+        /// attributes a saved correlation's members to the correlation's source.
         case unsavedSample(UnsavedSample, source: HKSource = .default())
         /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes a
         /// record of its own.
