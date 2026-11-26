@@ -115,7 +115,11 @@ struct RecordingCSVParser: Sendable {
         guard fields.count < columns.count else {
             throw .columnCountMismatch(row: row, expected: columns.count, actual: fields.count + 1)
         }
-        fields.append(try decodedField())
+        let value = try decodedField()
+        if state == .afterQuote, !RecordingCSVWriter.needsQuotes(value) {
+            throw .unnecessaryQuotes(row: row, column: fields.count)
+        }
+        fields.append(value)
         field.removeAll(keepingCapacity: true)
         state = .fieldStart
     }

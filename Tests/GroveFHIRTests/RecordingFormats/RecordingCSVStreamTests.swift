@@ -50,6 +50,24 @@ struct RecordingCSVStreamTests {
     }
 
     @Test
+    func unnecessaryQuotesAreRejectedInHeadersAndRows() throws {
+        let header = try header()
+        let cases: [(String, RecordingCSVReader.ReaderError)] = [
+            ("\"timestamp\",value,confidence,device\n", .unnecessaryQuotes(row: 0, column: 0)),
+            (header + "1,\"60\",2,Watch\n", .unnecessaryQuotes(row: 1, column: 1)),
+            (header + "1,60,2,\"Watch\"\n", .unnecessaryQuotes(row: 1, column: 3)),
+            (header + "1,60,2,\"\"\n", .unnecessaryQuotes(row: 1, column: 3))
+        ]
+        for (text, error) in cases {
+            let bytes = Data(text.utf8)
+            #expect(throws: error) { try RecordingCSVReader(bytes, format: .heartRateSamples) }
+            for size in 1...bytes.count {
+                #expect(try rejection(bytes, chunkSize: size) == error)
+            }
+        }
+    }
+
+    @Test
     func malformedUTF8IsNeverReplacedOrAcceptedAtEndOfInput() throws {
         for bytes: [UInt8] in [[0xC0, 0xAF], [0xE2, 0x28, 0xA1], [0xED, 0xA0, 0x80], [0xF0, 0x9F]] {
             for terminated in [false, true] {

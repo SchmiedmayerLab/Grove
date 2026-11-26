@@ -29,7 +29,7 @@ struct RecordingCSVColumn: Sendable {
     /// Whether `value` is a finite canonical decimal: an integer as ``isInteger(_:)`` defines it, optionally followed by a
     /// fraction without trailing zeros. A fraction of exactly `0` is admitted, and negative zero is not.
     static func isNumber(_ value: String) -> Bool {
-        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        let parts = value.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
         guard (1...2).contains(parts.count) else {
             return false
         }

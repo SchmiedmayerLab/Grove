@@ -78,6 +78,77 @@ struct RecordingCSVWriterTests {
         }
     }
 
+    @Test
+    func encodedBudgetsIncludeHeaderEscapingAndTerminator() throws {
+        let value = String(repeating: "✓\"", count: 12)
+        let header = "timestamp,value,confidence,device\n"
+        let record = "1,60,2,\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\"\n"
+        let expected = Data((header + record).utf8)
+        let row: [RecordingCSVWriter.Field] = [.integer(1), .number(60), .integer(2), .text(value)]
+        let field = value.utf8.count
+        let size = record.utf8.count
+        let total = expected.count
+        let limits = RecordingCSVReader.Limits(maximumByteCount: total, maximumRecordByteCount: size, maximumFieldByteCount: field)
+        var writer = try RecordingCSVWriter(format: .heartRateSamples, limits: limits)
+        try writer.append(row)
+        #expect(throws: RecordingCSVWriter.WriterError.payloadLimitExceeded) { try writer.append(row) }
+        let bytes = writer.data()
+        #expect(bytes == expected)
+        #expect(try RecordingCSVReader(bytes, format: .heartRateSamples, limits: limits).rows.first?.fields.last == value)
+        var stream = try RecordingCSVReader.Stream(format: .heartRateSamples, limits: limits)
+        var devices: [String?] = []
+        for byte in bytes {
+            try stream.read(Data([byte])) { devices.append($0["device"]) }
+        }
+        try stream.finish()
+        #expect(devices == [value])
+        let refusals: [(RecordingCSVReader.Limits, RecordingCSVWriter.WriterError)] = [
+            (.init(maximumByteCount: total - 1), .payloadLimitExceeded),
+            (.init(maximumRecordByteCount: size - 1), .recordLimitExceeded),
+            (.init(maximumFieldByteCount: field - 1), .fieldLimitExceeded)
+        ]
+        for (limit, error) in refusals {
+            var bounded = try RecordingCSVWriter(format: .heartRateSamples, limits: limit)
+            #expect(throws: error) { try bounded.append(row) }
+            try bounded.append([.integer(0), .integer(1), .integer(2), .text("ok")])
+            let accepted = bounded.data()
+            #expect(accepted == Data((header + "0,1,2,ok\n").utf8))
+        }
+    }
+
+    @Test
+    func headerFitsEveryConfiguredBudget() throws {
+        let header = Data("timestamp,precededByGap\n".utf8)
+        let fieldCount = "precededByGap".utf8.count
+        let limits = RecordingCSVReader.Limits(
+            maximumByteCount: header.count, maximumRecordByteCount: header.count, maximumFieldByteCount: fieldCount
+        )
+        let writer = try RecordingCSVWriter(format: .beatIntervalSeries, limits: limits)
+        let bytes = writer.data()
+        #expect(bytes == header)
+        let refusals: [(RecordingCSVReader.Limits, RecordingCSVWriter.WriterError)] = [
+            (.init(maximumByteCount: header.count - 1), .payloadLimitExceeded),
+            (.init(maximumRecordByteCount: header.count - 1), .recordLimitExceeded),
+            (.init(maximumFieldByteCount: fieldCount - 1), .fieldLimitExceeded),
+            (.init(maximumByteCount: 0), .invalidWriteLimits)
+        ]
+        for (limit, error) in refusals {
+            #expect(throws: error) { _ = try RecordingCSVWriter(format: .beatIntervalSeries, limits: limit) }
+        }
+    }
+
+    @Test
+    func fieldBudgetPrecedesNumericParsing() throws {
+        var writer = try RecordingCSVWriter(format: .heartRateSamples)
+        let field = String(repeating: ".", count: RecordingCSVReader.Limits.default.maximumFieldByteCount)
+        #expect(throws: RecordingCSVWriter.WriterError.invalidValue(column: "value")) {
+            try writer.append([.integer(1), .text(field), .integer(2), .text("watch")])
+        }
+        #expect(throws: RecordingCSVWriter.WriterError.fieldLimitExceeded) {
+            try writer.append([.integer(1), .text(field + "."), .integer(2), .text("watch")])
+        }
+    }
+
     /// The error one heart-rate row produces, or nil when it is accepted.
     private func appendError(_ fields: [RecordingCSVWriter.Field]) -> RecordingCSVWriter.WriterError? {
         do {

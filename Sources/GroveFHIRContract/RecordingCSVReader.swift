@@ -125,6 +125,8 @@ public struct RecordingCSVReader: Sendable {
         case columnCountMismatch(row: Int, expected: Int, actual: Int)
         /// A quoted field is never closed.
         case unterminatedQuote(row: Int)
+        /// The field was quoted although its value contains no comma, double quote or LF.
+        case unnecessaryQuotes(row: Int, column: Int)
         /// A quote appeared inside an unquoted field.
         case unexpectedQuote(row: Int, column: Int, byteOffset: Int)
         /// Only a comma, LF, or end may follow a closing quote.
