@@ -114,11 +114,15 @@ extension QuestionnaireResponses.Response {
             guard case .choice(let config) = task.kind.variant else {
                 throw FHIRResponseConversionError("Invalid Input")
             }
-            var answers = try response.selectedOptions.map { optionId in
+            let selected = try response.selectedOptions.map { optionId in
                 guard let option = try ChoiceOptionResolver.token(optionId, in: config.options) else {
                     throw FHIRResponseConversionError("Unable to find option for '\(optionId)'")
                 }
-                return QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue(displayed: context.inBaseLanguage))
+                return option
+            }
+            // Answers follow the order of the options, which is the document order enableWhen reads them in.
+            var answers = try config.options.filter { option in selected.contains { $0.id == option.id } }.map { option in
+                QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue(displayed: context.inBaseLanguage))
             }
             if let otherText = response.freeTextOtherResponse {
                 answers.append(.init(value: .string(otherText.asFHIRStringPrimitive())))

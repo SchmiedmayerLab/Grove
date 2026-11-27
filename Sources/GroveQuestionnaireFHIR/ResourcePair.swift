@@ -56,6 +56,8 @@ public struct ValidationIssue: Equatable, Hashable, Sendable {
         case requiredItem
         case itemNesting
         case enableWhenEvaluation
+        /// An enableWhen `answerCoding` or an `answerOption` coding has no system.
+        case codingSystem
         case expressionShape
         case expressionEngineRequired
         case expressionEvaluation

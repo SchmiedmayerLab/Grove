@@ -65,7 +65,7 @@ extension ModelsR4.QuestionnaireItem {
         case .integer(let integer):
             return .integer(FHIRPrimitive(FHIRInteger(Int32(clamping: integer))))
         case .decimal(let decimal):
-            return .decimal(decimal.asFHIRDecimalPrimitive())
+            return .decimal(FHIRPrimitive(FHIRDecimal(decimal)))
         case .string(let string):
             return .string(string.asFHIRStringPrimitive())
         case let .quantity(quantity, unitCode):

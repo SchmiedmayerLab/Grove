@@ -10,7 +10,11 @@ import Foundation
 
 
 extension Decimal {
+    /// The `Double` nearest to the decimal.
+    ///
+    /// `NSDecimalNumber.doubleValue` is not correctly rounded: it turns `36.52` into
+    /// `36.519999999999996`, which then differs from the `36.52` a participant types.
     var doubleValue: Double {
-        NSDecimalNumber(decimal: self).doubleValue
+        Double(description) ?? NSDecimalNumber(decimal: self).doubleValue
     }
 }

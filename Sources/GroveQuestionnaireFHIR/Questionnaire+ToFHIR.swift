@@ -45,12 +45,25 @@ struct FHIRExportContext {
     /// qty-3 makes a coded `Quantity` without a system an error, so a unit whose system the
     /// question does not declare is carried as display text rather than as a code.
     func quantity(_ value: Double, unitCode: String?, forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID) -> Quantity {
+        quantity(value.asFHIRDecimalPrimitive(), unitCode: unitCode, forTaskWithId: taskId)
+    }
+
+    /// A `Quantity` expressed in the unit the given question is answered in, with the digits of `value`.
+    func quantity(_ value: Decimal, unitCode: String?, forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID) -> Quantity {
+        quantity(FHIRPrimitive(FHIRDecimal(value)), unitCode: unitCode, forTaskWithId: taskId)
+    }
+
+    private func quantity(
+        _ value: FHIRPrimitive<FHIRDecimal>,
+        unitCode: String?,
+        forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID
+    ) -> Quantity {
         let system = unitCode.flatMap { unitSystem(ofUnit: $0, forTaskWithId: taskId) }
         return Quantity(
             code: system == nil ? nil : unitCode?.asFHIRStringPrimitive(),
             system: system?.asFHIRURIPrimitive(),
             unit: unitCode?.asFHIRStringPrimitive(),
-            value: value.asFHIRDecimalPrimitive()
+            value: value
         )
     }
 

@@ -13,8 +13,8 @@ import GroveQuestionnaire
 /// Resolves a FHIR Coding against the closed options on one questionnaire item.
 ///
 /// A system-qualified Coding is always an exact `(system, code)` match. A Coding that
-/// genuinely omits `system` may use code-only matching, but only when that code identifies
-/// exactly one option. Picking the first suffix match would make option order change clinical
+/// genuinely omits `system` is the option without a system and that code, and otherwise may use
+/// code-only matching, but only when that code identifies exactly one option. Picking the first suffix match would make option order change clinical
 /// meaning when two code systems reuse the same code.
 @available(iOS 18, macOS 15, watchOS 11, *)
 enum ChoiceOptionResolver {
@@ -37,14 +37,19 @@ enum ChoiceOptionResolver {
                 $0.fhirCoding?.system == system && $0.fhirCoding?.code == code
             }
         }
-        return try codeOnly(code, in: options)
+        // A coding without a system is the option without a system, or otherwise a code-only input.
+        return try options.first { $0.id == code } ?? codeOnly(code, in: options)
     }
 
     /// Resolves a native option token. A token containing `|` is already qualified and
-    /// therefore only matches an exact option id. A bare token is a code-only input.
+    /// therefore only matches an exact option id. A bare token is the id of an option without
+    /// a system, or otherwise a code-only input.
     static func token(_ token: String, in options: [Option]) throws -> Option? {
+        if let option = options.first(where: { $0.id == token }) {
+            return option
+        }
         guard !token.contains("|") else {
-            return options.first { $0.id == token }
+            return nil
         }
         return try codeOnly(token, in: options)
     }

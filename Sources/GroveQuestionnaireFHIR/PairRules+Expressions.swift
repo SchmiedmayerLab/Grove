@@ -8,9 +8,6 @@
 
 import Foundation
 
-// Expression shape and execution paths deliberately preserve tri-state evaluation.
-// swiftlint:disable cyclomatic_complexity discouraged_optional_boolean
-
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension PairRules {
     static func validateItemExpressionShapes(
@@ -187,57 +184,6 @@ extension PairRules {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension PairContext {
-    // Core enableWhen has one explicit branch for every R4 operator.
-    // swiftlint:disable:next cyclomatic_complexity
-    func evaluateEnableWhen(_ definition: FHIRJSONObject) -> Bool? {
-        let conditions = definition["enableWhen"] as? [FHIRJSONObject] ?? []
-        guard !conditions.isEmpty else {
-            return true
-        }
-        var outcomes: [Bool] = []
-        for condition in conditions {
-            let values = allAnswers[condition["question"] as? String ?? ""] ?? []
-            let expected = condition.filter { $0.key.hasPrefix("answer") }
-            guard expected.count == 1, let expectedValue = expected.first?.value else {
-                return nil
-            }
-            switch condition["operator"] as? String {
-            case "exists":
-                guard let expected = PairRules.boolean(expectedValue) else {
-                    return nil
-                }
-                outcomes.append((!values.isEmpty) == expected)
-            case "=":
-                outcomes.append(values.contains { PairRules.enableWhenMatches($0, expected: expectedValue) })
-            case "!=":
-                outcomes.append(values.contains { !PairRules.enableWhenMatches($0, expected: expectedValue) })
-            case ">", "<", ">=", "<=":
-                guard let operation = condition["operator"] as? String else {
-                    return nil
-                }
-                var comparisons: [Bool] = []
-                for value in values {
-                    guard let comparison = PairRules.compare(value, expectedValue) else {
-                        return nil
-                    }
-                    let outcome = switch operation {
-                    case ">": comparison == .orderedDescending
-                    case "<": comparison == .orderedAscending
-                    case ">=": comparison != .orderedAscending
-                    default: comparison != .orderedDescending
-                    }
-                    comparisons.append(outcome)
-                }
-                outcomes.append(comparisons.contains(true))
-            default:
-                return nil
-            }
-        }
-        return definition["enableBehavior"] as? String == "any"
-            ? outcomes.contains(true)
-            : outcomes.allSatisfy { $0 }
-    }
-
     mutating func requireTargetConstraintEvaluation(
         in element: FHIRJSONObject,
         path: String

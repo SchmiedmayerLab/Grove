@@ -500,7 +500,7 @@ struct GroveQuestionnaireFHIRPairRuleTests {
         #expect(pair.warnings.first?.code == .expressionEngineRequired)
     }
 
-    @Test("Coded enableWhen uses a system only when the condition declares one", arguments: [false, true])
+    @Test("Coded enableWhen matches only when system and code are both equal", arguments: [false, true])
     func codedConditionSystemMatching(negated: Bool) throws {
         for expectedSystem in [nil, Self.codingSystem, "https://example.org/other-codes"] {
             var objects = try basePairObjects()
@@ -522,12 +522,16 @@ struct GroveQuestionnaireFHIRPairRuleTests {
             var targetResponse = triggerResponse
             triggerResponse["answer"] = [["valueCoding": coding]]
             targetResponse["linkId"] = "target"
-            let matches = expectedSystem == nil || expectedSystem == Self.codingSystem
+            let matches = expectedSystem == Self.codingSystem
             responseGroup["item"] = matches != negated ? [triggerResponse, targetResponse] : [triggerResponse]
             try replaceGroup(in: &objects.response, with: responseGroup)
             let pair = try decodePair(objects)
             let issues = PairValidator().issues(questionnaire: pair.questionnaire, response: pair.response)
-            #expect(issues.isEmpty)
+            #expect(!issues.contains { $0.severity == .error })
+            // A condition without a system is reported, since it matches only answers without a system.
+            #expect(issues.filter { $0.code == .codingSystem }.map(\.path) == (expectedSystem == nil
+                ? ["Questionnaire.item[0].item[1].enableWhen[0].answerCoding"]
+                : []))
         }
     }
 

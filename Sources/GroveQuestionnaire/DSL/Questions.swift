@@ -247,23 +247,31 @@ public struct NumberQuestion: TypedQuestion {
     }
 
     public static func == (question: Self, value: Double) -> Questionnaire.Condition {
-        .responseValueComparison(taskId: question.id, operator: .equal, value: .decimal(value))
+        .responseValueComparison(taskId: question.id, operator: .equal, value: question.conditionValue(value))
     }
 
     public static func > (question: Self, value: Double) -> Questionnaire.Condition {
-        .responseValueComparison(taskId: question.id, operator: .greaterThan, value: .decimal(value))
+        .responseValueComparison(taskId: question.id, operator: .greaterThan, value: question.conditionValue(value))
     }
 
     public static func >= (question: Self, value: Double) -> Questionnaire.Condition {
-        .responseValueComparison(taskId: question.id, operator: .greaterThanOrEqual, value: .decimal(value))
+        .responseValueComparison(taskId: question.id, operator: .greaterThanOrEqual, value: question.conditionValue(value))
     }
 
     public static func < (question: Self, value: Double) -> Questionnaire.Condition {
-        .responseValueComparison(taskId: question.id, operator: .lessThan, value: .decimal(value))
+        .responseValueComparison(taskId: question.id, operator: .lessThan, value: question.conditionValue(value))
     }
 
     public static func <= (question: Self, value: Double) -> Questionnaire.Condition {
-        .responseValueComparison(taskId: question.id, operator: .lessThanOrEqual, value: .decimal(value))
+        .responseValueComparison(taskId: question.id, operator: .lessThanOrEqual, value: question.conditionValue(value))
+    }
+
+    /// The condition value for `value`, with the digits it was written with; in the question's unit for a quantity question.
+    private func conditionValue(_ value: Double) -> Questionnaire.Condition.Value {
+        guard let decimal = Decimal(shortestDigitsOf: value) else {
+            preconditionFailure("A number question is compared with a finite value within the range of Decimal, not \(value).")
+        }
+        return valueKind == .quantity ? .quantity(value: decimal, unitCode: unit?.code) : .decimal(decimal)
     }
 
     /// Bounds the accepted values (FHIR `minValue`/`maxValue`).

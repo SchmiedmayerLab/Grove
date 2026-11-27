@@ -78,10 +78,10 @@ struct FHIRConformanceTests {
         #expect(tasks.first { $0.id == "q2" }?.isOptional == false)
     }
 
-    // MARK: A2 — `!=` is false while the source is unanswered
+    // MARK: A2: `!=` holds while the source is unanswered
 
     @Test
-    func notEqualIsFalseWhenSourceUnanswered() throws {
+    func notEqualHoldsWhenSourceUnanswered() throws {
         let enableWhen = QuestionnaireItemEnableWhen(
             answer: .boolean(FHIRPrimitive(FHIRBool(true))),
             operator: FHIRPrimitive(QuestionnaireItemOperator.notEqual),
@@ -93,8 +93,8 @@ struct FHIRConformanceTests {
         ]), clock: questionnaireResponseTestClock)
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
         let target = try #require(questionnaire.sections.flatMap(\.tasks).first { $0.id == "q2" })
-        // Unanswered source: != must NOT enable the target.
-        #expect(!responses.shouldEnable(task: target))
+        // Unanswered source: no answer is equal, so != enables the target.
+        #expect(responses.shouldEnable(task: target))
         // Equal answer: still disabled.
         responses.responses["q1"] = .init(value: .bool(true))
         #expect(!responses.shouldEnable(task: target))
