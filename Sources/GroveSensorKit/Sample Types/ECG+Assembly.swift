@@ -175,7 +175,8 @@ struct SensorKitECGAssembly {
 
 @available(iOS 17.4, *)
 extension SensorKitECGAssembly {
-    /// The entries a group counts against the limits: its voltage samples, and one for each reading without any.
+    /// The entries a group counts against the limits: its voltage samples, one for each reading without any, and one for
+    /// a group without readings.
     fileprivate static func entryCount(of group: SensorKitECGSession.InputGroup) -> Int {
         max(1, group.readings.reduce(0) { $0 + max(1, $1.samples.count) })
     }

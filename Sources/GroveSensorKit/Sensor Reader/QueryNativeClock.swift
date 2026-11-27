@@ -9,8 +9,11 @@
 import Foundation
 
 
-/// A first-use wall-clock projection of SensorKit's continuous, seconds-based native clock.
-/// Retaining the pair makes callback-only dates repeatable; it never replaces a sample-owned date.
+/// A wall-clock projection of SensorKit's continuous, seconds-based native clock.
+///
+/// A sample-count fetch that starts without a pending batch takes a new pair and retains it with the cursor, so a
+/// restart or replay of the batch it delivers projects the same callback-only dates. It never replaces a sample-owned
+/// date.
 struct QueryNativeClock: Hashable, Codable, Sendable {
     let nativeReferenceBits: UInt64
     let wallReference: Date

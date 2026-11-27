@@ -8,8 +8,8 @@
 
 /// Bounds the ECG facts retained while sessions are assembled across native callbacks.
 ///
-/// An entry is a voltage sample, or a marker reading without voltage samples. The limits of an encoded recording are
-/// separate.
+/// An entry is a voltage sample, a reading without voltage samples, or a session state without readings. The limits of
+/// an encoded recording are separate.
 @available(iOS 17.4, *)
 public struct SensorKitECGProcessingLimits: Hashable, Sendable {
     /// Why limits are invalid.

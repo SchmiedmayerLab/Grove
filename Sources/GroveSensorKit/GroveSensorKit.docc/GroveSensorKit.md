@@ -91,7 +91,7 @@ for try await batch in try await sensorKit.fetchAnchored(.ecg) {
 }
 ```
 
-Pass an `acquisitionNamespace` to keep the cursors of one source apart from every other source's; ``SensorKit-class/resetQueryAnchors(for:acquisitionNamespace:)`` and ``SensorKit-class/discardPendingBatches(for:acquisitionNamespace:)`` act on the cursors of the namespace you name, and ``SensorKit-class/removeQueryAnchors(acquisitionNamespace:)`` removes a namespace's cursors once its source has ended. An `initialStartDate` sets where an empty cursor starts. Each batch's `info.replayToken` lets ``SensorKit-class/replay(_:from:ecgProcessingLimits:)`` fetch the same batch again, without touching the live cursor, until the batch is acknowledged.
+Pass an `acquisitionNamespace` to keep the cursors of one source apart from every other source's; ``SensorKit-class/resetQueryAnchors(for:acquisitionNamespace:)`` and ``SensorKit-class/discardPendingBatches(for:acquisitionNamespace:)`` act on the cursors of the namespace you name, and ``SensorKit-class/removeQueryAnchors(acquisitionNamespace:)`` removes a namespace's cursors once its source has ended. An `initialStartDate` sets where an empty cursor starts. Each batch's `info.replayToken` lets ``SensorKit-class/replay(_:from:ecgProcessingLimits:)`` fetch the same batch again, before or after its acknowledgement, without touching the live cursor, as long as SensorKit returns the batch's data as before.
 
 
 #### Batch Boundaries and Replay
