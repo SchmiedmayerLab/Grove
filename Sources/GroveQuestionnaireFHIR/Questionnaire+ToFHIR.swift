@@ -45,7 +45,7 @@ struct FHIRExportContext {
     /// qty-3 makes a coded `Quantity` without a system an error, so a unit whose system the
     /// question does not declare is carried as display text rather than as a code.
     func quantity(_ value: Double, unitCode: String?, forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID) -> Quantity {
-        quantity(value.asFHIRDecimalPrimitive(), unitCode: unitCode, forTaskWithId: taskId)
+        quantity(value.shortestFHIRDecimal, unitCode: unitCode, forTaskWithId: taskId)
     }
 
     /// A `Quantity` expressed in the unit the given question is answered in, with the digits of `value`.

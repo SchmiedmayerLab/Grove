@@ -80,6 +80,34 @@ struct EnableWhenTests {
         #expect(try enabled("gated", in: responses) == testCase.holds)
     }
 
+    /// A decimal answer is exported with the digits the participant typed, so the pair rules see the same enablement as the form.
+    @Test(arguments: ["36.52", "0.57", "79.9", "80.00000000000001"])
+    func exportedDecimalsKeepTheirDigits(digits: String) throws {
+        let value = try #require(Decimal(string: digits, locale: Locale(identifier: "en_US_POSIX")))
+        let questionnaire = try questionnaire([
+            item("weight", .decimal),
+            item("note", .string, when: [condition("weight", .equal, .decimal(FHIRPrimitive(FHIRDecimal(value))))])
+        ])
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["weight"] = .init(value: .number(try #require(Double(digits))))
+        responses.responses["note"] = .init(value: .string("Shown"))
+        #expect(try enabled("note", in: responses))
+        let pair = try ResourceBuilder().pair(
+            from: responses,
+            renderedIn: questionnaireResponseTestLocale,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
+        let answer = pair.response.item?.first { $0.linkId.value?.string == "weight" }?.answer?.first?.value
+        guard case .decimal(let exported)? = answer else {
+            Issue.record("Expected a decimal answer")
+            return
+        }
+        #expect(exported.value?.decimal == value)
+        let issues = PairValidator().issues(questionnaire: pair.questionnaire, response: pair.response)
+        #expect(!issues.contains { $0.code == .itemDisabled })
+    }
+
     /// A quantity compares its magnitude exactly, in the unit the condition names.
     @Test
     func quantitiesCompareExactlyInTheirUnit() throws {
