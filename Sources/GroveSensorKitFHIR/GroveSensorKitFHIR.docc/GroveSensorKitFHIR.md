@@ -183,13 +183,13 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves this adapt
 
 ### Publish an anchored batch
 
-`SensorKit.fetchAnchored(_:batchSize:)` in `GroveSensorKit` delivers each batch with its `info`, whose acquisition coordinate survives a restart, and advances its query anchor only when you call `acknowledge()`.
+`SensorKit.fetchAnchored(_:acquisitionNamespace:batchSize:initialStartDate:ecgProcessingLimits:)` in `GroveSensorKit` delivers each batch with its `info`, whose acquisition coordinate survives a restart, and advances its query anchor only when you call `acknowledge()`.
 One batch becomes records in one of two ways:
 
 - **One record per batch.** A tabular stream (accelerometer, ambient light, ambient pressure, heart rate, pedometer) becomes one ``SensorKitTabularRecording`` from all its samples, and a photoplethysmogram batch one ``SensorKitPreparedPPGRecording`` from `SensorKitPPGRecording(samples:).prepared()`. A rotation-rate batch becomes one ``SensorKitRotationRateRecord`` from its samples, which exposes no `retryEvidence`, so digest the samples you pass. The record's ordinal is 0.
-- **One record per sample.** A visit, an on-wrist event, a device-usage report and an ECG session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal.
+- **One record per sample.** A visit, an on-wrist event, a messages-usage or phone-usage report, a device-usage report and an ECG session each become one ``SensorKitPreparedStructuredRecord``, and a wrist-temperature session one ``SensorKitTabularRecording``; each takes the zero-based position of its sample in the batch as its ordinal. ``SensorKitPreparedStructuredFile`` writes the native evidence of a device-usage report or an ECG session directly into a recording file.
 
-The other record cases, such as messages or phone usage, keyboard metrics, sleep sessions and a raw recording, take values you assemble; digest exactly what you pass.
+The other record cases, such as keyboard metrics, sleep sessions and a raw recording, take values you assemble; digest exactly what you pass.
 
 ``SensorKitSourceRecordID/derived(acquisitionBatch:sourceToken:deviceProductType:recordOrdinal:)`` names each record from the batch's coordinate, the stream's catalog token (`SensorKitCatalog.sourceToken(for:)`), the batch's device product type and that ordinal, never from its content.
 A fresh query anchor starts a random stream partition of its own, which the coordinate states, so a reinstall names no record of an earlier installation although its cursor restarts at the same place.
@@ -197,10 +197,13 @@ A fresh query anchor starts a random stream partition of its own, which the coor
 Your digest keeps one name meaning one content.
 Each preparation exposes `retryEvidence`, the bytes Grove derives the record from.
 Digest them, persist the digest beside the record's id, and on a redelivery of the batch fail the batch when a digest differs: SensorKit may change records inside an unacknowledged boundary, and only this digest stops an id from naming other content.
-An ECG session's evidence covers its identifier, states and waveform; its start, sampling frequency, lead and guidance enter its record too, so digest them beside it.
+An ECG session's evidence covers its identifier, states and waveform, followed by its start, sampling frequency, lead and guidance, which its record states too.
+
+Persist a ``SensorKitBatchSnapshot`` of the application, host and source devices, the time zone and the conversion instant before the first conversion of a batch, and convert a redelivery with the decoded snapshot, so the retry states the same facts.
 
 Failing a batch means throwing before `acknowledge()`: the anchor stays, and the batch is reissued after a restart under the same coordinate and ids.
-A batch whose digests drifted can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
+The reissued batch holds the same samples while SensorKit returns the same fetch results up to the batch's boundary; data recorded after the batch does not change it. An ECG batch whose last session was delivered without its end state also depends on what followed that session, as the ECG Sessions section of the GroveSensorKit documentation describes.
+A batch whose digests drifted, or whose redelivery fails with `QueryAnchorAcknowledgementError.pendingBatchMismatch`, can never be acknowledged as it was first delivered; abandon it with `SensorKit.discardPendingBatches(for:acquisitionNamespace:)`, which keeps the acknowledged cursor and fetches the same range again under new coordinates, so new ids.
 
 A tabular batch, with `retryLog` standing for your app's durable store of each batch's digests, time zone and conversion instant, and `stageSidecar` for your upload of the bytes:
 
@@ -364,7 +367,9 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
+- ``SensorKitPreparedStructuredFile``
 - ``SensorKitRecordingLocation``
+- ``SensorKitBatchSnapshot``
 - ``SensorKitSummaryError``
 
 ### Recording payloads
@@ -377,3 +382,4 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 
 - ``SensorKitCatalog``
 - ``SensorKitCatalogEntry``
+- ``SensorKitOutputDefinition``

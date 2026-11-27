@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 //
 
+public import Foundation
 public import Grove
 import GroveFoundation
 @_spi(Internal) import GroveLocalStorage
@@ -26,9 +27,10 @@ import SwiftUI
 /// - ``requestAccess(to:)``
 ///
 /// ## Anchored Querying
-/// - ``fetchAnchored(_:batchSize:)``
-/// - ``resetQueryAnchors(for:)``
-/// - ``discardPendingBatches(for:)``
+/// - ``fetchAnchored(_:acquisitionNamespace:batchSize:initialStartDate:ecgProcessingLimits:)``
+/// - ``resetQueryAnchors(for:acquisitionNamespace:)``
+/// - ``discardPendingBatches(for:acquisitionNamespace:)``
+/// - ``removeQueryAnchors(acquisitionNamespace:)``
 @available(iOS 18, macOS 15, watchOS 11, *)
 @Observable
 public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable {
@@ -48,12 +50,30 @@ public final class SensorKit: Module, EnvironmentAccessible, @unchecked Sendable
         }
     }
     
+    /// Identifies the stored query anchor of one sensor and device, either unscoped or in an acquisition namespace.
+    struct StoredQueryAnchorKey: Hashable {
+        let namespace: UUID?
+        let query: QueryAnchorKey
+
+        var storageIdentifier: String {
+            "\(Self.storagePrefix(namespace: namespace))\(query.sensor.id).\(query.deviceProductType)"
+        }
+
+        /// The prefix of every stored anchor key of `namespace`, or of the unscoped anchors.
+        static func storagePrefix(namespace: UUID?) -> String {
+            guard let namespace else {
+                return "\(SensorKit.queryAnchorKeyPrefix)."
+            }
+            return "\(SensorKit.queryAnchorKeyPrefix).scoped.\(namespace.uuidString.lowercased())."
+        }
+    }
+
     static let queryAnchorKeyPrefix = "SensorKit.queryAnchors"
     
     @ObservationIgnored @Dependency(LocalStorage.self) private var localStorage
     
-    private let queryAnchorKeys = LocalStorageKeysStore<QueryAnchorKey, QueryAnchor> { key in
-        LocalStorageKey("\(SensorKit.queryAnchorKeyPrefix).\(key.sensor.id).\(key.deviceProductType)")
+    private let queryAnchorKeys = LocalStorageKeysStore<StoredQueryAnchorKey, QueryAnchor> { key in
+        LocalStorageKey(key.storageIdentifier)
     }
     
     /// Creates a new instance of the `SensorKit` module.
@@ -111,24 +131,43 @@ extension SensorKit {
 extension SensorKit {
     /// Performs an anchored fetch.
     ///
-    /// The SensorKit module internally keep track of the last time an anchored fetch was performed for a specific ``Sensor``;
-    /// a fetch using this function will return only those samples that have been added to SensorKit since the last fetch for the sensor.
+    /// The SensorKit module keeps track of the last time an anchored fetch was performed for a specific ``Sensor`` and
+    /// device; a fetch returns only the samples SensorKit added since the last fetch.
     ///
-    /// - parameter sensor: The ``Sensor`` from which data should be fetched
-    /// - parameter batchSize: The batch size that should be used by the returned sequence. Omit this to use the `sensor`'s default batch size.
+    /// An acquisition namespace isolates the durable cursors of one caller-owned source. Reuse the namespace when
+    /// restoring the same source; fetching another namespace neither resets nor acknowledges this one's pending
+    /// batches. The acquisition coordinates of the batches are the same in every namespace.
+    ///
+    /// - Parameters:
+    ///   - sensor: The ``Sensor`` from which data should be fetched.
+    ///   - acquisitionNamespace: The namespace of the cursors, or `nil` for the unscoped cursors.
+    ///   - batchSize: The batch size of the returned sequence. Omit it to use the `sensor`'s default batch size. For the
+    ///     ECG sensor with `ecgProcessingLimits`, a sample-count batch size counts sessions.
+    ///   - initialStartDate: Where an empty cursor starts. It never changes an established cursor.
+    ///   - ecgProcessingLimits: For the ECG sensor with a sample-count batch size, the limits within which ECG sessions
+    ///     are assembled across native callbacks. A batch also ends where the limits are reached. Without them, the ECG
+    ///     sensor keeps its time-range cursor.
     ///
     /// - Note: In order to fetch data from a sensor, you first need to request permission and call ``Sensor/startRecording()``
     @available(iOS 18, *)
     public func fetchAnchored<Sample>(
         _ sensor: Sensor<Sample>,
-        batchSize: BatchSize? = nil
+        acquisitionNamespace: UUID? = nil,
+        batchSize: BatchSize? = nil,
+        initialStartDate: Date? = nil,
+        ecgProcessingLimits: SensorKitECGProcessingLimits? = nil
     ) async throws -> some AsyncSequence<SensorKit.AnchoredBatch<Sample.SafeRepresentation>, any Error> {
-        try await AnchoredFetcher(sensor: sensor, batchSize: batchSize) { queryAnchorKey in
-            let storageKey = self.queryAnchorKeys.storageKey(for: queryAnchorKey)
+        try await AnchoredFetcher(
+            sensor: sensor,
+            batchSize: batchSize,
+            initialStartDate: initialStartDate,
+            ecgProcessingLimits: ecgProcessingLimits
+        ) { query in
+            let storageKey = self.queryAnchorKeys.storageKey(for: StoredQueryAnchorKey(namespace: acquisitionNamespace, query: query))
             return ManagedQueryAnchor(storageKey: storageKey, in: self.localStorage)
         }
     }
-    
+
     /// Returns the internal value of the sensor's query anchor.
     ///
     /// - returns: A dictionary whose keys are device product type strings (e.g., `iPhone18,2` or `Watch7,12`), and whose values are the query anchor values for these devices.
@@ -152,47 +191,80 @@ extension SensorKit {
     /// - Important: This function is intended exclusively for debugging purposes; query anchors' internal representations are an implementation detail and may change without notice.
     @_spi(Internal)
     public func queryAnchorValue(for sensor: any AnySensor, deviceProductType: String) throws -> Date? {
-        let storageKey = queryAnchorKeys.storageKey(for: QueryAnchorKey(
-            sensor: sensor,
-            deviceProductType: deviceProductType
+        let storageKey = queryAnchorKeys.storageKey(for: StoredQueryAnchorKey(
+            namespace: nil,
+            query: QueryAnchorKey(sensor: sensor, deviceProductType: deviceProductType)
         ))
         return try localStorage.load(storageKey)?.timestamp
     }
     
-    /// Resets the query anchors for the specified sensor.
+    /// Resets the query anchors of the specified sensor.
     ///
-    /// This will cause subsequent calls to ``fetchAnchored(_:batchSize:)`` to potentially re-fetch already-processed samples.
-    /// A batch that was delivered but never acknowledged is abandoned along with the cursor.
-    public func resetQueryAnchors(for sensor: any AnySensor) async throws {
-        try await forEachQueryAnchor(of: sensor) { try $0.reset() }
+    /// Subsequent fetches can then return samples again that were already processed. A batch that was delivered but
+    /// never acknowledged is abandoned along with the cursor, and the new reset generation gives the samples fetched
+    /// afterwards fresh acquisition coordinates.
+    ///
+    /// - Parameters:
+    ///   - sensor: The sensor whose cursors are reset, on every device.
+    ///   - acquisitionNamespace: The namespace of the cursors, or `nil` for the unscoped cursors.
+    public func resetQueryAnchors(for sensor: any AnySensor, acquisitionNamespace: UUID? = nil) async throws {
+        try await forEachQueryAnchor(of: sensor, acquisitionNamespace: acquisitionNamespace) { try $0.reset() }
     }
 
     /// Abandons every delivered-but-unacknowledged batch of the specified sensor, keeping the committed cursors.
     ///
     /// Use this to recover from ``QueryAnchorAcknowledgementError/pendingBatchMismatch``: SensorKit does not
     /// promise to replay a pending batch exactly, and the fetcher refuses to continue until the pending batch is
-    /// resolved. After discarding, the next ``fetchAnchored(_:batchSize:)`` fetches the same range again under a
-    /// new reset generation, so its records get fresh acquisition coordinates and never collide with records the
-    /// consumer may already have published from the abandoned batch.
-    public func discardPendingBatches(for sensor: any AnySensor) async throws {
-        try await forEachQueryAnchor(of: sensor) { try $0.discardPendingBatch() }
+    /// resolved. After discarding, the next fetch returns the same range again under a new reset generation, so its
+    /// records get fresh acquisition coordinates and never collide with records the consumer may already have
+    /// published from the abandoned batch.
+    ///
+    /// - Parameters:
+    ///   - sensor: The sensor whose pending batches are abandoned, on every device.
+    ///   - acquisitionNamespace: The namespace of the cursors, or `nil` for the unscoped cursors.
+    public func discardPendingBatches(for sensor: any AnySensor, acquisitionNamespace: UUID? = nil) async throws {
+        try await forEachQueryAnchor(of: sensor, acquisitionNamespace: acquisitionNamespace) { try $0.discardPendingBatch() }
     }
 
-    private func forEachQueryAnchor(of sensor: any AnySensor, _ body: (ManagedQueryAnchor) throws -> Void) async throws {
+    /// Removes every stored query anchor of an acquisition namespace, for all sensors and devices.
+    ///
+    /// Use this once the namespace's source has ended. A fetch that later uses the same namespace starts from empty
+    /// cursors and restarts the namespace's acquisition coordinates, so never reuse a removed namespace for a source
+    /// whose records were already published.
+    public func removeQueryAnchors(acquisitionNamespace: UUID) throws {
+        let prefix = StoredQueryAnchorKey.storagePrefix(namespace: acquisitionNamespace)
+        let cachedKeys = queryAnchorKeys.allKeys.filter { $0.namespace == acquisitionNamespace }
+        for key in cachedKeys {
+            try localStorage.delete(queryAnchorKeys.storageKey(for: key))
+        }
+        let cachedIdentifiers = Set(cachedKeys.map(\.storageIdentifier))
+        for rawKey in try localStorage.persistedRawKeys(withPrefix: prefix) where !cachedIdentifiers.contains(rawKey) {
+            try localStorage.delete(LocalStorageKey<QueryAnchor>(rawKey))
+        }
+    }
+
+    private func forEachQueryAnchor(
+        of sensor: any AnySensor,
+        acquisitionNamespace: UUID?,
+        _ body: (ManagedQueryAnchor) throws -> Void
+    ) async throws {
         let devices = try await sensor.fetchDevices()
         try SensorKit.validateUniqueDevicePartitions(devices.map(\.productType))
-        let rawKeyPrefix = "\(Self.queryAnchorKeyPrefix).\(sensor.id)."
-        let persistedRawKeys = try localStorage.persistedRawKeys(withPrefix: rawKeyPrefix)
+        let rawKeyPrefix = "\(StoredQueryAnchorKey.storagePrefix(namespace: acquisitionNamespace))\(sensor.id)."
         let partitions = Self.devicePartitionsToReset(
-            sensorID: sensor.id,
+            rawKeyPrefix: rawKeyPrefix,
             currentDeviceProductTypes: devices.map(\.productType),
-            cachedKeys: queryAnchorKeys.allKeys,
-            persistedRawKeys: persistedRawKeys
+            cachedDeviceProductTypes: queryAnchorKeys.allKeys.lazy
+                .filter { $0.namespace == acquisitionNamespace && $0.query.sensor.id == sensor.id }
+                .map(\.query.deviceProductType),
+            persistedRawKeys: try localStorage.persistedRawKeys(withPrefix: rawKeyPrefix)
         )
         for deviceProductType in partitions.sorted() {
-            let key = QueryAnchorKey(sensor: sensor, deviceProductType: deviceProductType)
-            let storageKey = queryAnchorKeys.storageKey(for: key)
-            try body(ManagedQueryAnchor(storageKey: storageKey, in: localStorage))
+            let key = StoredQueryAnchorKey(
+                namespace: acquisitionNamespace,
+                query: QueryAnchorKey(sensor: sensor, deviceProductType: deviceProductType)
+            )
+            try body(ManagedQueryAnchor(storageKey: queryAnchorKeys.storageKey(for: key), in: localStorage))
         }
     }
 }
@@ -200,19 +272,16 @@ extension SensorKit {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension SensorKit {
+    /// The device partitions of one sensor's cursors: the current devices, the devices of cursors this process uses and
+    /// the devices of the persisted cursors whose raw keys start with `rawKeyPrefix`.
     static func devicePartitionsToReset(
-        sensorID: String,
+        rawKeyPrefix: String,
         currentDeviceProductTypes: [String],
-        cachedKeys: [QueryAnchorKey],
+        cachedDeviceProductTypes: some Sequence<String>,
         persistedRawKeys: [String]
     ) -> Set<String> {
-        let rawKeyPrefix = "\(queryAnchorKeyPrefix).\(sensorID)."
         var partitions = Set(currentDeviceProductTypes)
-        partitions.formUnion(
-            cachedKeys.lazy
-                .filter { $0.sensor.id == sensorID }
-                .map(\.deviceProductType)
-        )
+        partitions.formUnion(cachedDeviceProductTypes)
         partitions.formUnion(
             persistedRawKeys.lazy.compactMap { rawKey in
                 guard rawKey.hasPrefix(rawKeyPrefix) else {
