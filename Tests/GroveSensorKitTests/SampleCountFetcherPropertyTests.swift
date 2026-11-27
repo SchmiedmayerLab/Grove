@@ -89,7 +89,8 @@ private enum HoldMode: CaseIterable {
 private struct ECGInput {
     /// The results in delivery order.
     var results: [ECGBatchBoundaryTests.NativeResult]
-    /// The sessions left whole: one fetch over all results must deliver each of them.
+    /// The sessions left whole that one fetch over all results must deliver: empty when the end of the fetch may hold
+    /// them.
     var intact: [[SensorKitECGSession.InputGroup]]
     /// The native timestamp before which results are older than the hold cutoff.
     var oldBefore: Double
@@ -155,6 +156,10 @@ private struct ECGRun {
                 Issue.record("\(context): fetch threw \(error)")
                 return true
             }
+            #expect(
+                !SampleCountFetcherPropertyTests.modelFirstBatchEnd(of: visible, limits: limits).exceedsLimits,
+                "\(context): no capacity failure although a result before the first batch end doesn't fit the limits"
+            )
             if let cancelled {
                 #expect(batch?.samples == cancelled.samples, "\(context): batch of a cancelled fetch delivered again")
                 #expect(batch?.info.replayToken == cancelled.info.replayToken, "\(context): token of a cancelled fetch's batch")
@@ -168,6 +173,14 @@ private struct ECGRun {
                 continue
             }
             try await check(batch, anchor: anchor, cursor: cursor, visible: visible, reveal: reveals[revealIndex])
+            if random.chance(0.3) {
+                // A cancelled fetch that restarts on the pending batch delivers that batch or keeps it pending.
+                let again = try await cancelFetch(of: visible, anchor: anchor, after: Int.random(in: 0...visible.count, using: &random))
+                if let again {
+                    #expect(again.samples == batch.samples, "\(context): cancelled restart on the pending batch samples")
+                    #expect(again.info.replayToken == batch.info.replayToken, "\(context): cancelled restart on the pending batch token")
+                }
+            }
             try await batch.acknowledge()
             delivered += batch.samples
             tokens.append(batch)
@@ -237,28 +250,32 @@ private struct ECGRun {
         case .success(nil):
             #expect(try anchor.value.pendingBatch == pending, "\(context): a cancelled fetch changed the pending batch")
         case .failure(SensorKitECGSession.ProcessingError.assemblyCapacityExceeded) where limits != SensorKitECGProcessingLimits():
-            break
+            #expect(
+                SampleCountFetcherPropertyTests.modelFirstBatchEnd(of: visible, limits: limits).exceedsLimits,
+                "\(context): cancelled fetch failed although the results before the first batch end fit the limits"
+            )
         case .failure(let error):
             Issue.record("\(context): cancelled fetch threw \(error)")
         }
         return nil
     }
 
-    /// Expects that the fetch over `visible` had to fail: the results that a fetch with the default limits processes
-    /// before it delivers its first batch don't fit the limits in one assembly.
+    /// Expects that the fetch over `visible` had to fail: a result before the first batch end doesn't fit the limits.
+    ///
+    /// The model's first batch end under the default limits must be where a fetch with them and a batch size of one
+    /// delivers its first batch.
     private func expectCapacityFailureIsRequired(of visible: [ECGBatchBoundaryTests.NativeResult], anchor: ManagedQueryAnchor) async throws {
-        let copy = ManagedQueryAnchor.ephemeral(anchor: try anchor.value)
-        let first = try await SampleCountFetcherPropertyTests.firstECGBatch(of: visible, anchor: copy, batchSize: 1, limits: .init())
-        var prefix = visible
-        if let first {
-            try await first.acknowledge()
-            let boundary = try #require(try copy.value.nativeTimestamp, "\(context)")
-            prefix = SampleCountFetcherPropertyTests.resultsBeforeDelivery(of: visible, boundary: boundary)
-        }
         #expect(
-            SampleCountFetcherPropertyTests.exceedsLimits(prefix, limits: limits),
-            "\(context): capacity failure although the results before the first batch fit the limits"
+            SampleCountFetcherPropertyTests.modelFirstBatchEnd(of: visible, limits: limits).exceedsLimits,
+            "\(context): capacity failure although the results before the first batch end fit the limits"
         )
+        guard let boundary = SampleCountFetcherPropertyTests.modelFirstBatchEnd(of: visible, limits: .init()).boundary else {
+            return
+        }
+        let copy = ManagedQueryAnchor.ephemeral(anchor: try anchor.value.discardingPendingBatch())
+        let first = try await SampleCountFetcherPropertyTests.firstECGBatch(of: visible, anchor: copy, batchSize: 1, limits: .init())
+        try await #require(first, "\(context): no batch at the model's first batch end").acknowledge()
+        #expect(try copy.value.nativeTimestamp == boundary, "\(context): first batch end against the model")
     }
 }
 
@@ -271,11 +288,12 @@ private struct ECGRun {
 /// delivers, in order, and for the other sensor exactly its usable samples. Before each acknowledgement, a restart on the
 /// pending batch over the results returned so far, over each longer prefix of the newer results and over all of them,
 /// and a replay from a copy of the pending anchor, must deliver the same batch with the same peripherals; after the run
-/// every replay token must deliver its batch again. Some fetches are cancelled while the native fetch runs first; the
-/// next fetch must deliver the batch a cancelled one delivered. A fetch may fail only with `assemblyCapacityExceeded`,
-/// only under limits smaller than the defaults, and only when the results before the first batch of a fetch with the
-/// default limits don't fit those limits. Set `GROVE_FETCHER_PROPERTY_SEED` (with the `TEST_RUNNER_` prefix for the
-/// simulator) to run one seed.
+/// every replay token must deliver its batch again. Some fetches are cancelled while the native fetch runs, from an
+/// acknowledged cursor or as a restart on the pending batch; the next fetch must deliver the batch a cancelled one
+/// delivered. A fetch may fail only with `assemblyCapacityExceeded`, only under limits smaller than the defaults, and
+/// exactly when a model of the documented batch ends and limits finds a result before the first batch end that doesn't
+/// fit those limits. Set `GROVE_FETCHER_PROPERTY_SEED` (with the `TEST_RUNNER_` prefix for the simulator) to run one
+/// seed.
 @Suite(.timeLimit(.minutes(1)))
 struct SampleCountFetcherPropertyTests {
     private typealias Fixture = ECGBatchBoundaryTests
@@ -348,6 +366,13 @@ struct SampleCountFetcherPropertyTests {
             .flatMap(\.samples)
         #expect(reference == model, "seed \(seed), \(mode): one fetch against the sequential model")
         #expect(Set(reference.map(\.sessionIdentifier)).count == reference.count, "seed \(seed), \(mode): a session delivered twice")
+        // A fetch that ends after a cut holds or finishes the sessions unfinished there, as the model does.
+        for cut in input.cuts.dropLast() {
+            let prefix = input.results.filter { $0.timestamp.rawValue <= cut }
+            let fetched = try await Fixture.fetch(prefix, anchor: .ephemeral(startDate: stream.start), batchSize: 1_000_000)
+                .flatMap(\.samples)
+            #expect(fetched == Self.modelSessions(of: prefix, oldBefore: input.oldBefore), "seed \(seed), \(mode): one fetch up to \(cut)")
+        }
         // Fetches that each deliver one batch, acknowledge it and start again with the configured batch size.
         for batchSize in 1...4 {
             var delivered: [SensorKitECGSession] = []
@@ -397,9 +422,9 @@ struct SampleCountFetcherPropertyTests {
             }
             let pendingAnchor = batch.info.replayToken.anchor
             var checks = cuts.filter { $0 > reveals[revealIndex] }.map { cut in
-                Check(label: "restart up to \(cut)", input: results.filter { $0.timestamp.rawValue > cursor && $0.timestamp.rawValue <= cut }, anchor: anchor)
+                Check(label: "restart on the pending batch up to \(cut)", input: results.filter { $0.timestamp.rawValue > cursor && $0.timestamp.rawValue <= cut }, anchor: anchor)
             }
-            checks.append(Check(label: "restart", input: visible, anchor: anchor))
+            checks.append(Check(label: "restart on the pending batch", input: visible, anchor: anchor))
             for check in checks {
                 do {
                     let again = try await Self.firstBatch(of: check.input, anchor: check.anchor, batchSize: batchSize)
@@ -428,8 +453,9 @@ struct SampleCountFetcherPropertyTests {
 extension SampleCountFetcherPropertyTests {
     /// Native ECG results of sessions that may be split across results, share timestamps, lack states or voltage,
     /// start in the result of the previous session's last data or before it, or repeat a fragment of an earlier
-    /// session, with results without groups between them and peripherals that may be unnamed, followed by a complete
-    /// session that ends every unfinished one.
+    /// session, with results without groups between them and peripherals that may be unnamed, in half of the inputs
+    /// followed by a complete session that ends every unfinished one. In the mixed mode, the gap mostly falls inside a
+    /// session that spans several results, so that its first result is older than the hold cutoff and its latest newer.
     @available(iOS 18, *)
     private static func ecgInput(
         stream: ECGBatchBoundaryTests.NativeStream, mode: HoldMode, using random: inout SeededGenerator
@@ -475,13 +501,16 @@ extension SampleCountFetcherPropertyTests {
         for identifier in Self.interleave(&batches, sparing: fragments, using: &random) {
             whole[identifier] = nil
         }
-        batches.append(ECGBatchBoundaryTests.NativeStream.session("final-session", offset: 1000))
-        whole["final-session"] = batches.last
+        let final = random.chance(0.5) ? ECGBatchBoundaryTests.NativeStream.session("final-session", offset: 1000) : nil
+        batches += final.map { [$0] } ?? []
+        whole["final-session"] = final
+        // Without the final session, the end of the fetch may hold unfinished sessions and the whole sessions after them.
+        let intact = final == nil && mode != .finished ? [] : Array(whole.values)
         let peripherals: [SensorKit.SourceDeviceInfo?] = [
             nil, SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-1"), SensorKit.SourceDeviceInfo(localIdentifier: "peripheral-2")
         ]
         // In the mixed mode, the results from this index on are newer than the hold cutoff.
-        let split = mode == .mixed ? Int.random(in: 0...batches.count, using: &random) : batches.count
+        let split = mode == .mixed ? Self.split(of: batches, sparing: fragments, using: &random) : batches.count
         var seconds = 0
         var oldBefore = mode == .held ? -Double.infinity : Double.infinity
         var results: [NativeResult] = []
@@ -495,7 +524,31 @@ extension SampleCountFetcherPropertyTests {
             results.append(NativeResult(groups: groups, timestamp: stream.time(max(seconds, 1)), sourceDevice: peripheral))
         }
         let cuts = Self.cuts(of: results, oldBefore: oldBefore)
-        return ECGInput(results: results, intact: Array(whole.values), oldBefore: oldBefore, cuts: cuts)
+        return ECGInput(results: results, intact: intact, oldBefore: oldBefore, cuts: cuts)
+    }
+
+    /// The index of a result inside a session that has its begin state and spans at least three results, so that it
+    /// has results on both sides of the gap and another after it, or, in a fifth of the inputs or without such a
+    /// session, any index.
+    private static func split(
+        of batches: [[SensorKitECGSession.InputGroup]], sparing fragments: Set<Int>, using random: inout SeededGenerator
+    ) -> Int {
+        var spans: [String: ClosedRange<Int>] = [:]
+        var started: Set<String> = []
+        for (index, groups) in batches.enumerated() where !fragments.contains(index) {
+            for group in groups {
+                spans[group.identifier] = (spans[group.identifier]?.lowerBound ?? index)...index
+                if group.state == .begin {
+                    started.insert(group.identifier)
+                }
+            }
+        }
+        let spanning = spans.filter { started.contains($0.key) && $0.value.count > 2 }.values
+            .sorted { ($0.lowerBound, $0.upperBound) < ($1.lowerBound, $1.upperBound) }
+        guard random.chance(0.8), let span = spanning.randomElement(using: &random) else {
+            return Int.random(in: 0...batches.count, using: &random)
+        }
+        return Int.random(in: (span.lowerBound + 1)...(span.upperBound - 1), using: &random)
     }
 
     /// A session without its end state (kind 0), without voltage (1), without its begin state (2), without its active
@@ -625,73 +678,184 @@ extension SampleCountFetcherPropertyTests {
         return outcome
     }
 
-    /// The results a fetch processes before it delivers a first batch that ends at `boundary`: the results up to the
-    /// boundary, the later ones with data of the sessions in them, and the result after those, which ends them.
-    fileprivate static func resultsBeforeDelivery(of results: [NativeResult], boundary: Double) -> [NativeResult] {
-        let sessions = Set(results.filter { $0.timestamp.rawValue <= boundary }.flatMap { $0.groups.map(\.identifier) })
-        let last = results.lastIndex { result in
-            result.timestamp.rawValue <= boundary || result.groups.contains { sessions.contains($0.identifier) }
-        }
-        return Array(results.prefix(last.map { $0 + 2 } ?? 1))
-    }
-
-    /// Whether the results don't fit `limits` in one assembly, which makes room as a fetch without a sample to deliver
-    /// does.
+    /// The first batch end of a fetch over `results` under the documented batch end rules and ECG limits, or whether
+    /// a result before it doesn't fit the limits, so the fetch must fail.
+    ///
+    /// A session starts at a result with its begin state and ends with all its states, or when a result carries data
+    /// of another session and none of its own; it is then delivered, or skipped. A batch can end after a delivered
+    /// session when every unfinished session started after the boundary, the largest timestamp of a result with data
+    /// when the last session was delivered. A later result confirms the batch end, while a result with the boundary's
+    /// timestamp withdraws a batch end at the latest timestamp. The limits count the entries of the delivered and the
+    /// unfinished sessions, and those sessions together with the skipped ones; an entry is a voltage sample, a reading
+    /// without voltage samples, or a session state without readings. A result that doesn't fit them before a batch
+    /// end is confirmed fails the fetch, unless no session was delivered and forgetting the skipped ones makes room.
+    ///
+    /// - Returns: The boundary of the first confirmed batch end, or `nil` when the results end before one or a result
+    ///   doesn't fit the limits.
     @available(iOS 18, *)
-    fileprivate static func exceedsLimits(_ results: [NativeResult], limits: SensorKitECGProcessingLimits) -> Bool {
-        var assembly = SensorKitECGAssembly(limits: limits)
-        var hasSessions = false
-        for result in results {
-            hasSessions = !assembly.finishPending(supersededBy: result.groups).sessions.isEmpty || hasSessions
-            while true {
-                do {
-                    hasSessions = try !assembly.append(result.groups, at: result.timestamp.rawValue).sessions.isEmpty || hasSessions
-                    break
-                } catch {
-                    guard !hasSessions, assembly.forgetFinishedSessions() else {
-                        return true
-                    }
-                }
+    fileprivate static func modelFirstBatchEnd(
+        of results: [NativeResult], limits: SensorKitECGProcessingLimits
+    ) -> (boundary: Double?, exceedsLimits: Bool) {
+        struct Session {
+            var groups: [SensorKitECGSession.InputGroup] = []
+            let first: Double
+            var entries = 0
+        }
+        var pending: [String: Session] = [:]
+        var known: Set<String> = []
+        var entries = 0
+        var deliveredCount = 0
+        var boundary: Double?
+        var latestWithData: Double?
+        var candidate: Double?
+        func entryCount(of group: SensorKitECGSession.InputGroup) -> Int {
+            group.readings.isEmpty ? 1 : group.readings.reduce(0) { $0 + max(1, $1.samples.count) }
+        }
+        func accepted(_ groups: [SensorKitECGSession.InputGroup]) -> [SensorKitECGSession.InputGroup] {
+            groups.filter { group in
+                !known.contains(group.identifier) && !group.identifier.isEmpty
+                    && (pending[group.identifier] != nil || groups.contains { $0.identifier == group.identifier && $0.state == .begin })
             }
         }
-        return false
-    }
-
-    /// The sessions one fetch over `results` delivers under the documented session rules, without batches, retained
-    /// results or limits: a session starts at a result with its begin state, and ends with all its states, when a
-    /// result carries data of another session and none of its own, or at the end of the fetch when its latest result is
-    /// older than `oldBefore`. A later fragment of an ended session, and a fragment of a session that hasn't started
-    /// whose result lacks its begin state, are skipped.
-    @available(iOS 18, *)
-    fileprivate static func modelSessions(of results: [NativeResult], oldBefore: Double) -> [SensorKitECGSession] {
-        var pending: [String: (groups: [SensorKitECGSession.InputGroup], latest: Double)] = [:]
-        var finished: Set<String> = []
-        var delivered: [SensorKitECGSession] = []
-        func merged(_ groups: [SensorKitECGSession.InputGroup]) throws -> [SensorKitECGSession.InputGroup] {
-            var result: [SensorKitECGSession.InputGroup] = []
-            for state in [SRElectrocardiogramSession.State.begin, .active, .end] {
-                let parts = groups.filter { $0.state == state }
-                guard let first = parts.first else {
+        func end(_ identifiers: some Sequence<String>, complete: Bool) {
+            let before = deliveredCount
+            for identifier in identifiers {
+                guard let session = pending.removeValue(forKey: identifier) else {
                     continue
                 }
-                guard parts.allSatisfy({ $0.guidance == first.guidance }) else {
-                    throw SensorKitECGSession.ProcessingError.inconsistentSession
+                known.insert(identifier)
+                let merged = try? modelMerged(session.groups)
+                let count = complete ? merged.flatMap { try? SensorKitECGSession.process($0).count }
+                    : merged.flatMap { SensorKitECGSession.processLeniently($0).isEmpty ? nil : 1 }
+                if let count {
+                    deliveredCount += count
+                } else {
+                    entries -= session.entries
                 }
-                result.append(.init(identifier: first.identifier, state: state, guidance: first.guidance, readings: parts.flatMap(\.readings)))
             }
-            return result
+            if deliveredCount > before {
+                boundary = latestWithData
+            }
         }
+        func fits(_ groups: [SensorKitECGSession.InputGroup]) -> Bool {
+            let newSessions = Set(groups.map(\.identifier)).subtracting(pending.keys).count
+            let addedEntries = groups.reduce(0) { $0 + entryCount(of: $1) }
+            return newSessions <= limits.maximumSessions - pending.count - known.count && addedEntries <= limits.maximumEntries - entries
+        }
+        func add(_ groups: [SensorKitECGSession.InputGroup], at timestamp: Double) {
+            for group in groups {
+                pending[group.identifier, default: Session(first: timestamp)].groups.append(group)
+                pending[group.identifier]?.entries += entryCount(of: group)
+                entries += entryCount(of: group)
+            }
+            if !groups.isEmpty {
+                latestWithData = max(latestWithData ?? timestamp, timestamp)
+            }
+            end(pending.filter { Set($0.value.groups.map(\.state)) == [.begin, .active, .end] }.keys.sorted(), complete: true)
+        }
+        /// The boundary of a batch end after the delivered sessions, if one can end there.
+        func batchEnd() -> Double? {
+            guard deliveredCount > 0, let boundary, pending.values.allSatisfy({ $0.first > boundary }) else {
+                return nil
+            }
+            return boundary
+        }
+        var index = 0
+        while index < results.count {
+            let result = results[index]
+            let timestamp = result.timestamp.rawValue
+            if let end = candidate {
+                guard timestamp <= end else {
+                    return (end, false)
+                }
+                candidate = nil
+            }
+            let current = Set(accepted(result.groups).map(\.identifier))
+            if !current.isEmpty {
+                end(pending.keys.filter { !current.contains($0) }.sorted(), complete: false)
+            }
+            if let end = batchEnd(), timestamp > end {
+                return (end, false)
+            }
+            let groups = accepted(result.groups)
+            guard fits(groups) else {
+                guard deliveredCount == 0, !known.isEmpty else {
+                    return (nil, true)
+                }
+                // Forgetting the skipped sessions makes room; the result is processed again from its start.
+                known.removeAll()
+                continue
+            }
+            add(groups, at: timestamp)
+            if let end = batchEnd() {
+                if let latestWithData, latestWithData > end {
+                    return (end, false)
+                }
+                candidate = end
+            }
+            index += 1
+        }
+        return (nil, false)
+    }
+
+    /// The groups of one session merged into one group per state, or an error when the parts of a state disagree.
+    @available(iOS 18, *)
+    fileprivate static func modelMerged(_ groups: [SensorKitECGSession.InputGroup]) throws -> [SensorKitECGSession.InputGroup] {
+        var result: [SensorKitECGSession.InputGroup] = []
+        for state in [SRElectrocardiogramSession.State.begin, .active, .end] {
+            let parts = groups.filter { $0.state == state }
+            guard let first = parts.first else {
+                continue
+            }
+            guard parts.allSatisfy({ $0.guidance == first.guidance }) else {
+                throw SensorKitECGSession.ProcessingError.inconsistentSession
+            }
+            result.append(.init(identifier: first.identifier, state: state, guidance: first.guidance, readings: parts.flatMap(\.readings)))
+        }
+        return result
+    }
+
+    /// The sessions one fetch over `results` delivers under the documented session rules, without retained results or
+    /// limits: a session starts at a result with its begin state, and ends with all its states, or when a result carries
+    /// data of another session and none of its own. A later fragment of an ended session, and a fragment of a session
+    /// that hasn't started whose result lacks its begin state, are skipped. At the end of the fetch, the unfinished
+    /// sessions end too when their latest result is older than `oldBefore`; otherwise they are held, and so are the
+    /// sessions after the last batch end before them, where every unfinished session started after the boundary. A
+    /// later result at a batch end's timestamp withdraws that batch end.
+    @available(iOS 18, *)
+    fileprivate static func modelSessions(of results: [NativeResult], oldBefore: Double) -> [SensorKitECGSession] {
+        struct Session {
+            var groups: [SensorKitECGSession.InputGroup] = []
+            let first: Double
+            var latest: Double
+        }
+        var pending: [String: Session] = [:]
+        var finished: Set<String> = []
+        var delivered: [SensorKitECGSession] = []
+        var boundary = -Double.infinity
+        var latestWithData = -Double.infinity
+        /// The delivered sessions and the boundary of each batch end, where every unfinished session started later.
+        var batchEnds: [(count: Int, boundary: Double)] = []
         func end(_ identifiers: some Sequence<String>, complete: Bool) {
             var sessions: [SensorKitECGSession] = []
             for identifier in identifiers {
-                if let groups = pending.removeValue(forKey: identifier)?.groups, let groups = try? merged(groups) {
+                if let groups = pending.removeValue(forKey: identifier)?.groups, let groups = try? modelMerged(groups) {
                     sessions += complete ? ((try? SensorKitECGSession.process(groups)) ?? []) : SensorKitECGSession.processLeniently(groups)
                 }
                 finished.insert(identifier)
             }
             delivered += sessions.sorted(by: SensorKitECGSession.precedes)
+            boundary = sessions.isEmpty ? boundary : latestWithData
+        }
+        func recordBatchEnd() {
+            if !delivered.isEmpty, pending.values.allSatisfy({ $0.first > boundary }) {
+                batchEnds.append((delivered.count, boundary))
+            }
         }
         for result in results {
+            let timestamp = result.timestamp.rawValue
+            // A result at a batch end's timestamp withdraws it: a fetch from that boundary would not read the result.
+            batchEnds.removeAll { $0.boundary >= timestamp }
             let groups = result.groups
             let accepted = groups.filter { group in
                 !finished.contains(group.identifier) && !group.identifier.isEmpty
@@ -701,15 +865,25 @@ extension SampleCountFetcherPropertyTests {
             if !current.isEmpty {
                 end(pending.keys.filter { !current.contains($0) }, complete: false)
             }
-            for group in accepted {
-                pending[group.identifier, default: ([], result.timestamp.rawValue)].groups.append(group)
-                pending[group.identifier]?.latest = result.timestamp.rawValue
+            if timestamp > boundary {
+                recordBatchEnd()
             }
+            for group in accepted {
+                pending[group.identifier, default: Session(first: timestamp, latest: timestamp)].groups.append(group)
+                pending[group.identifier]?.latest = timestamp
+            }
+            latestWithData = accepted.isEmpty ? latestWithData : max(latestWithData, timestamp)
             end(pending.filter { Set($0.value.groups.map(\.state)) == [.begin, .active, .end] }.keys, complete: true)
+            recordBatchEnd()
         }
-        if let latest = pending.values.map(\.latest).max(), latest < oldBefore {
-            end(Array(pending.keys), complete: false)
+        guard let latest = pending.values.map(\.latest).max() else {
+            return delivered
         }
+        guard latest < oldBefore else {
+            let earliest = pending.values.map(\.first).min() ?? latest
+            return Array(delivered.prefix(batchEnds.last { $0.boundary < earliest }?.count ?? 0))
+        }
+        end(Array(pending.keys), complete: false)
         return delivered
     }
 
