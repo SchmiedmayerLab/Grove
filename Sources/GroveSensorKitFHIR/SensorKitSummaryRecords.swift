@@ -11,6 +11,7 @@
 // swiftlint:disable file_types_order
 
 public import Foundation
+import GroveFHIRContract
 
 
 /// A content-free SensorKit messages-usage interval summary: counts only, never content or identities.
@@ -144,30 +145,27 @@ public struct SensorKitSleepSessionRecord: Sendable {
 public struct SensorKitAccelerometerRecord: Sendable {
     /// What an accelerometer recording's rows state, read in one pass over them.
     struct Summary: Sendable {
-        /// The samples one device delivered under one batch identifier.
-        private struct Batch: Hashable {
-            let device: String
-            let identifier: String
-        }
-
         let coverage: DateInterval
         let sampleCount: Int
         let batchCount: Int
 
-        /// Requires every row to carry a timestamp, x, y and z, an unsigned batch identifier and a device.
         init(_ reader: RecordingCSVReader) throws {
-            guard !reader.rows.isEmpty else {
-                throw SensorKitRecordError.emptySamples
-            }
+            try self.init { try reader.rows.forEach($0) }
+        }
+
+        init(_ recording: SensorKitNativeRecording) throws {
+            try self.init(readRows: recording.readRows)
+        }
+
+        /// Requires every row to carry an unsigned batch identifier; the format's schema guarantees the other columns.
+        private init(readRows: (_ onRow: (RecordingCSVReader.Row) throws -> Void) throws -> Void) throws {
             var earliest = Double.infinity
             var latest = -Double.infinity
-            var batches: Set<Batch> = []
-            for row in reader.rows {
+            var batches = RecordingBatchCounter()
+            var sampleCount = 0
+            try readRows { row in
                 let timestamp = try row.requiredNumber("timestamp")
-                _ = try row.requiredNumber("x")
-                _ = try row.requiredNumber("y")
-                _ = try row.requiredNumber("z")
-                guard let identifier = row["identifier"], UInt64(identifier) != nil else {
+                guard let identifier = row["identifier"].flatMap(UInt64.init) else {
                     throw RecordingCSVReader.RowValueError.malformedInteger(
                         column: "identifier",
                         value: row["identifier"] ?? ""
@@ -178,13 +176,17 @@ public struct SensorKitAccelerometerRecord: Sendable {
                 }
                 earliest = min(earliest, timestamp)
                 latest = max(latest, timestamp)
-                batches.insert(Batch(device: device, identifier: identifier))
+                try batches.add(device: device, identifier: identifier)
+                sampleCount += 1
+            }
+            guard sampleCount > 0 else {
+                throw SensorKitRecordError.emptySamples
             }
             self.coverage = DateInterval(
                 start: Date(timeIntervalSince1970: earliest),
                 end: Date(timeIntervalSince1970: latest)
             )
-            self.sampleCount = reader.rows.count
+            self.sampleCount = sampleCount
             self.batchCount = batches.count
         }
     }
@@ -198,7 +200,8 @@ public struct SensorKitAccelerometerRecord: Sendable {
     /// Creates the summary by parsing the exact registered recording.
     ///
     /// Counts and coverage are deliberately not caller inputs: the attached payload is the sole
-    /// authority for every summary fact projected into FHIR.
+    /// authority for every summary fact projected into FHIR. A recording with more distinct batches or devices than the
+    /// summary counts throws a ``SensorKitSummaryError``.
     public init(
         sourceRecordID: SensorKitSourceRecordID,
         nativeRecording: SensorKitNativeRecording
@@ -206,8 +209,7 @@ public struct SensorKitAccelerometerRecord: Sendable {
         guard nativeRecording.format == .triaxialAccelerationSamples else {
             throw SensorKitRecordError.invalidRecordingFormat
         }
-        let reader = try RecordingCSVReader(nativeRecording.bytes, format: nativeRecording.format)
-        self.init(sourceRecordID: sourceRecordID, nativeRecording: nativeRecording, summary: try Summary(reader))
+        self.init(sourceRecordID: sourceRecordID, nativeRecording: nativeRecording, summary: try Summary(nativeRecording))
     }
 
     /// `summary` is what the rows of `nativeRecording`, an accelerometer recording, state, read by a caller that
@@ -245,21 +247,21 @@ public struct SensorKitWristTemperatureRecord: Sendable {
         guard nativeRecording.format == .wristTemperatureSamples else {
             throw SensorKitRecordError.invalidRecordingFormat
         }
-        let reader = try RecordingCSVReader(nativeRecording.bytes, format: nativeRecording.format)
-        guard !reader.rows.isEmpty else {
-            throw SensorKitRecordError.emptySamples
+        var earliest = Double.infinity
+        var latest = -Double.infinity
+        var sampleCount = 0
+        try nativeRecording.readRows { row in
+            let timestamp = try row.requiredNumber("timestamp")
+            earliest = min(earliest, timestamp)
+            latest = max(latest, timestamp)
+            sampleCount += 1
         }
-        let instants = try reader.rows.map { row in
-            _ = try row.requiredNumber("value")
-            _ = try row.requiredNumber("errorEstimate")
-            return Date(timeIntervalSince1970: try row.requiredNumber("timestamp"))
-        }
-        guard let coverageStart = instants.min(), let coverageEnd = instants.max() else {
+        guard sampleCount > 0 else {
             throw SensorKitRecordError.emptySamples
         }
         self.sourceRecordID = sourceRecordID
-        self.coverage = DateInterval(start: coverageStart, end: coverageEnd)
-        self.sampleCount = reader.rows.count
+        self.coverage = DateInterval(start: Date(timeIntervalSince1970: earliest), end: Date(timeIntervalSince1970: latest))
+        self.sampleCount = sampleCount
         self.algorithmVersion = algorithmVersion
         self.nativeRecording = nativeRecording
     }
@@ -292,7 +294,7 @@ public struct SensorKitPPGRecord: Sendable {
         guard nativeRecording.format == .photoplethysmogramSamples else {
             throw SensorKitRecordError.invalidRecordingFormat
         }
-        let recording = try decoded ?? SensorKitPPGRecording(data: nativeRecording.bytes)
+        let recording = try decoded ?? SensorKitPPGRecording(data: nativeRecording.decodedPayload())
         guard let summary = recording.summary else {
             throw SensorKitRecordError.emptySamples
         }

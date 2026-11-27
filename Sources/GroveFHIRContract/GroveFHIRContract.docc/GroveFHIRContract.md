@@ -157,6 +157,26 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 | Governed source identifier | ``GovernedSourceIdentifierDisclosurePolicy`` |
 | Producer diagnostic | ``ProducerDiagnostic`` with its ``ExchangeGraphRule`` |
 
+## Recording bytes
+
+``RecordingCSVWriter`` writes a tabular format of the recording-format registry, and ``RecordingCSVReader`` reads one back. A writer created for a ``RegisteredRecordingFormat`` writes exactly the format's columns and refuses a row whose field violates its column's registered value type or absence rule, before any byte of the row is written. The reader refuses the same rows, and any quoting other than the registry's: a field is quoted exactly when it contains a comma, a double quote or LF. A file that quotes every field, which RFC 4180 also admits, is refused with ``RecordingCSVReader/ReaderError/unnecessaryQuotes(row:column:)`` at its first such field. A writer created with ``RecordingCSVReader/Limits`` refuses a field, row or payload beyond them before writing it, so a reader with the same limits reads every payload it writes. Numbers and integers use the registry's canonical lexemes, which prohibit a plus sign, an exponent, a leading integer zero, negative zero and a redundant trailing zero in a fraction, and an integral number may end in `.0`.
+
+Use ``RecordingCSVReader/Stream`` to read the same grammar in chunks without retaining every row. ``RecordingCSVReader/Limits`` bounds the bytes a reader retains, independently of the chunk size. Delivered rows remain provisional until `finish()` validates the complete payload. A syntactically valid CSV is not itself a clinical validation result: converters separately enforce their required measurements and sample counts.
+
+``RecordingFile`` owns an immutable temporary snapshot of recording bytes. Stage one by copying a file with ``RecordingFile/stage(copying:maximumByteCount:)`` or from an asynchronous byte stream with ``RecordingFile/stage(chunks:maximumByteCount:)``; later changes to the source don't affect the snapshot, and a failure never returns a partial one. Read it in chunks of at most 64 KiB with ``RecordingFile/readChunks(_:)`` or ``RecordingFile/chunks``, where every reader has its own position and nothing is read ahead. The snapshot computes its FHIR attachment checksum while it is written. It has no filesystem name and closes with its last owner, so a durable upload queue copies its chunks into its own storage before acknowledging collection.
+
+``RecordingCSVFileWriter`` writes the same bytes as ``RecordingCSVWriter`` directly into a recording file, retaining only the current row and a 64 KiB buffer. It checks the total, row and field sizes before it allocates a row, and an error or cancellation closes it, so it never finishes a partial recording.
+
+``RecordingFile/zstandardCompressed()`` returns one Zstandard frame of the bytes when it is strictly smaller, and `nil` when the snapshot should be sent unchanged. ``RecordingFile/zstandardDecompressed(decompressedByteCount:maximumWindowByteCount:)`` decodes exactly one complete frame of a declared size within a history window budget; apply a decompressed byte budget before calling it. FHIR attachment size and checksum describe the original bytes, so a transport that compresses them keeps its own encoding, stored size and stored digest, and verifies the original size and digest after decompression.
+
+These operations are synchronous disk operations and belong on a background executor.
+
+## Inspect collection contracts
+
+``FHIRMeasurementCatalog`` exposes the pinned guide's measurement and HealthKit inventory facts on Apple platforms and Linux. Use ``FHIRMeasurementCatalog/measurement(id:)`` to inspect a measurement's temporal shape, canonical quantity unit and components. ``FHIRMeasurementCatalog/healthKitSource(identifier:)`` keeps every declared measurement identifier and profile alternative of a row; a workout row names both its session and its segments. Apple callers pass a `HealthKitSourceType`'s `rawValue` instead of building another table of source names.
+
+Guide admission establishes neither converter availability nor participant permission nor receiver capability: a supported row can still lack an implemented producer, and a missing value shape never admits arbitrary content. Adapters choose their own source semantics for a `dateTimeOrPeriod` contract, and receivers still validate the complete graph against its profiles. The descriptors read the generated contracts; they perform no conversion or unit arithmetic.
+
 ## Topics
 
 ### Identities
@@ -199,3 +219,18 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+- ``RecordingPayloadAdmission``
+
+### Recordings
+
+- ``RegisteredRecordingFormat``
+- ``RecordingCSVWriter``
+- ``RecordingCSVReader``
+- ``RecordingFile``
+- ``RecordingCSVFileWriter``
+
+### Collection contracts
+
+- ``FHIRMeasurementCatalog``
+- ``FHIRMeasurementDefinition``
+- ``HealthKitSourceDefinition``

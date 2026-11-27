@@ -11,7 +11,7 @@
 
 #if os(iOS)
 public import Foundation
-import GroveFHIRContract
+public import GroveFHIRContract
 public import GroveSensorKit
 public import SensorKit
 
@@ -121,7 +121,7 @@ public struct SensorKitPreparedStructuredRecord: Sendable {
         sourceRecordID: SensorKitSourceRecordID,
         title: String,
         location: SensorKitRecordingLocation,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         guard let nativePayload else {
             throw SensorKitRecordError.invalidRecordingFormat

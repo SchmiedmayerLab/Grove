@@ -29,11 +29,13 @@ public protocol SensorKitTabularSample: SensorKitSampleSafeRepresentation {
 
 /// A complete registry-conformant tabular payload prepared from already-fetched SensorKit values.
 public struct SensorKitTabularRecording: Sendable {
-    private enum StructuredProjection: Sendable {
+    enum StructuredProjection: Sendable {
         case accelerometer
         case wristTemperature(algorithmVersion: String)
         case none
     }
+
+    static let wristTemperatureSourceToken = "SRSensor.wristTemperature"
 
     public let sourceToken: String
     public let format: RegisteredRecordingFormat
@@ -70,21 +72,13 @@ public struct SensorKitTabularRecording: Sendable {
         var writer = try Self.writer(for: .wristTemperatureSamples)
         let temperatures = Array(session.temperatures)
         for sample in temperatures {
-            try writer.append([
-                .timestamp(sample.timestamp),
-                .number(sample.value.converted(to: .celsius).value),
-                .number(sample.errorEstimate.converted(to: .celsius).value),
-                .text(try Self.condition(sample.condition))
-            ])
+            try writer.append(Self.wristTemperatureFields(sample))
         }
         let data = writer.data()
-        var evidence = Data()
-        var versionLength = UInt64(session.version.utf8.count).bigEndian
-        withUnsafeBytes(of: &versionLength) { evidence.append(contentsOf: $0) }
-        evidence.append(contentsOf: session.version.utf8)
+        var evidence = Self.wristTemperatureEvidencePrefix(version: session.version)
         evidence.append(data)
         try self.init(
-            sourceToken: "SRSensor.wristTemperature",
+            sourceToken: Self.wristTemperatureSourceToken,
             format: .wristTemperatureSamples,
             data: data,
             intervals: temperatures.map { $0.timestamp..<$0.timestamp },
@@ -94,11 +88,14 @@ public struct SensorKitTabularRecording: Sendable {
     }
 
     /// Builds the structured projection declared by the catalog, or its raw recording document.
+    ///
+    /// An accelerometer recording with more distinct batches or devices than its summary counts throws a
+    /// ``SensorKitSummaryError`` here; creating the recording does not.
     public func sensorKitRecord(
         sourceRecordID: SensorKitSourceRecordID,
         title: String,
         location: SensorKitRecordingLocation,
-        admission: SensorRawPayloadAdmission
+        admission: RecordingPayloadAdmission
     ) throws -> SensorKitRecord {
         // `init` validated exactly these bytes as `format`'s, so they are not parsed a second time here.
         let nativeRecording = try SensorKitNativeRecording(
@@ -107,7 +104,103 @@ public struct SensorKitTabularRecording: Sendable {
             payload: location.payload(bytes: data),
             admission: admission
         ) { _ in }
-        switch structuredProjection {
+        return try structuredProjection.record(
+            sourceRecordID: sourceRecordID,
+            nativeRecording: nativeRecording,
+            sourceToken: sourceToken,
+            effectivePeriod: effectivePeriod,
+            accelerometerSummary: accelerometerSummary
+        )
+    }
+
+    private init(
+        sourceToken: String,
+        format: RegisteredRecordingFormat,
+        data: Data,
+        intervals: [Range<Date>],
+        retryEvidence: Data? = nil,
+        structuredProjection: StructuredProjection = .none
+    ) throws {
+        guard let start = intervals.lazy.map(\.lowerBound).min(),
+              let end = intervals.lazy.map(\.upperBound).max() else {
+            throw SensorKitRecordError.emptySamples
+        }
+        if case .accelerometer = structuredProjection {
+            // One parse checks the bytes as `format`'s and reads the summary the record states.
+            let reader: RecordingCSVReader
+            do {
+                reader = try RecordingCSVReader(data, format: format)
+            } catch {
+                throw RegisteredRecordingPayloadError.invalidTabularPayload(error)
+            }
+            self.accelerometerSummary = try? SensorKitAccelerometerRecord.Summary(reader)
+        } else {
+            try format.validatePayload(data)
+            self.accelerometerSummary = nil
+        }
+        self.sourceToken = sourceToken
+        self.format = format
+        self.data = data
+        self.effectivePeriod = DateInterval(start: start, end: end)
+        self.retryEvidence = retryEvidence ?? data
+        self.structuredProjection = structuredProjection
+    }
+
+    private static func writer(for format: RegisteredRecordingFormat) throws -> RecordingCSVWriter {
+        do {
+            return try RecordingCSVWriter(format: format)
+        } catch {
+            throw SensorKitRecordError.invalidRecordingFormat
+        }
+    }
+
+    @available(iOS 17, *)
+    static func wristTemperatureFields(_ sample: SRWristTemperature) throws -> [RecordingCSVWriter.Field] {
+        [
+            .timestamp(sample.timestamp),
+            .number(sample.value.converted(to: .celsius).value),
+            .number(sample.errorEstimate.converted(to: .celsius).value),
+            .text(try condition(sample.condition))
+        ]
+    }
+
+    static func wristTemperatureEvidencePrefix(version: String) -> Data {
+        var evidence = Data()
+        var versionLength = UInt64(version.utf8.count).bigEndian
+        withUnsafeBytes(of: &versionLength) { evidence.append(contentsOf: $0) }
+        evidence.append(contentsOf: version.utf8)
+        return evidence
+    }
+
+    @available(iOS 17, *)
+    private static func condition(_ condition: SRWristTemperature.Condition) throws -> String {
+        let known = SRWristTemperature.Condition.offWrist.rawValue
+            | SRWristTemperature.Condition.onCharger.rawValue
+            | SRWristTemperature.Condition.inMotion.rawValue
+        guard condition.rawValue & ~known == 0 else {
+            throw SensorKitRecordError.unsupportedProviderValue(
+                field: "wristTemperature.condition",
+                rawValue: Int(condition.rawValue & ~known)
+            )
+        }
+        var values: [String] = []
+        if condition.contains(.offWrist) { values.append("offWrist") }
+        if condition.contains(.onCharger) { values.append("onCharger") }
+        if condition.contains(.inMotion) { values.append("inMotion") }
+        return values.joined(separator: ",")
+    }
+}
+
+
+extension SensorKitTabularRecording.StructuredProjection {
+    func record(
+        sourceRecordID: SensorKitSourceRecordID,
+        nativeRecording: SensorKitNativeRecording,
+        sourceToken: String,
+        effectivePeriod: DateInterval,
+        accelerometerSummary: SensorKitAccelerometerRecord.Summary? = nil
+    ) throws -> SensorKitRecord {
+        switch self {
         case .accelerometer:
             if let accelerometerSummary {
                 return .accelerometer(SensorKitAccelerometerRecord(
@@ -135,64 +228,6 @@ public struct SensorKitTabularRecording: Sendable {
                 nativeRecording: nativeRecording
             ))
         }
-    }
-
-    private init(
-        sourceToken: String,
-        format: RegisteredRecordingFormat,
-        data: Data,
-        intervals: [Range<Date>],
-        retryEvidence: Data? = nil,
-        structuredProjection: StructuredProjection = .none
-    ) throws {
-        guard let start = intervals.lazy.map(\.lowerBound).min(),
-              let end = intervals.lazy.map(\.upperBound).max() else {
-            throw SensorKitRecordError.emptySamples
-        }
-        if case .accelerometer = structuredProjection {
-            // One parse checks the bytes as `format`'s and reads the summary the record states.
-            let reader: RecordingCSVReader
-            do {
-                reader = try RecordingCSVReader(data, format: format)
-            } catch {
-                throw RegisteredRecordingPayloadError.invalidTabularPayload
-            }
-            self.accelerometerSummary = try? SensorKitAccelerometerRecord.Summary(reader)
-        } else {
-            try format.validatePayload(data)
-            self.accelerometerSummary = nil
-        }
-        self.sourceToken = sourceToken
-        self.format = format
-        self.data = data
-        self.effectivePeriod = DateInterval(start: start, end: end)
-        self.retryEvidence = retryEvidence ?? data
-        self.structuredProjection = structuredProjection
-    }
-
-    private static func writer(for format: RegisteredRecordingFormat) throws -> RecordingCSVWriter {
-        guard let columns = format.csvColumns else {
-            throw SensorKitRecordError.invalidRecordingFormat
-        }
-        return RecordingCSVWriter(columns: columns)
-    }
-
-    @available(iOS 17, *)
-    private static func condition(_ condition: SRWristTemperature.Condition) throws -> String {
-        let known = SRWristTemperature.Condition.offWrist.rawValue
-            | SRWristTemperature.Condition.onCharger.rawValue
-            | SRWristTemperature.Condition.inMotion.rawValue
-        guard condition.rawValue & ~known == 0 else {
-            throw SensorKitRecordError.unsupportedProviderValue(
-                field: "wristTemperature.condition",
-                rawValue: Int(condition.rawValue & ~known)
-            )
-        }
-        var values: [String] = []
-        if condition.contains(.offWrist) { values.append("offWrist") }
-        if condition.contains(.onCharger) { values.append("onCharger") }
-        if condition.contains(.inMotion) { values.append("inMotion") }
-        return values.joined(separator: ",")
     }
 }
 
