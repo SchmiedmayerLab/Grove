@@ -17,6 +17,11 @@ public import ModelsR4
 /// extensions, terminology, and adapter identity systems that are also normative but are not listed as profiles in
 /// the package graph catalog.
 public enum Canonicals {
+    // MARK: Connected providers
+
+    public static let providerExtension = ProviderContract.providerExtension
+    public static let providerSourceTypeExtension = ProviderContract.sourceTypeExtension
+
     // MARK: Mobile
 
     public static let recordingMethod = uri("/mobile/StructureDefinition/grove-recording-method")

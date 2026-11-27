@@ -18,6 +18,11 @@
           "containerPath": "container:",
           "identifier": "GroveFHIRMockPatients",
           "name": "GroveFHIRMockPatients"
+        },
+        {
+          "containerPath": "container:",
+          "identifier": "GroveProviderFHIR",
+          "name": "GroveProviderFHIR"
         }
       ]
     }
@@ -28,6 +33,13 @@
         "containerPath": "container:",
         "identifier": "GroveFHIRTests",
         "name": "GroveFHIRTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:",
+        "identifier": "GroveProviderFHIRTests",
+        "name": "GroveProviderFHIRTests"
       }
     }
   ],

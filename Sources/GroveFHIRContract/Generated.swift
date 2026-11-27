@@ -7169,6 +7169,118 @@ package enum ProfileClaims {
 }
 
 
+/// The statuses of the pinned provider catalog's source rows and elements.
+public enum ProviderImplementationStatus: String, CaseIterable, Sendable {
+    /// A plausible shared mapping is known, but the source evidence, time semantics, or result shape is insufficient for a conformant output under the Grove FHIR contracts.
+    case deferred = "deferred"
+    /// The Grove FHIR contracts deliberately refuses a normalized conversion because doing so would be misleading or diagnostic-adjacent.
+    case intentionallyUnsupported = "intentionally-unsupported"
+    /// The Grove FHIR contracts admit only the listed source-neutral Sensor recording contract and does not assert a scalar clinical result.
+    case mappedStandard = "mapped-standard"
+    /// The Grove FHIR contracts define the listed provider-scoped structured profile because no exact shared profile exists.
+    case platformExclusive = "platform-exclusive"
+    /// The Grove FHIR contracts define an exact conversion to every semantic profile listed for the source element, whether the profile is shared or provider-owned.
+    case supported = "supported"
+    /// The source element is inventoried, but no shared or provider-scoped profile models it under the Grove FHIR contracts and no output is admitted.
+    case unmodeled = "unmodeled"
+}
+
+
+/// Provider envelope constants from the pinned adapter catalog.
+package enum ProviderContract {
+    package static let adapterID = "providers"
+    package static let providerExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider"
+    package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = "https://grovealliance.org/fhir/providers/StructureDefinition/provider-source-type"
+
+    /// One source row: a provider's source token, its status and its elements.
+    package struct Source: Sendable {
+        package let provider: String
+        package let token: String
+        package let status: ProviderImplementationStatus
+        package let elements: [Element]
+    }
+
+    /// One element of a source row and the semantic profiles it converts to.
+    package struct Element: Sendable {
+        package let path: String
+        package let status: ProviderImplementationStatus
+        package let outputProfiles: [FHIRPrimitive<Canonical>]
+    }
+
+    package static let sources: [Source] = [
+        Source(provider: "google-health-api", token: "steps", status: .supported, elements: [Element(path: "steps.count", status: .supported, outputProfiles: [Profile.groveMobileStepCount])]),
+        Source(provider: "google-health-api", token: "distance", status: .supported, elements: [Element(path: "distance.millimeters", status: .supported, outputProfiles: [Profile.groveMobileDistance])]),
+        Source(provider: "google-health-api", token: "active-energy-burned", status: .supported, elements: [Element(path: "activeEnergyBurned.kcal", status: .supported, outputProfiles: [Profile.groveMobileActiveEnergy])]),
+        Source(provider: "google-health-api", token: "weight", status: .supported, elements: [Element(path: "weight.weightGrams", status: .supported, outputProfiles: [Profile.groveMobileBodyWeight])]),
+        Source(provider: "google-health-api", token: "body-fat", status: .supported, elements: [Element(path: "bodyFat.percentage", status: .supported, outputProfiles: [Profile.groveMobileBodyFatPercentage])]),
+        Source(provider: "google-health-api", token: "height", status: .supported, elements: [Element(path: "height.heightMillimeters", status: .supported, outputProfiles: [Profile.groveMobileBodyHeight])]),
+        Source(provider: "google-health-api", token: "vo2-max", status: .supported, elements: [Element(path: "vo2Max.vo2Max", status: .supported, outputProfiles: [Profile.groveMobileVo2Max])]),
+        Source(provider: "google-health-api", token: "daily-oxygen-saturation", status: .supported, elements: [Element(path: "dailyOxygenSaturation.averagePercentage", status: .supported, outputProfiles: [Profile.groveMobileOxygenSaturationDailyAverage])]),
+        Source(provider: "google-health-api", token: "heart-rate-variability", status: .supported, elements: [Element(path: "heartRateVariability.rootMeanSquareOfSuccessiveDifferencesMilliseconds", status: .supported, outputProfiles: [Profile.groveMobileHeartRateVariabilityRmssd]), Element(path: "heartRateVariability.standardDeviationMilliseconds", status: .supported, outputProfiles: [Profile.groveMobileHeartRateVariabilitySdnn])]),
+        Source(provider: "google-health-api", token: "daily-resting-heart-rate", status: .supported, elements: [Element(path: "dailyRestingHeartRate.beatsPerMinute", status: .supported, outputProfiles: [Profile.googleHealthDailyRestingHeartRate])]),
+        Source(provider: "google-health-api", token: "daily-respiratory-rate", status: .supported, elements: [Element(path: "dailyRespiratoryRate.breathsPerMinute", status: .supported, outputProfiles: [Profile.groveMobileRespiratoryRateAverage])]),
+        Source(provider: "google-health-api", token: "blood-glucose", status: .supported, elements: [Element(path: "bloodGlucose.bloodGlucoseMilligramsPerDeciliter", status: .supported, outputProfiles: [Profile.groveMobileBloodGlucoseUnspecifiedSpecimen])]),
+        Source(provider: "google-health-api", token: "core-body-temperature", status: .supported, elements: [Element(path: "coreBodyTemperature.temperatureCelsius", status: .supported, outputProfiles: [Profile.groveMobileBodyTemperature])]),
+        Source(provider: "google-health-api", token: "floors", status: .supported, elements: [Element(path: "floors.count", status: .supported, outputProfiles: [Profile.groveMobileFlightsClimbed])]),
+        Source(provider: "google-health-api", token: "basal-energy-burned", status: .supported, elements: [Element(path: "basalEnergyBurned.kcal", status: .supported, outputProfiles: [Profile.groveMobileBasalEnergy])]),
+        Source(provider: "google-health-api", token: "sleep", status: .supported, elements: [Element(path: "sleep.summary.minutesAsleep", status: .supported, outputProfiles: [Profile.groveMobileSleepDuration]), Element(path: "sleep.summary.stagesSummary[type=DEEP].minutes", status: .supported, outputProfiles: [Profile.groveMobileDeepSleepDuration]), Element(path: "sleep.summary.stagesSummary[type=REM].minutes", status: .supported, outputProfiles: [Profile.groveMobileRemSleepDuration]), Element(path: "sleep.summary.stagesSummary[type=LIGHT].minutes", status: .supported, outputProfiles: [Profile.groveMobileLightSleepDuration]), Element(path: "sleep.summary.stagesSummary[type=AWAKE].minutes", status: .supported, outputProfiles: [Profile.groveMobileSleepAwakeDuration])]),
+        Source(provider: "google-health-api", token: "exercise", status: .supported, elements: [Element(path: "exercise.interval", status: .supported, outputProfiles: [Profile.groveMobileWorkout])]),
+        Source(provider: "google-health-api", token: "heart-rate", status: .mappedStandard, elements: [Element(path: "payload", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument])]),
+        Source(provider: "oura", token: "daily_activity", status: .supported, elements: [Element(path: "steps", status: .supported, outputProfiles: [Profile.groveMobileStepCount]), Element(path: "active_calories", status: .supported, outputProfiles: [Profile.groveMobileActiveEnergy]), Element(path: "equivalent_walking_distance", status: .supported, outputProfiles: [Profile.groveMobileDistance])]),
+        Source(provider: "oura", token: "sleep", status: .supported, elements: [Element(path: "total_sleep_duration", status: .supported, outputProfiles: [Profile.groveMobileSleepDuration]), Element(path: "deep_sleep_duration", status: .supported, outputProfiles: [Profile.groveMobileDeepSleepDuration]), Element(path: "rem_sleep_duration", status: .supported, outputProfiles: [Profile.groveMobileRemSleepDuration]), Element(path: "light_sleep_duration", status: .supported, outputProfiles: [Profile.groveMobileLightSleepDuration]), Element(path: "awake_time", status: .supported, outputProfiles: [Profile.groveMobileSleepAwakeDuration]), Element(path: "lowest_heart_rate", status: .supported, outputProfiles: [Profile.groveMobileSleepHeartRate]), Element(path: "average_hrv", status: .unmodeled, outputProfiles: []), Element(path: "average_breath", status: .supported, outputProfiles: [Profile.groveMobileRespiratoryRateAverage])]),
+        Source(provider: "oura", token: "daily_spo2", status: .supported, elements: [Element(path: "spo2_percentage.average", status: .supported, outputProfiles: [Profile.groveMobileOxygenSaturationDailyAverage])]),
+        Source(provider: "oura", token: "workout", status: .supported, elements: [Element(path: "start_datetime/end_datetime", status: .supported, outputProfiles: [Profile.groveMobileWorkout])]),
+        Source(provider: "oura", token: "vO2_max", status: .supported, elements: [Element(path: "vo2_max", status: .supported, outputProfiles: [Profile.groveMobileVo2Max])]),
+        Source(provider: "oura", token: "daily_cardiovascular_age", status: .platformExclusive, elements: [Element(path: "vascular_age", status: .platformExclusive, outputProfiles: [Profile.ouraCardiovascularAge])]),
+        Source(provider: "oura", token: "daily_readiness", status: .platformExclusive, elements: [Element(path: "score", status: .platformExclusive, outputProfiles: [Profile.ouraReadinessScore])]),
+        Source(provider: "oura", token: "heartrate", status: .mappedStandard, elements: [Element(path: "payload", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument])]),
+        Source(provider: "withings", token: "getmeas:1", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBodyWeight])]),
+        Source(provider: "withings", token: "getmeas:4", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBodyHeight])]),
+        Source(provider: "withings", token: "getmeas:6", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBodyFatPercentage])]),
+        Source(provider: "withings", token: "getmeas:9", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBloodPressure])]),
+        Source(provider: "withings", token: "getmeas:10", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBloodPressure])]),
+        Source(provider: "withings", token: "getmeas:11", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileHeartRate])]),
+        Source(provider: "withings", token: "getmeas:54", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileOxygenSaturation])]),
+        Source(provider: "withings", token: "getmeas:71", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBodyTemperature])]),
+        Source(provider: "withings", token: "getmeas:123", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileVo2Max])]),
+        Source(provider: "withings", token: "getmeas:155", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsVascularAge])]),
+        Source(provider: "withings", token: "getactivity:steps", status: .supported, elements: [Element(path: "steps", status: .supported, outputProfiles: [Profile.groveMobileStepCount])]),
+        Source(provider: "withings", token: "getactivity:distance", status: .supported, elements: [Element(path: "distance", status: .supported, outputProfiles: [Profile.groveMobileDistance])]),
+        Source(provider: "withings", token: "getactivity:calories", status: .supported, elements: [Element(path: "calories", status: .supported, outputProfiles: [Profile.groveMobileActiveEnergy])]),
+        Source(provider: "withings", token: "getsummary:deepsleepduration", status: .supported, elements: [Element(path: "data.deepsleepduration", status: .supported, outputProfiles: [Profile.groveMobileDeepSleepDuration])]),
+        Source(provider: "withings", token: "getsummary:remsleepduration", status: .supported, elements: [Element(path: "data.remsleepduration", status: .supported, outputProfiles: [Profile.groveMobileRemSleepDuration])]),
+        Source(provider: "withings", token: "getsummary:lightsleepduration", status: .supported, elements: [Element(path: "data.lightsleepduration", status: .supported, outputProfiles: [Profile.groveMobileLightSleepDuration])]),
+        Source(provider: "withings", token: "getsummary:wakeupduration", status: .supported, elements: [Element(path: "data.wakeupduration", status: .supported, outputProfiles: [Profile.groveMobileSleepAwakeDuration])]),
+        Source(provider: "withings", token: "getsummary:hr_average", status: .supported, elements: [Element(path: "data.hr_average", status: .supported, outputProfiles: [Profile.groveMobileSleepHeartRate])]),
+        Source(provider: "withings", token: "getsummary:rr_average", status: .supported, elements: [Element(path: "data.rr_average", status: .supported, outputProfiles: [Profile.groveMobileRespiratoryRateAverage])]),
+        Source(provider: "withings", token: "getworkouts:interval", status: .supported, elements: [Element(path: "startdate/enddate", status: .supported, outputProfiles: [Profile.groveMobileWorkout])]),
+        Source(provider: "withings", token: "activityIntraday", status: .mappedStandard, elements: [Element(path: "steps", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "calories", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "distance", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "elevation", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "heart_rate", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "spo2_auto", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument])]),
+        Source(provider: "withings", token: "sleepIntraday", status: .mappedStandard, elements: [Element(path: "hr", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "rr", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "snoring", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "sdnn_1", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument]), Element(path: "rmssd", status: .mappedStandard, outputProfiles: [Profile.groveSensorRecordingDocument])]),
+        Source(provider: "withings", token: "getmeas:5", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileLeanBodyMass])]),
+        Source(provider: "withings", token: "getmeas:8", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.withingsBodyFatMass])]),
+        Source(provider: "withings", token: "getmeas:73", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileSkinTemperature])]),
+        Source(provider: "withings", token: "getmeas:76", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.withingsMuscleMass])]),
+        Source(provider: "withings", token: "getmeas:77", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBodyWaterMass])]),
+        Source(provider: "withings", token: "getmeas:88", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileBoneMass])]),
+        Source(provider: "withings", token: "getmeas:91", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsPulseWaveVelocity])]),
+        Source(provider: "withings", token: "getmeas:130", status: .platformExclusive, elements: [Element(path: "measure.value", status: .platformExclusive, outputProfiles: [Profile.withingsAtrialFibrillationNotificationEcg])]),
+        Source(provider: "withings", token: "getmeas:135", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsQrsDuration])]),
+        Source(provider: "withings", token: "getmeas:136", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsPrInterval])]),
+        Source(provider: "withings", token: "getmeas:137", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsQtInterval])]),
+        Source(provider: "withings", token: "getmeas:138", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsCorrectedQtInterval])]),
+        Source(provider: "withings", token: "getmeas:139", status: .platformExclusive, elements: [Element(path: "measure.value", status: .platformExclusive, outputProfiles: [Profile.withingsAtrialFibrillationNotificationPpg])]),
+        Source(provider: "withings", token: "getmeas:167", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsNerveHealthScore])]),
+        Source(provider: "withings", token: "getmeas:168", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.withingsExtracellularWaterMass])]),
+        Source(provider: "withings", token: "getmeas:169", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.withingsIntracellularWaterMass])]),
+        Source(provider: "withings", token: "getmeas:170", status: .platformExclusive, elements: [Element(path: "measure.value*10^unit", status: .platformExclusive, outputProfiles: [Profile.withingsVisceralFatIndex])]),
+        Source(provider: "withings", token: "getmeas:174", status: .intentionallyUnsupported, elements: [Element(path: "measure.value*10^unit", status: .intentionallyUnsupported, outputProfiles: [])]),
+        Source(provider: "withings", token: "getmeas:175", status: .intentionallyUnsupported, elements: [Element(path: "measure.value*10^unit", status: .intentionallyUnsupported, outputProfiles: [])]),
+        Source(provider: "withings", token: "getmeas:196", status: .supported, elements: [Element(path: "measure.value*10^unit", status: .supported, outputProfiles: [Profile.groveMobileElectrodermalActivity])]),
+        Source(provider: "withings", token: "getmeas:9+10", status: .supported, elements: [Element(path: "measure-group", status: .supported, outputProfiles: [Profile.groveMobileBloodPressure])]),
+    ]
+}
+
+
 /// Every registered Grove producer rule, generated from exchange-protocol.json.
 public enum ExchangeGraphRule: String, CaseIterable, Sendable {
     case mobileExchangeUnclassified = "mobile-exchange.unclassified"

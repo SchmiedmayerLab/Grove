@@ -1500,6 +1500,69 @@ def generate(catalog_directory: Path) -> str:
         "",
         "",
     ])
+    provider_statuses = providers_catalog["statusVocabulary"]
+    lines.extend([
+        "/// The statuses of the pinned provider catalog's source rows and elements.",
+        "public enum ProviderImplementationStatus: String, CaseIterable, Sendable {",
+    ])
+    for status in sorted(provider_statuses):
+        lines.append(f"    /// {provider_statuses[status]}")
+        lines.append(f"    case {swift_name(status)} = {swift_string(status)}")
+    lines.extend([
+        "}",
+        "",
+        "",
+        "/// Provider envelope constants from the pinned adapter catalog.",
+        "package enum ProviderContract {",
+        f"    package static let adapterID = {swift_string(providers_catalog['identity']['adapterId'])}",
+        f"    package static let providerExtension: FHIRPrimitive<FHIRURI> = {swift_string(providers_catalog['providerExtension']['url'])}",
+        f"    package static let sourceTypeExtension: FHIRPrimitive<FHIRURI> = {swift_string(providers_catalog['sourceTypeExtension']['url'])}",
+        "",
+        "    /// One source row: a provider's source token, its status and its elements.",
+        "    package struct Source: Sendable {",
+        "        package let provider: String",
+        "        package let token: String",
+        "        package let status: ProviderImplementationStatus",
+        "        package let elements: [Element]",
+        "    }",
+        "",
+        "    /// One element of a source row and the semantic profiles it converts to.",
+        "    package struct Element: Sendable {",
+        "        package let path: String",
+        "        package let status: ProviderImplementationStatus",
+        "        package let outputProfiles: [FHIRPrimitive<Canonical>]",
+        "    }",
+        "",
+        "    package static let sources: [Source] = [",
+    ])
+    measurement_profiles = dict(zip(
+        (measurement["id"] for measurement in measurements),
+        measurement_canonicals(package_graph, measurements), strict=True,
+    ))
+    for provider in providers_catalog["providers"]:
+        for row in provider.get("sourceTypes", []) + provider.get("groupedMappings", []):
+            source_elements = row.get("elements") or [{
+                "path": "measure-group", "status": row["status"], "measurementIds": row.get("measurementIds", [])
+            }]
+            rendered_elements = []
+            for element in source_elements:
+                if element["status"] not in provider_statuses or row["status"] not in provider_statuses:
+                    raise ValueError(f"{provider['id']} {row['token']}: status outside the catalog's vocabulary")
+                profiles = [measurement_profiles[identifier] for identifier in element.get("measurementIds", [])]
+                if element.get("sensorProfile"):
+                    profiles.append(element["sensorProfile"])
+                rendered_profiles = ", ".join(profile_reference(profile) for profile in profiles)
+                rendered_elements.append(
+                    f"Element(path: {swift_string(element['path'])}, status: .{swift_name(element['status'])}, "
+                    f"outputProfiles: [{rendered_profiles}])"
+                )
+            elements = ", ".join(rendered_elements)
+            lines.append(
+                "        Source("
+                f"provider: {swift_string(provider['id'])}, token: {swift_string(row['token'])}, "
+                f"status: .{swift_name(row['status'])}, elements: [{elements}]),"
+            )
+    lines.extend(["    ]", "}", "", ""])
     lines.extend(producer_rule_lines(exchange_protocol))
     lines.extend(context_snapshot_role_lines(exchange_protocol))
     lines.extend(opaque_identity_lines(exchange_protocol))
