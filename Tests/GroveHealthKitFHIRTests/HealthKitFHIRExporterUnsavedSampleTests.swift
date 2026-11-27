@@ -87,6 +87,44 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
         )
     }
 
+    /// A meal of two protein entries; the correlation takes `ordinal` and its members the next two, each attributed to
+    /// `writer` as HealthKit attributes a saved correlation's members.
+    private static func food(uuid ordinal: UInt8, writer: StoredSampleFixtures.Writer?) throws -> HKCorrelation {
+        let start = GoldenFixtures.sampleStart
+        let members = try (1...2).map { offset in
+            let sample = HKQuantitySample(
+                type: HKQuantityType(.dietaryProtein),
+                quantity: HKQuantity(unit: .gram(), doubleValue: 12),
+                start: start,
+                end: start.addingTimeInterval(60),
+                metadata: GoldenFixtures.timeZoneMetadata
+            )
+            return try StoredSampleFixtures.stored(sample, uuid: GoldenFixtures.uuid(ordinal + UInt8(offset)), writer: writer)
+        }
+        guard let writer else {
+            let correlation = HKCorrelation(
+                type: HKCorrelationType(.food),
+                start: start,
+                end: start.addingTimeInterval(120),
+                objects: Set<HKSample>(members),
+                metadata: GoldenFixtures.timeZoneMetadata
+            )
+            return try StoredSampleFixtures.stored(correlation, uuid: GoldenFixtures.uuid(ordinal))
+        }
+        return try StoredSampleFixtures.correlation(
+            HKCorrelationType(.food),
+            objects: members,
+            facts: StoredSampleFixtures.SampleFacts(
+                uuid: GoldenFixtures.uuid(ordinal),
+                start: start,
+                end: start.addingTimeInterval(120),
+                device: nil,
+                metadata: GoldenFixtures.timeZoneMetadata,
+                writer: writer
+            )
+        )
+    }
+
     private static func record(_ record: HealthKitFHIRExporter.Record) async throws -> ExchangeRecord {
         let exports = try await ExporterFixtures.collect(exporter(), [record])
         try #require(exports.count == 1)
@@ -128,6 +166,17 @@ struct HealthKitFHIRExporterUnsavedSampleTests {
         // As a plain sample, the unsaved correlation names no source.
         let plainRecord = try await Self.record(.sample(unsaved))
         #expect(plainRecord != savedRecord)
+    }
+
+    @Test("An unsaved food correlation exports with its members as the same correlation saved by the converting build")
+    func unsavedFoodStatesTheSavingRevision() async throws {
+        let unsaved = try Self.food(uuid: 0xC0, writer: nil)
+        let saved = try Self.food(uuid: 0xC0, writer: Self.savingWriter)
+        let unsavedExports = try await ExporterFixtures.collect(Self.exporter(), [.unsavedSample(.correlation(unsaved), source: Self.source)])
+        let savedExports = try await ExporterFixtures.collect(Self.exporter(), [.sample(saved)])
+        try #require(unsavedExports.count == 3 && savedExports.count == 3)
+        try #require(unsavedExports.allSatisfy { $0.record != nil })
+        #expect(unsavedExports.compactMap { $0.record?.json } == savedExports.compactMap { $0.record?.json })
     }
 
     @Test("An unsaved sample whose revision names a source keeps its own revision")

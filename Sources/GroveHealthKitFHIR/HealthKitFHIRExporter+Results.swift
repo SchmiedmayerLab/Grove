@@ -16,7 +16,7 @@ public import HealthKit
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension HealthKitFHIRExporter {
-    /// One input of ``export(records:at:receive:)``: a sample, plus the companion data HealthKit keeps
+    /// One input of ``export(records:at:conversionInstants:receive:)``: a sample, plus the companion data HealthKit keeps
     /// outside the sample for the kinds that need it. The exporter never queries HealthKit itself.
     public enum Record: Sendable {
         /// Any sample; an `HKElectrocardiogram`, `HKHeartbeatSeriesSample` or `HKWorkoutRoute` passed here is refused, as
@@ -33,7 +33,8 @@ extension HealthKitFHIRExporter {
         /// back, under the same options. Export it from the build that created it, as a later build states itself.
         ///
         /// A sample whose revision names a source, one the store held, keeps its own. ``UnsavedSample`` lists the kinds
-        /// of sample this takes.
+        /// of sample this takes. A food correlation's members that name no source state the same revision, as HealthKit
+        /// attributes a saved correlation's members to the correlation's source.
         case unsavedSample(UnsavedSample, source: HKSource = .default())
         /// An electrocardiogram with its voltages and correlated symptom samples; each symptom becomes a
         /// record of its own.
@@ -43,6 +44,8 @@ extension HealthKitFHIRExporter {
         /// A workout route with its locations, exported as a recording document only under
         /// ``Options/route`` `.authorized`.
         case workoutRoute(HKWorkoutRoute, locations: [CLLocation])
+        /// A complete file-backed route or beat series, preserving its sample metadata and device lineage.
+        case fileRecording(HealthKitRecordingFile)
 
         /// A sample of ``unsavedSample(_:source:)``: one of the kinds of sample the exporter states an unsaved one's
         /// origin for.
@@ -86,6 +89,7 @@ extension HealthKitFHIRExporter {
             case .electrocardiogram(let ecg, _, _): ecg
             case .heartbeatSeries(let series, _): series
             case .workoutRoute(let route, _): route
+            case .fileRecording(let recording): recording.sample
             }
         }
 

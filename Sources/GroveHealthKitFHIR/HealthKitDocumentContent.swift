@@ -59,6 +59,25 @@ struct DocumentPlan: Sendable {
         value < 0 ? .absent : .number(value)
     }
 
+    static func locationFields(_ fix: CLLocation) -> [RecordingCSVWriter.Field] {
+        [
+            .timestamp(fix.timestamp),
+            .number(fix.coordinate.latitude),
+            .number(fix.coordinate.longitude),
+            .number(fix.altitude),
+            Self.reported(fix.horizontalAccuracy),
+            Self.reported(fix.verticalAccuracy),
+            Self.reported(fix.speed),
+            Self.reported(fix.speedAccuracy),
+            Self.reported(fix.course),
+            Self.reported(fix.courseAccuracy)
+        ]
+    }
+
+    static func heartbeatFields(_ beat: HealthKitFHIRExporter.Record.Heartbeat, start: TimeInterval) -> [RecordingCSVWriter.Field] {
+        [.number(start + beat.timeSinceSeriesStart), .integer(beat.precededByGap ? 1 : 0)]
+    }
+
     /// A heartbeat series' beats in the plan's format, the registry's `beat-interval-series` column schema: one row per
     /// beat, its instant in epoch seconds and whether a gap preceded it. A series without beats is refused.
     func beatIntervals(seriesStart: Date, heartbeats: [HealthKitFHIRExporter.Record.Heartbeat]) throws -> Data {
@@ -70,7 +89,7 @@ struct DocumentPlan: Sendable {
         // and reading it back as epoch seconds rounds twice and moves the beat.
         let start = seriesStart.timeIntervalSince1970
         for beat in heartbeats {
-            try writer.append([.number(start + beat.timeSinceSeriesStart), .integer(beat.precededByGap ? 1 : 0)])
+            try writer.append(Self.heartbeatFields(beat, start: start))
         }
         return writer.data()
     }
@@ -84,18 +103,7 @@ struct DocumentPlan: Sendable {
         }
         var writer = try RecordingCSVWriter(format: format)
         for fix in locations {
-            try writer.append([
-                .timestamp(fix.timestamp),
-                .number(fix.coordinate.latitude),
-                .number(fix.coordinate.longitude),
-                .number(fix.altitude),
-                Self.reported(fix.horizontalAccuracy),
-                Self.reported(fix.verticalAccuracy),
-                Self.reported(fix.speed),
-                Self.reported(fix.speedAccuracy),
-                Self.reported(fix.course),
-                Self.reported(fix.courseAccuracy)
-            ])
+            try writer.append(Self.locationFields(fix))
         }
         return writer.data()
     }
@@ -104,6 +112,23 @@ struct DocumentPlan: Sendable {
     /// or ``locationTrack(_:)`` serialized.
     func document(recording: Data) throws -> DocumentReference {
         try document(recording, title: title, contentType: format.registeredContentType)
+    }
+
+    /// References the complete immutable recording without embedding its bytes or rewriting its sample envelope.
+    func document(recording: HealthKitRecordingFile) throws -> DocumentReference {
+        guard recording.format == format, let size = Int32(exactly: recording.file.byteCount) else {
+            throw HealthKitConversionError.ValueFailure.shapeInvalid
+        }
+        let attachment = Attachment(
+            contentType: format.registeredContentType?.asFHIRStringPrimitive(),
+            hash: FHIRPrimitive(Base64Binary(with: recording.file.attachmentSHA1)),
+            size: FHIRPrimitive(FHIRUnsignedInteger(size)),
+            title: title.asFHIRStringPrimitive(),
+            url: FHIRPrimitive(FHIRURI(stringLiteral: recording.relativePath))
+        )
+        var document = skeleton
+        document.content = [DocumentReferenceContent(attachment: attachment, format: formatCoding)]
+        return document
     }
 
     /// The document carrying `payload` under `title`, with its SHA-1 hash and size.

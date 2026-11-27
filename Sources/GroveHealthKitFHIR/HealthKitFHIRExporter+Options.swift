@@ -139,7 +139,7 @@ extension HealthKitFHIRExporter {
         /// is refused with ``HealthKitConversionError/sourceApplicationInvalid``.
         case applications(Set<String>)
         /// The caller classifies each source. The closure is consulted for every input that names a record, an ECG's
-        /// correlated symptoms included.
+        /// correlated symptoms and a food correlation's members included.
         case classify(@Sendable (HKSource) -> Classification)
 
         /// How the caller classifies the source (`HKSourceRevision.source`) of one sample, the answer of a
@@ -188,7 +188,7 @@ extension HealthKitFHIRExporter {
         /// No token: no recording Device proves a physical unit.
         case none
         /// The deployment's own token, or `nil` when it has none for this device. It is consulted for the `HKDevice` of
-        /// every input that names a record, an ECG's correlated symptoms included.
+        /// every input that names a record, an ECG's correlated symptoms and a food correlation's members included.
         case custom(@Sendable (HKDevice, HKSource) -> String?)
 
         /// The token this policy picks for `device`, which `source` wrote.

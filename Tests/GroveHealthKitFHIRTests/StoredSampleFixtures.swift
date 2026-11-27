@@ -99,6 +99,8 @@ enum StoredSampleFixtures {
         var table: [(className: String, keys: [String])] = [
             ("HKObject", ["UUID", "sourceRevision", "device", "metadata"]),
             ("HKSample", ["sampleType", "startTimestamp", "endTimestamp"]),
+            ("HKSeriesSample", ["count"]),
+            ("HKHeartbeatSeriesSample", ["numberOfDataPoints"]),
             ("HKSource", ["name", "bundleIdentifier"]),
             ("HKQuantitySample", ["quantity", "count"]),
             ("HKCategorySample", ["value"]),
