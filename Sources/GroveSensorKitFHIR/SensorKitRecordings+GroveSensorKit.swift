@@ -131,7 +131,7 @@ public struct SensorKitTabularRecording: Sendable {
             do {
                 reader = try RecordingCSVReader(data, format: format)
             } catch {
-                throw RegisteredRecordingPayloadError.invalidTabularPayload
+                throw RegisteredRecordingPayloadError.invalidTabularPayload(error)
             }
             self.accelerometerSummary = try? SensorKitAccelerometerRecord.Summary(reader)
         } else {

@@ -69,8 +69,17 @@ struct FileRecordingConversionTests {
     func malformedFileAndDataPayloadsHaveTheSameRefusal() throws {
         for bytes in [
             Data("wrong,header\n".utf8), Data("timestamp,value,confidence,device\n1,60,2,Watch".utf8),
-            Data("timestamp,value,confidence,device\n1,60,2,".utf8) + Data([0xFF, 0x0A])
+            Data("timestamp,value,confidence,device\n1,60,2,".utf8) + Data([0xFF, 0x0A]),
+            Data("\"timestamp\",\"value\",\"confidence\",\"device\"\n\"1\",\"60\",\"2\",\"Watch\"\n".utf8)
         ] {
+            let refusal: RecordingCSVReader.ReaderError
+            do {
+                _ = try RecordingCSVReader(bytes, format: .heartRateSamples)
+                Issue.record("the reader read a malformed payload")
+                continue
+            } catch {
+                refusal = error
+            }
             let fixture = try RecordingFileFixture(bytes)
             defer { withExtendedLifetime(fixture) {} }
             let file = try RecordingFile.stage(copying: fixture.source, maximumByteCount: bytes.count)
@@ -78,11 +87,25 @@ struct FileRecordingConversionTests {
                 SensorKitNativeRecording.Payload.sidecar(path: "recordings/heart.csv", bytes: bytes),
                 .file(path: "recordings/heart.csv", contents: file)
             ] {
-                #expect(throws: SensorKitRecordError.invalidRegisteredPayload(format: .heartRateSamples, reason: .invalidTabularPayload)) {
+                #expect(throws: SensorKitRecordError.invalidRegisteredPayload(format: .heartRateSamples, reason: .invalidTabularPayload(refusal))) {
                     try SensorKitNativeRecording(title: "Heart rate", format: .heartRateSamples, payload: payload, admission: .verifiedSanitizedInput)
                 }
             }
             #expect(try Data(contentsOf: fixture.source) == bytes)
+        }
+    }
+
+    @Test("A sidecar that quotes every field is refused with the canonical quoting error")
+    func quoteEveryFieldSidecarNamesTheCanonicalQuoting() throws {
+        let bytes = Data("\"timestamp\",\"value\",\"confidence\",\"device\"\n\"1\",\"60\",\"2\",\"Watch\"\n".utf8)
+        let reason = RegisteredRecordingPayloadError.invalidTabularPayload(.unnecessaryQuotes(row: 0, column: 0))
+        #expect(throws: SensorKitRecordError.invalidRegisteredPayload(format: .heartRateSamples, reason: reason)) {
+            try SensorKitNativeRecording(
+                title: "Heart rate",
+                format: .heartRateSamples,
+                payload: .sidecar(path: "recordings/heart.csv", bytes: bytes),
+                admission: .verifiedSanitizedInput
+            )
         }
     }
 

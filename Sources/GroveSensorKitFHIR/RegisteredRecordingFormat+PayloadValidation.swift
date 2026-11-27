@@ -23,7 +23,9 @@ public enum RegisteredRecordingPayloadError: Error, Equatable, Sendable {
     case expectedJSONObjectOrArray
     case duplicateJSONMember(String)
     case nonFiniteJSONNumber
-    case invalidTabularPayload
+    /// The bytes are not the format's registered CSV; the reader error names the first violation, such as a field quoted
+    /// although the canonical quoting leaves it unquoted.
+    case invalidTabularPayload(RecordingCSVReader.ReaderError)
     case invalidPhotoplethysmogramPayload
     case expectedR4CollectionBundle
     case missingBundleTimestamp
@@ -57,8 +59,8 @@ extension RegisteredRecordingFormat {
                 var stream = try RecordingCSVReader.Stream(format: self)
                 try file.readChunks { try stream.read($0) }
                 try stream.finish()
-            } catch is RecordingCSVReader.ReaderError {
-                throw RegisteredRecordingPayloadError.invalidTabularPayload
+            } catch let error as RecordingCSVReader.ReaderError {
+                throw RegisteredRecordingPayloadError.invalidTabularPayload(error)
             }
         } else if requiresWholePayloadDecoding {
             try validatePayload(file.decodedPayload(maximumByteCount: Self.maximumDecodedPayloadByteCount))
@@ -108,7 +110,7 @@ extension RegisteredRecordingFormat {
                 try stream.read(data)
                 try stream.finish()
             } catch {
-                throw .invalidTabularPayload
+                throw .invalidTabularPayload(error)
             }
         case .clinicalDocument:
             // The clinical document is carried byte-preserved: its grammar belongs to the issuing
