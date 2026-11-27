@@ -45,7 +45,7 @@ struct RegisteredRecordingFileValidationTests {
         let format = RegisteredRecordingFormat.heartRateSamples
         let header = try #require(format.csvColumns).joined(separator: ",")
         let invalidRow = try staged(Data("\(header)\nnot-a-timestamp,60,2,Watch\n".utf8))
-        #expect(throws: RegisteredRecordingPayloadError.invalidTabularPayload) {
+        #expect(throws: RegisteredRecordingPayloadError.invalidTabularPayload(.invalidColumnValue(row: 1, column: "timestamp"))) {
             try format.validatePayload(invalidRow, maximumByteCount: 16_384)
         }
     }
@@ -85,7 +85,7 @@ struct RegisteredRecordingFileValidationTests {
             try RegisteredRecordingFormat.nativeRecording.validatePayload(duplicate, maximumByteCount: duplicate.count)
         }
         let csv = Data("timestamp,value,confidence,device\n1,not-a-number,3,Watch\n".utf8)
-        #expect(throws: RegisteredRecordingPayloadError.invalidTabularPayload) {
+        #expect(throws: RegisteredRecordingPayloadError.invalidTabularPayload(.invalidColumnValue(row: 1, column: "value"))) {
             try RegisteredRecordingFormat.heartRateSamples.validatePayload(csv, maximumByteCount: csv.count)
         }
         let oversized = Data(repeating: 32, count: RegisteredRecordingFormat.maximumDecodedPayloadByteCount + 1)
