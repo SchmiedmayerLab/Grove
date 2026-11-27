@@ -121,11 +121,17 @@ public struct RecordingCSVReader: Sendable {
         case missingHeader
         /// The header names columns other than the ones the format publishes.
         case unexpectedHeader(expected: [String], actual: [String])
-        /// A row carries a different number of fields than the header declares.
+        /// A row carries a different number of fields than the format has columns. For too many fields, `actual` is the
+        /// count at the first extra field. A header with too many fields is reported here, one with too few as
+        /// ``unexpectedHeader(expected:actual:)``.
         case columnCountMismatch(row: Int, expected: Int, actual: Int)
         /// A quoted field is never closed.
         case unterminatedQuote(row: Int)
-        /// The field was quoted although its value contains no comma, double quote or LF.
+        /// The field is quoted although its value contains no comma, double quote or LF.
+        ///
+        /// Recording CSV has one encoding: a field is quoted exactly when its value contains a comma, a double quote or
+        /// LF, as ``RecordingCSVWriter`` writes it. A file that quotes every field, which RFC 4180 also admits, is
+        /// refused at its first such field. A value such as `60` is written without quotes.
         case unnecessaryQuotes(row: Int, column: Int)
         /// A quote appeared inside an unquoted field.
         case unexpectedQuote(row: Int, column: Int, byteOffset: Int)
@@ -165,5 +171,51 @@ public struct RecordingCSVReader: Sendable {
         try stream.finish()
         self.columns = stream.columns
         self.rows = rows
+    }
+}
+
+
+extension RecordingCSVReader.ReaderError: CustomStringConvertible {
+    /// The violation, with its row and column where it has one, naming the canonical form where the payload departs
+    /// from it.
+    public var description: String {
+        switch self {
+        case let .invalidColumnValue(row, column):
+            "row \(row): the value of column \(column) violates its registered type, canonical number form or absence rule"
+        case .notTabular(let format):
+            "the format \(format.rawValue) publishes no columns, so it is not a tabular recording"
+        case .invalidUTF8:
+            "the payload is not valid UTF-8"
+        case .missingHeader:
+            "the payload has no header row"
+        case let .unexpectedHeader(expected, actual):
+            "the header is \(actual.joined(separator: ",")), but the format publishes \(expected.joined(separator: ","))"
+        case let .columnCountMismatch(row, expected, actual):
+            actual > expected
+                ? "row \(row) has more than \(expected) fields, the number of columns the format publishes"
+                : "row \(row) has \(actual) fields, but the format publishes \(expected) columns"
+        case .unterminatedQuote(let row):
+            "row \(row) has a quoted field that is never closed"
+        case let .unnecessaryQuotes(row, column):
+            "row \(row), column \(column) is quoted, but recording CSV quotes a field only when its value contains a comma, a double quote or LF"
+        case let .unexpectedQuote(row, column, byteOffset):
+            "row \(row), column \(column) has a double quote at payload byte \(byteOffset), inside an unquoted field"
+        case let .invalidCharacterAfterClosingQuote(row, column, byteOffset):
+            "row \(row), column \(column) has, at payload byte \(byteOffset), a byte other than a comma or LF after its closing quote"
+        case let .unexpectedCarriageReturn(row, column, byteOffset):
+            "row \(row), column \(column) has a CR at payload byte \(byteOffset); recording CSV admits no CR"
+        case .missingFinalRowTerminator:
+            "the payload does not end with LF"
+        case .invalidReadLimits:
+            "the read limits must be positive and at most Int32.max"
+        case .payloadLimitExceeded:
+            "the payload exceeds the byte limit"
+        case .recordLimitExceeded(let row):
+            "row \(row) exceeds the row byte limit"
+        case let .fieldLimitExceeded(row, column):
+            "row \(row), column \(column) exceeds the field byte limit"
+        case .streamClosed:
+            "the stream finished or failed before and cannot be read again"
+        }
     }
 }

@@ -67,6 +67,24 @@ struct RecordingCSVStreamTests {
         }
     }
 
+    @Test("A file that quotes every field is refused at its first field, and its canonical form reads")
+    func quoteEveryFieldFileIsRefused() throws {
+        let quoted = "\"timestamp\",\"value\",\"confidence\",\"device\"\n\"1\",\"60\",\"2\",\"Watch, left\"\n"
+        let bytes = Data(quoted.utf8)
+        #expect(throws: RecordingCSVReader.ReaderError.unnecessaryQuotes(row: 0, column: 0)) {
+            try RecordingCSVReader(bytes, format: .heartRateSamples)
+        }
+        for size in 1...bytes.count {
+            #expect(try rejection(bytes, chunkSize: size) == .unnecessaryQuotes(row: 0, column: 0))
+        }
+        #expect(
+            RecordingCSVReader.ReaderError.unnecessaryQuotes(row: 0, column: 0).description
+                == "row 0, column 0 is quoted, but recording CSV quotes a field only when its value contains a comma, a double quote or LF"
+        )
+        let canonical = Data((try header() + "1,60,2,\"Watch, left\"\n").utf8)
+        #expect(try RecordingCSVReader(canonical, format: .heartRateSamples).rows.count == 1)
+    }
+
     @Test
     func malformedUTF8IsNeverReplacedOrAcceptedAtEndOfInput() throws {
         for bytes: [UInt8] in [[0xC0, 0xAF], [0xE2, 0x28, 0xA1], [0xED, 0xA0, 0x80], [0xF0, 0x9F]] {
