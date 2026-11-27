@@ -212,6 +212,34 @@ struct AnchoredFetcherFailureTests {
         #expect(next.info.acquisitionBatch != retry.info.acquisitionBatch)
     }
 
+    @Test("A time-range replay of a window SensorKit returns empty or with another sample count is unavailable", arguments: [0, 2])
+    @available(iOS 18, *)
+    func timeRangeReplayOfAChangedWindowIsUnavailable(sampleCount: Int) async throws {
+        let start = Date(timeIntervalSinceReferenceDate: 4_600)
+        let cutoff = start.addingTimeInterval(180)
+        let sample = AnchoredFetcherSafeSample(timeRange: start..<start)
+        func fetcher(anchor: ManagedQueryAnchor, samples: [AnchoredFetcherSafeSample])
+            -> AnchoredFetcher<ConversionFailingSample>.TimeIntervalBasedFetcher {
+            AnchoredFetcher<ConversionFailingSample>.TimeIntervalBasedFetcher(
+                sensor: makeConversionFailingSensor(),
+                anchor: anchor,
+                quarantineCutoff: cutoff,
+                batchSize: 60,
+                device: .current,
+                fetchOperation: { _, _, _ in SensorKit.FetchedSamples(samples: samples) }
+            )
+        }
+        var original = fetcher(anchor: .ephemeral(startDate: start), samples: [sample])
+        let batch = try #require(try await original.next(isolation: nil))
+        // SensorKit now returns the batch's window without samples, or with another sample count.
+        let replayAnchor = ManagedQueryAnchor.ephemeral(anchor: batch.info.replayToken.anchor)
+        var replay = fetcher(anchor: replayAnchor, samples: Array(repeating: sample, count: sampleCount))
+        await #expect(throws: GroveSensorKit.SensorKit.BatchReplayError.batchUnavailable) {
+            _ = try await GroveSensorKit.SensorKit.replayedBatch(of: &replay)
+        }
+        #expect(try replayAnchor.value == batch.info.replayToken.anchor)
+    }
+
     @Test("The first pending time-range batch of a fresh cursor states the partition it persisted, and a crash retry repeats it")
     @available(iOS 18, *)
     func timeIntervalFreshCursorStatesItsPartition() async throws {
