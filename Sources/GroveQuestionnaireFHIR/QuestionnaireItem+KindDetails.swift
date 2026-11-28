@@ -141,7 +141,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.NumericTaskConfig {
             case .decimal:
                 Extension(
                     url: FHIRPrimitive(FHIRURI(stringLiteral: core)),
-                    value: .decimal(value.asFHIRDecimalPrimitive())
+                    value: .decimal(value.shortestFHIRDecimal)
                 )
             case .quantity:
                 Extension(url: FHIRPrimitive(FHIRURI(stringLiteral: quantity)), value: .quantity(boundQuantity(value)))

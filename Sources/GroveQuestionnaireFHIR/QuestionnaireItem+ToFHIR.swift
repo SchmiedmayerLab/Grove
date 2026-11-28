@@ -334,7 +334,7 @@ extension ModelsR4.QuestionnaireItem {
         if case .numeric(let config) = task.kind.variant, config.valueKind == .integer {
             return QuestionnaireItemInitial(value: .integer(FHIRPrimitive(FHIRInteger(Int32(clamping: Int(number))))))
         }
-        return QuestionnaireItemInitial(value: .decimal(number.asFHIRDecimalPrimitive()))
+        return QuestionnaireItemInitial(value: .decimal(number.shortestFHIRDecimal))
     }
 
     private static func initialDate(

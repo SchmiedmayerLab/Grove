@@ -90,10 +90,10 @@ extension QuestionnaireResponses.Response {
                     code: config.unitCode?.asFHIRStringPrimitive(),
                     system: config.unitSystem?.asFHIRURIPrimitive(),
                     unit: (config.unit.base.isEmpty ? config.unitCode : config.unit.base)?.asFHIRStringPrimitive(),
-                    value: response.asFHIRDecimalPrimitive()
+                    value: response.shortestFHIRDecimal
                 ))
             case .decimal:
-                value = .decimal(response.asFHIRDecimalPrimitive())
+                value = .decimal(response.shortestFHIRDecimal)
             }
             responseItem.answer = [.init(value: value)]
         case let .quantity(response, unitCode):
@@ -107,18 +107,22 @@ extension QuestionnaireResponses.Response {
                 code: unitCode.asFHIRStringPrimitive(),
                 system: (unitOption?.system ?? config.unitSystem)?.asFHIRURIPrimitive(),
                 unit: (unitOption?.display.base ?? (config.unit.base.isEmpty ? unitCode : config.unit.base)).asFHIRStringPrimitive(),
-                value: response.asFHIRDecimalPrimitive()
+                value: response.shortestFHIRDecimal
             )))
             ]
         case .choice(let response):
             guard case .choice(let config) = task.kind.variant else {
                 throw FHIRResponseConversionError("Invalid Input")
             }
-            var answers = try response.selectedOptions.map { optionId in
+            let selected = try response.selectedOptions.map { optionId in
                 guard let option = try ChoiceOptionResolver.token(optionId, in: config.options) else {
                     throw FHIRResponseConversionError("Unable to find option for '\(optionId)'")
                 }
-                return QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue(displayed: context.inBaseLanguage))
+                return option
+            }
+            // Answers follow the order of the options, which is the document order enableWhen reads them in.
+            var answers = try config.options.filter { option in selected.contains { $0.id == option.id } }.map { option in
+                QuestionnaireResponseItemAnswer(value: try option.toFHIRAnswerValue(displayed: context.inBaseLanguage))
             }
             if let otherText = response.freeTextOtherResponse {
                 answers.append(.init(value: .string(otherText.asFHIRStringPrimitive())))

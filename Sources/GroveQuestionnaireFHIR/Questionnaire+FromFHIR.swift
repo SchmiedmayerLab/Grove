@@ -193,7 +193,30 @@ extension GroveQuestionnaire.Questionnaire {
         ).first?.value, styleSensitive.value?.bool == true {
             warnings.append("The questionnaire declares itself style-sensitive; this renderer does not apply rendering-style/xhtml.")
         }
+        warnings += systemlessCodingWarnings(in: other.item ?? [])
         return warnings
+    }
+
+    /// A coding without a system matches only an answer coding without a system, so every enableWhen
+    /// `answerCoding` and every `answerOption` coding without one is reported.
+    private static func systemlessCodingWarnings(in items: [ModelsR4.QuestionnaireItem]) -> [String] {
+        items.flatMap { item in
+            let linkId = item.linkId.value?.string ?? "?"
+            var warnings: [String] = []
+            for condition in item.enableWhen ?? [] {
+                if case .coding(let coding) = condition.answer, coding.system?.value == nil {
+                    let code = coding.code?.value?.string ?? "?"
+                    warnings.append("The enableWhen coding '\(code)' on item '\(linkId)' has no system, so it matches only answers without a system.")
+                }
+            }
+            for option in item.answerOption ?? [] {
+                if case .coding(let coding) = option.value, coding.system?.value == nil {
+                    let code = coding.code?.value?.string ?? "?"
+                    warnings.append("The answer option '\(code)' on item '\(linkId)' has no system, so only enableWhen codings without a system match it.")
+                }
+            }
+            return warnings + systemlessCodingWarnings(in: item.item ?? [])
+        }
     }
 
     private static func entryMode(of other: ModelsR4.Questionnaire) -> EntryMode {
@@ -1316,9 +1339,6 @@ extension GroveQuestionnaire.Questionnaire.Condition {
                 value: try enableWhen.answer.toConditionValue()
             )
         case .notEqual:
-            // Deliberately NOT compiled as not(equal): FHIR's != evaluates to false when
-            // the referenced question has no answer, whereas a negated equality would
-            // evaluate to true there.
             self = .responseValueComparison(
                 taskId: questionLinkId,
                 operator: .notEqual,
@@ -1370,19 +1390,19 @@ extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
         case .coding(let value):
             let code = try Self.unwrap(value.code?.value?.string)
             // Match the option-id token form: system|code when the coding carries a
-            // system, bare code otherwise (which then matches any system).
+            // system, bare code otherwise (which then matches only an option without a system).
             let token = (value.system?.value?.url).map { "\($0.absoluteString)|\(code)" } ?? code
             return .SCMCOption(id: token)
         case .date, .time, .dateTime:
             return .date(try Self.unwrap(dateComponents()))
         case .decimal(let value):
-            return .decimal(try Self.unwrap(value.value?.decimal.doubleValue))
+            return .decimal(try Self.unwrap(value.value?.decimal))
         case .integer(let value):
             return .integer(Int(try Self.unwrap(value.value?.integer)))
         case .quantity(let quantity):
             // Same-unit magnitude comparison; unit conversion is out of scope, so a
             // condition whose unit differs from the question's simply never matches.
-            let value = try Self.unwrap(quantity.value?.value?.decimal.doubleValue)
+            let value = try Self.unwrap(quantity.value?.value?.decimal)
             return .quantity(value: value, unitCode: quantity.code?.value?.string ?? quantity.unit?.value?.string)
         case .reference(let value):
             throw .other("Unsupported comparison value '\(value)'")

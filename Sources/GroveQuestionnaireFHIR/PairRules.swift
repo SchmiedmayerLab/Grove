@@ -193,11 +193,21 @@ enum PairRules {
         )
 
         let definitions = questionnaire["item"] as? [FHIRJSONObject] ?? []
+        validateCodingSystems(definitions, path: "Questionnaire.item", issues: &issues)
         var allDefinitionIDs: Set<String> = []
         collectDefinitionIDs(definitions, into: &allDefinitionIDs)
         var context = PairContext(
             allDefinitionIDs: allDefinitionIDs,
             allAnswers: questionnaireAnswerValues(response),
+            occurrences: PairOccurrences(definitions: definitions, response: response) { definition, path in
+                // An item enabled by an expression is a known source only when the expression evaluates.
+                guard let expressionEvaluator,
+                      let linkID = definition["linkId"] as? String,
+                      let expression = extensions(definition, url: URL.enableWhenExpression).first.flatMap(expressionString) else {
+                    return nil
+                }
+                return try? expressionEvaluator.evaluate(expression, path: path, scope: .item(linkID))
+            },
             resolver: .init(valueSets: valueSets),
             completed: completedStatuses.contains(response["status"] as? String ?? ""),
             expressionEvaluator: expressionEvaluator,
@@ -223,6 +233,7 @@ enum PairRules {
 struct PairContext {
     let allDefinitionIDs: Set<String>
     let allAnswers: [String: [Any]]
+    let occurrences: PairOccurrences
     let resolver: ValueSetResolver
     let completed: Bool
     let expressionEvaluator: PairExpressionEvaluator?
@@ -257,7 +268,9 @@ struct PairContext {
             actual[linkID, default: []].append((response, itemPath))
         }
 
-        for (linkID, occurrences) in actual where occurrences.count > 1 {
+        // A repeating group is represented by one response item for each of its instances.
+        for (linkID, occurrences) in actual where occurrences.count > 1
+            && !(expected[linkID]?["type"] as? String == "group" && expected[linkID]?["repeats"] as? Bool == true) {
             issues.append(.init(
                 code: .itemDuplicate,
                 path: path,
@@ -269,7 +282,17 @@ struct PairContext {
             guard let linkID = definition["linkId"] as? String else {
                 continue
             }
-            var enabled = evaluateEnableWhen(definition)
+            let occurrences = actual[linkID] ?? []
+            // Each instance reads the question instances nearest to it, so enablement is evaluated per instance;
+            // an item the response omits is evaluated where it would appear.
+            let instancePaths = occurrences.isEmpty ? ["\(path).\(linkID)"] : occurrences.map(\.path)
+            // A further instance of a non-repeating item is reported as a duplicate and shares the first instance's state.
+            // The items inside a duplicate instance have no occurrence of their own and are not evaluated.
+            let instances = instancePaths.map { self.occurrences.byPath[$0] }
+            let firstIndex = instances.compactMap(\.self).first
+            var states = instances.map { index in
+                (index ?? firstIndex).flatMap { self.occurrences.conditionStates[$0] }
+            }
             let expressionEnablement = PairRules.extensions(
                 definition,
                 url: PairRules.URL.enableWhenExpression
@@ -277,6 +300,7 @@ struct PairContext {
             if let expressionEnablement,
                let expression = PairRules.expressionString(from: expressionEnablement) {
                 if let expressionEvaluator {
+                    var enabled: Bool?
                     do {
                         enabled = try expressionEvaluator.evaluate(
                             expression,
@@ -284,15 +308,15 @@ struct PairContext {
                             scope: .item(linkID)
                         )
                     } catch {
-                        enabled = nil
                         issues.append(.init(
                             code: .expressionEvaluation,
                             path: path,
                             message: "enableWhenExpression for '\(linkID)' failed: \(error)"
                         ))
                     }
+                    states = states.map { _ in enabled }
                 } else if completed {
-                    enabled = nil
+                    states = states.map { _ in nil }
                     issues.append(.init(
                         code: .expressionEngineRequired,
                         path: path,
@@ -300,21 +324,21 @@ struct PairContext {
                     ))
                 }
             }
-            if enabled == nil, completed {
+            if states.contains(nil), completed, firstIndex != nil {
                 issues.append(.init(
                     code: .enableWhenEvaluation,
                     path: path,
                     message: "Cannot evaluate enableWhen for '\(linkID)'."
                 ))
             }
-            let occurrences = actual[linkID] ?? []
-            if enabled == false, let first = occurrences.first {
+            for (occurrence, enabled) in zip(occurrences, states) where enabled == false {
                 issues.append(.init(
                     code: .itemDisabled,
-                    path: first.path,
+                    path: occurrence.path,
                     message: "Disabled item '\(linkID)' must not be present."
                 ))
             }
+            let enabled = states[0]
             if completed,
                definition["required"] as? Bool == true,
                enabled == true,
@@ -326,7 +350,7 @@ struct PairContext {
                 ))
             }
 
-            for occurrence in occurrences {
+            for (occurrence, enabled) in zip(occurrences, states) {
                 validateItem(
                     definition: definition,
                     response: occurrence.value,

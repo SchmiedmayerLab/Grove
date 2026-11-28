@@ -8,6 +8,7 @@
 
 import CoreFoundation
 import Foundation
+import GroveQuestionnaire
 
 
 @available(iOS 18, macOS 15, watchOS 11, *)
@@ -27,6 +28,37 @@ extension PairRules {
             return nil
         }
         return value
+    }
+
+    /// Warns about every enableWhen `answerCoding` and every `answerOption` coding without a system.
+    ///
+    /// A coding without a system matches only an answer coding without a system, so such a condition
+    /// or option rarely means what its author intended.
+    static func validateCodingSystems(_ items: [FHIRJSONObject], path: String, issues: inout [ValidationIssue]) {
+        for (index, item) in items.enumerated() {
+            let itemPath = "\(path)[\(index)]"
+            for (conditionIndex, condition) in (item["enableWhen"] as? [FHIRJSONObject] ?? []).enumerated() {
+                if let coding = condition["answerCoding"] as? FHIRJSONObject, coding["system"] == nil {
+                    issues.append(.init(
+                        severity: .warning,
+                        code: .codingSystem,
+                        path: "\(itemPath).enableWhen[\(conditionIndex)].answerCoding",
+                        message: "The enableWhen coding has no system, so it matches only answers without a system."
+                    ))
+                }
+            }
+            for (optionIndex, option) in (item["answerOption"] as? [FHIRJSONObject] ?? []).enumerated() {
+                if let coding = option["valueCoding"] as? FHIRJSONObject, coding["system"] == nil {
+                    issues.append(.init(
+                        severity: .warning,
+                        code: .codingSystem,
+                        path: "\(itemPath).answerOption[\(optionIndex)].valueCoding",
+                        message: "The answer option coding has no system, so only enableWhen codings without a system match it."
+                    ))
+                }
+            }
+            validateCodingSystems(item["item"] as? [FHIRJSONObject] ?? [], path: "\(itemPath).item", issues: &issues)
+        }
     }
 
     static func questionnaireAnswerValues(_ response: FHIRJSONObject) -> [String: [Any]] {
@@ -103,15 +135,6 @@ extension PairRules {
         }
     }
 
-    /// A systemless enableWhen coding names a code in any system, as it does in the form's condition engine.
-    /// Answer-option membership still uses exact coding identity through `valuesEqual`.
-    static func enableWhenMatches(_ value: Any, expected: Any) -> Bool {
-        if let expectedCoding = codingKey(expected), expectedCoding.system == nil {
-            return codingKey(value)?.code == expectedCoding.code
-        }
-        return valuesEqual(value, expected)
-    }
-
     // Tri-state: nil means the answer families or quantity units are incomparable.
     // swiftlint:disable:next discouraged_optional_boolean
     static func lessThanOrEqual(_ left: Any, _ right: Any) -> Bool? {
@@ -126,22 +149,6 @@ extension PairRules {
                 return nil
             }
             return left.value <= right.value
-        }
-        return nil
-    }
-
-    static func compare(_ left: Any, _ right: Any) -> ComparisonResult? {
-        if let left = decimal(left), let right = decimal(right) {
-            if left < right {
-                return .orderedAscending
-            }
-            if left > right {
-                return .orderedDescending
-            }
-            return .orderedSame
-        }
-        if let left = left as? String, let right = right as? String {
-            return left.compare(right)
         }
         return nil
     }
@@ -169,15 +176,25 @@ extension PairRules {
         return integer
     }
 
+    /// The value of a JSON number; `nil` for any other JSON value, a numeric string included.
+    ///
+    /// JSON parsing reads a number with up to 17 significant digits into the nearest `Double`, whose
+    /// `stringValue` can carry rounding digits (`79.9` reads as `79.90000000000001`), so such a number is
+    /// read back through its shortest digits. These are the written digits for up to 15 significant digits,
+    /// and can differ from them for 16 or 17. A number with more digits parses into an exact `NSDecimalNumber`.
     static func decimal(_ value: Any?) -> Decimal? {
+        if let number = value as? NSDecimalNumber {
+            return number.decimalValue
+        }
         if let number = value as? NSNumber {
             guard CFGetTypeID(number) != CFBooleanGetTypeID() else {
                 return nil
             }
-            return Decimal(string: number.stringValue, locale: Locale(identifier: "en_US_POSIX"))
-        }
-        if let string = value as? String {
-            return Decimal(string: string, locale: Locale(identifier: "en_US_POSIX"))
+            let digits = number.stringValue
+            if digits.contains(where: { $0 == "." || $0 == "e" || $0 == "E" }) {
+                return Decimal(shortestDigitsOf: number.doubleValue)
+            }
+            return Decimal(string: digits, locale: Locale(identifier: "en_US_POSIX"))
         }
         return nil
     }

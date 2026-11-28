@@ -39,7 +39,8 @@ public protocol QuestionKindDefinition: Sendable, SendableMetatype {
 
     /// Evaluates a ``Questionnaire/Condition/responseValueComparison(taskId:operator:value:)`` condition against a response collected to a question of this kind.
     ///
-    /// - Note: By default, this function always returns `false`.
+    /// - Note: By default, the response is equal to no value and has no order, so this function returns `true`
+    ///     for ``Questionnaire/Condition/ComparisonOperator/notEqual`` and `false` for every other operator.
     static func evaluateResponseValueComparison(
         for config: Config,
         response: QuestionnaireResponses.Response.Value,
@@ -58,9 +59,8 @@ extension QuestionKindDefinition {
         operator: Questionnaire.Condition.ComparisonOperator,
         value: Questionnaire.Condition.Value
     ) -> Bool {
-        // Idea: instead of always returning false, we could try to default-match the response value against the condition value.
-        // But: might not be what we want here; the current behaviour is more explicit in forcing the question kind to customize this!
-        false
+        // A question kind customizes this to compare its responses; without that, no response equals the value.
+        `operator` == .notEqual
     }
 }
 

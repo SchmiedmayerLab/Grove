@@ -19,8 +19,15 @@ extension Questionnaire {
     ///
     /// A condition may reference any other task in the questionnaire, including tasks that appear
     /// after the one it belongs to (matching FHIR's `enableWhen`, which places no ordering
-    /// restriction on references). A condition that references its own task, an unknown task, or a
-    /// task that is itself currently disabled evaluates as if the referenced response were absent.
+    /// restriction on references). A condition that references a task that is itself currently
+    /// disabled evaluates as if the referenced response were absent; one that references its own task or an
+    /// unknown task cannot be evaluated and leaves the task disabled.
+    ///
+    /// A follow-up task occurs once for every selected option of its choice task, and once without answers while
+    /// the choice task has no selection or is disabled. A condition reads the
+    /// occurrence FHIR R4 names for `enableWhen.question`: the nearest occurrence on the ancestor axis,
+    /// then on the preceding axis, then on the following axis, in document order, where the follow-up
+    /// tasks of the selected options follow their choice task in the order of the options.
     ///
     /// ## Topics
     ///
@@ -70,8 +77,18 @@ extension Questionnaire {
         
         /// A condition that compares a task's response to some value.
         ///
-        /// - Note: Not all comparisons make sense for all question types.
-        ///     If a response is compared against a value of a different type, or if the operator isn't applicable for the type, the condition evaluates to `false`.
+        /// Integer and decimal values compare numerically with integer and decimal responses, without
+        /// binary floating-point rounding, so a response of `80.5` satisfies `>= .integer(80)`.
+        /// A ``Value/SCMCOption(id:)`` matches only the option with exactly that id.
+        ///
+        /// - Note: Not all comparisons make sense for all question types. A value of a type the question's answers
+        ///     cannot be compared with, such as a string for a boolean question or a decimal for integer options,
+        ///     makes the condition one that cannot be evaluated, and so does a reference to the task itself, to a
+        ///     task it encloses, or to a task whose enablement depends on it. Such a condition satisfies no operator,
+        ///     ``ComparisonOperator/notEqual`` included, and leaves the task disabled; within ``all(_:)`` and
+        ///     ``any(_:)`` the other conditions still decide where they suffice. A comparison whose outcome the
+        ///     values leave open, such as a full date against `2024` or a quantity in another unit, also satisfies
+        ///     no operator.
         ///
         /// - parameter taskId: The id of the task whose response should be inspected.
         /// - parameter operator: The comparison operation
@@ -91,10 +108,11 @@ extension Questionnaire {
         public enum ComparisonOperator: Hashable, Sendable {
             /// True if at least one answer has a value that is equal to the enableWhen answer
             case equal
-            /// True if at least one answer has a value that is not equal to the enableWhen answer.
+            /// True if no answer has a value that is equal to the enableWhen answer.
             ///
-            /// Unlike `.not(.responseValueComparison(…, .equal, …))`, this evaluates to `false`
-            /// when the referenced question has no answer, matching FHIR's enableWhen semantics.
+            /// This also holds when the referenced question has no answer, matching FHIR's enableWhen semantics.
+            /// It differs from `.not(.responseValueComparison(…, .equal, …))` where equality is open, such as for
+            /// a full date against `2024`: there neither holds.
             case notEqual
             /// True if at least one answer has a value that is less than the enableWhen answer
             case lessThan
@@ -109,13 +127,20 @@ extension Questionnaire {
         /// Value used in comparison conditions.
         public enum Value: Hashable, Sendable {
             case bool(Bool)
+            /// An integer, compared numerically with integer and decimal responses.
             case integer(Int)
-            case decimal(Double)
+            /// A decimal, compared numerically with integer and decimal responses.
+            ///
+            /// It keeps the digits it was given, such as a FHIR `answerDecimal`, so that a
+            /// comparison never depends on binary floating-point rounding. A float literal such as
+            /// `.decimal(36.52)` passes through `Double` and carries its binary expansion
+            /// (`36.52000000000000512`); write `Decimal(string: "36.52")`, or use the `NumberQuestion` operators.
+            case decimal(Decimal)
             case string(String)
             case date(DateComponents)
-            /// A quantity, compared against numeric responses whose unit matches `unitCode`
-            /// (a `nil` `unitCode` matches any unit).
-            case quantity(value: Double, unitCode: String?)
+            /// A quantity, compared against quantity responses in the unit `unitCode`; units are not converted,
+            /// and a `nil` `unitCode` compares only with responses without a unit.
+            case quantity(value: Decimal, unitCode: String?)
             /// A choice option, identified by its ``Questionnaire/Task/Kind-swift.struct/ChoiceConfig/Option/id``.
             ///
             /// For options created from FHIR codings, the id is the `system|code` token
