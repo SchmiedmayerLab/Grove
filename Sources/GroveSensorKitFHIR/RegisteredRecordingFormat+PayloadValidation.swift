@@ -10,19 +10,22 @@
 // swiftlint:disable cyclomatic_complexity function_body_length
 
 import Foundation
-import GroveFHIRContract
+public import GroveFHIRContract
 import ModelsR4
 
 
 /// Why bytes do not satisfy the payload grammar named by a registered format code.
 public enum RegisteredRecordingPayloadError: Error, Equatable, Sendable {
+    case payloadLimitExceeded
     case invalidFHIRJSON
     case invalidJSON
     case JSONByteOrderMark
     case expectedJSONObjectOrArray
     case duplicateJSONMember(String)
     case nonFiniteJSONNumber
-    case invalidTabularPayload
+    /// The bytes are not the format's registered CSV; the reader error names the first violation, such as a field quoted
+    /// although the canonical quoting leaves it unquoted.
+    case invalidTabularPayload(RecordingCSVReader.ReaderError)
     case invalidPhotoplethysmogramPayload
     case expectedR4CollectionBundle
     case missingBundleTimestamp
@@ -37,6 +40,33 @@ public enum RegisteredRecordingPayloadError: Error, Equatable, Sendable {
 
 
 extension RegisteredRecordingFormat {
+    /// JSON and PPG validation decodes the complete payload, limited to 64 MiB before allocation.
+    /// CSV uses bounded incremental validation; clinical documents are carried byte-preserved.
+    public static let maximumDecodedPayloadByteCount = 64 * 1024 * 1024
+
+    private var requiresWholePayloadDecoding: Bool {
+        csvColumns == nil && self != .clinicalDocument
+    }
+
+    func validatePayloadSize(_ byteCount: Int) throws(RegisteredRecordingPayloadError) {
+        guard !requiresWholePayloadDecoding || byteCount <= Self.maximumDecodedPayloadByteCount else { throw .payloadLimitExceeded }
+    }
+
+    func validatePayload(_ file: RecordingFile) throws {
+        try validatePayloadSize(file.byteCount)
+        if csvColumns != nil {
+            do {
+                var stream = try RecordingCSVReader.Stream(format: self)
+                try file.readChunks { try stream.read($0) }
+                try stream.finish()
+            } catch let error as RecordingCSVReader.ReaderError {
+                throw RegisteredRecordingPayloadError.invalidTabularPayload(error)
+            }
+        } else if requiresWholePayloadDecoding {
+            try validatePayload(file.decodedPayload(maximumByteCount: Self.maximumDecodedPayloadByteCount))
+        }
+    }
+
     /// Resolves an explicit media type or derives the sole registered representation.
     func resolveContentType(_ contentType: String?) -> String? {
         if let contentType {
@@ -51,6 +81,7 @@ extension RegisteredRecordingFormat {
     /// is caller-supplied JSON, so its constructor must prove the closed envelope rather than rely
     /// on the media type alone.
     func validatePayload(_ data: Data) throws(RegisteredRecordingPayloadError) {
+        try validatePayloadSize(data.count)
         switch self {
         case .nativeRecording, .providerRecording:
             do {
@@ -75,9 +106,11 @@ extension RegisteredRecordingFormat {
              .locationTrackSamples, .odometerSamples, .pedometerSamples, .triaxialAccelerationSamples,
              .triaxialRotationSamples, .wristTemperatureSamples:
             do {
-                _ = try RecordingCSVReader(data, format: self)
+                var stream = try RecordingCSVReader.Stream(format: self)
+                try stream.read(data)
+                try stream.finish()
             } catch {
-                throw .invalidTabularPayload
+                throw .invalidTabularPayload(error)
             }
         case .clinicalDocument:
             // The clinical document is carried byte-preserved: its grammar belongs to the issuing

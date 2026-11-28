@@ -243,6 +243,24 @@ def requirement(entry: dict[str, Any]) -> str | None:
     return None
 
 
+def admission_lines(assertions: list[str]) -> list[str]:
+    """The opaque-payload admission every adapter that admits native recordings shares."""
+    descriptions = {
+        "caller-authorized-opaque-payload": "The caller explicitly authorizes disclosure of exact opaque bytes; Grove validates the registered grammar but does not sanitize their content.",
+        "verified-sanitized-input": "The producer independently verified that the supplied bytes are sanitized.",
+    }
+    lines = [
+        "/// The producer-side assertion that admits an opaque native recording payload.",
+        "/// Grove consumes this value during preflight and never serializes it into FHIR.",
+        "public enum RecordingPayloadAdmission: String, CaseIterable, Hashable, Sendable {",
+    ]
+    for assertion in assertions:
+        lines.append(f"    /// {descriptions.get(assertion, assertion)}")
+        lines.append(f"    case {swift_name(assertion)} = {swift_string(assertion)}")
+    lines.extend(["}", "", ""])
+    return lines
+
+
 def generate_registry(sensor_path: Path, registry_path: Path) -> str:
     """Project the recording-format registry itself, which every adapter shares."""
     sensor = read_json(sensor_path)
@@ -255,6 +273,7 @@ def generate_registry(sensor_path: Path, registry_path: Path) -> str:
         raise ValueError("the recording-format registry declares no formats")
 
     lines = [HEADER.rstrip(), ""]
+    lines.extend(admission_lines(load_assertions(sensor)))
     lines.append("/// A payload format published by the Grove recording-format registry.")
     lines.append("///")
     lines.append("/// The whole registry is projected, not only the formats one adapter admits, so the type")
@@ -356,20 +375,6 @@ def generate(sensor_path: Path, adapter_path: Path, registry_path: Path) -> str:
         claims["recordingDocument"]["adapterProfile"],
     ]
     lines = [HEADER.rstrip(), ""]
-    lines.extend([
-        "/// The producer-side assertion that admits an opaque native sensor payload.",
-        "/// Grove consumes this value during preflight and never serializes it into FHIR.",
-        "public enum SensorRawPayloadAdmission: String, CaseIterable, Hashable, Sendable {",
-    ])
-    descriptions = {
-        "caller-authorized-opaque-payload": "The caller explicitly authorizes disclosure of exact opaque bytes; Grove does not inspect or sanitize them.",
-        "verified-sanitized-input": "The producer independently verified that the supplied bytes are sanitized.",
-    }
-    for assertion in assertions:
-        lines.append(f"    /// {descriptions.get(assertion, assertion)}")
-        lines.append(f"    case {swift_name(assertion)} = {swift_string(assertion)}")
-    lines.extend(["}", "", ""])
-
     constants = {
         "canonicalRoot": canonical,
         "sourceTypeExtension": f"{canonical}/StructureDefinition/sensorkit-source-type",

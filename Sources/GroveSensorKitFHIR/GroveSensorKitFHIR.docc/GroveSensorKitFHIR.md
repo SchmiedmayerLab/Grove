@@ -244,15 +244,15 @@ A structured stream prepares each sample instead, such as `try SensorKitPrepared
 
 A sidecar keeps large bytes out of the record: the DocumentReference states the path you chose as `Attachment.url`, verbatim, with the bytes' size and SHA-1, and never fetches or carries them.
 The path is a relative reference your deployment resolves, typically against the storage root you upload sidecars to, so ship the bytes there, unchanged, before the batch is acknowledged, and keep them immutable; a receiver checks what it fetched against the size and hash.
-A path must be relative, with no empty, `.` or `..` segment, query or fragment.
+A path must be relative, with no empty, `.` or `..` segment, query, fragment or percent-encoded byte.
 
 The exporter has no retraction: it takes no input that names a record to take back.
 
 ### Declare native recording bytes
 
 Opaque native bytes can carry identifying or sensitive provider content.
-Creating ``SensorKitNativeRecording`` therefore requires one explicit ``SensorRawPayloadAdmission``: caller-authorized opaque disclosure or verified sanitized input.
-Grove does not inspect or sanitize those bytes, and the admission choice is never serialized.
+Creating ``SensorKitNativeRecording`` therefore requires one explicit `GroveFHIRContract.RecordingPayloadAdmission`: caller-authorized opaque disclosure or verified sanitized input.
+Grove validates the registered payload grammar but does not sanitize sensitive content. The admission choice is never serialized.
 The registered format determines the media types that the payload is allowed to use, and formats with one representation derive their media type automatically:
 
 ```swift
@@ -269,6 +269,59 @@ Some registry formats admit more than one exact media type.
 A producer can use such a format only when its generated adapter row admits that format, and it must then supply one of the registered media types explicitly.
 Construction rejects an unregistered media type and does not infer a FHIR release from payload bytes.
 If the source payload already is a complete R4 `collection` Bundle, declare the registry's `fhir-collection-bundle` format; its initializer validates that envelope before conversion.
+
+### File-backed sidecars
+
+A recording that is already stored in a file is attached as a `GroveFHIRContract.RecordingFile` snapshot, which validation, hashing, conversion and later readers all use, even if the original file changes or is removed:
+
+```swift
+func prepareRotationRecording(
+    from sourceURL: URL,
+    maximumByteCount: Int,
+    admission: RecordingPayloadAdmission
+) throws -> SensorKitNativeRecording {
+    let file = try RecordingFile.stage(copying: sourceURL, maximumByteCount: maximumByteCount)
+    return try SensorKitNativeRecording(
+        title: "Rotation recording",
+        format: .triaxialRotationSamples,
+        payload: .file(path: "recordings/rotation.csv", contents: file),
+        admission: admission
+    )
+}
+```
+
+A file payload states the same relative URL, size and SHA-1 attachment checksum as a Data sidecar, and it embeds neither the bytes nor a local path. Validation and summaries read every row, so call them from a background executor, including for Data payloads.
+
+| Payload | Validation and summary memory |
+| --- | --- |
+| Registered CSV | Incremental parsing, with at most 4 MiB per encoded row and 1 MiB per decoded field. An accelerometer summary counts the distinct batches in memory: at most 1,000,000 per recording from at most 16 devices, retained in about 16.3 MiB for one device and at most about 20.7 MiB plus each device's name and up to a memory page per device; a set that grows briefly also holds its previous buckets, at most about 8.1 MiB more. A recording that states more cannot be summarized, and creating its record throws a ``SensorKitSummaryError``. |
+| JSON and PPG | Complete decoding, limited to 64 MiB before allocation. A larger payload is refused. |
+| Clinical documents | Byte-preserved; Grove does not decode the issuing document format. |
+
+The limits apply to Data and file payloads alike, and no path truncates bytes or splits a recording to satisfy one.
+
+### Generate a tabular recording directly into a file
+
+``SensorKitTabularRecording/File`` consumes a sample sequence once with the field mapping of ``SensorKitTabularRecording`` and writes the CSV directly into a recording file, so its bytes, retry evidence and FHIR output equal those of the Data representation:
+
+```swift
+let recording = try SensorKitTabularRecording.File(
+    samples: batch.samples,
+    deviceProductType: batch.info.device.productType,
+    maximumByteCount: recordingByteBudget
+)
+var retryHasher = SHA256()
+try recording.readRetryEvidenceChunks { retryHasher.update(data: $0) }
+let record = try recording.sensorKitRecord(
+    sourceRecordID: sourceRecordID,
+    title: "Accelerometer",
+    sidecarPath: sidecarPath,
+    admission: .callerAuthorizedOpaquePayload
+)
+try recording.file.readChunks { try destination.write(contentsOf: $0) }
+```
+
+For a wrist-temperature session, `readRetryEvidenceChunks` includes the algorithm-version prefix, which the sidecar bytes don't. Disk, batch-limit, byte-budget and cancellation failures are not clinical refusals: they abort publication and leave the batch available for a retry. A batch-limit failure repeats for the same recording, so fetch its samples in smaller batches.
 
 ### What converts
 
@@ -304,14 +357,15 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 - ``SensorKitRecord``
 - ``SensorKitSourceRecordID``
 - ``SensorKitNativeRecording``
-- ``SensorRawPayloadAdmission``
 
 ### Preparing fetched batches
 
 - ``SensorKitTabularRecording``
+- ``SensorKitTabularRecording/File``
 - ``SensorKitPreparedPPGRecording``
 - ``SensorKitPreparedStructuredRecord``
 - ``SensorKitRecordingLocation``
+- ``SensorKitSummaryError``
 
 ### Recording payloads
 

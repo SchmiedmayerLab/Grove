@@ -50,6 +50,8 @@ public struct RecordingCSVWriter: ~Copyable {
         case payloadLimitExceeded
         /// One of the configured byte limits is outside the supported range.
         case invalidWriteLimits
+        /// The file writer was closed by an earlier error.
+        case closed
     }
 
     private let schema: [RecordingCSVColumn]

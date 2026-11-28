@@ -163,6 +163,14 @@ The conformance lane in `Scripts/validate-fhir-conformance.sh` proves an adapter
 
 Use ``RecordingCSVReader/Stream`` to read the same grammar in chunks without retaining every row. ``RecordingCSVReader/Limits`` bounds the bytes a reader retains, independently of the chunk size. Delivered rows remain provisional until `finish()` validates the complete payload. A syntactically valid CSV is not itself a clinical validation result: converters separately enforce their required measurements and sample counts.
 
+``RecordingFile`` owns an immutable temporary snapshot of recording bytes. Stage one by copying a file with ``RecordingFile/stage(copying:maximumByteCount:)`` or from an asynchronous byte stream with ``RecordingFile/stage(chunks:maximumByteCount:)``; later changes to the source don't affect the snapshot, and a failure never returns a partial one. Read it in chunks of at most 64 KiB with ``RecordingFile/readChunks(_:)`` or ``RecordingFile/chunks``, where every reader has its own position and nothing is read ahead. The snapshot computes its FHIR attachment checksum while it is written. It has no filesystem name and closes with its last owner, so a durable upload queue copies its chunks into its own storage before acknowledging collection.
+
+``RecordingCSVFileWriter`` writes the same bytes as ``RecordingCSVWriter`` directly into a recording file, retaining only the current row and a 64 KiB buffer. It checks the total, row and field sizes before it allocates a row, and an error or cancellation closes it, so it never finishes a partial recording.
+
+``RecordingFile/zstandardCompressed()`` returns one Zstandard frame of the bytes when it is strictly smaller, and `nil` when the snapshot should be sent unchanged. ``RecordingFile/zstandardDecompressed(decompressedByteCount:maximumWindowByteCount:)`` decodes exactly one complete frame of a declared size within a history window budget; apply a decompressed byte budget before calling it. FHIR attachment size and checksum describe the original bytes, so a transport that compresses them keeps its own encoding, stored size and stored digest, and verifies the original size and digest after decompression.
+
+These operations are synchronous disk operations and belong on a background executor.
+
 ## Topics
 
 ### Identities
@@ -205,9 +213,12 @@ Use ``RecordingCSVReader/Stream`` to read the same grammar in chunks without ret
 ### Disclosure
 
 - ``GovernedSourceIdentifierDisclosurePolicy``
+- ``RecordingPayloadAdmission``
 
 ### Recordings
 
 - ``RegisteredRecordingFormat``
 - ``RecordingCSVWriter``
 - ``RecordingCSVReader``
+- ``RecordingFile``
+- ``RecordingCSVFileWriter``

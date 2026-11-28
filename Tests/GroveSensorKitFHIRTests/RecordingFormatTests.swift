@@ -272,12 +272,15 @@ struct RegisteredRecordingPayloadTests {
                 admission: .callerAuthorizedOpaquePayload
             )
         }
-        for path in ["../outside.json", "/absolute.json", "payloads//session-1.json", "session-1.json?version=2"] {
+        for path in [
+            "../outside.json", "/absolute.json", "payloads//session-1.json", "session-1.json?version=2",
+            "payloads%2Fsession-1.json", "%2e%2e/outside.json"
+        ] {
             #expect(throws: SensorKitRecordError.invalidSidecarPath(path)) {
                 try recording(at: path)
             }
         }
-        #expect(try recording(at: "payloads/ambient-light/session-1.json").bytes == Data("{}".utf8))
+        #expect(try recording(at: "payloads/ambient-light/session-1.json").decodedPayload() == Data("{}".utf8))
     }
 }
 

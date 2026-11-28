@@ -805,6 +805,7 @@ var targets: [Target] = [
     .target(
         name: "GroveFHIRContract",
         dependencies: [
+            .target(name: "GroveFoundation"),
             .product(name: "ModelsR4", package: "FHIRModels", condition: fhirModelsCondition),
             .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux])),
             .target(name: "ThreadLocal")
