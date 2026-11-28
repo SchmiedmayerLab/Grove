@@ -138,9 +138,14 @@ extension Questionnaire {
             case decimal(Decimal)
             case string(String)
             case date(DateComponents)
-            /// A quantity, compared against quantity responses in the unit `unitCode`; units are not converted,
-            /// and a `nil` `unitCode` compares only with responses without a unit.
-            case quantity(value: Decimal, unitCode: String?)
+            /// A quantity, compared against quantity responses in the same unit, as a FHIR `answerQuantity`.
+            ///
+            /// Units are not converted. With a `code`, the value orders responses whose unit has that code, and
+            /// that system where `system` names one; a code without a system takes the system the question gives
+            /// it, and without one counts as unit text, since FHIR records a unit code only together with its
+            /// system. With only `unit` text, it orders responses with that unit text, and without any unit only
+            /// responses without a unit. A response in another unit leaves the comparison open.
+            case quantity(value: Decimal, system: URL? = nil, code: String? = nil, unit: String? = nil)
             /// A choice option, identified by its ``Questionnaire/Task/Kind-swift.struct/ChoiceConfig/Option/id``.
             ///
             /// For options created from FHIR codings, the id is the `system|code` token

@@ -31,3 +31,47 @@ extension Double {
         FHIRPrimitive(FHIRDecimal(Decimal(shortestDigitsOf: self) ?? Decimal(self)))
     }
 }
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension Quantity {
+    /// A `Quantity` of `value` in `unit`.
+    init(_ unit: RecordedQuantityUnit, value: FHIRPrimitive<FHIRDecimal>) {
+        self.init(
+            code: unit.code?.asFHIRStringPrimitive(),
+            system: unit.system?.asFHIRURIPrimitive(),
+            unit: unit.text?.asFHIRStringPrimitive(),
+            value: value
+        )
+    }
+}
+
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension FHIRTime {
+    /// The whole seconds of the time.
+    var wholeSeconds: Int {
+        var seconds = second
+        var whole = Decimal()
+        NSDecimalRound(&whole, &seconds, 0, .down)
+        return NSDecimalNumber(decimal: whole).intValue
+    }
+
+    /// The fraction of a second in nanoseconds, finer digits dropped; `nil` for a whole second.
+    var nanoseconds: Int? {
+        var fraction = (second - Decimal(wholeSeconds)) * 1_000_000_000
+        var nanoseconds = Decimal()
+        NSDecimalRound(&nanoseconds, &fraction, 0, .down)
+        let value = NSDecimalNumber(decimal: nanoseconds).intValue
+        return value == 0 ? nil : value
+    }
+
+    /// The time of day of `components`, with its fraction of a second.
+    init(timeOf components: DateComponents) {
+        self.init(
+            hour: UInt8(clamping: components.hour ?? 0),
+            minute: UInt8(clamping: components.minute ?? 0),
+            second: Decimal(components.second ?? 0) + Decimal(components.nanosecond ?? 0) / 1_000_000_000
+        )
+    }
+}

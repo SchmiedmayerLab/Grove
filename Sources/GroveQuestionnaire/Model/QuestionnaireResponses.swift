@@ -142,6 +142,10 @@ public final class QuestionnaireResponses: Identifiable {
     /// The root's current revision; not observed, it is read while views render.
     @ObservationIgnored private var _revision = Revision()
 
+    /// What enableWhen evaluation derives from the questionnaire and the answers; not observed, it is filled while
+    /// views render. Kept on the root.
+    @ObservationIgnored var enablementCache = EnablementCache()
+
     /// Which state the answers are in: the same as long as nothing changed, whichever view they are read through.
     ///
     /// Anything derived from the answers, like an expression engine's encoding of them, can be kept for as long

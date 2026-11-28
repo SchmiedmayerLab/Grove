@@ -271,7 +271,10 @@ public struct NumberQuestion: TypedQuestion {
         guard let decimal = Decimal(shortestDigitsOf: value) else {
             preconditionFailure("A number question is compared with a finite value within the range of Decimal, not \(value).")
         }
-        return valueKind == .quantity ? .quantity(value: decimal, unitCode: unit?.code) : .decimal(decimal)
+        guard valueKind == .quantity else {
+            return .decimal(decimal)
+        }
+        return .quantity(value: decimal, system: unit?.system, code: unit?.code, unit: unit?.display.base)
     }
 
     /// Bounds the accepted values (FHIR `minValue`/`maxValue`).

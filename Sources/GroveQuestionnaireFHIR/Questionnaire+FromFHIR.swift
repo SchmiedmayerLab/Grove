@@ -852,7 +852,8 @@ extension ModelsR4.QuestionnaireItem {
                         let components = DateComponents(
                             hour: numericCast(time.hour),
                             minute: numericCast(time.minute),
-                            second: Int(time.second.doubleValue)
+                            second: time.wholeSeconds,
+                            nanosecond: time.nanoseconds
                         )
                         options.append(.init(id: "time|\(time.description)", title: title(.init(time.description)), answerValue: .time(components)))
                     case .reference:
@@ -1182,13 +1183,19 @@ extension ModelsR4.QuestionnaireItemInitial.ValueX {
                 day: dateTime.date.day.map(numericCast),
                 hour: (dateTime.time?.hour).map(numericCast),
                 minute: (dateTime.time?.minute).map(numericCast),
-                second: (dateTime.time?.second.doubleValue).map(Int.init)
+                second: dateTime.time?.wholeSeconds,
+                nanosecond: dateTime.time?.nanoseconds
             ))
         case .time(let value):
             guard let time = value.value else {
                 return nil
             }
-            return .date(DateComponents(hour: numericCast(time.hour), minute: numericCast(time.minute), second: Int(time.second.doubleValue)))
+            return .date(DateComponents(
+                hour: numericCast(time.hour),
+                minute: numericCast(time.minute),
+                second: time.wholeSeconds,
+                nanosecond: time.nanoseconds
+            ))
         default:
             return nil
         }
@@ -1400,10 +1407,13 @@ extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
         case .integer(let value):
             return .integer(Int(try Self.unwrap(value.value?.integer)))
         case .quantity(let quantity):
-            // Same-unit magnitude comparison; unit conversion is out of scope, so a
-            // condition whose unit differs from the question's simply never matches.
-            let value = try Self.unwrap(quantity.value?.value?.decimal)
-            return .quantity(value: value, unitCode: quantity.code?.value?.string ?? quantity.unit?.value?.string)
+            // The unit identity as written; units are not converted.
+            return .quantity(
+                value: try Self.unwrap(quantity.value?.value?.decimal),
+                system: quantity.system?.value?.url,
+                code: quantity.code?.value?.string,
+                unit: quantity.unit?.value?.string
+            )
         case .reference(let value):
             throw .other("Unsupported comparison value '\(value)'")
         case .string(let value):
@@ -1430,19 +1440,23 @@ extension ModelsR4.QuestionnaireItemEnableWhen.AnswerX {
             return DateComponents(
                 hour: numericCast(time.hour),
                 minute: numericCast(time.minute),
-                second: Int(time.second.doubleValue)
+                second: time.wholeSeconds,
+                nanosecond: time.nanoseconds
             )
         case .dateTime(let value):
             guard let value = value.value else {
                 return nil
             }
+            // The offset a time is given in is part of the instant it names.
             return DateComponents(
+                timeZone: value.time == nil ? nil : value.timeZone,
                 year: value.date.year,
                 month: value.date.month.map(numericCast),
                 day: (value.date.day).map(numericCast),
                 hour: (value.time?.hour).map(numericCast),
                 minute: (value.time?.minute).map(numericCast),
-                second: (value.time?.second.doubleValue).map(Int.init)
+                second: value.time?.wholeSeconds,
+                nanosecond: value.time?.nanoseconds
             )
         default:
             return nil
