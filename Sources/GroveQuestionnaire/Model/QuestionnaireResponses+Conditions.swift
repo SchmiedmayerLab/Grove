@@ -7,309 +7,82 @@
 //
 
 private import Foundation
-private import GroveFoundation
 
 
+/// The enablement `enableWhen` gives the occurrences of an ``EnablementPlacement``, as the pair rules evaluate the
+/// exported response.
+///
+/// A condition reads the occurrence FHIR R4 names for `enableWhen.question`: the nearest one on the ancestor axis,
+/// then on the preceding axis, then on the following axis. The answers of an occurrence that is not enabled, also
+/// where its enablement is unknown, count as absent, since the exported response omits it. A task or group whose
+/// enablement depends on itself cannot be evaluated (see ``ConditionDependencies``), and a follow-up task is enabled
+/// only while its choice task is.
+///
+/// The enablement of the occurrences a condition depends on is evaluated with an explicit stack, dependencies
+/// first, so the length of a chain of conditions is not limited by the thread's stack.
 @available(iOS 18, macOS 15, watchOS 11, *)
-extension QuestionnaireResponses {
-    /// A class, so that the evaluation, which recurses once for every task a condition depends on, keeps small
-    /// stack frames.
-    private final class ResolvedTask {
-        /// The task with the resolved id.
-        let task: Questionnaire.Task
-        /// The ``QuestionnaireResponses`` instance whose ``QuestionnaireResponses/responses`` property contains this task's
-        /// response; for an answerless occurrence, the container of the task it stands beneath.
-        let responses: QuestionnaireResponses
-        /// The occurrence's place in document order: the index of each enclosing task in its container,
-        /// each followed by the index of the choice option whose follow-up container holds the next level.
-        let position: [Int]
-        /// Whether the occurrence has no answers by construction: it stands for the follow-up tasks of a task that
-        /// is disabled or has no follow-up container, as the pair rules place items beneath a question without answers.
-        let isAnswerless: Bool
-
-        init(task: Questionnaire.Task, responses: QuestionnaireResponses, position: [Int], isAnswerless: Bool = false) {
-            self.task = task
-            self.responses = responses
-            self.position = position
-            self.isAnswerless = isAnswerless
-        }
-    }
-
-    /// A task definition, held by reference for the same reason as ``ResolvedTask``.
-    private final class TaskDefinition {
-        let task: Questionnaire.Task
-
-        init(_ task: Questionnaire.Task) {
-            self.task = task
-        }
-    }
-
+private struct EnablementGraph {
     /// What a condition reads for a referenced task.
-    private enum Source {
-        /// The occurrence the condition reads; it is enabled.
-        case occurrence(ResolvedTask)
-        /// The task has no enabled occurrence the condition can read, so it has no answers.
-        case absent(TaskDefinition)
+    enum Source {
+        /// The enabled occurrence the condition reads, and the container that holds its response.
+        case occurrence(Questionnaire.Task, QuestionnaireResponses)
+        /// The occurrence is not enabled or has no answers.
+        case absent(Questionnaire.Task)
         /// The condition cannot be evaluated: it reads its own task, a task the questionnaire does not have,
-        /// a task it encloses, or a task whose enablement depends on it.
+        /// or a task only the evaluated task encloses.
         case unknown
     }
-    
-    
-    /// Determines whether the task should currently be enabled, based on its ``Questionnaire/Task/enabledCondition``
-    /// and the conditions of the groups enclosing it.
-    package func shouldEnable(task: Questionnaire.Task) -> Bool {
-        shouldEnable(task: task, visited: [])
+
+    private let root: QuestionnaireResponses
+    private let placement: EnablementPlacement
+    private let cyclic: Set<ConditionDependencies.Node>
+    /// The enablement of each evaluated occurrence; `nil` when it cannot be evaluated.
+    private(set) var states: [Int: Bool?] = [:] // swiftlint:disable:this discouraged_optional_boolean
+    /// Whether the enablement of each settled occurrence can no longer change with answers not yet given.
+    private(set) var settled: [Int: Bool] = [:]
+
+    init(for container: QuestionnaireResponses) {
+        root = container.root
+        placement = container.enablementPlacement
+        cyclic = container.cyclicConditionNodes
     }
 
-    /// - parameter visited: The task ids already on the evaluation stack; a task encountered
-    ///     twice forms a reference cycle and evaluates as disabled, terminating the recursion.
-    private func shouldEnable(task: Questionnaire.Task, visited: Set<Questionnaire.Task.ID>) -> Bool {
-        // A condition that cannot be evaluated leaves the task disabled.
-        enablement(of: task, visited: visited) == true
+    /// The occurrence of `taskId` in the container the graph is made for.
+    func occurrence(of taskId: Questionnaire.Task.ID) -> Int? {
+        placement.observed[taskId]
     }
 
-    /// Whether the task is enabled; `nil` if its conditions cannot be evaluated, as on a reference cycle.
-    private func enablement(
-        of task: Questionnaire.Task,
-        visited: Set<Questionnaire.Task.ID>
-    ) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-        guard !visited.contains(task.id) else {
-            return nil
-        }
-        let visited = visited.union([task.id])
-        // A grouped task is asked only while every group it sits in is enabled.
-        let outcomes = task.groupPath.map { evaluate($0.condition, for: task, visited: visited) }
-            + [evaluate(task.enabledCondition, for: task, visited: visited)]
-        return outcomes.contains(false) ? false : outcomes.contains(nil) ? nil : true
-    }
-
-
-    private func evaluate(
-        _ condition: Questionnaire.Condition,
-        for task: Questionnaire.Task,
-        visited: Set<Questionnaire.Task.ID>
-    ) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-        Self._evaluate(condition) {
-            let source = resolve(targetTaskId: $0, from: task.id, visited: visited)
-            guard case .occurrence(let resolved) = source else {
-                return source
-            }
-            guard !resolved.isAnswerless else {
-                return .absent(TaskDefinition(resolved.task))
-            }
-            // FHIR: when evaluating enableWhen, the answers of an item that is itself currently disabled are
-            // treated as absent. A task whose enablement is evaluated further up forms a cycle and is unknown.
-            switch resolved.responses.enablement(of: resolved.task, visited: visited) {
-            case true?: return source
-            case false?: return .absent(TaskDefinition(resolved.task))
-            case nil: return .unknown
-            }
-        } evaluateExpression: { expression in
-            // SDC enableWhenExpression: an empty result disables the item. A failing one is
-            // an authoring defect, so it is recorded before the item disappears.
-            guard let engine = questionnaire.expressionEngine else {
-                return false
-            }
-            do {
-                return try engine.evaluateBoolean(expression, scope: .item(task.id), in: self) == .true
-            } catch {
-                recordExpressionFailure(expression, for: task.id, error: error)
-                return false
-            }
-        }
-    }
-    
-    
-    /// Whether the task's enablement can still change with answers not yet given.
-    ///
-    /// A condition over an unanswered question, or an expression with nothing to evaluate over, is
-    /// unsettled: the task may yet be asked. Everything else is settled, one way or the other.
-    package func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
-        isEnablementSettled(for: task, visited: [])
-    }
-
-    private func isEnablementSettled(for task: Questionnaire.Task, visited: Set<Questionnaire.Task.ID>) -> Bool {
-        guard !visited.contains(task.id) else {
-            return true
-        }
-        let visited = visited.union([task.id])
-        return task.groupPath.allSatisfy { isSettled($0.condition, for: task, visited: visited) }
-            && isSettled(task.enabledCondition, for: task, visited: visited)
-    }
-
-    private func isSettled(
-        _ condition: Questionnaire.Condition,
-        for task: Questionnaire.Task,
-        visited: Set<Questionnaire.Task.ID>
-    ) -> Bool {
-        func settled(_ inner: Questionnaire.Condition) -> Bool {
-            isSettled(inner, for: task, visited: visited)
-        }
-        func outcome(_ inner: Questionnaire.Condition) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-            evaluate(inner, for: task, visited: visited)
-        }
-        switch condition {
-        case .not(let inner):
-            return settled(inner)
-        case .all(let inner):
-            // One settled miss decides it; otherwise every part has to be settled.
-            return inner.contains { settled($0) && outcome($0) == false } || inner.allSatisfy { settled($0) }
-        case .any(let inner):
-            return inner.contains { settled($0) && outcome($0) == true } || inner.allSatisfy { settled($0) }
-        case .expression(let expression):
-            guard let engine = questionnaire.expressionEngine else {
-                return true
-            }
-            return (try? engine.evaluateBoolean(expression, scope: .item(task.id), in: self)) != .empty
-        case .hasResponse(let taskId), .isMissingResponse(let taskId), .responseValueComparison(let taskId, _, _):
-            let resolved: ResolvedTask
-            switch resolve(targetTaskId: taskId, from: task.id, visited: visited) {
-            case .occurrence(let occurrence) where occurrence.isAnswerless:
-                // A follow-up task whose option is not selected yet, or whose choice task is disabled, can still occur.
-                return false
-            case .occurrence(let occurrence):
-                resolved = occurrence
-            case .absent:
-                return false
-            case .unknown:
-                return true
-            }
-            // An answer settles it, and so does the referenced question being ruled out for good.
-            return resolved.responses.hasResponse(for: resolved.task)
-                || (!resolved.responses.shouldEnable(task: resolved.task, visited: visited)
-                    && resolved.responses.isEnablementSettled(for: resolved.task, visited: visited))
-        }
-    }
-
-    /// The occurrence of `targetTaskId` that a condition of the task `currentTaskId` in this container reads.
-    ///
-    /// Follows FHIR R4 `Questionnaire.item.enableWhen.question`: the nearest occurrence on the ancestor axis,
-    /// then on the preceding axis, then on the following axis, in document order. A follow-up task occurs once
-    /// in the container of every selected option of its choice task, in the order of the options, while that
-    /// choice task is enabled, and otherwise once without answers. A condition never reads its own task.
-    private func resolve(
-        targetTaskId: Questionnaire.Task.ID,
-        from currentTaskId: Questionnaire.Task.ID,
-        visited: Set<Questionnaire.Task.ID>
-    ) -> Source {
-        let tasks = questionnaire.sections.flatMap(\.tasks)
-        guard targetTaskId != currentTaskId, let definition = Self.task(targetTaskId, in: tasks),
-              let current = position(of: currentTaskId) else {
-            return .unknown
-        }
-        guard let candidates = Self.occurrences(
-            of: targetTaskId,
-            in: tasks,
-            container: root,
-            position: [],
-            currentPath: Array(pathFromRoot),
-            visited: visited
-        ) else {
-            return .unknown
-        }
-        if let ancestor = candidates.last(where: { current.starts(with: $0.position) }) {
-            return .occurrence(ancestor)
-        }
-        if let nearest = candidates.last(where: { $0.position.lexicographicallyPrecedes(current) })
-            ?? candidates.first(where: { current.lexicographicallyPrecedes($0.position) && !$0.position.starts(with: current) }) {
-            return .occurrence(nearest)
-        }
-        return .absent(TaskDefinition(definition))
-    }
-
-    /// The document position of the task with `taskId` in this container; see ``ResolvedTask/position``.
-    private func position(of taskId: Questionnaire.Task.ID) -> [Int]? { // swiftlint:disable:this discouraged_optional_collection
-        var tasks = questionnaire.sections.flatMap(\.tasks)
-        var current: Questionnaire.Task?
-        var container = root
-        var position: [Int] = []
-        for component in pathFromRoot {
-            switch component {
-            case .task(let id):
-                guard let index = tasks.firstIndex(where: { $0.id == id }) else {
-                    return nil
-                }
-                position.append(index)
-                current = tasks[index]
-            case .choiceOption(let optionId):
-                guard let task = current,
-                      let index = Self.followUpContainerIndex(of: optionId, of: task, in: container) else {
-                    return nil
-                }
-                position.append(index)
-                tasks = task.kind.followUpTasks
-                container = container.view(appending: ResponsesPath().appending(taskId: task.id).appending(choiceOption: optionId))
-            }
-        }
-        guard let index = tasks.firstIndex(where: { $0.id == taskId }) else {
-            return nil
-        }
-        return position + [index]
+    private func view(_ path: QuestionnaireResponses.ResponsesPath) -> QuestionnaireResponses {
+        path.isEmpty ? root : root.view(appending: path)
     }
 }
 
 
-@available(iOS 18, macOS 15, watchOS 11, *)
-extension QuestionnaireResponses {
-    /// The outcome of `condition`: `nil` if it cannot be evaluated, as in the pair rules.
-    ///
-    /// `not`, `all` and `any` follow three-valued logic, so a condition that cannot be evaluated decides only
-    /// where the known conditions do not.
-    /// - parameter condition: The ``Questionnaire/Condition`` that should be evaluated
-    /// - parameter resolveTaskId: Maps a referenced task id to what the condition reads for it.
-    private static func _evaluate( // swiftlint:disable:this cyclomatic_complexity
-        _ condition: Questionnaire.Condition,
-        _ resolveTaskId: (Questionnaire.Task.ID) -> Source,
-        evaluateExpression: (String) -> Bool
-    ) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-        func inner(_ condition: Questionnaire.Condition) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-            _evaluate(condition, resolveTaskId, evaluateExpression: evaluateExpression)
-        }
-        switch condition {
-        case .not(let condition):
-            return inner(condition).map(!)
-        case .any(let conditions):
-            let outcomes = conditions.map(inner)
-            return outcomes.contains(true) ? true : outcomes.contains(nil) ? nil : false
-        case .all(let conditions):
-            let outcomes = conditions.map(inner)
-            return outcomes.contains(false) ? false : outcomes.contains(nil) ? nil : true
-        case .expression(let expression):
-            return evaluateExpression(expression)
-        case .hasResponse(let taskId):
-            switch resolveTaskId(taskId) {
-            case .occurrence(let resolved): return resolved.responses.hasResponse(for: resolved.task)
-            case .absent: return false
-            case .unknown: return nil
-            }
-        case .isMissingResponse(let taskId):
-            switch resolveTaskId(taskId) {
-            case .occurrence(let resolved): return resolved.responses.isMissingResponse(for: resolved.task)
-            case .absent: return false
-            case .unknown: return nil
-            }
-        case let .responseValueComparison(taskId, `operator`, value):
-            return compare(resolveTaskId(taskId), `operator`, value)
-        }
-    }
+// MARK: Evaluation
 
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension EnablementGraph {
     /// The outcome of a ``Questionnaire/Condition/responseValueComparison(taskId:operator:value:)`` on `source`.
-    @inline(never)
     private static func compare(
         _ source: Source,
         _ operator: Questionnaire.Condition.ComparisonOperator,
         _ value: Questionnaire.Condition.Value
     ) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
-        let resolved: ResolvedTask
         switch source {
-        case .occurrence(let occurrence):
-            resolved = occurrence
-        case .absent(let definition):
-            if case .custom = definition.task.kind.variant {
+        case let .occurrence(task, container):
+            let response = container.responses[task.id].value
+            if case let .custom(questionKind, config) = task.kind.variant {
+                return questionKind.evaluateResponseValueComparison(for: config, response: response, operator: `operator`, value: value)
+            }
+            guard ConditionAnswer.compares(value, withAnswersOf: task), ConditionAnswer.compares(`operator`, with: value) else {
+                return nil
+            }
+            return ConditionAnswer.answers(of: response, for: task).satisfy(`operator`, ConditionAnswer.recorded(value, for: task))
+        case .absent(let task):
+            if case .custom = task.kind.variant {
                 return `operator` == .notEqual
             }
-            guard ConditionAnswer.compares(value, withAnswersOf: definition.task), ConditionAnswer.compares(`operator`, with: value) else {
+            guard ConditionAnswer.compares(value, withAnswersOf: task), ConditionAnswer.compares(`operator`, with: value) else {
                 return nil
             }
             // An absent or disabled question has no answers.
@@ -317,20 +90,209 @@ extension QuestionnaireResponses {
         case .unknown:
             return nil
         }
-        let task = resolved.task
-        let response = resolved.responses.responses[task.id].value
-        if case let .custom(questionKind, config) = task.kind.variant {
-            return questionKind.evaluateResponseValueComparison(
-                for: config,
-                response: response,
-                operator: `operator`,
-                value: value
-            )
-        }
-        guard ConditionAnswer.compares(value, withAnswersOf: task), ConditionAnswer.compares(`operator`, with: value) else {
+    }
+
+    /// The occurrence a condition of the occurrence `index` reads for `taskId`; `nil` if there is none.
+    private func source(of taskId: Questionnaire.Task.ID, from index: Int) -> Int? {
+        let occurrences = placement.occurrences
+        guard occurrences[index].task.id != taskId else {
             return nil
         }
-        return ConditionAnswer.answers(of: response, for: task).satisfy(`operator`, value)
+        var ancestor = occurrences[index].parent
+        while let current = ancestor {
+            if occurrences[current].task.id == taskId {
+                return current
+            }
+            ancestor = occurrences[current].parent
+        }
+        let candidates = placement.readable[taskId] ?? []
+        return candidates.last { $0 < index } ?? candidates.first { $0 > index && !isDescendant($0, of: index) }
+    }
+
+    private func isDescendant(_ candidate: Int, of index: Int) -> Bool {
+        var parent = placement.occurrences[candidate].parent
+        while let current = parent {
+            if current == index {
+                return true
+            }
+            parent = placement.occurrences[current].parent
+        }
+        return false
+    }
+
+    /// The conditions of the occurrence: those of its groups, then its own; `nil` for one that depends on itself.
+    private func conditions(of index: Int) -> [Questionnaire.Condition?] {
+        let task = placement.occurrences[index].task
+        return task.groupPath.map { cyclic.contains(.group($0.id)) ? nil : $0.condition }
+            + [cyclic.contains(.task(task.id)) ? nil : task.enabledCondition]
+    }
+
+    /// The occurrences the enablement of `index` depends on.
+    ///
+    /// A comparison that cannot be evaluated is `nil` whatever its source's enablement, so, as in the cycles,
+    /// it adds no dependency.
+    private func dependencies(of index: Int) -> [Int] {
+        let sources = conditions(of: index).compactMap(\.self).flatMap { condition in
+            ConditionDependencies.references(in: condition) { taskId, comparison in
+                source(of: taskId, from: index).map { ConditionDependencies.isEvaluable(comparison, on: placement.occurrences[$0].task) } ?? false
+            }
+            .compactMap { source(of: $0, from: index) }
+        }
+        return (placement.occurrences[index].parent.map { [$0] } ?? []) + sources
+    }
+
+    /// Evaluates the enablement of `index` and of every occurrence it depends on, dependencies first.
+    ///
+    /// - returns: The occurrences evaluated, in the order they were evaluated.
+    @discardableResult
+    mutating func evaluate(_ index: Int) -> [Int] {
+        var order: [Int] = []
+        var expanded: Set<Int> = []
+        var stack = [index]
+        while let current = stack.last {
+            if states[current] != nil {
+                stack.removeLast()
+                continue
+            }
+            // An occurrence already being expanded would form a cycle; its enablement reads as unknown.
+            let pending = expanded.contains(current)
+                ? []
+                : dependencies(of: current).filter { states[$0] == nil && !expanded.contains($0) }
+            guard pending.isEmpty else {
+                expanded.insert(current)
+                stack += pending
+                continue
+            }
+            stack.removeLast()
+            states[current] = .some(state(of: current))
+            order.append(current)
+        }
+        return order
+    }
+
+    /// The enablement of `index`, from that of its dependencies.
+    private func state(of index: Int) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        let enclosing = placement.occurrences[index].parent.map { states[$0].flatMap(\.self) } ?? true
+        let outcomes = [enclosing] + conditions(of: index).map { condition in
+            condition.flatMap { outcome(of: $0, at: index) }
+        }
+        return outcomes.contains(false) ? false : outcomes.contains(nil) ? nil : true
+    }
+
+    /// What a condition of the occurrence `index` reads for `taskId`.
+    private func read(_ taskId: Questionnaire.Task.ID, from index: Int) -> Source {
+        guard let source = source(of: taskId, from: index) else {
+            return .unknown
+        }
+        let occurrence = placement.occurrences[source]
+        guard states[source] == true, let container = occurrence.container else {
+            return .absent(occurrence.task)
+        }
+        return .occurrence(occurrence.task, view(container))
+    }
+
+    /// The outcome of `condition` for the occurrence `index`: `nil` if it cannot be evaluated, as in the pair rules.
+    ///
+    /// `not`, `all` and `any` follow three-valued logic, so a condition that cannot be evaluated decides only
+    /// where the known conditions do not.
+    private func outcome( // swiftlint:disable:this cyclomatic_complexity
+        of condition: Questionnaire.Condition,
+        at index: Int
+    ) -> Bool? { // swiftlint:disable:this discouraged_optional_boolean
+        switch condition {
+        case .not(let inner):
+            return outcome(of: inner, at: index).map(!)
+        case .any(let conditions):
+            let outcomes = conditions.map { outcome(of: $0, at: index) }
+            return outcomes.contains(true) ? true : outcomes.contains(nil) ? nil : false
+        case .all(let conditions):
+            let outcomes = conditions.map { outcome(of: $0, at: index) }
+            return outcomes.contains(false) ? false : outcomes.contains(nil) ? nil : true
+        case .expression(let expression):
+            return expressionOutcome(expression, at: index)
+        case .hasResponse(let taskId):
+            switch read(taskId, from: index) {
+            case let .occurrence(task, container): return container.hasResponse(for: task)
+            case .absent: return false
+            case .unknown: return nil
+            }
+        case .isMissingResponse(let taskId):
+            switch read(taskId, from: index) {
+            case let .occurrence(task, container): return !task.isOptional && !task.isHidden && !container.hasResponse(for: task)
+            case .absent: return false
+            case .unknown: return nil
+            }
+        case let .responseValueComparison(taskId, `operator`, value):
+            return Self.compare(read(taskId, from: index), `operator`, value)
+        }
+    }
+
+    /// SDC enableWhenExpression: an empty result disables the item. A failing one is an authoring defect, so it is
+    /// recorded before the item disappears.
+    private func expressionOutcome(_ expression: String, at index: Int) -> Bool {
+        let occurrence = placement.occurrences[index]
+        guard let engine = root.questionnaire.expressionEngine else {
+            return false
+        }
+        let scope = view(occurrence.scope)
+        do {
+            return try engine.evaluateBoolean(expression, scope: .item(occurrence.task.id), in: scope) == .true
+        } catch {
+            scope.recordExpressionFailure(expression, for: occurrence.task.id, error: error)
+            return false
+        }
+    }
+}
+
+
+// MARK: Settledness
+
+@available(iOS 18, macOS 15, watchOS 11, *)
+extension EnablementGraph {
+    /// Decides whether the enablement of `index` is settled; its dependencies have to be settled first.
+    mutating func settle(_ index: Int) {
+        // Each part of the enablement: whether it holds, and whether that is settled.
+        var parts: [(outcome: Bool?, isSettled: Bool)] = [] // swiftlint:disable:this discouraged_optional_boolean
+        if let parent = placement.occurrences[index].parent {
+            parts.append((states[parent].flatMap(\.self), settled[parent] ?? false))
+        }
+        for condition in conditions(of: index) {
+            // A condition that cannot be evaluated stays so.
+            parts.append(condition.map { (outcome(of: $0, at: index), isSettled($0, at: index)) } ?? (nil, true))
+        }
+        // One settled miss decides it; otherwise every part has to be settled.
+        settled[index] = parts.contains { $0.isSettled && $0.outcome == false } || parts.allSatisfy(\.isSettled)
+    }
+
+    private func isSettled(_ condition: Questionnaire.Condition, at index: Int) -> Bool {
+        switch condition {
+        case .not(let inner):
+            return isSettled(inner, at: index)
+        case .all(let inner):
+            return inner.contains { isSettled($0, at: index) && outcome(of: $0, at: index) == false }
+                || inner.allSatisfy { isSettled($0, at: index) }
+        case .any(let inner):
+            return inner.contains { isSettled($0, at: index) && outcome(of: $0, at: index) == true }
+                || inner.allSatisfy { isSettled($0, at: index) }
+        case .expression(let expression):
+            let occurrence = placement.occurrences[index]
+            guard let engine = root.questionnaire.expressionEngine else {
+                return true
+            }
+            return (try? engine.evaluateBoolean(expression, scope: .item(occurrence.task.id), in: view(occurrence.scope))) != .empty
+        case .hasResponse(let taskId), .isMissingResponse(let taskId), .responseValueComparison(let taskId, _, _):
+            guard let source = source(of: taskId, from: index) else {
+                return true
+            }
+            // An answer of an enabled occurrence settles it, and so does the occurrence being ruled out for good.
+            // An occurrence without answers beneath a choice task that can still be selected is unsettled, and so
+            // is an answer stored beneath a task that is disabled but can still be enabled.
+            let occurrence = placement.occurrences[source]
+            if states[source] == true, let container = occurrence.container {
+                return view(container).hasResponse(for: occurrence.task)
+            }
+            return states[source] != true && settled[source] == true
+        }
     }
 }
 
@@ -358,75 +320,32 @@ extension QuestionKindDefinition {
 
 @available(iOS 18, macOS 15, watchOS 11, *)
 extension QuestionnaireResponses {
-    /// Every occurrence of `taskId` among `tasks` and their follow-up containers, in document order; `nil` if whether
-    /// a follow-up container occurs is open.
+    /// Determines whether the task should currently be enabled, based on its ``Questionnaire/Task/enabledCondition``,
+    /// the conditions of the groups enclosing it, and the enablement of the choice task it follows up on.
     ///
-    /// - parameter visited: The task ids on the evaluation stack, for deciding whether a choice task is enabled.
-    /// - parameter currentPath: The rest of the path of the container a condition is evaluated in. A custom kind's
-    ///     container on it occurs also while it holds no responses.
-    private static func occurrences( // swiftlint:disable:this function_parameter_count cyclomatic_complexity function_body_length
-        of taskId: Questionnaire.Task.ID,
-        in tasks: [Questionnaire.Task],
-        container: QuestionnaireResponses,
-        position: [Int],
-        currentPath: [ResponsePathComponent],
-        visited: Set<Questionnaire.Task.ID>
-    ) -> [ResolvedTask]? { // swiftlint:disable:this discouraged_optional_collection
-        var occurrences: [ResolvedTask] = []
-        for (index, task) in tasks.enumerated() {
-            let taskPosition = position + [index]
-            if task.id == taskId {
-                occurrences.append(.init(task: task, responses: container, position: taskPosition))
-            }
-            // Only follow-up containers that can hold the task are searched.
-            guard Self.contains(taskId, in: task.kind.followUpTasks) else {
-                continue
-            }
-            // The follow-up tasks of a disabled task, or of one without a follow-up container, occur once beneath it
-            // without answers. That occurrence sorts before every follow-up container of the task.
-            let answerless = ResolvedTask(
-                task: Self.task(taskId, in: task.kind.followUpTasks) ?? task,
-                responses: container,
-                position: taskPosition + [-1],
-                isAnswerless: true
-            )
-            switch container.enablement(of: task, visited: visited) {
-            case true?: break
-            case false?:
-                occurrences.append(answerless)
-                continue
-            // Whether the follow-up tasks occur is open, as on a cycle through the task's own condition.
-            case nil: return nil
-            }
-            var currentOptionId: Questionnaire.Task.Kind.ChoiceConfig.Option.ID?
-            if currentPath.count >= 2, case .task(task.id) = currentPath[0], case .choiceOption(let optionId) = currentPath[1] {
-                currentOptionId = optionId
-            }
-            var optionIds = Self.followUpContainers(of: task, in: container)
-            if case .custom = task.kind.variant, let currentOptionId, !optionIds.contains(currentOptionId) {
-                optionIds.append(currentOptionId)
-            }
-            guard !optionIds.isEmpty else {
-                occurrences.append(answerless)
-                continue
-            }
-            for optionId in optionIds {
-                guard let containerIndex = Self.followUpContainerIndex(of: optionId, of: task, in: container) else {
-                    continue
-                }
-                guard let nested = Self.occurrences(
-                    of: taskId,
-                    in: task.kind.followUpTasks,
-                    container: container.view(appending: ResponsesPath().appending(taskId: task.id).appending(choiceOption: optionId)),
-                    position: taskPosition + [containerIndex],
-                    currentPath: optionId == currentOptionId ? Array(currentPath.dropFirst(2)) : [],
-                    visited: visited
-                ) else {
-                    return nil
-                }
-                occurrences += nested
-            }
+    /// A condition that cannot be evaluated leaves the task disabled, and so does a task that does not occur in
+    /// this container.
+    package func shouldEnable(task: Questionnaire.Task) -> Bool {
+        var graph = EnablementGraph(for: self)
+        guard let index = graph.occurrence(of: task.id) else {
+            return false
         }
-        return occurrences
+        graph.evaluate(index)
+        return graph.states[index] == true
+    }
+
+    /// Whether the task's enablement can still change with answers not yet given.
+    ///
+    /// A condition over an unanswered question, or an expression with nothing to evaluate over, is
+    /// unsettled: the task may yet be asked. Everything else is settled, one way or the other.
+    package func isEnablementSettled(for task: Questionnaire.Task) -> Bool {
+        var graph = EnablementGraph(for: self)
+        guard let index = graph.occurrence(of: task.id) else {
+            return true
+        }
+        for evaluated in graph.evaluate(index) {
+            graph.settle(evaluated)
+        }
+        return graph.settled[index] == true
     }
 }

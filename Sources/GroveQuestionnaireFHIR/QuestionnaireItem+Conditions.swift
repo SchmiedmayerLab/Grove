@@ -68,8 +68,8 @@ extension ModelsR4.QuestionnaireItem {
             return .decimal(FHIRPrimitive(FHIRDecimal(decimal)))
         case .string(let string):
             return .string(string.asFHIRStringPrimitive())
-        case let .quantity(quantity, unitCode):
-            return .quantity(context.quantity(quantity, unitCode: unitCode, forTaskWithId: taskId))
+        case let .quantity(quantity, system, code, text):
+            return .quantity(context.conditionQuantity(quantity, system: system, code: code, unit: text, forTaskWithId: taskId))
         case .date(let components):
             return try enableWhenAnswer(forDate: components)
         case .SCMCOption(let optionId):
@@ -78,21 +78,23 @@ extension ModelsR4.QuestionnaireItem {
     }
 
     private static func enableWhenAnswer(forDate components: DateComponents) throws -> QuestionnaireItemEnableWhen.AnswerX {
-        if components.year == nil {
-            return .time(FHIRPrimitive(FHIRTime(
-                hour: UInt8(clamping: components.hour ?? 0),
-                minute: UInt8(clamping: components.minute ?? 0),
-                second: Decimal(components.second ?? 0)
-            )))
+        let time = FHIRTime(timeOf: components)
+        guard let year = components.year else {
+            return .time(FHIRPrimitive(time))
         }
-        if components.hour != nil {
-            throw ExportError("dateTime enableWhen conditions are not exportable yet; compare on a date instead")
-        }
-        return .date(FHIRPrimitive(FHIRDate(
-            year: components.year ?? 0,
+        let date = FHIRDate(
+            year: year,
             month: components.month.map { UInt8(clamping: $0) },
             day: components.day.map { UInt8(clamping: $0) }
-        )))
+        )
+        guard components.hour != nil else {
+            return .date(FHIRPrimitive(date))
+        }
+        // R4 gives a dateTime with a time an offset; without one, the instant the condition names is open.
+        guard let timeZone = components.timeZone else {
+            throw ExportError("A dateTime enableWhen condition with a time of day needs a time zone")
+        }
+        return .dateTime(FHIRPrimitive(DateTime(date: date, time: time, timezone: timeZone)))
     }
 
     /// Option tokens are `system|code` (or a bare code).

@@ -48,11 +48,6 @@ struct FHIRExportContext {
         quantity(value.shortestFHIRDecimal, unitCode: unitCode, forTaskWithId: taskId)
     }
 
-    /// A `Quantity` expressed in the unit the given question is answered in, with the digits of `value`.
-    func quantity(_ value: Decimal, unitCode: String?, forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID) -> Quantity {
-        quantity(FHIRPrimitive(FHIRDecimal(value)), unitCode: unitCode, forTaskWithId: taskId)
-    }
-
     private func quantity(
         _ value: FHIRPrimitive<FHIRDecimal>,
         unitCode: String?,
@@ -65,6 +60,22 @@ struct FHIRExportContext {
             unit: unitCode?.asFHIRStringPrimitive(),
             value: value
         )
+    }
+
+    /// The `Quantity` of a condition on the given question, with the unit identity the question records it in.
+    func conditionQuantity(
+        _ value: Decimal,
+        system: URL?,
+        code: String?,
+        unit: String?,
+        forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID
+    ) -> Quantity {
+        let recorded = if case .numeric(let config)? = tasksById[taskId]?.kind.variant {
+            config.recordedUnit(ofConditionWith: system, code: code, text: unit)
+        } else {
+            RecordedQuantityUnit(system: system, code: code, text: unit)
+        }
+        return Quantity(recorded, value: FHIRPrimitive(FHIRDecimal(value)))
     }
 
     private func unitSystem(ofUnit code: String, forTaskWithId taskId: GroveQuestionnaire.Questionnaire.Task.ID) -> URL? {

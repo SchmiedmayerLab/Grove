@@ -425,11 +425,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 day: components.day.map(numericCast)
             )))
         case .time(let components):
-            return .time(FHIRPrimitive(FHIRTime(
-                hour: components.hour.map(numericCast) ?? 0,
-                minute: components.minute.map(numericCast) ?? 0,
-                second: components.second.map { Decimal($0) } ?? 0
-            )))
+            return .time(FHIRPrimitive(FHIRTime(timeOf: components)))
         case nil:
             return .coding(toFHIRCoding(displayed: displayed))
         }

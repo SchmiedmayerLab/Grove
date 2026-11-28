@@ -65,22 +65,4 @@ extension QuestionnaireResponses {
             return nil
         }
     }
-
-    /// The task with `taskId` among `tasks` or their follow-up tasks, at any depth.
-    static func task(_ taskId: Questionnaire.Task.ID, in tasks: [Questionnaire.Task]) -> Questionnaire.Task? {
-        for task in tasks {
-            if task.id == taskId {
-                return task
-            }
-            if let found = Self.task(taskId, in: task.kind.followUpTasks) {
-                return found
-            }
-        }
-        return nil
-    }
-
-    /// Whether `taskId` is one of `tasks` or of their follow-up tasks, at any depth.
-    static func contains(_ taskId: Questionnaire.Task.ID, in tasks: [Questionnaire.Task]) -> Bool {
-        tasks.contains { $0.id == taskId || contains(taskId, in: $0.kind.followUpTasks) }
-    }
 }

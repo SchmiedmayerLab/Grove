@@ -540,7 +540,7 @@ struct FHIRConformanceTests {
                             enabledCondition: .responseValueComparison(
                                 taskId: "weight",
                                 operator: .greaterThan,
-                                value: .quantity(value: 100, unitCode: "kg")
+                                value: .quantity(value: 100, code: "kg")
                             )
                         )
                     ],

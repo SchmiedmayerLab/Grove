@@ -317,11 +317,7 @@ extension GroveQuestionnaire.Questionnaire.Task.Kind.ChoiceConfig.Option {
                 day: components.day.map { UInt8(clamping: $0) }
             )))
         case .time(let components):
-            return .time(FHIRPrimitive(FHIRTime(
-                hour: UInt8(clamping: components.hour ?? 0),
-                minute: UInt8(clamping: components.minute ?? 0),
-                second: Decimal(components.second ?? 0)
-            )))
+            return .time(FHIRPrimitive(FHIRTime(timeOf: components)))
         case nil:
             throw ExportError("Choice option '\(id)' on '\(taskId)' has no coding; declare a system")
         }

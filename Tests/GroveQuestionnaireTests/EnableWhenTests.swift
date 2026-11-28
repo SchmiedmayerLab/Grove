@@ -618,7 +618,7 @@ struct EnableWhenTests {
     func quantityQuestionOperatorsCompareInTheirUnit() throws {
         let weight = NumberQuestion.quantity("weight", "Weight", unit: "kg")
         let condition = weight >= 80
-        #expect(condition == .responseValueComparison(taskId: "weight", operator: .greaterThanOrEqual, value: .quantity(value: 80, unitCode: "kg")))
+        #expect(condition == .responseValueComparison(taskId: "weight", operator: .greaterThanOrEqual, value: .quantity(value: 80, system: URL(string: "http://unitsofmeasure.org"), code: "kg", unit: "kg")))
         let questionnaire = Questionnaire(
             metadata: .init(id: "", url: nil, title: "", explainer: ""),
             sections: [
@@ -754,11 +754,12 @@ struct EnableWhenTests {
         #expect(responses.isEnablementSettled(for: summary))
     }
 
-    /// Resolving a condition searches only the follow-up containers that can hold its question, so many
-    /// conditional choice tasks with follow-ups stay fast to evaluate.
+    /// A chain of about a hundred conditional choice tasks evaluates on a thread with a small stack, since the
+    /// enablement of the tasks a condition depends on is not evaluated by recursion.
     @Test(.timeLimit(.minutes(1)))
-    func manyConditionalChoiceTasksEvaluateQuickly() throws {
-        let tasks: [GroveQuestionnaire.Questionnaire.Task] = (0..<12).map { index in
+    func longConditionChainsDoNotDependOnTheThreadStack() async throws {
+        let length = 100
+        let tasks: [GroveQuestionnaire.Questionnaire.Task] = (0..<length).map { index in
             .init(
                 id: "choice\(index)",
                 title: "",
@@ -776,12 +777,336 @@ struct EnableWhenTests {
             metadata: .init(id: "", url: nil, title: "", explainer: ""),
             sections: [.init(id: "section", tasks: tasks + [
                 .init(id: "summary", title: "", kind: .boolean, enabledCondition: .responseValueComparison(
-                    taskId: "detail11", operator: .notEqual, value: .bool(false)
+                    taskId: "detail\(length - 1)", operator: .equal, value: .bool(true)
                 ))
             ])]
         )
         let responses = QuestionnaireResponses(questionnaire: questionnaire)
-        #expect(try enabled("summary", in: responses))
+        for index in 0..<length {
+            responses.responses["choice\(index)"] = .init(value: .choice(.init(selectedOptions: ["yes"])))
+            responses.view(appending: .init().appending(taskId: "choice\(index)").appending(choiceOption: "yes"))
+                .responses["detail\(index)"] = .init(value: .bool(true))
+        }
+        let summary = try #require(questionnaire.task(withId: "summary"))
+        // The responses are used only on the thread until it resumes the continuation.
+        nonisolated(unsafe) let evaluated = responses
+        let outcome = await withCheckedContinuation { continuation in
+            let thread = Thread {
+                continuation.resume(returning: [evaluated.shouldEnable(task: summary), evaluated.isEnablementSettled(for: summary)])
+            }
+            thread.stackSize = 128 * 1024
+            thread.start()
+        }
+        #expect(outcome == [true, true])
+    }
+
+    /// A follow-up task of a choice task that is disabled for good is settled: no answer still to be given lets
+    /// it occur, so a condition on it no longer counts towards the questions that may be asked.
+    @Test
+    func followUpsOfAPermanentlyDisabledChoiceAreSettled() throws {
+        let questionnaire = Questionnaire(
+            metadata: .init(id: "", url: nil, title: "", explainer: ""),
+            sections: [
+                .init(id: "section", tasks: [
+                    .init(id: "plays", title: "", kind: .boolean),
+                    .init(
+                        id: "rounds",
+                        title: "",
+                        kind: .choice(.init(
+                            options: [.init(id: "first", title: "First")],
+                            allowsMultipleSelection: false,
+                            followUpTasks: [.init(id: "played", title: "", kind: .boolean)]
+                        )),
+                        enabledCondition: .responseValueComparison(taskId: "plays", operator: .equal, value: .bool(true))
+                    ),
+                    .init(id: "summary", title: "", kind: .boolean, enabledCondition: .responseValueComparison(
+                        taskId: "played", operator: .equal, value: .bool(true)
+                    ))
+                ])
+            ]
+        )
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        let summary = try #require(questionnaire.task(withId: "summary"))
+        // While `plays` is unanswered, `rounds` and with it `played` can still be asked.
+        #expect(!responses.isEnablementSettled(for: summary))
+        // A selection and an answer stored beneath `rounds` do not count while it is disabled, and leave the
+        // condition open while `rounds` can still be enabled.
+        responses.responses["rounds"] = .init(value: .choice(.init(selectedOptions: ["first"])))
+        responses.view(appending: .init().appending(taskId: "rounds").appending(choiceOption: "first"))
+            .responses["played"] = .init(value: .bool(true))
+        #expect(!responses.shouldEnable(task: summary))
+        #expect(!responses.isEnablementSettled(for: summary))
+        responses.responses["plays"] = .init(value: .bool(false))
+        #expect(!responses.shouldEnable(task: summary))
+        #expect(responses.isEnablementSettled(for: summary))
+        responses.responses["rounds"] = .init(value: .none)
+        #expect(responses.isEnablementSettled(for: summary))
+        responses.responses["rounds"] = .init(value: .choice(.init(selectedOptions: ["first"])))
+        responses.view(appending: .init().appending(taskId: "rounds").appending(choiceOption: "first"))
+            .responses["played"] = .init(value: .bool(true))
+        responses.responses["plays"] = .init(value: .bool(true))
+        #expect(responses.shouldEnable(task: summary))
+    }
+
+    /// In the container of an unselected option, where a follow-up task's condition can still be evaluated, a
+    /// condition on another follow-up task reads its occurrence without answers.
+    @Test
+    func conditionsInAnUnselectedOptionReadTheOccurrenceWithoutAnswers() throws {
+        let questionnaire = Questionnaire(
+            metadata: .init(id: "", url: nil, title: "", explainer: ""),
+            sections: [
+                .init(id: "section", tasks: [
+                    .init(id: "rounds", title: "", kind: .choice(.init(
+                        options: [.init(id: "first", title: "First")],
+                        allowsMultipleSelection: false,
+                        followUpTasks: [
+                            .init(id: "played", title: "", kind: .boolean),
+                            .init(id: "bonus", title: "", kind: .boolean, enabledCondition: .responseValueComparison(
+                                taskId: "played", operator: .notEqual, value: .bool(true)
+                            )),
+                            .init(id: "extra", title: "", kind: .boolean, enabledCondition: .not(.hasResponse(taskId: "played")))
+                        ]
+                    )))
+                ])
+            ]
+        )
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        let first = responses.view(appending: .init().appending(taskId: "rounds").appending(choiceOption: "first"))
+        let followUps = try #require(questionnaire.task(withId: "rounds")).kind.followUpTasks
+        let bonus = try #require(followUps.first { $0.id == "bonus" })
+        let extra = try #require(followUps.first { $0.id == "extra" })
+        #expect(first.shouldEnable(task: bonus))
+        #expect(first.shouldEnable(task: extra))
+    }
+
+    /// A condition that cannot be evaluated closes no dependency cycle, as in the pair rules, so the other
+    /// conditions still decide.
+    @Test
+    func conditionsThatCannotBeEvaluatedCloseNoCycle() throws {
+        let questionnaire = Questionnaire(
+            metadata: .init(id: "", url: nil, title: "", explainer: ""),
+            sections: [
+                .init(id: "section", tasks: [
+                    .init(id: "flag", title: "", kind: .boolean),
+                    .init(id: "first", title: "", kind: .boolean, enabledCondition: .any([
+                        .responseValueComparison(taskId: "second", operator: .equal, value: .string("x")),
+                        .responseValueComparison(taskId: "flag", operator: .equal, value: .bool(true))
+                    ])),
+                    .init(id: "second", title: "", kind: .boolean, enabledCondition: .responseValueComparison(
+                        taskId: "first", operator: .equal, value: .bool(true)
+                    ))
+                ])
+            ]
+        )
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["flag"] = .init(value: .bool(true))
+        #expect(try enabled("first", in: responses))
+        #expect(try !enabled("second", in: responses))
+        responses.responses["first"] = .init(value: .bool(true))
+        #expect(try enabled("second", in: responses))
+    }
+
+    /// Such a condition adds no dependency either, so tasks that reference each other through it evaluate alike
+    /// whichever of them is evaluated first, here through a group's condition.
+    @Test
+    func conditionsThatCannotBeEvaluatedAddNoDependency() throws {
+        let firstIsTrue = GroveQuestionnaire.Questionnaire.Condition.responseValueComparison(taskId: "first", operator: .equal, value: .bool(true))
+        var third = GroveQuestionnaire.Questionnaire.Task(id: "third", title: "", kind: .boolean, enabledCondition: firstIsTrue)
+        third.groupPath = [.init(id: "group", condition: .responseValueComparison(taskId: "second", operator: .equal, value: .bool(true)))]
+        let questionnaire = Questionnaire(
+            metadata: .init(id: "", url: nil, title: "", explainer: ""),
+            sections: [
+                .init(id: "section", tasks: [
+                    .init(id: "flag", title: "", kind: .boolean),
+                    .init(id: "first", title: "", kind: .boolean, enabledCondition: .any([
+                        .responseValueComparison(taskId: "second", operator: .equal, value: .string("x")),
+                        .responseValueComparison(taskId: "flag", operator: .equal, value: .bool(true))
+                    ])),
+                    .init(id: "second", title: "", kind: .boolean, enabledCondition: firstIsTrue),
+                    third
+                ])
+            ]
+        )
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        for id in ["flag", "first", "second"] {
+            responses.responses[id] = .init(value: .bool(true))
+        }
+        #expect(try enabled("third", in: responses))
+        #expect(try enabled("second", in: responses))
+    }
+
+    /// A custom question kind compares every value itself, so an ordered comparison on a string reads its
+    /// enabled response.
+    @Test
+    func customKindsCompareEveryValueThemselves() throws {
+        struct Config: QuestionKindConfig {}
+        struct OrderedKind: QuestionKindDefinition {
+            static func validate(
+                response: QuestionnaireResponses.Response,
+                for config: Config
+            ) -> QuestionnaireResponses.ResponseValidationResult {
+                .ok
+            }
+
+            static func evaluateResponseValueComparison(
+                for config: Config,
+                response: QuestionnaireResponses.Response.Value,
+                operator: GroveQuestionnaire.Questionnaire.Condition.ComparisonOperator,
+                value: GroveQuestionnaire.Questionnaire.Condition.Value
+            ) -> Bool {
+                guard case .string(let threshold) = value, let answer = response.stringValue, `operator` == .greaterThan else {
+                    return false
+                }
+                return answer > threshold
+            }
+        }
+        let questionnaire = Questionnaire(
+            metadata: .init(id: "", url: nil, title: "", explainer: ""),
+            sections: [
+                .init(id: "section", tasks: [
+                    .init(id: "custom", title: "", kind: .custom(OrderedKind.self, config: Config())),
+                    .init(id: "later", title: "", kind: .boolean, enabledCondition: .responseValueComparison(
+                        taskId: "custom", operator: .greaterThan, value: .string("b")
+                    ))
+                ])
+            ]
+        )
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["custom"] = .init(value: .string("c"))
+        #expect(try enabled("later", in: responses))
+        responses.responses["custom"] = .init(value: .string("a"))
+        #expect(try !enabled("later", in: responses))
+    }
+
+    // MARK: Agreement with the pair rules
+
+    /// A quantity condition orders the answers in its unit as the exported condition does the exported answers:
+    /// by code and system, by unit text without a code, and a code without a system as unit text.
+    @Test
+    func quantityUnitIdentityAgreesWithThePairRules() throws {
+        func quantity(_ value: Int, code: String? = nil, system: String? = nil, unit: String? = nil) -> QuestionnaireItemEnableWhen.AnswerX {
+            .quantity(Quantity(
+                code: code?.asFHIRStringPrimitive(),
+                system: system.map { FHIRPrimitive(FHIRURI(stringLiteral: $0)) },
+                unit: unit?.asFHIRStringPrimitive(),
+                value: FHIRPrimitive(FHIRDecimal(Decimal(value)))
+            ))
+        }
+        let ucum = "http://unitsofmeasure.org"
+        func unit(_ url: String, code: String, system: String?, display: String) -> Extension {
+            Extension(
+                url: FHIRPrimitive(FHIRURI(stringLiteral: url)),
+                value: .coding(Coding(
+                    code: code.asFHIRStringPrimitive(),
+                    display: display.asFHIRStringPrimitive(),
+                    system: system.map { FHIRPrimitive(FHIRURI(stringLiteral: $0)) }
+                ))
+            )
+        }
+        var weight = item("weight", .quantity)
+        weight.extension = [unit("http://hl7.org/fhir/StructureDefinition/questionnaire-unit", code: "kg", system: ucum, display: "kilogram")]
+        var dose = item("dose", .quantity)
+        dose.extension = [unit("http://hl7.org/fhir/StructureDefinition/questionnaire-unit", code: "mg", system: nil, display: "milligram")]
+        var height = item("height", .quantity)
+        height.extension = [
+            unit("http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption", code: "cm", system: ucum, display: "centimeter"),
+            unit("http://hl7.org/fhir/StructureDefinition/questionnaire-unitOption", code: "[in_i]", system: ucum, display: "inch")
+        ]
+        let cases: [(id: String, question: String, answer: QuestionnaireItemEnableWhen.AnswerX, operation: QuestionnaireItemOperator, enabled: Bool)] = [
+            ("coded", "weight", quantity(80, code: "kg", system: ucum), .greaterThanOrEqual, true),
+            ("code-takes-the-question-system", "weight", quantity(80, code: "kg"), .greaterThanOrEqual, true),
+            ("unit-text", "weight", quantity(80, unit: "kilogram"), .greaterThanOrEqual, true),
+            ("other-system", "weight", quantity(80, code: "kg", system: "https://example.org/units"), .greaterThanOrEqual, false),
+            ("other-system-not-equal", "weight", quantity(85, code: "kg", system: "https://example.org/units"), .notEqual, false),
+            ("without-unit", "weight", quantity(80), .greaterThanOrEqual, false),
+            ("uncoded-unit-text", "dose", quantity(5, unit: "milligram"), .equal, true),
+            ("code-without-system-is-text", "dose", quantity(5, code: "mg"), .equal, false),
+            ("chosen-unit", "height", quantity(60, code: "[in_i]", system: ucum), .greaterThan, true),
+            ("other-unit-option", "height", quantity(100, code: "cm", system: ucum), .lessThan, false)
+        ]
+        var targets = cases.map { entry in
+            var target = item(entry.id, .boolean, when: [condition(entry.question, entry.operation, entry.answer)])
+            target.required = true
+            return target
+        }
+        targets.insert(contentsOf: [weight, dose, height], at: 0)
+        let questionnaire = try questionnaire(targets)
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["weight"] = .init(value: .number(85))
+        responses.responses["dose"] = .init(value: .number(5))
+        responses.responses["height"] = .init(value: .quantity(70, unitCode: "[in_i]"))
+        for entry in cases {
+            #expect(try enabled(entry.id, in: responses) == entry.enabled, "\(entry.id)")
+        }
+        #expect(try disagreements(answeringEnabled: cases.map(\.id), in: responses).isEmpty)
+    }
+
+    /// A date-time condition keeps the offset and the fraction of a second it is written with, on import and on
+    /// export, so it names the same instant as in the pair rules.
+    @Test
+    func dateTimeConditionsKeepTheirTimeZone() throws {
+        func dateTime(_ text: String) throws -> QuestionnaireItemEnableWhen.AnswerX {
+            .dateTime(FHIRPrimitive(try DateTime(text)))
+        }
+        let cases: [(id: String, condition: String, operation: QuestionnaireItemOperator, enabled: Bool)] = [
+            ("after-ten-in-karachi", "2024-03-05T10:00:00+05:00", .greaterThan, true),
+            ("before-eleven-in-karachi", "2024-03-05T11:00:00+05:00", .lessThan, true),
+            ("at-the-instant-in-utc", "2024-03-05T05:30:00Z", .equal, true),
+            ("before-a-fraction-later", "2024-03-05T05:30:00.5Z", .lessThan, true),
+            ("not-a-fraction-later", "2024-03-05T05:30:00.5Z", .equal, false)
+        ]
+        var items = try cases.map { entry in
+            var target = item(entry.id, .boolean, when: [condition("seen", entry.operation, try dateTime(entry.condition))])
+            target.required = true
+            return target
+        }
+        items.insert(item("seen", .dateTime), at: 0)
+        let questionnaire = try questionnaire(items)
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        // The participant's wall-clock time for 05:30 UTC, in whatever zone the device is in.
+        let instant = try #require(ISO8601DateFormatter().date(from: "2024-03-05T05:30:00Z"))
+        responses.responses["seen"] = .init(value: .date(Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: instant)))
+        for entry in cases {
+            #expect(try enabled(entry.id, in: responses) == entry.enabled, "\(entry.id)")
+        }
+        #expect(try disagreements(answeringEnabled: cases.map(\.id), in: responses).isEmpty)
+        let exported = try ModelsR4.Questionnaire(questionnaire)
+        let karachi = exported.item?.first { $0.linkId.value?.string == "after-ten-in-karachi" }?.enableWhen?.first?.answer
+        guard case .dateTime(let value)? = karachi else {
+            Issue.record("Expected a dateTime condition")
+            return
+        }
+        #expect(value.value?.timeZone?.secondsFromGMT() == 5 * 3_600)
+        #expect(value.value?.time?.hour == 10)
+    }
+
+    /// The answers of a question whose enablement cannot be evaluated count as absent, as in the exported response,
+    /// which omits the question, so a condition on it is decided as the pair rules decide it.
+    @Test
+    func sourcesWithUnknownEnablementAreDecidedAsThePairRulesDo() throws {
+        let cases: [(id: String, answer: QuestionnaireItemEnableWhen.AnswerX, operation: QuestionnaireItemOperator, enabled: Bool)] = [
+            ("not-true", .boolean(true), .notEqual, true),
+            ("true", .boolean(true), .equal, false),
+            ("missing", .boolean(false), .exists, true)
+        ]
+        var items = cases.map { entry in
+            var target = item(entry.id, .boolean, when: [condition("cycle-a", entry.operation, entry.answer)])
+            target.required = true
+            return target
+        }
+        items.insert(contentsOf: [
+            item("cycle-a", .boolean, when: [condition("cycle-b", .exists, .boolean(true))]),
+            item("cycle-b", .boolean, when: [condition("cycle-a", .exists, .boolean(true))])
+        ], at: 0)
+        let questionnaire = try questionnaire(items)
+        let responses = QuestionnaireResponses(questionnaire: questionnaire)
+        responses.responses["cycle-a"] = .init(value: .bool(true))
+        responses.responses["cycle-b"] = .init(value: .bool(true))
+        #expect(try !enabled("cycle-a", in: responses))
+        for entry in cases {
+            #expect(try enabled(entry.id, in: responses) == entry.enabled, "\(entry.id)")
+        }
+        #expect(try disagreements(answeringEnabled: cases.map(\.id), in: responses).isEmpty)
     }
 
     /// Exported answers follow the order of the options, which is the order conditions read them in.
@@ -856,6 +1181,24 @@ extension EnableWhenTests {
             item("not-blue", .display, when: [condition("color", .notEqual, .coding(coding("blue", system: Self.colors)))]),
             item("not-red-without-system", .display, when: [condition("color", .notEqual, .coding(coding("red", system: nil)))])
         ])
+    }
+
+    /// Answers every enabled one of the boolean `targets` and returns the pair issues that disagree with the
+    /// enablement on the device: an exported item that is disabled, or an enabled required item that is missing.
+    private func disagreements(answeringEnabled targets: [String], in responses: QuestionnaireResponses) throws -> [ValidationIssue] {
+        for target in targets where try enabled(target, in: responses) {
+            responses.responses[target] = .init(value: .bool(true))
+        }
+        // The resources are exported one by one: the pair builder refuses a pair with a condition it cannot evaluate.
+        let questionnaire = try ModelsR4.Questionnaire(responses.questionnaire)
+        let response = try ModelsR4.QuestionnaireResponse(
+            responses,
+            renderedIn: questionnaireResponseTestLocale,
+            authored: questionnaireResponseTestAuthoredAt,
+            authoredTimeZone: questionnaireResponseTestTimeZone
+        )
+        return PairValidator().issues(questionnaire: questionnaire, response: response)
+            .filter { $0.code == .itemDisabled || $0.code == .requiredItem }
     }
 
     private func enabled(_ taskId: String, in responses: QuestionnaireResponses) throws -> Bool {

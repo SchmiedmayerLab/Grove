@@ -86,12 +86,7 @@ extension QuestionnaireResponses.Response {
                 }
                 value = .integer(FHIRPrimitive(FHIRInteger(integer)))
             case .quantity:
-                value = .quantity(Quantity(
-                    code: config.unitCode?.asFHIRStringPrimitive(),
-                    system: config.unitSystem?.asFHIRURIPrimitive(),
-                    unit: (config.unit.base.isEmpty ? config.unitCode : config.unit.base)?.asFHIRStringPrimitive(),
-                    value: response.shortestFHIRDecimal
-                ))
+                value = .quantity(Quantity(config.recordedUnit(ofAnswerIn: nil), value: response.shortestFHIRDecimal))
             case .decimal:
                 value = .decimal(response.shortestFHIRDecimal)
             }
@@ -101,14 +96,8 @@ extension QuestionnaireResponses.Response {
                 throw FHIRResponseConversionError("Invalid Input")
             }
             // The participant chose the unit (questionnaire-unitOption).
-            let unitOption = config.unitOptions.first { $0.code == unitCode }
             responseItem.answer = [
-                .init(value: .quantity(Quantity(
-                code: unitCode.asFHIRStringPrimitive(),
-                system: (unitOption?.system ?? config.unitSystem)?.asFHIRURIPrimitive(),
-                unit: (unitOption?.display.base ?? (config.unit.base.isEmpty ? unitCode : config.unit.base)).asFHIRStringPrimitive(),
-                value: response.shortestFHIRDecimal
-            )))
+                .init(value: .quantity(Quantity(config.recordedUnit(ofAnswerIn: unitCode), value: response.shortestFHIRDecimal)))
             ]
         case .choice(let response):
             guard case .choice(let config) = task.kind.variant else {
@@ -199,11 +188,7 @@ extension QuestionnaireResponses.Response {
                 day: response.day.map(numericCast)
             )))
         case .timeOnly:
-            return .time(FHIRPrimitive(FHIRTime(
-                hour: response.hour.map(numericCast) ?? 0,
-                minute: response.minute.map(numericCast) ?? 0,
-                second: response.second.map { Decimal($0) } ?? 0
-            )))
+            return .time(FHIRPrimitive(FHIRTime(timeOf: response)))
         case .dateAndTime:
             guard let year = response.year else {
                 throw FHIRResponseConversionError("Date answer is missing a year")
@@ -217,11 +202,7 @@ extension QuestionnaireResponses.Response {
                     month: response.month.map(numericCast),
                     day: response.day.map(numericCast)
                 ),
-                time: FHIRTime(
-                    hour: response.hour.map(numericCast) ?? 0,
-                    minute: response.minute.map(numericCast) ?? 0,
-                    second: response.second.map { Decimal($0) } ?? 0
-                ),
+                time: FHIRTime(timeOf: response),
                 timezone: .current
             )))
         }

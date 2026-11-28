@@ -16,8 +16,8 @@ enum ConditionAnswer {
     case string(String)
     /// An integer or decimal answer, compared exactly.
     case number(Decimal)
-    /// A quantity answer, compared exactly in `unitCode`, the unit the answer is given in.
-    case quantity(Decimal, unitCode: String?)
+    /// A quantity answer, compared exactly, in the unit its exported `Quantity` records.
+    case quantity(Decimal, unit: RecordedQuantityUnit)
     /// The integer value of a choice option, which compares only with an integer.
     case integerOption(Int)
     case date(DateComponents, style: Questionnaire.Task.Kind.DateTimeConfig.Style)
@@ -93,6 +93,16 @@ enum ConditionAnswer {
         }
     }
 
+    /// `value` as the exported condition records it for the answers of `task`: a quantity's unit code takes the
+    /// system the question gives it, or counts as unit text without one.
+    static func recorded(_ value: Questionnaire.Condition.Value, for task: Questionnaire.Task) -> Questionnaire.Condition.Value {
+        guard case let .quantity(number, system, code, text) = value, case .numeric(let config) = task.kind.variant else {
+            return value
+        }
+        let unit = config.recordedUnit(ofConditionWith: system, code: code, text: text)
+        return .quantity(value: number, system: unit.system, code: unit.code, unit: unit.text)
+    }
+
     /// The answers a response holds for the task.
     static func answers( // swiftlint:disable:this cyclomatic_complexity
         of response: QuestionnaireResponses.Response.Value,
@@ -106,12 +116,12 @@ enum ConditionAnswer {
         case .dateTime(let config):
             return response.dateValue.map { [.date($0, style: config.style)] } ?? []
         case .numeric(let config):
-            // A unit the participant chose (unitOption) takes precedence over the fixed unit.
-            let unitCode = response.quantityValue?.unitCode ?? config.unitCode ?? (config.unit.base.isEmpty ? nil : config.unit.base)
             guard let number = response.numberValue.flatMap({ Decimal(shortestDigitsOf: $0) }) else {
                 return []
             }
-            return [config.valueKind == .quantity ? .quantity(number, unitCode: unitCode) : .number(number)]
+            // A unit the participant chose (unitOption) takes precedence over the fixed unit.
+            let unit = config.recordedUnit(ofAnswerIn: response.quantityValue?.unitCode)
+            return [config.valueKind == .quantity ? .quantity(number, unit: unit) : .number(number)]
         case .choice(let config):
             let choice = response.choiceValue
             let selected: [Self] = config.options.filter { choice.selectedOptions.contains($0.id) }.map { option in
@@ -142,8 +152,8 @@ enum ConditionAnswer {
     ) -> ComparisonResult? {
         switch style {
         case .timeOnly:
-            let answer = [answer.hour ?? 0, answer.minute ?? 0, answer.second ?? 0]
-            let value = [value.hour ?? 0, value.minute ?? 0, value.second ?? 0]
+            let answer = [answer.hour ?? 0, answer.minute ?? 0, answer.second ?? 0, answer.nanosecond ?? 0]
+            let value = [value.hour ?? 0, value.minute ?? 0, value.second ?? 0, value.nanosecond ?? 0]
             return answer == value ? .orderedSame : answer.lexicographicallyPrecedes(value) ? .orderedAscending : .orderedDescending
         case .dateOnly:
             // Dates compare as far as both state them; when they agree that far and one is more precise,
@@ -164,6 +174,8 @@ enum ConditionAnswer {
             let order = compare(answer, value, style: .dateOnly)
             return order == .orderedSame && answer.hour != nil ? nil : order
         case .dateAndTime:
+            // A component without a time zone is in the current one, as the exported answer is; a condition
+            // imported from FHIR keeps the offset it was given in.
             let calendar = Calendar.current
             guard let answer = calendar.date(from: answer), let value = calendar.date(from: value) else {
                 return nil
@@ -192,9 +204,10 @@ enum ConditionAnswer {
             return .ordered(Self.compare(answer, value))
         case let (.integerOption(answer), .integer(value)):
             return .ordered(Self.compare(answer, value))
-        case let (.quantity(answer, unitCode), .quantity(value, conditionUnit)):
-            // Units are not converted; a condition without a unit orders only answers without a unit.
-            return conditionUnit == unitCode ? .ordered(Self.compare(answer, value)) : .unknown
+        case let (.quantity(answer, unit), .quantity(value, system, code, text)):
+            // `expected` is recorded for the question (see `recorded(for:)`), as the exported condition is.
+            let threshold = RecordedQuantityUnit(system: system, code: code, text: text)
+            return unit.orders(with: threshold) ? .ordered(Self.compare(answer, value)) : .unknown
         case let (.date(answer, style), .date(value)):
             return Self.compare(answer, value, style: style).map { .ordered($0) } ?? .unknown
         default:
