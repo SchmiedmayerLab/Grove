@@ -21,6 +21,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         case batchSequence
         case pendingBatch
         case streamPartition
+        case nativeTimestampBits
+        case nativeClock
     }
 
     struct PendingBatch: Hashable, Codable, Sendable {
@@ -33,6 +35,7 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         let lowerBound: Date?
         let upperBound: Date
         let sampleCount: Int
+        let nativeUpperBoundBits: UInt64?
 
         var timeRange: Range<Date>? {
             guard mode == .timeRange, let lowerBound else {
@@ -41,12 +44,21 @@ struct QueryAnchor: Hashable, Codable, Sendable {
             return lowerBound..<upperBound
         }
 
-        static func sampleCount(deliveryTimestamp: Date, sampleCount: Int) -> Self {
+        init(mode: Mode, lowerBound: Date?, upperBound: Date, sampleCount: Int, nativeUpperBoundBits: UInt64? = nil) {
+            self.mode = mode
+            self.lowerBound = lowerBound
+            self.upperBound = upperBound
+            self.sampleCount = sampleCount
+            self.nativeUpperBoundBits = nativeUpperBoundBits
+        }
+
+        static func sampleCount(deliveryTimestamp: Date, sampleCount: Int, nativeTimestamp: Double? = nil) -> Self {
             Self(
                 mode: .sampleCount,
                 lowerBound: nil,
                 upperBound: deliveryTimestamp,
-                sampleCount: sampleCount
+                sampleCount: sampleCount,
+                nativeUpperBoundBits: nativeTimestamp?.bitPattern
             )
         }
 
@@ -58,12 +70,27 @@ struct QueryAnchor: Hashable, Codable, Sendable {
                 sampleCount: sampleCount
             )
         }
+        /// New boundaries compare the framework clock, while retaining the first Date projection for identity.
+        /// A previously persisted Date-only boundary keeps its existing exact comparison.
+        func matchesSampleCountDelivery(_ delivery: Self) -> Bool {
+            guard mode == .sampleCount, delivery.mode == .sampleCount, sampleCount == delivery.sampleCount else {
+                return false
+            }
+            if let nativeUpperBoundBits {
+                return nativeUpperBoundBits == delivery.nativeUpperBoundBits
+            }
+            return lowerBound == delivery.lowerBound && upperBound == delivery.upperBound
+        }
     }
 
     /// The most-recent point in time for which data was queried.
     ///
     /// Note that this refers to the upper bound of the time range *for* which data was queried, not the point in time *at* which the query took place.
     let timestamp: Date
+    /// Exact SensorKit clock coordinate for sample-count fetching. It does not alter the resource identity preimage.
+    let nativeTimestampBits: UInt64?
+    let nativeClock: QueryNativeClock?
+    var nativeTimestamp: Double? { nativeTimestampBits.map(Double.init(bitPattern:)) }
 
     /// Monotonically increases whenever the consumer explicitly resets this cursor.
     ///
@@ -110,6 +137,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     /// Creates a new, empty `QueryAnchor`.
     init() {
         self.timestamp = .distantPast
+        self.nativeTimestampBits = nil
+        self.nativeClock = nil
         self.resetGeneration = 0
         self.batchSequence = 0
         self.pendingBatch = nil
@@ -122,9 +151,13 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         resetGeneration: UInt64 = 0,
         batchSequence: UInt64 = 0,
         pendingBatch: PendingBatch? = nil,
-        streamPartition: UInt64 = 0
+        streamPartition: UInt64 = 0,
+        nativeTimestampBits: UInt64? = nil,
+        nativeClock: QueryNativeClock? = nil
     ) {
         self.timestamp = timestamp
+        self.nativeTimestampBits = nativeTimestampBits
+        self.nativeClock = nativeClock
         self.resetGeneration = resetGeneration
         self.batchSequence = batchSequence
         self.pendingBatch = pendingBatch
@@ -144,8 +177,14 @@ struct QueryAnchor: Hashable, Codable, Sendable {
             resetGeneration: try container.decode(UInt64.self, forKey: .resetGeneration),
             batchSequence: try container.decodeIfPresent(UInt64.self, forKey: .batchSequence) ?? 0,
             pendingBatch: try container.decodeIfPresent(PendingBatch.self, forKey: .pendingBatch),
-            streamPartition: try container.decodeIfPresent(UInt64.self, forKey: .streamPartition) ?? 0
+            streamPartition: try container.decodeIfPresent(UInt64.self, forKey: .streamPartition) ?? 0,
+            nativeTimestampBits: try container.decodeIfPresent(UInt64.self, forKey: .nativeTimestampBits),
+            nativeClock: try container.decodeIfPresent(QueryNativeClock.self, forKey: .nativeClock)
         )
+        guard nativeClock?.isValid != false, nativeTimestamp?.isFinite != false,
+              pendingBatch?.nativeUpperBoundBits.map({ Double(bitPattern: $0).isFinite }) != false else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Invalid native query clock"))
+        }
     }
 
     @available(iOS 18, macOS 15, watchOS 11, *)
@@ -156,12 +195,14 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         return deliveredAnchor
     }
 
+    /// Moves a time-range cursor past a range without samples. A sample-count cursor moves only with a batch.
     func advancedPastEmptyRange(to timestamp: Date) -> Self {
         Self(
             timestamp: timestamp,
             resetGeneration: resetGeneration,
             batchSequence: batchSequence,
-            streamPartition: nextStreamPartition
+            streamPartition: nextStreamPartition,
+            nativeClock: nativeClock
         )
     }
 
@@ -171,7 +212,9 @@ struct QueryAnchor: Hashable, Codable, Sendable {
             resetGeneration: resetGeneration,
             batchSequence: batchSequence,
             pendingBatch: pendingBatch,
-            streamPartition: nextStreamPartition
+            streamPartition: nextStreamPartition,
+            nativeTimestampBits: nativeTimestampBits,
+            nativeClock: nativeClock
         )
     }
 
@@ -188,7 +231,21 @@ struct QueryAnchor: Hashable, Codable, Sendable {
             timestamp: pendingBatch.upperBound,
             resetGeneration: resetGeneration,
             batchSequence: nextSequence,
-            streamPartition: streamPartition
+            streamPartition: streamPartition,
+            nativeTimestampBits: pendingBatch.nativeUpperBoundBits,
+            nativeClock: nativeClock
+        )
+    }
+
+    func retainingNativeTimestamp(_ value: Double, clock: QueryNativeClock? = nil) -> Self {
+        Self(
+            timestamp: timestamp,
+            resetGeneration: resetGeneration,
+            batchSequence: batchSequence,
+            pendingBatch: pendingBatch,
+            streamPartition: nextStreamPartition,
+            nativeTimestampBits: value.bitPattern,
+            nativeClock: clock ?? nativeClock
         )
     }
 
@@ -201,7 +258,13 @@ struct QueryAnchor: Hashable, Codable, Sendable {
     /// The abandoned range is fetched again, and the new generation gives its records fresh
     /// acquisition coordinates, so no identity minted for the abandoned delivery is reused.
     func discardingPendingBatch() -> Self {
-        Self(timestamp: timestamp, resetGeneration: resetGeneration &+ 1, streamPartition: streamPartition)
+        Self(
+            timestamp: timestamp,
+            resetGeneration: resetGeneration &+ 1,
+            streamPartition: streamPartition,
+            nativeTimestampBits: nativeTimestampBits,
+            nativeClock: nativeClock
+        )
     }
     
     func encode(to encoder: any Encoder) throws {
@@ -211,6 +274,8 @@ struct QueryAnchor: Hashable, Codable, Sendable {
         try container.encode(batchSequence, forKey: .batchSequence)
         try container.encodeIfPresent(pendingBatch, forKey: .pendingBatch)
         try container.encode(streamPartition, forKey: .streamPartition)
+        try container.encodeIfPresent(nativeTimestampBits, forKey: .nativeTimestampBits)
+        try container.encodeIfPresent(nativeClock, forKey: .nativeClock)
     }
 }
 
@@ -302,6 +367,10 @@ extension ManagedQueryAnchor {
     ///
     /// Intended primarily for testing purposes, but also useful for performing one-off batched fetches.
     public static func ephemeral(startDate: Date? = nil) -> Self {
+        ephemeral(anchor: startDate.map { QueryAnchor(timestamp: $0) } ?? QueryAnchor())
+    }
+
+    static func ephemeral(anchor: QueryAnchor) -> Self {
         final class EphemeralStorage: Sendable {
             let anchor: Mutex<QueryAnchor>
             init(anchor: QueryAnchor) {
@@ -309,7 +378,7 @@ extension ManagedQueryAnchor {
             }
         }
         let storage = EphemeralStorage(
-            anchor: startDate.map { QueryAnchor(timestamp: $0) } ?? QueryAnchor()
+            anchor: anchor
         )
         return Self {
             storage.anchor.withLock { $0 }
