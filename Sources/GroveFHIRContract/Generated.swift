@@ -4176,6 +4176,337 @@ package enum HealthKitMeasurementCatalog {
 }
 
 
+/// Machine-generated Google Health measurement contracts.
+package enum GoogleHealthMeasurementCatalog {
+    package static let restingHeartRateDailyAverage = MeasurementContract(
+        id: "resting-heart-rate-daily-average",
+        profile: Profile.googleHealthDailyRestingHeartRate,
+        code: CodingContract(system: "https://grovealliance.org/fhir/google-health/CodeSystem/google-health-measurement", code: "resting-heart-rate-daily-average", display: "Resting heart rate daily average"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "/min", unit: "beats/minute", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: MethodContract(code: "daily-mean", display: "Daily mean"),
+        methodChoice: [],
+        effective: .period,
+        category: nil
+    )
+
+    package static let all: [MeasurementContract] = [
+        restingHeartRateDailyAverage,
+    ]
+}
+
+
+/// Machine-generated Oura measurement contracts.
+package enum OuraMeasurementCatalog {
+    package static let ouraCardiovascularAge = MeasurementContract(
+        id: "oura-cardiovascular-age",
+        profile: Profile.ouraCardiovascularAge,
+        code: CodingContract(system: "https://grovealliance.org/fhir/oura/CodeSystem/oura-measurement", code: "oura-cardiovascular-age", display: "Oura cardiovascular age"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "a", unit: "years", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period,
+        category: nil
+    )
+
+    package static let ouraReadinessScore = MeasurementContract(
+        id: "oura-readiness-score",
+        profile: Profile.ouraReadinessScore,
+        code: CodingContract(system: "https://grovealliance.org/fhir/oura/CodeSystem/oura-measurement", code: "oura-readiness-score", display: "Oura readiness score"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .period,
+        category: nil
+    )
+
+    package static let all: [MeasurementContract] = [
+        ouraCardiovascularAge,
+        ouraReadinessScore,
+    ]
+}
+
+
+/// Machine-generated Withings measurement contracts.
+package enum WithingsMeasurementCatalog {
+    package static let bodyFatMass = MeasurementContract(
+        id: "body-fat-mass",
+        profile: Profile.withingsBodyFatMass,
+        code: CodingContract(system: "http://loinc.org", code: "73708-0", display: "Body fat [Mass] Calculated"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let correctedQtInterval = MeasurementContract(
+        id: "corrected-qt-interval",
+        profile: Profile.withingsCorrectedQtInterval,
+        code: CodingContract(system: "http://loinc.org", code: "8636-3", display: "Q-T interval corrected"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let extracellularWaterMass = MeasurementContract(
+        id: "extracellular-water-mass",
+        profile: Profile.withingsExtracellularWaterMass,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "extracellular-water-mass", display: "Extracellular water mass"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let intracellularWaterMass = MeasurementContract(
+        id: "intracellular-water-mass",
+        profile: Profile.withingsIntracellularWaterMass,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "intracellular-water-mass", display: "Intracellular water mass"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let muscleMass = MeasurementContract(
+        id: "muscle-mass",
+        profile: Profile.withingsMuscleMass,
+        code: CodingContract(system: "http://loinc.org", code: "73964-9", display: "Body muscle mass Calculated"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "kg", unit: "kg", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let prInterval = MeasurementContract(
+        id: "pr-interval",
+        profile: Profile.withingsPrInterval,
+        code: CodingContract(system: "http://loinc.org", code: "8625-6", display: "P-R Interval"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let qrsDuration = MeasurementContract(
+        id: "qrs-duration",
+        profile: Profile.withingsQrsDuration,
+        code: CodingContract(system: "http://loinc.org", code: "8633-0", display: "QRS duration"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let qtInterval = MeasurementContract(
+        id: "qt-interval",
+        profile: Profile.withingsQtInterval,
+        code: CodingContract(system: "http://loinc.org", code: "8634-8", display: "Q-T interval"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "ms", unit: "ms", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let withingsAtrialFibrillationNotificationEcg = MeasurementContract(
+        id: "withings-atrial-fibrillation-notification-ecg",
+        profile: Profile.withingsAtrialFibrillationNotificationEcg,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "withings-atrial-fibrillation-notification-ecg", display: "Withings atrial fibrillation notification (ECG)"),
+        requiredCodings: [],
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/withings/CodeSystem/withings-atrial-fibrillation-notification-ecg",
+        allowedValues: ["signs-detected"],
+        resultCodes: [
+            ResultCodeContract(code: "signs-detected", display: "Signs Detected"),
+        ],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let withingsAtrialFibrillationNotificationPpg = MeasurementContract(
+        id: "withings-atrial-fibrillation-notification-ppg",
+        profile: Profile.withingsAtrialFibrillationNotificationPpg,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "withings-atrial-fibrillation-notification-ppg", display: "Withings atrial fibrillation notification (PPG)"),
+        requiredCodings: [],
+        quantity: nil,
+        components: [],
+        resultCodeSystem: "https://grovealliance.org/fhir/withings/CodeSystem/withings-atrial-fibrillation-notification-ppg",
+        allowedValues: ["signs-detected"],
+        resultCodes: [
+            ResultCodeContract(code: "signs-detected", display: "Signs Detected"),
+        ],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let withingsNerveHealthScore = MeasurementContract(
+        id: "withings-nerve-health-score",
+        profile: Profile.withingsNerveHealthScore,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "withings-nerve-health-score", display: "Withings nerve health score"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let withingsPulseWaveVelocity = MeasurementContract(
+        id: "withings-pulse-wave-velocity",
+        profile: Profile.withingsPulseWaveVelocity,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "withings-pulse-wave-velocity", display: "Withings pulse wave velocity"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "m/s", unit: "m/s", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let withingsVascularAge = MeasurementContract(
+        id: "withings-vascular-age",
+        profile: Profile.withingsVascularAge,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "withings-vascular-age", display: "Withings vascular age"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "a", unit: "years", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let withingsVisceralFatIndex = MeasurementContract(
+        id: "withings-visceral-fat-index",
+        profile: Profile.withingsVisceralFatIndex,
+        code: CodingContract(system: "https://grovealliance.org/fhir/withings/CodeSystem/withings-measurement", code: "withings-visceral-fat-index", display: "Withings visceral fat index"),
+        requiredCodings: [],
+        quantity: QuantityContract(system: "http://unitsofmeasure.org", code: "{score}", unit: "score", valueDomain: nil),
+        components: [],
+        resultCodeSystem: nil,
+        allowedValues: [],
+        resultCodes: [],
+        additionalResultBindings: [],
+        method: nil,
+        methodChoice: [],
+        effective: .dateTime,
+        category: nil
+    )
+
+    package static let all: [MeasurementContract] = [
+        bodyFatMass,
+        correctedQtInterval,
+        extracellularWaterMass,
+        intracellularWaterMass,
+        muscleMass,
+        prInterval,
+        qrsDuration,
+        qtInterval,
+        withingsAtrialFibrillationNotificationEcg,
+        withingsAtrialFibrillationNotificationPpg,
+        withingsNerveHealthScore,
+        withingsPulseWaveVelocity,
+        withingsVascularAge,
+        withingsVisceralFatIndex,
+    ]
+}
+
+
 /// Swift producer states generated from the authoritative HealthKit adapter inventory.
 public enum HealthKitImplementationStatus: String, CaseIterable, Sendable {
     case intentionallyUnsupported = "intentionally-unsupported"
