@@ -1,0 +1,221 @@
+//
+// This source file is part of the Grove open-source project
+//
+// SPDX-FileCopyrightText: 2026 Stanford University and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+// Members are ordered to keep row access, errors, and whole-payload reading together.
+// swiftlint:disable type_contents_order
+
+public import Foundation
+
+/// Reads a tabular Grove recording payload back into its published columns.
+///
+/// The registry promises that a receiver can parse any admitted payload from the format code
+/// alone. This is that promise executed: the code names the columns, the reader requires exactly
+/// them, and a payload whose header disagrees is rejected rather than silently misread.
+public struct RecordingCSVReader: Sendable {
+    /// One parsed row, addressable by the column names the format publishes.
+    public struct Row: Sendable, Equatable {
+        /// The row's raw fields, in the format's column order.
+        public let fields: [String]
+        private let columns: [String]
+
+        init(fields: [String], columns: [String]) {
+            self.fields = fields
+            self.columns = columns
+        }
+
+        /// The raw field under a published column name, or `nil` if the format has no such column.
+        public subscript(column: String) -> String? {
+            guard let index = columns.firstIndex(of: column) else {
+                return nil
+            }
+            return fields[index]
+        }
+
+        /// Whether the column carries no value; the writer emits an empty field for an absent one.
+        public func isAbsent(_ column: String) -> Bool {
+            self[column]?.isEmpty ?? true
+        }
+
+        /// The column's value as a binary64 number, or `nil` only when the field is absent.
+        ///
+        /// An unknown column or malformed/non-finite value throws so corruption cannot be
+        /// mistaken for a source that omitted the measurement.
+        public func number(_ column: String) throws -> Double? {
+            guard let raw = self[column] else {
+                throw RowValueError.unknownColumn(column)
+            }
+            guard !raw.isEmpty else {
+                return nil
+            }
+            guard RecordingCSVColumn.isNumber(raw), let value = Double(raw) else {
+                throw RowValueError.malformedNumber(column: column, value: raw)
+            }
+            return value
+        }
+
+        /// Parses a required canonical binary64 field without conflating absence and corruption.
+        public func requiredNumber(_ column: String) throws -> Double {
+            guard let value = try number(column) else {
+                throw RowValueError.absent(column)
+            }
+            return value
+        }
+
+        /// The column's value as an integer, or `nil` only when the field is absent.
+        public func integer(_ column: String) throws -> Int? {
+            guard let raw = self[column] else {
+                throw RowValueError.unknownColumn(column)
+            }
+            guard !raw.isEmpty else {
+                return nil
+            }
+            guard RecordingCSVColumn.isInteger(raw), let value = Int(raw) else {
+                throw RowValueError.malformedInteger(column: column, value: raw)
+            }
+            return value
+        }
+
+        /// Parses a required base-ten integer field without conflating absence and corruption.
+        public func requiredInteger(_ column: String) throws -> Int {
+            guard let value = try integer(column) else {
+                throw RowValueError.absent(column)
+            }
+            return value
+        }
+
+        /// The column's value as an instant; the registry writes timestamps as epoch seconds.
+        public func timestamp(_ column: String) throws -> Date? {
+            guard let seconds = try number(column) else {
+                return nil
+            }
+            return Date(timeIntervalSince1970: seconds)
+        }
+    }
+
+    /// Why a row's field could not be read as the requested value.
+    public enum RowValueError: Error, Equatable, Sendable {
+        /// The format publishes no column with this name.
+        case unknownColumn(String)
+        /// The required column carries no value.
+        case absent(String)
+        /// The field is not a canonical finite number.
+        case malformedNumber(column: String, value: String)
+        /// The field is not a canonical integer that fits `Int`.
+        case malformedInteger(column: String, value: String)
+    }
+
+    /// Why a payload could not be read as the format it claims to be.
+    public enum ReaderError: Error, Equatable {
+        /// A field violates its registered type, canonical number form, or absence rule.
+        case invalidColumnValue(row: Int, column: String)
+        /// The format publishes no column set, so it is not a tabular recording.
+        case notTabular(RegisteredRecordingFormat)
+        /// The payload is not the UTF-8 the registry requires.
+        case invalidUTF8
+        /// The payload carries no header row.
+        case missingHeader
+        /// The header names columns other than the ones the format publishes.
+        case unexpectedHeader(expected: [String], actual: [String])
+        /// A row carries a different number of fields than the format has columns. For too many fields, `actual` is the
+        /// count at the first extra field. A header with too many fields is reported here, one with too few as
+        /// ``unexpectedHeader(expected:actual:)``.
+        case columnCountMismatch(row: Int, expected: Int, actual: Int)
+        /// A quoted field is never closed.
+        case unterminatedQuote(row: Int)
+        /// The field is quoted although its value contains no comma, double quote or LF.
+        ///
+        /// Recording CSV has one encoding: a field is quoted exactly when its value contains a comma, a double quote or
+        /// LF, as ``RecordingCSVWriter`` writes it. A file that quotes every field, which RFC 4180 also admits, is
+        /// refused at its first such field. A value such as `60` is written without quotes.
+        case unnecessaryQuotes(row: Int, column: Int)
+        /// A quote appeared inside an unquoted field.
+        case unexpectedQuote(row: Int, column: Int, byteOffset: Int)
+        /// Only a comma, LF, or end may follow a closing quote.
+        case invalidCharacterAfterClosingQuote(row: Int, column: Int, byteOffset: Int)
+        /// The registered canonical grammar prohibits CR everywhere, including quoted fields.
+        case unexpectedCarriageReturn(row: Int, column: Int, byteOffset: Int)
+        /// The payload does not end with the row terminator the registry mandates.
+        case missingFinalRowTerminator
+        /// Read limits must be positive and fit the R4 attachment size range.
+        case invalidReadLimits
+        /// The payload exceeds the configured total byte count.
+        case payloadLimitExceeded
+        /// An encoded row, including its terminator, exceeds the configured byte count.
+        case recordLimitExceeded(row: Int)
+        /// A decoded field exceeds the configured UTF-8 byte count.
+        case fieldLimitExceeded(row: Int, column: Int)
+        /// A stream cannot be reused after it finishes or any read or consumer operation fails.
+        case streamClosed
+    }
+
+    /// The columns the format publishes, in order.
+    public let columns: [String]
+    /// Every data row, header excluded.
+    public let rows: [Row]
+
+    /// Reads a payload as the given registry format.
+    ///
+    /// - Parameters:
+    ///   - data: The exact payload bytes.
+    ///   - format: The registry format the carrying document declares.
+    ///   - limits: The limits on the bytes the reader retains while it parses the payload.
+    public init(_ data: Data, format: RegisteredRecordingFormat, limits: Limits = .default) throws(ReaderError) {
+        var stream = try Stream(format: format, limits: limits)
+        var rows: [Row] = []
+        try stream.read(data, appendingTo: &rows)
+        try stream.finish()
+        self.columns = stream.columns
+        self.rows = rows
+    }
+}
+
+
+extension RecordingCSVReader.ReaderError: CustomStringConvertible {
+    /// The violation, with its row and column where it has one, naming the canonical form where the payload departs
+    /// from it.
+    public var description: String {
+        switch self {
+        case let .invalidColumnValue(row, column):
+            "row \(row): the value of column \(column) violates its registered type, canonical number form or absence rule"
+        case .notTabular(let format):
+            "the format \(format.rawValue) publishes no columns, so it is not a tabular recording"
+        case .invalidUTF8:
+            "the payload is not valid UTF-8"
+        case .missingHeader:
+            "the payload has no header row"
+        case let .unexpectedHeader(expected, actual):
+            "the header is \(actual.joined(separator: ",")), but the format publishes \(expected.joined(separator: ","))"
+        case let .columnCountMismatch(row, expected, actual):
+            actual > expected
+                ? "row \(row) has more than \(expected) fields, the number of columns the format publishes"
+                : "row \(row) has \(actual) fields, but the format publishes \(expected) columns"
+        case .unterminatedQuote(let row):
+            "row \(row) has a quoted field that is never closed"
+        case let .unnecessaryQuotes(row, column):
+            "row \(row), column \(column) is quoted, but recording CSV quotes a field only when its value contains a comma, a double quote or LF"
+        case let .unexpectedQuote(row, column, byteOffset):
+            "row \(row), column \(column) has a double quote at payload byte \(byteOffset), inside an unquoted field"
+        case let .invalidCharacterAfterClosingQuote(row, column, byteOffset):
+            "row \(row), column \(column) has, at payload byte \(byteOffset), a byte other than a comma or LF after its closing quote"
+        case let .unexpectedCarriageReturn(row, column, byteOffset):
+            "row \(row), column \(column) has a CR at payload byte \(byteOffset); recording CSV admits no CR"
+        case .missingFinalRowTerminator:
+            "the payload does not end with LF"
+        case .invalidReadLimits:
+            "the read limits must be positive and at most Int32.max"
+        case .payloadLimitExceeded:
+            "the payload exceeds the byte limit"
+        case .recordLimitExceeded(let row):
+            "row \(row) exceeds the row byte limit"
+        case let .fieldLimitExceeded(row, column):
+            "row \(row), column \(column) exceeds the field byte limit"
+        case .streamClosed:
+            "the stream finished or failed before and cannot be read again"
+        }
+    }
+}

@@ -315,7 +315,6 @@ On iOS, typed initializers map Grove's already-fetched safe representations into
 
 ### Recording payloads
 
-- ``RecordingCSVReader``
 - ``RecordingBinaryReader``
 - ``RecordingBinaryWriter``
 - ``SensorKitPPGRecording``
