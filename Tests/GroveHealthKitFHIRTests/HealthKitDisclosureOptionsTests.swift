@@ -49,13 +49,14 @@ struct HealthKitDisclosureOptionsTests {
     /// One record of each kind of output, each measured on a device and stating every device metadata key.
     enum Output: CaseIterable, Sendable {
         case heartbeatSeries
+        case fileRecording
         case electrocardiogram
         case workout
 
         /// The identifying facts of the goldens' watch, which records the ECG.
         static let watchValues = ["Apple Watch", "6C4B1D1E-0000-4000-8000-000000000001", "(01)00844588003288"]
 
-        func record() throws -> HealthKitFHIRExporter.Record {
+        func record() async throws -> HealthKitFHIRExporter.Record {
             let metadata = deviceMetadata.merging(GoldenFixtures.timeZoneMetadata) { $1 }
             switch self {
             case .heartbeatSeries:
@@ -64,6 +65,23 @@ struct HealthKitDisclosureOptionsTests {
                 facts.metadata = metadata
                 let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
                 return .heartbeatSeries(series, beats: ContentCorpusGrid.heartbeats.map(\.heartbeat))
+            case .fileRecording:
+                var facts = GoldenCase.seriesFacts(uuid: 0xB8, duration: 2)
+                facts.device = device
+                facts.metadata = metadata
+                let series = try StoredSampleFixtures.seriesSample(HKHeartbeatSeriesSample.self, sampleType: HKSeriesType.heartbeat(), facts: facts)
+                let beats = ContentCorpusGrid.heartbeats.map(\.heartbeat)
+                try StoredSampleFixtures.restate(series, with: ["numberOfDataPoints": NSNumber(value: beats.count)])
+                let stream = AsyncThrowingStream<HealthKitFHIRExporter.Record.Heartbeat, any Error> { continuation in
+                    beats.forEach { continuation.yield($0) }
+                    continuation.finish()
+                }
+                return .fileRecording(try await HealthKitRecordingFile.heartbeatSeries(
+                    series,
+                    beats: stream,
+                    relativePath: "recordings/beats.csv",
+                    maximumByteCount: 1 << 20
+                ))
             case .electrocardiogram:
                 let symptom = try StoredSampleFixtures.stored(
                     HKCategorySample(
@@ -438,11 +456,15 @@ struct HealthKitDisclosureOptionsTests {
         #expect(first.identifiers == second.identifiers)
     }
 
-    @Test("Documents, an ECG with a symptom and a workout with event device metadata keep the omitted facts out", arguments: Output.allCases, Narrowing.allCases)
-    func everyOutputKindFollowsThePolicies(output: Output, narrowing: Narrowing) throws {
+    @Test(
+        "Documents, file recordings, an ECG with a symptom and a workout with event device metadata keep the omitted facts out",
+        arguments: Output.allCases,
+        Narrowing.allCases
+    )
+    func everyOutputKindFollowsThePolicies(output: Output, narrowing: Narrowing) async throws {
         var inputs = ExportInputs()
         inputs.options = narrowing.options
-        let conversions = try AssemblyFixtures.conversions(output.record(), inputs)
+        let conversions = try AssemblyFixtures.conversions(await output.record(), inputs)
         try #require(conversions.count == (output == .electrocardiogram ? 2 : 1))
         for conversion in conversions {
             let json = Self.json(of: conversion)
