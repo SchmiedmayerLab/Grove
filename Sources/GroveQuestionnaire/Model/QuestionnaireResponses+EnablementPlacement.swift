@@ -35,9 +35,6 @@ struct EnablementPlacement {
         let scope: QuestionnaireResponses.ResponsesPath
         /// The occurrence of the task this one follows up on.
         let parent: Int?
-        /// Whether conditions can read the occurrence. The container of an unselected option, in which a
-        /// condition can still be evaluated, is not part of the response.
-        let isReadable: Bool
     }
 
     private struct Level {
@@ -52,7 +49,8 @@ struct EnablementPlacement {
     }
 
     private(set) var occurrences: [Occurrence] = []
-    /// The occurrences conditions can read, by task id, in document order.
+    /// The occurrences conditions can read, by task id, in document order. The container of an unselected option, in
+    /// which a condition can still be evaluated, is not part of the response, so its occurrences are not readable.
     private(set) var readable: [Questionnaire.Task.ID: [Int]] = [:]
     /// The occurrences in the observed container, by task id.
     private(set) var observed: [Questionnaire.Task.ID: Int] = [:]
@@ -73,8 +71,7 @@ struct EnablementPlacement {
                 task: task,
                 container: level.container?.pathFromRoot,
                 scope: level.scope.pathFromRoot,
-                parent: level.parent,
-                isReadable: level.isReadable
+                parent: level.parent
             ))
             if level.isReadable {
                 readable[task.id, default: []].append(index)
