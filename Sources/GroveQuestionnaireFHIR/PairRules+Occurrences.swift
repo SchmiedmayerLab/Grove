@@ -126,20 +126,20 @@ struct PairOccurrences {
         let enclosing = occurrences[index].parent.map { state(of: $0) } ?? true
         guard !rules.cyclic.contains(occurrences[index].linkID) else {
             // An item that depends on itself has no enablement of its own; a disabled enclosing item still disables it.
-            let state = PairCondition.all([enclosing, nil])
-            states[index] = state
+            let enablement = PairCondition.all([enclosing, nil])
+            states[index] = enablement
             evaluated[index] = true
-            return state
+            return enablement
         }
         let condition = conditionState(of: index)
         conditionStates[index] = condition
         let definition = occurrences[index].definition
         let hasExpression = !PairRules.extensions(definition, url: PairRules.URL.enableWhenExpression).isEmpty
         let own = hasExpression ? expressionEnablement(definition, occurrences[index].expressionPath) : condition
-        let state = PairCondition.all([enclosing, own])
-        states[index] = state
+        let enablement = PairCondition.all([enclosing, own])
+        states[index] = enablement
         evaluated[index] = true
-        return state
+        return enablement
     }
 
     /// The outcome of the occurrence's core `enableWhen`. The answers of a disabled question count as absent.
